@@ -14,18 +14,15 @@ import {
   Trophy,
   BarChart3,
   GraduationCap,
-  Settings,
   LogOut,
   Bell,
   Menu,
   X,
-  Users,
-  Building2,
   Upload,
   Eye,
-  Plug,
-  ChevronDown,
   Accessibility,
+  Search,
+  ChevronRight,
 } from 'lucide-react';
 
 type NavItem = {
@@ -56,6 +53,20 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
 };
 
+const ROLE_COLORS: Record<string, string> = {
+  STUDENT: 'from-blue-500 to-blue-600',
+  TEACHER: 'from-green-500 to-green-600',
+  ADMIN: 'from-purple-500 to-purple-600',
+  PARENT: 'from-pink-500 to-pink-600',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  STUDENT: 'Student Portal',
+  TEACHER: 'Teacher Portal',
+  ADMIN: 'Admin Portal',
+  PARENT: 'Parent Portal',
+};
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -69,6 +80,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = NAV_ITEMS[role] || [];
   const userAvatar = (session?.user as any)?.selectedAvatar || 'default';
   const avatarEmoji = AVATAR_OPTIONS.find(a => a.id === userAvatar)?.emoji || '👤';
+  const roleColor = ROLE_COLORS[role] || ROLE_COLORS.STUDENT;
+  const roleLabel = ROLE_LABELS[role] || 'Portal';
 
   useEffect(() => {
     fetchNotifications();
@@ -108,7 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -123,12 +136,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
-          <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
-            <span className="text-xl">📚</span>
+          <div className={cn('w-10 h-10 bg-gradient-to-br rounded-xl flex items-center justify-center shadow-sm', roleColor)}>
+            <BookOpen size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Limud</h1>
-            <p className="text-xs text-gray-400 capitalize">{role.toLowerCase()} Portal</p>
+            <h1 className="text-lg font-bold text-gray-900">Limud</h1>
+            <p className="text-[11px] text-gray-400 font-medium">{roleLabel}</p>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -141,27 +154,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Nav */}
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-          {navItems.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'sidebar-link',
-                pathname === item.href && 'active'
-              )}
-              onClick={() => setSidebarOpen(false)}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {navItems.map(item => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative',
+                  isActive
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                )}
+                onClick={() => setSidebarOpen(false)}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-600 rounded-r-full"
+                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <span className={cn(isActive ? 'text-primary-600' : 'text-gray-400')}>{item.icon}</span>
+                <span>{item.label}</span>
+                {isActive && <ChevronRight size={14} className="ml-auto text-primary-400" />}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* User section */}
+        {/* Bottom section */}
         <div className="p-4 border-t border-gray-100 space-y-2">
           <button
             onClick={() => setShowAccessibility(!showAccessibility)}
-            className="sidebar-link w-full"
+            className={cn(
+              'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium w-full transition-all',
+              showAccessibility ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50'
+            )}
             aria-label="Accessibility settings"
           >
             <Accessibility size={20} />
@@ -181,9 +210,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </AnimatePresence>
 
-          <div className="flex items-center gap-3 px-4 py-3">
-            <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-xl">
-              {avatarEmoji}
+          {/* User profile */}
+          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl">
+            <div className={cn('w-10 h-10 bg-gradient-to-br rounded-full flex items-center justify-center text-xl shadow-sm', roleColor)}>
+              <span className="drop-shadow-sm">{avatarEmoji}</span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
@@ -195,7 +225,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="sidebar-link w-full text-red-500 hover:bg-red-50 hover:text-red-600"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium w-full text-red-500 hover:bg-red-50 hover:text-red-600 transition-all"
             aria-label="Sign out"
           >
             <LogOut size={20} />
@@ -207,14 +237,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="bg-white border-b border-gray-100 px-4 lg:px-8 py-3 flex items-center gap-4">
+        <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100 px-4 lg:px-8 py-3 flex items-center gap-4 sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-xl hover:bg-gray-100"
+            className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition"
             aria-label="Open menu"
           >
             <Menu size={20} />
           </button>
+
+          {/* Breadcrumb */}
+          <div className="hidden sm:flex items-center gap-2 text-sm text-gray-400">
+            <span className="font-medium text-gray-500">{roleLabel}</span>
+            <ChevronRight size={14} />
+            <span className="font-medium text-gray-900">
+              {navItems.find(item => item.href === pathname)?.label || 'Dashboard'}
+            </span>
+          </div>
 
           <div className="flex-1" />
 
@@ -222,52 +261,65 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-xl hover:bg-gray-100 transition"
+              className="relative p-2.5 rounded-xl hover:bg-gray-100 transition"
               aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
             >
-              <Bell size={20} className="text-gray-600" />
+              <Bell size={20} className="text-gray-500" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                  {unreadCount}
-                </span>
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-sm"
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </motion.span>
               )}
             </button>
 
             <AnimatePresence>
               {showNotifications && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50"
-                >
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                    <h3 className="font-semibold text-gray-900">Notifications</h3>
-                    {unreadCount > 0 && (
-                      <button onClick={markAllRead} className="text-xs text-primary-600 font-medium hover:underline">
-                        Mark all read
-                      </button>
-                    )}
-                  </div>
-                  <div className="max-h-80 overflow-y-auto custom-scrollbar">
-                    {notifications.length === 0 ? (
-                      <p className="p-4 text-sm text-gray-400 text-center">No notifications yet</p>
-                    ) : (
-                      notifications.slice(0, 8).map(notif => (
-                        <div
-                          key={notif.id}
-                          className={cn(
-                            'px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition',
-                            !notif.isRead && 'bg-primary-50/50'
-                          )}
-                        >
-                          <p className="text-sm font-medium text-gray-900">{notif.title}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{notif.message}</p>
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowNotifications(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50"
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                      <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button onClick={markAllRead} className="text-xs text-primary-600 font-medium hover:underline">
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center">
+                          <Bell size={24} className="mx-auto text-gray-300 mb-2" />
+                          <p className="text-sm text-gray-400">No notifications yet</p>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </motion.div>
+                      ) : (
+                        notifications.slice(0, 8).map(notif => (
+                          <div
+                            key={notif.id}
+                            className={cn(
+                              'px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition cursor-pointer',
+                              !notif.isRead && 'bg-primary-50/50'
+                            )}
+                          >
+                            <p className="text-sm font-medium text-gray-900">{notif.title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{notif.message}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
           </div>
@@ -275,7 +327,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-8">
-          {children}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {children}
+          </motion.div>
         </main>
       </div>
     </div>

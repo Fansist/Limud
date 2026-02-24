@@ -7,7 +7,10 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import { Eye, BookOpen, Trophy, TrendingUp, Clock, CheckCircle2 } from 'lucide-react';
+import {
+  Eye, BookOpen, Trophy, TrendingUp, Clock, CheckCircle2,
+  Flame, Zap, GraduationCap, MessageCircle, Star,
+} from 'lucide-react';
 
 export default function ParentDashboard() {
   const { data: session, status } = useSession();
@@ -39,7 +42,10 @@ export default function ParentDashboard() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+            <p className="text-sm text-gray-400">Loading your child's progress...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -49,22 +55,35 @@ export default function ParentDashboard() {
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Eye className="text-primary-500" />
-            Parent Portal
-          </h1>
-          <p className="text-gray-500 mt-1">
-            View-only access to your child's academic progress
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center">
+              <Eye size={20} className="text-primary-500" />
+            </div>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                Parent Portal
+              </h1>
+              <p className="text-gray-500 text-sm">
+                View-only access to your child's academic progress
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         {children.length === 0 ? (
-          <div className="card text-center py-12">
-            <p className="text-gray-400 text-lg mb-2">No linked students found</p>
-            <p className="text-gray-300 text-sm">
-              Contact your school administrator to link your student account.
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card text-center py-16"
+          >
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Eye size={28} className="text-gray-400" />
+            </div>
+            <p className="text-gray-400 text-lg mb-2 font-medium">No linked students found</p>
+            <p className="text-gray-300 text-sm max-w-sm mx-auto">
+              Contact your school administrator to link your student account to this parent portal.
             </p>
-          </div>
+          </motion.div>
         ) : (
           children.map((child, ci) => (
             <motion.div
@@ -75,62 +94,104 @@ export default function ParentDashboard() {
               className="space-y-4"
             >
               {/* Child Header */}
-              <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-3xl p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold">{child.name}</h2>
-                    <p className="text-white/70">Grade: {child.gradeLevel || 'N/A'}</p>
+              <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 rounded-3xl p-6 lg:p-8 text-white overflow-hidden">
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJILTEweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50" />
+                
+                <div className="relative">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                        <GraduationCap size={28} />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold">{child.name}</h2>
+                        <p className="text-white/60 text-sm">Grade: {child.gradeLevel || 'N/A'}</p>
+                      </div>
+                    </div>
+                    {child.rewards && (
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
+                          <p className="text-xl font-bold flex items-center gap-1">
+                            <Zap size={14} className="text-purple-300" />
+                            Lv.{child.rewards.level}
+                          </p>
+                          <p className="text-[10px] text-white/50">Level</p>
+                        </div>
+                        <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
+                          <p className="text-xl font-bold flex items-center gap-1">
+                            <Flame size={14} className="text-orange-300" />
+                            {child.rewards.currentStreak}
+                          </p>
+                          <p className="text-[10px] text-white/50">Streak</p>
+                        </div>
+                        <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
+                          <p className="text-xl font-bold">{child.rewards.assignmentsCompleted}</p>
+                          <p className="text-[10px] text-white/50">Done</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {child.rewards && (
-                    <div className="flex items-center gap-6">
-                      <div className="text-center">
-                        <p className="text-2xl font-bold">Lv.{child.rewards.level}</p>
-                        <p className="text-xs text-white/60">Level</p>
+
+                  {child.averageScore !== null && (
+                    <div className="mt-6">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-white/60">Overall Average</span>
+                        <span className="font-bold text-lg">{child.averageScore}%</span>
                       </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold">{child.rewards.currentStreak}🔥</p>
-                        <p className="text-xs text-white/60">Streak</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold">{child.rewards.assignmentsCompleted}</p>
-                        <p className="text-xs text-white/60">Completed</p>
+                      <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${child.averageScore}%` }}
+                          transition={{ duration: 1 }}
+                          className={cn(
+                            'h-full rounded-full',
+                            child.averageScore >= 90 ? 'bg-green-400' :
+                            child.averageScore >= 70 ? 'bg-yellow-400' :
+                            'bg-red-400'
+                          )}
+                        />
                       </div>
                     </div>
                   )}
                 </div>
+              </div>
 
-                {child.averageScore !== null && (
-                  <div className="mt-4">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-white/70">Overall Average</span>
-                      <span className="font-bold">{child.averageScore}%</span>
-                    </div>
-                    <div className="h-2.5 bg-white/20 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${child.averageScore}%` }}
-                        className={cn(
-                          'h-full rounded-full',
-                          child.averageScore >= 90 ? 'bg-green-400' :
-                          child.averageScore >= 70 ? 'bg-yellow-400' :
-                          'bg-red-400'
-                        )}
-                      />
-                    </div>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { icon: <Star size={18} />, label: 'XP Earned', value: child.rewards?.totalXP?.toLocaleString() || '0', color: 'bg-purple-50 text-purple-600' },
+                  { icon: <Flame size={18} />, label: 'Best Streak', value: `${child.rewards?.longestStreak || 0} days`, color: 'bg-orange-50 text-orange-600' },
+                  { icon: <MessageCircle size={18} />, label: 'Tutor Chats', value: `${child.rewards?.tutorSessionsCount || 0}`, color: 'bg-blue-50 text-blue-600' },
+                  { icon: <Trophy size={18} />, label: 'Badges', value: `${child.rewards?.badges?.length || 0}`, color: 'bg-amber-50 text-amber-600' },
+                ].map(stat => (
+                  <div key={stat.label} className={cn('rounded-2xl p-4', stat.color)}>
+                    <div className="mb-1">{stat.icon}</div>
+                    <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-xs text-gray-500">{stat.label}</p>
                   </div>
-                )}
+                ))}
               </div>
 
               {/* Courses */}
               {child.courses.length > 0 && (
                 <div className="card">
-                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <BookOpen size={18} className="text-primary-500" />
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
+                      <BookOpen size={16} className="text-primary-500" />
+                    </div>
                     Enrolled Courses
                   </h3>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {child.courses.map((c: any, i: number) => (
-                      <span key={i} className="badge badge-info">{c.name} ({c.subject})</span>
+                      <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                          <BookOpen size={16} className="text-primary-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{c.name}</p>
+                          <p className="text-xs text-gray-400">{c.subject}</p>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -139,13 +200,17 @@ export default function ParentDashboard() {
               {/* Badges */}
               {child.rewards?.badges?.length > 0 && (
                 <div className="card">
-                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <Trophy size={18} className="text-amber-500" />
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                      <Trophy size={16} className="text-amber-500" />
+                    </div>
                     Earned Badges
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {child.rewards.badges.map((b: string) => (
-                      <span key={b} className="badge bg-yellow-100 text-yellow-700">🏆 {b}</span>
+                      <span key={b} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium border border-amber-100">
+                        🏆 {b}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -153,23 +218,29 @@ export default function ParentDashboard() {
 
               {/* Recent Submissions */}
               <div className="card">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <TrendingUp size={18} className="text-green-500" />
+                <h3 className="font-bold text-gray-900 mb-5 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                    <TrendingUp size={16} className="text-green-500" />
+                  </div>
                   Recent Assignment Activity
                 </h3>
                 <div className="space-y-3">
                   {child.recentSubmissions.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-4">No submissions yet</p>
+                    <div className="text-center py-8">
+                      <div className="text-3xl mb-2">📝</div>
+                      <p className="text-sm text-gray-400">No submissions yet</p>
+                    </div>
                   ) : (
                     child.recentSubmissions.map((sub: any, i: number) => {
                       let feedback: any = null;
                       if (sub.feedback) {
                         try { feedback = JSON.parse(sub.feedback); } catch { feedback = { feedback: sub.feedback }; }
                       }
+                      const pct = sub.score !== null && sub.maxScore ? Math.round((sub.score / sub.maxScore) * 100) : null;
 
                       return (
-                        <div key={i} className="p-3 rounded-xl bg-gray-50">
-                          <div className="flex items-center justify-between mb-1">
+                        <div key={i} className="p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+                          <div className="flex items-center justify-between mb-2">
                             <div>
                               <p className="text-sm font-semibold text-gray-900">
                                 {sub.assignmentTitle}
@@ -178,30 +249,44 @@ export default function ParentDashboard() {
                             </div>
                             <div className="flex items-center gap-2">
                               <span className={cn(
-                                'badge',
+                                'badge text-[10px]',
                                 sub.status === 'GRADED' ? 'badge-success' :
                                 sub.status === 'SUBMITTED' ? 'badge-info' :
                                 'badge-warning'
                               )}>
                                 {sub.status}
                               </span>
-                              {sub.score !== null && (
-                                <span className={cn(
-                                  'font-bold text-sm',
-                                  (sub.score / sub.maxScore) >= 0.9 ? 'text-green-600' :
-                                  (sub.score / sub.maxScore) >= 0.7 ? 'text-yellow-600' :
-                                  'text-red-600'
-                                )}>
-                                  {sub.score}/{sub.maxScore}
-                                </span>
+                              {pct !== null && (
+                                <div className="flex items-center gap-2">
+                                  <span className={cn(
+                                    'font-bold text-sm',
+                                    pct >= 90 ? 'text-green-600' :
+                                    pct >= 70 ? 'text-amber-600' :
+                                    'text-red-600'
+                                  )}>
+                                    {sub.score}/{sub.maxScore}
+                                  </span>
+                                </div>
                               )}
                             </div>
                           </div>
 
+                          {pct !== null && (
+                            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mb-2">
+                              <div
+                                className={cn('h-full rounded-full', pct >= 90 ? 'bg-green-500' : pct >= 70 ? 'bg-amber-500' : 'bg-red-500')}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          )}
+
                           {feedback && (
-                            <div className="mt-2 text-xs text-gray-600 bg-white p-2 rounded-lg">
-                              <p className="font-medium text-blue-700 mb-1">AI Feedback:</p>
-                              <p>{feedback.feedback}</p>
+                            <div className="mt-2 text-xs text-gray-600 bg-white p-3 rounded-lg border border-gray-100">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <MessageCircle size={12} className="text-primary-500" />
+                                <p className="font-semibold text-primary-700">AI Feedback</p>
+                              </div>
+                              <p className="text-gray-500 leading-relaxed">{feedback.feedback}</p>
                             </div>
                           )}
                         </div>

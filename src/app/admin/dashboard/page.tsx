@@ -10,7 +10,8 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import {
   Building2, Users, GraduationCap, DollarSign,
-  Upload, ArrowRight, Shield, Settings,
+  Upload, ArrowRight, Shield, Settings, Globe,
+  TrendingUp, Calendar, CreditCard,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -43,25 +44,28 @@ export default function AdminDashboard() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+            <p className="text-sm text-gray-400">Loading district data...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
   }
 
   const district = districts[0];
+  const districtName = (session?.user as any)?.districtName || 'District';
 
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Shield className="text-primary-500" />
-            District Administration
-          </h1>
-          <p className="text-gray-500 mt-1">
-            {(session?.user as any)?.districtName || 'District'} Management Console
-          </p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+              District Administration
+            </h1>
+            <p className="text-gray-500 mt-1">{districtName} Management Console</p>
+          </div>
         </motion.div>
 
         {district && (
@@ -71,117 +75,177 @@ export default function AdminDashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-gradient-to-r from-primary-600 to-primary-800 rounded-3xl p-6 lg:p-8 text-white"
+              className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 rounded-3xl p-6 lg:p-8 text-white overflow-hidden"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-bold">{district.name}</h2>
-                  <p className="text-white/70 mt-1">Subscription: {district.subdomain}</p>
-                </div>
-                <div className="flex items-center gap-2">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJILTEweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50" />
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
+              
+              <div className="relative">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                      <Building2 size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold">{district.name}</h2>
+                      <p className="text-white/60 text-sm">ID: {district.subdomain}</p>
+                    </div>
+                  </div>
                   <span className={cn(
-                    'badge text-sm',
+                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold self-start',
                     district.subscriptionStatus === 'ACTIVE' ? 'bg-green-400/20 text-green-200' :
                     district.subscriptionStatus === 'TRIAL' ? 'bg-yellow-400/20 text-yellow-200' :
                     'bg-red-400/20 text-red-200'
                   )}>
+                    <div className={cn('w-2 h-2 rounded-full', district.subscriptionStatus === 'ACTIVE' ? 'bg-green-400' : 'bg-yellow-400')} />
                     {district.subscriptionStatus}
                   </span>
                 </div>
-              </div>
 
-              <div className="grid sm:grid-cols-4 gap-6 mt-6">
-                <div>
-                  <p className="text-3xl font-bold">${district.pricePerYear.toLocaleString()}</p>
-                  <p className="text-xs text-white/60">Per Year</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+                  {[
+                    { icon: <CreditCard size={18} />, value: `$${district.pricePerYear.toLocaleString()}`, label: 'Annual Cost' },
+                    { icon: <Users size={18} />, value: district.studentCount, label: `Students (max ${district.maxStudents})` },
+                    { icon: <GraduationCap size={18} />, value: district.teacherCount, label: `Teachers (max ${district.maxTeachers})` },
+                    { icon: <DollarSign size={18} />, value: `$${district.costPerStudent > 0 ? district.costPerStudent.toFixed(2) : '—'}`, label: 'Per Student / Year' },
+                  ].map((stat, i) => (
+                    <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2 text-white/60">{stat.icon}</div>
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                      <p className="text-xs text-white/50 mt-0.5">{stat.label}</p>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <p className="text-3xl font-bold">{district.studentCount}</p>
-                  <p className="text-xs text-white/60">Students (max {district.maxStudents})</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold">{district.teacherCount}</p>
-                  <p className="text-xs text-white/60">Teachers (max {district.maxTeachers})</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold">
-                    ${district.costPerStudent > 0 ? district.costPerStudent.toFixed(2) : '—'}
-                  </p>
-                  <p className="text-xs text-white/60">Per Student / Year</p>
-                </div>
-              </div>
 
-              {district.subscriptionEnd && (
-                <p className="text-xs text-white/50 mt-4">
-                  Subscription expires: {formatDate(district.subscriptionEnd)}
-                </p>
-              )}
+                {district.subscriptionEnd && (
+                  <div className="flex items-center gap-2 mt-4 text-white/40 text-sm">
+                    <Calendar size={14} />
+                    Subscription expires: {formatDate(district.subscriptionEnd)}
+                  </div>
+                )}
+              </div>
             </motion.div>
 
             {/* Quick Actions */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Link
-                href="/admin/provision"
-                className="card hover:shadow-lg transition-all flex items-center gap-4 group"
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
               >
-                <div className="p-3 bg-green-100 rounded-xl group-hover:bg-green-200 transition">
-                  <Upload className="text-green-600" size={24} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">Bulk Provisioning</h3>
-                  <p className="text-xs text-gray-400">CSV upload to create student & teacher accounts</p>
-                </div>
-                <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 transition" />
-              </Link>
+                <Link
+                  href="/admin/provision"
+                  className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
+                >
+                  <div className="p-3 bg-green-100 rounded-xl group-hover:bg-green-200 transition">
+                    <Upload className="text-green-600" size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">Bulk Provisioning</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">CSV upload for student & teacher accounts</p>
+                  </div>
+                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
+                </Link>
+              </motion.div>
 
-              <div className="card flex items-center gap-4">
-                <div className="p-3 bg-purple-100 rounded-xl">
-                  <Settings className="text-purple-600" size={24} />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+              >
+                <div className="card flex items-center gap-4 h-full">
+                  <div className="p-3 bg-purple-100 rounded-xl">
+                    <Globe className="text-purple-600" size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">LMS Integrations</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">Google Classroom & Canvas sync</p>
+                  </div>
+                  <span className="badge badge-success text-[10px]">Ready</span>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">LMS Integrations</h3>
-                  <p className="text-xs text-gray-400">Google Classroom & Canvas sync ready</p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <div className="card flex items-center gap-4 h-full">
+                  <div className="p-3 bg-blue-100 rounded-xl">
+                    <Shield className="text-blue-600" size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">Security & Compliance</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">FERPA, COPPA, WCAG AA</p>
+                  </div>
+                  <span className="badge badge-success text-[10px]">Active</span>
                 </div>
-                <span className="badge badge-info">Available</span>
-              </div>
+              </motion.div>
             </div>
 
-            {/* Usage Chart Placeholder */}
-            <div className="card">
-              <h3 className="font-bold text-gray-900 mb-4">Capacity Overview</h3>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Students</span>
-                    <span className="font-medium">
-                      {district.studentCount} / {district.maxStudents}
-                    </span>
+            {/* Capacity Overview */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="card"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
+                    <TrendingUp size={16} className="text-primary-500" />
                   </div>
-                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(district.studentCount / district.maxStudents) * 100}%` }}
-                      className="h-full bg-primary-500 rounded-full"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Teachers</span>
-                    <span className="font-medium">
-                      {district.teacherCount} / {district.maxTeachers}
-                    </span>
-                  </div>
-                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(district.teacherCount / district.maxTeachers) * 100}%` }}
-                      className="h-full bg-green-500 rounded-full"
-                    />
-                  </div>
-                </div>
+                  Capacity Overview
+                </h3>
               </div>
-            </div>
+              <div className="space-y-6">
+                {[
+                  {
+                    label: 'Students',
+                    current: district.studentCount,
+                    max: district.maxStudents,
+                    color: 'bg-primary-500',
+                    icon: <Users size={16} />,
+                  },
+                  {
+                    label: 'Teachers',
+                    current: district.teacherCount,
+                    max: district.maxTeachers,
+                    color: 'bg-green-500',
+                    icon: <GraduationCap size={16} />,
+                  },
+                ].map(item => {
+                  const pct = Math.round((item.current / item.max) * 100);
+                  return (
+                    <div key={item.label}>
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <div className="flex items-center gap-2 text-gray-600 font-medium">
+                          {item.icon}
+                          {item.label}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-gray-900">{item.current} / {item.max}</span>
+                          <span className={cn(
+                            'text-xs font-medium px-2 py-0.5 rounded-full',
+                            pct >= 90 ? 'bg-red-100 text-red-600' : pct >= 70 ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'
+                          )}>
+                            {pct}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 1, ease: 'easeOut' }}
+                          className={cn('h-full rounded-full', item.color)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
           </>
         )}
       </div>

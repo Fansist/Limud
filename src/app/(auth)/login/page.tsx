@@ -5,18 +5,21 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
+import { BookOpen, ArrowRight, Sparkles, GraduationCap, Shield, Eye, Users } from 'lucide-react';
 
 const DEMO_ACCOUNTS = [
-  { role: 'Student', email: 'student@limud.edu', icon: '🎓' },
-  { role: 'Teacher', email: 'teacher@limud.edu', icon: '👩‍🏫' },
-  { role: 'Admin', email: 'admin@limud.edu', icon: '🏫' },
-  { role: 'Parent', email: 'parent@limud.edu', icon: '👨‍👩‍👧' },
+  { role: 'Student', email: 'student@limud.edu', icon: <GraduationCap size={20} />, desc: 'AI tutor, assignments, rewards', color: 'from-blue-500 to-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200' },
+  { role: 'Teacher', email: 'teacher@limud.edu', icon: <Users size={20} />, desc: 'Grading, analytics, management', color: 'from-green-500 to-green-600', bg: 'hover:bg-green-50 hover:border-green-200' },
+  { role: 'Admin', email: 'admin@limud.edu', icon: <Shield size={20} />, desc: 'District admin, provisioning', color: 'from-purple-500 to-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200' },
+  { role: 'Parent', email: 'parent@limud.edu', icon: <Eye size={20} />, desc: 'View-only child progress', color: 'from-pink-500 to-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200' },
 ];
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -45,6 +48,7 @@ export default function LoginPage() {
   };
 
   const handleDemoLogin = async (demoEmail: string) => {
+    setActiveDemo(demoEmail);
     setEmail(demoEmail);
     setPassword('password123');
     setLoading(true);
@@ -67,107 +71,196 @@ export default function LoginPage() {
       toast.error('Something went wrong');
     } finally {
       setLoading(false);
+      setActiveDemo(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-accent-700 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <span className="text-4xl">📚</span>
-            <h1 className="text-4xl font-extrabold text-white">Limud</h1>
-          </div>
-          <p className="text-white/70">Sign in to continue learning</p>
-        </div>
+    <div className="min-h-screen flex">
+      {/* Left side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-600 via-primary-700 to-accent-700 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJILTEweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent-500/10 rounded-full translate-y-1/3 -translate-x-1/3 blur-3xl" />
 
-        <div className="bg-white rounded-3xl shadow-2xl p-8">
-          <form onSubmit={handleLogin} className="space-y-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="email">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="input-field"
-                placeholder="you@school.edu"
-                required
-                aria-label="Email address"
-              />
+        <div className="relative flex flex-col justify-between p-12 w-full">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
+              <BookOpen size={20} className="text-white" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="password">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="input-field"
-                placeholder="Enter your password"
-                required
-                aria-label="Password"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full py-3 text-base"
-              aria-label="Sign in"
+            <span className="text-xl font-extrabold text-white">Limud</span>
+          </Link>
+
+          <div className="flex-1 flex flex-col justify-center max-w-md">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
             >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Signing in...
-                </span>
-              ) : (
-                'Sign In'
-              )}
-            </button>
-          </form>
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white/90 px-3 py-1.5 rounded-full text-sm font-medium mb-6">
+                <Sparkles size={14} />
+                All-in-one EdTech Platform
+              </div>
+              <h2 className="text-4xl font-extrabold text-white leading-tight mb-4">
+                Learn together,<br />grow together.
+              </h2>
+              <p className="text-white/70 leading-relaxed">
+                AI-powered tutoring, automated grading, gamified rewards, and parent visibility — everything your school needs in one beautiful platform.
+              </p>
+            </motion.div>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-white text-gray-400">Quick Demo Access</span>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mt-12 space-y-4"
+            >
+              {[
+                { icon: '🤖', text: 'AI tutor that guides, not gives answers' },
+                { icon: '✨', text: 'Auto-grade submissions in seconds' },
+                { icon: '🏆', text: 'Gamification that makes learning fun' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 text-white/80">
+                  <span className="text-lg">{item.icon}</span>
+                  <span className="text-sm">{item.text}</span>
+                </div>
+              ))}
+            </motion.div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {DEMO_ACCOUNTS.map(account => (
-              <motion.button
-                key={account.role}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleDemoLogin(account.email)}
+          <div className="text-white/40 text-xs">
+            &copy; {new Date().getFullYear()} Limud Education Inc.
+          </div>
+        </div>
+      </div>
+
+      {/* Right side - Login form */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-8">
+            <Link href="/" className="inline-flex items-center gap-2 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                <BookOpen size={20} className="text-white" />
+              </div>
+              <span className="text-2xl font-extrabold text-gray-900">Limud</span>
+            </Link>
+            <p className="text-gray-500 text-sm">Sign in to continue learning</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div className="mb-6">
+              <h1 className="text-xl font-bold text-gray-900">Welcome back</h1>
+              <p className="text-sm text-gray-500 mt-1">Sign in to your account to continue</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="email">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="input-field"
+                  placeholder="you@school.edu"
+                  required
+                  aria-label="Email address"
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="password">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="input-field"
+                  placeholder="Enter your password"
+                  required
+                  aria-label="Password"
+                  autoComplete="current-password"
+                />
+              </div>
+              <button
+                type="submit"
                 disabled={loading}
-                className="flex items-center gap-2 p-3 rounded-xl border-2 border-gray-100 hover:border-primary-200 hover:bg-primary-50 transition-all text-sm font-medium text-gray-700 disabled:opacity-50"
-                aria-label={`Sign in as demo ${account.role}`}
+                className="btn-primary w-full py-3 text-base flex items-center justify-center gap-2"
+                aria-label="Sign in"
               >
-                <span className="text-xl">{account.icon}</span>
-                <span>{account.role}</span>
-              </motion.button>
-            ))}
+                {loading && !activeDemo ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Signing in...
+                  </span>
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-3 bg-white text-gray-400">or try a demo account</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {DEMO_ACCOUNTS.map(account => (
+                <motion.button
+                  key={account.role}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleDemoLogin(account.email)}
+                  disabled={loading}
+                  className={`flex flex-col items-center p-3.5 rounded-xl border-2 border-gray-100 transition-all text-center disabled:opacity-50 ${account.bg}`}
+                  aria-label={`Sign in as demo ${account.role}`}
+                >
+                  <div className={`w-9 h-9 bg-gradient-to-br ${account.color} rounded-lg flex items-center justify-center text-white mb-2`}>
+                    {activeDemo === account.email ? (
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    ) : account.icon}
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">{account.role}</span>
+                  <span className="text-[10px] text-gray-400 mt-0.5 leading-tight">{account.desc}</span>
+                </motion.button>
+              ))}
+            </div>
+
+            <p className="text-center text-xs text-gray-400 mt-6">
+              Demo password: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-mono">password123</code>
+            </p>
           </div>
 
           <p className="text-center text-xs text-gray-400 mt-6">
-            Demo password: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">password123</code>
+            <Link href="/" className="text-primary-600 hover:text-primary-700 font-medium">
+              &larr; Back to homepage
+            </Link>
           </p>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }
