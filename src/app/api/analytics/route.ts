@@ -1,0 +1,92 @@
+import { NextResponse } from 'next/server';
+import { requireRole, apiHandler } from '@/lib/middleware';
+import prisma from '@/lib/prisma';
+
+export const GET = apiHandler(async (req: Request) => {
+  const user = await requireRole('TEACHER', 'ADMIN');
+
+  // Get all students in teacher's courses
+  const courseTeachers = await prisma.courseTeacher.findMany({
+    where: { teacherId: user.id },
+    select: { courseId: true },
+  });
+  const courseIds = courseTeachers.map(ct => ct.courseId);
+
+  // Get students with their performance data
+  const enrollments = await prisma.enrollment.findMany({
+    where: { courseId: { in: courseIds } },
+    include: {
+      student: {
+        include: {
+          submissions: {
+            where: { status: 'GRADED' },
+            select: { score: true, maxScore: true, assignmentId: true },
+          },
+          rewardStats: true,
+        },
+      },
+      course: { select: { name: true, subject: true } },
+    },
+  });
+
+  // Aggregate student analytics
+  const studentMap = new Map<string, any>();
+
+  for (const enrollment of enrollments) {
+    const s = enrollment.student;
+    if (!studentMap.has(s.id)) {
+      const gradedSubmissions = s.submissions.filter(sub => sub.score !== null);
+      const avgScore =
+        gradedSubmissions.length > 0
+          ? gradedSubmissions.reduce((sum, sub) => sum + (sub.score! / (sub.maxScore || 100)) * 100, 0) /
+            gradedSubmissions.length
+          : null;
+
+      studentMap.set(s.id, {
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        courses: [],
+        averageScore: avgScore !== null ? Math.round(avgScore * 10) / 10 : null,
+        totalSubmissions: gradedSubmissions.length,
+        currentStreak: s.rewardStats?.currentStreak || 0,
+        totalXP: s.rewardStats?.totalXP || 0,
+        level: s.rewardStats?.level || 1,
+        riskLevel: avgScore === null ? 'unknown' : avgScore < 60 ? 'high' : avgScore < 75 ? 'medium' : 'low',
+      });
+    }
+    studentMap.get(s.id).courses.push({
+      name: enrollment.course.name,
+      subject: enrollment.course.subject,
+    });
+  }
+
+  const students = Array.from(studentMap.values()).sort((a, b) => {
+    const riskOrder = { high: 0, medium: 1, unknown: 2, low: 3 };
+    return (riskOrder[a.riskLevel as keyof typeof riskOrder] || 3) - (riskOrder[b.riskLevel as keyof typeof riskOrder] || 3);
+  });
+
+  // Summary stats
+  const totalStudents = students.length;
+  const atRisk = students.filter(s => s.riskLevel === 'high').length;
+  const avgOverall = students.filter(s => s.averageScore !== null).reduce((sum, s) => sum + s.averageScore, 0) /
+    (students.filter(s => s.averageScore !== null).length || 1);
+
+  // Submissions awaiting grading
+  const pendingSubmissions = await prisma.submission.count({
+    where: {
+      assignment: { createdById: user.id },
+      status: 'SUBMITTED',
+    },
+  });
+
+  return NextResponse.json({
+    students,
+    summary: {
+      totalStudents,
+      atRisk,
+      averageScore: Math.round(avgOverall * 10) / 10,
+      pendingSubmissions,
+    },
+  });
+});

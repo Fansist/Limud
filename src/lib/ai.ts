@@ -1,0 +1,195 @@
+/**
+ * AI Service for Limud
+ * Supports OpenAI API with intelligent demo fallback
+ */
+
+const TUTOR_SYSTEM_PROMPT = `You are Limud AI, a friendly and encouraging educational tutor for K-12 students. Follow these guidelines strictly:
+
+1. NEVER give direct answers. Instead, guide students through the problem-solving process with hints, questions, and encouragement.
+2. Use age-appropriate language. For younger students, use simpler words and fun analogies.
+3. Break complex topics into smaller, digestible pieces.
+4. Celebrate effort and progress, not just correct answers.
+5. If a student is frustrated, acknowledge their feelings and offer a different approach.
+6. Use emojis sparingly to keep the conversation engaging (📚, ✨, 💡, 🎯).
+7. Always relate concepts to real-world examples when possible.
+8. If a student asks about something inappropriate or off-topic, gently redirect them back to learning.
+9. Keep responses concise (2-4 paragraphs max) unless the topic requires more detail.
+10. End responses with a thought-provoking question or next step to keep the student engaged.
+
+You are patient, supportive, and genuinely excited about helping students learn.`;
+
+const GRADER_SYSTEM_PROMPT = `You are an expert educational grading assistant. Your job is to evaluate student submissions fairly and provide constructive, encouraging feedback. Follow these guidelines:
+
+1. Evaluate against the provided rubric criteria.
+2. Be specific about what the student did well.
+3. Provide actionable suggestions for improvement.
+4. Use encouraging language - focus on growth, not deficiency.
+5. Assign a numerical score based on the rubric.
+6. Format your response as JSON with the following structure:
+{
+  "score": <number>,
+  "maxScore": <number>,
+  "feedback": "<detailed personalized feedback>",
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "improvements": ["<improvement 1>", "<improvement 2>"],
+  "encouragement": "<brief encouraging closing message>"
+}`;
+
+function isOpenAIConfigured(): boolean {
+  return !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'demo-mode');
+}
+
+async function callOpenAI(
+  messages: { role: string; content: string }[],
+  options: { temperature?: number; maxTokens?: number } = {}
+): Promise<string> {
+  const { default: OpenAI } = await import('openai');
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: messages as any,
+    temperature: options.temperature ?? 0.7,
+    max_tokens: options.maxTokens ?? 1024,
+  });
+
+  return response.choices[0]?.message?.content || '';
+}
+
+// Smart demo responses for when no API key is configured
+function getDemoTutorResponse(message: string): string {
+  const lower = message.toLowerCase();
+
+  if (lower.includes('math') || lower.includes('equation') || lower.includes('solve') || lower.includes('number')) {
+    return `Great question about math! 🧮 Let me help you think through this step by step.
+
+The key to solving math problems is to break them down into smaller pieces. Instead of looking at the whole problem at once, let's focus on one part at a time.
+
+💡 **Here's a hint**: Think about what operation would help you isolate what you're looking for. What do you already know, and what are you trying to find?
+
+Can you tell me what specific part is giving you trouble? I'd love to walk through it together! ✨`;
+  }
+
+  if (lower.includes('science') || lower.includes('photosynthesis') || lower.includes('cell') || lower.includes('ecosystem')) {
+    return `What a fascinating science topic! 🔬 Let me help you explore this.
+
+Science is all about understanding how the world works. The best way to learn is to connect new ideas to things you already know.
+
+💡 **Think about it this way**: Everything in nature is connected. Can you think of a real-world example that relates to what you're studying?
+
+What specific part would you like to dive deeper into? I'm here to help you discover the answers! 🌟`;
+  }
+
+  if (lower.includes('essay') || lower.includes('write') || lower.includes('book') || lower.includes('read')) {
+    return `Let's work on your writing together! 📝 Great writers are made through practice.
+
+The secret to a strong essay is organization. Think of your writing like building a house - you need a solid foundation (your thesis), strong walls (your supporting paragraphs), and a roof to tie it all together (your conclusion).
+
+💡 **Try this approach**: Start by jotting down 3 main ideas you want to cover. Don't worry about perfect sentences yet - just get your thoughts flowing!
+
+What's the main point you're trying to make? Let's build from there! ✨`;
+  }
+
+  return `That's a really thoughtful question! 💡 I love your curiosity.
+
+Let me help you think through this. The best way to understand something deeply is to:
+1. **Break it down** - What are the key parts of your question?
+2. **Connect it** - How does this relate to what you already know?
+3. **Apply it** - Can you think of a real-world example?
+
+🎯 **Here's what I suggest**: Start with what you understand, and we'll build from there. Sometimes the things that seem confusing become clear when we look at them from a different angle.
+
+What part would you like to explore first? I'm right here to help! ✨`;
+}
+
+function getDemoGradeResponse(content: string, rubric: string | null, maxScore: number): string {
+  const contentLength = content.length;
+  const hasDetail = contentLength > 200;
+  const hasExplanation = content.toLowerCase().includes('because') || content.toLowerCase().includes('step');
+
+  let score: number;
+  if (hasDetail && hasExplanation) {
+    score = Math.round(maxScore * (0.82 + Math.random() * 0.15));
+  } else if (hasDetail || hasExplanation) {
+    score = Math.round(maxScore * (0.65 + Math.random() * 0.15));
+  } else {
+    score = Math.round(maxScore * (0.40 + Math.random() * 0.20));
+  }
+
+  return JSON.stringify({
+    score,
+    maxScore,
+    feedback: `Your submission shows ${hasDetail ? 'good attention to detail' : 'room for more detailed responses'}. ${hasExplanation ? 'I appreciate that you explained your reasoning!' : 'Try to include more explanation of your thought process next time.'} Overall, you're making great progress and I can see you're putting in effort.`,
+    strengths: [
+      hasDetail ? 'Provided thorough detail in your response' : 'Submitted your work on time',
+      hasExplanation ? 'Showed clear step-by-step reasoning' : 'Demonstrated understanding of the basics',
+    ],
+    improvements: [
+      !hasDetail ? 'Try to include more specific details and examples' : 'Consider adding even more real-world connections',
+      !hasExplanation ? 'Walk through your reasoning step by step' : 'Try to cite specific evidence from the material',
+    ],
+    encouragement: "Keep up the great work! Every assignment is a chance to grow, and I can see you're on the right track. 🌟",
+  });
+}
+
+export async function chatWithTutor(
+  messages: { role: string; content: string }[],
+  subject?: string
+): Promise<{ content: string; tokensUsed: number }> {
+  if (isOpenAIConfigured()) {
+    const fullMessages = [
+      { role: 'system', content: TUTOR_SYSTEM_PROMPT + (subject ? `\n\nThe student is currently studying: ${subject}` : '') },
+      ...messages,
+    ];
+    const content = await callOpenAI(fullMessages, { temperature: 0.7, maxTokens: 800 });
+    return { content, tokensUsed: content.split(' ').length * 2 };
+  }
+
+  // Demo mode
+  const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+  const content = getDemoTutorResponse(lastUserMessage?.content || '');
+  return { content, tokensUsed: 0 };
+}
+
+export async function gradeSubmission(
+  studentContent: string,
+  assignmentDescription: string,
+  rubric: string | null,
+  maxScore: number
+): Promise<{
+  score: number;
+  maxScore: number;
+  feedback: string;
+  strengths: string[];
+  improvements: string[];
+  encouragement: string;
+}> {
+  if (isOpenAIConfigured()) {
+    const messages = [
+      { role: 'system', content: GRADER_SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content: `Assignment: ${assignmentDescription}\n\nRubric: ${rubric || 'Use standard academic grading criteria'}\n\nMax Score: ${maxScore}\n\nStudent Submission:\n${studentContent}`,
+      },
+    ];
+    const result = await callOpenAI(messages, { temperature: 0.3, maxTokens: 1024 });
+    try {
+      return JSON.parse(result);
+    } catch {
+      return {
+        score: Math.round(maxScore * 0.75),
+        maxScore,
+        feedback: result,
+        strengths: ['Submitted the assignment'],
+        improvements: ['Continue practicing'],
+        encouragement: 'Keep learning!',
+      };
+    }
+  }
+
+  // Demo mode
+  const result = getDemoGradeResponse(studentContent, rubric, maxScore);
+  return JSON.parse(result);
+}
+
+export { TUTOR_SYSTEM_PROMPT, GRADER_SYSTEM_PROMPT };

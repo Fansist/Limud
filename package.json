@@ -1,0 +1,51 @@
+{
+  "name": "limud",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000 -H 0.0.0.0",
+    "build": "npx prisma generate && next build",
+    "start": "next start -p 3000 -H 0.0.0.0",
+    "lint": "next lint",
+    "db:push": "npx prisma db push",
+    "db:seed": "npx tsx prisma/seed.ts",
+    "db:studio": "npx prisma studio",
+    "db:reset": "npx prisma db push --force-reset && npx tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "next": "^14.2.21",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@prisma/client": "^5.22.0",
+    "next-auth": "^4.24.11",
+    "@auth/prisma-adapter": "^1.6.0",
+    "bcryptjs": "^2.4.3",
+    "openai": "^4.77.0",
+    "framer-motion": "^11.15.0",
+    "recharts": "^2.15.0",
+    "papaparse": "^5.4.1",
+    "zod": "^3.24.1",
+    "zustand": "^5.0.2",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0",
+    "lucide-react": "^0.468.0",
+    "date-fns": "^4.1.0",
+    "react-hot-toast": "^2.4.1",
+    "react-markdown": "^9.0.1"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0",
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/papaparse": "^5.3.15",
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.4.49",
+    "autoprefixer": "^10.4.20",
+    "tsx": "^4.19.2",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.21"
+  }
+}

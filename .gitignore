@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+dist/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+
+# IDE
+.vscode/
+.idea/
+
+# Prisma
+.wrangler/
+
+# PM2
+.pm2/
+pids/
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Debug
+npm-debug.log*
+
+# Backup
+*.backup
+*.bak
+*.tar.gz
+*.zip

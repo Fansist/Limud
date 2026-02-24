@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --font-inter: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+    font-family: var(--font-inter);
+  }
+
+  /* High contrast mode */
+  body.high-contrast {
+    @apply bg-black text-white;
+  }
+
+  body.high-contrast .bg-white {
+    @apply bg-gray-950 !important;
+  }
+
+  body.high-contrast .bg-gray-50 {
+    @apply bg-black !important;
+  }
+
+  body.high-contrast .text-gray-500,
+  body.high-contrast .text-gray-600 {
+    @apply text-gray-200 !important;
+  }
+
+  body.high-contrast .border-gray-200 {
+    @apply border-gray-600 !important;
+  }
+
+  /* Dyslexia-friendly font */
+  body.dyslexia-font {
+    font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+    letter-spacing: 0.05em;
+    word-spacing: 0.1em;
+    line-height: 1.8;
+  }
+
+  body.dyslexia-font * {
+    font-family: inherit !important;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6 transition-all duration-200;
+  }
+
+  .card:hover {
+    @apply shadow-md;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm
+           hover:bg-primary-700 active:bg-primary-800
+           transition-all duration-200 shadow-sm hover:shadow-md
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-semibold text-sm
+           hover:bg-gray-200 active:bg-gray-300
+           transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2;
+  }
+
+  .btn-success {
+    @apply bg-success-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm
+           hover:bg-success-600 transition-all duration-200 shadow-sm;
+  }
+
+  .btn-warning {
+    @apply bg-warning-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm
+           hover:bg-warning-600 transition-all duration-200 shadow-sm;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white
+           text-sm placeholder:text-gray-400
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+           transition-all duration-200;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-green-100 text-green-700;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-100 text-yellow-700;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-100 text-red-700;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-100 text-blue-700;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
+           text-gray-600 hover:bg-primary-50 hover:text-primary-700
+           transition-all duration-200;
+  }
+
+  .sidebar-link.active {
+    @apply bg-primary-50 text-primary-700 shadow-sm;
+  }
+
+  /* Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+/* Animations for gamification */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes sparkle {
+  0% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(0); }
+}
+
+@keyframes confetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(200px) rotate(720deg); opacity: 0; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-sparkle {
+  animation: sparkle 1s ease-in-out;
+}
