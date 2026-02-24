@@ -196,7 +196,7 @@ export default function LandingPage() {
                 Sign In
               </Link>
               <Link
-                href="/login"
+                href="/register"
                 className="inline-flex items-center gap-1.5 bg-primary-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-primary-700 transition-all shadow-sm shadow-primary-600/25 hover:shadow-md hover:shadow-primary-600/30"
               >
                 Get Started
@@ -275,10 +275,10 @@ export default function LandingPage() {
 
               <motion.div variants={fadeUp} custom={3} className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Link
-                  href="/login"
+                  href="/demo"
                   className="group inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25 hover:shadow-xl hover:shadow-primary-600/30 hover:-translate-y-0.5"
                 >
-                  Start Free Demo
+                  Try Live Demo
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <a
@@ -807,84 +807,174 @@ export default function LandingPage() {
               <Award size={14} />
               Pricing
             </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Simple, transparent pricing</h2>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Plans for every learning journey</h2>
             <p className="mt-4 text-lg text-gray-500 max-w-xl mx-auto">
-              One annual subscription per district. No per-seat surprises.
+              From homeschool families to large districts. Start free, upgrade anytime.
             </p>
           </RevealSection>
 
-          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
-            {/* Standard */}
+          <div className="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Free */}
             <RevealSection>
-              <div className="bg-white rounded-3xl border-2 border-gray-100 p-8 hover:shadow-xl hover:border-gray-200 transition-all h-full flex flex-col">
-                <h3 className="text-lg font-bold text-gray-900">Standard District</h3>
-                <p className="text-sm text-gray-500 mt-1">For districts up to 500 students</p>
-                <div className="mt-6">
-                  <span className="text-5xl font-extrabold text-gray-900">$5,500</span>
-                  <span className="text-gray-500 ml-2">/year</span>
+              <div className="bg-white rounded-3xl border-2 border-gray-100 p-6 hover:shadow-lg hover:border-gray-200 transition-all h-full flex flex-col">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">🏠</span>
+                  <h3 className="text-lg font-bold text-gray-900">Free</h3>
                 </div>
-                <p className="text-sm text-gray-400 mt-1">That's ~$1-3 per student per year</p>
-                <ul className="mt-8 space-y-3 flex-1">
+                <p className="text-xs text-gray-500">For homeschool families & individuals</p>
+                <div className="mt-4">
+                  <span className="text-4xl font-extrabold text-gray-900">$0</span>
+                  <span className="text-gray-500 ml-1 text-sm">/forever</span>
+                </div>
+                <ul className="mt-6 space-y-2.5 flex-1">
                   {[
-                    'Up to 500 students, 50 teachers',
-                    'AI Tutor (unlimited sessions)',
-                    'AI Auto-Grader with rubrics',
-                    'Full gamification engine',
-                    'Parent portal access',
-                    'Google Classroom & Canvas sync',
-                    'WCAG accessibility suite',
-                    'Email & chat support',
+                    'Up to 5 students',
+                    'AI Tutor (50 sessions/mo)',
+                    'Basic gamification',
+                    'Parent dashboard',
+                    'AI Lesson Planner (5/mo)',
+                    'Community support',
                   ].map(item => (
-                    <li key={item} className="flex items-center gap-2.5 text-sm text-gray-600">
-                      <Check size={16} className="text-green-500 flex-shrink-0" />
+                    <li key={item} className="flex items-center gap-2 text-xs text-gray-600">
+                      <Check size={14} className="text-green-500 flex-shrink-0" />
                       {item}
                     </li>
                   ))}
                 </ul>
-                <Link href="/login" className="mt-8 block text-center bg-gray-100 text-gray-900 py-3.5 rounded-xl font-bold hover:bg-gray-200 transition">
+                <Link href="/register" className="mt-6 block text-center bg-gray-100 text-gray-900 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition">
+                  Get Started Free
+                </Link>
+              </div>
+            </RevealSection>
+
+            {/* Starter */}
+            <RevealSection>
+              <div className="bg-white rounded-3xl border-2 border-gray-100 p-6 hover:shadow-lg hover:border-gray-200 transition-all h-full flex flex-col">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">🌱</span>
+                  <h3 className="text-lg font-bold text-gray-900">Starter</h3>
+                </div>
+                <p className="text-xs text-gray-500">For small schools & co-ops</p>
+                <div className="mt-4">
+                  <span className="text-4xl font-extrabold text-gray-900">$1,200</span>
+                  <span className="text-gray-500 ml-1 text-sm">/year</span>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-0.5">~$12/student/year (100 students)</p>
+                <ul className="mt-6 space-y-2.5 flex-1">
+                  {[
+                    'Up to 100 students, 10 teachers',
+                    'AI Tutor (unlimited)',
+                    'AI Auto-Grader',
+                    'Full gamification engine',
+                    'AI Lesson Planner (unlimited)',
+                    'Parent portal access',
+                    'Email support',
+                  ].map(item => (
+                    <li key={item} className="flex items-center gap-2 text-xs text-gray-600">
+                      <Check size={14} className="text-green-500 flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/register" className="mt-6 block text-center bg-gray-100 text-gray-900 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition">
                   Start Free Trial
                 </Link>
               </div>
             </RevealSection>
 
-            {/* Enterprise */}
+            {/* Standard - highlighted */}
             <RevealSection>
-              <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-3xl p-8 text-white relative overflow-hidden h-full flex flex-col">
-                <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-semibold">
+              <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-3xl p-6 text-white relative overflow-hidden h-full flex flex-col">
+                <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-sm rounded-full px-2.5 py-1 text-[10px] font-semibold">
                   Most Popular
                 </div>
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJILTEweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50" />
                 <div className="relative z-10 flex flex-col h-full">
-                  <h3 className="text-lg font-bold">Enterprise District</h3>
-                  <p className="text-sm text-white/70 mt-1">For large districts with 500+ students</p>
-                  <div className="mt-6">
-                    <span className="text-5xl font-extrabold">Custom</span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">⭐</span>
+                    <h3 className="text-lg font-bold">Standard</h3>
                   </div>
-                  <p className="text-sm text-white/60 mt-1">Volume discounts available</p>
-                  <ul className="mt-8 space-y-3 flex-1">
+                  <p className="text-xs text-white/70">For districts up to 500 students</p>
+                  <div className="mt-4">
+                    <span className="text-4xl font-extrabold">$5,500</span>
+                    <span className="text-white/70 ml-1 text-sm">/year</span>
+                  </div>
+                  <p className="text-[10px] text-white/50 mt-0.5">~$11/student/year</p>
+                  <ul className="mt-6 space-y-2.5 flex-1">
                     {[
-                      'Unlimited students & teachers',
-                      'Everything in Standard',
-                      'Custom AI model training',
-                      'Dedicated account manager',
-                      'SSO / SAML integration',
-                      'Custom LMS connectors',
-                      'SLA & 99.9% uptime guarantee',
-                      'Priority support & onboarding',
+                      'Up to 500 students, 50 teachers',
+                      'Everything in Starter',
+                      'Google Classroom & Canvas sync',
+                      'Student progress certificates',
+                      'WCAG accessibility suite',
+                      'Parent-teacher messaging',
+                      'Analytics & reporting',
+                      'Priority email & chat support',
                     ].map(item => (
-                      <li key={item} className="flex items-center gap-2.5 text-sm text-white/90">
-                        <Check size={16} className="text-green-300 flex-shrink-0" />
+                      <li key={item} className="flex items-center gap-2 text-xs text-white/90">
+                        <Check size={14} className="text-green-300 flex-shrink-0" />
                         {item}
                       </li>
                     ))}
                   </ul>
-                  <Link href="/login" className="mt-8 block text-center bg-white text-primary-700 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition">
-                    Contact Sales
+                  <Link href="/register" className="mt-6 block text-center bg-white text-primary-700 py-3 rounded-xl font-bold text-sm hover:bg-gray-100 transition">
+                    Start Free Trial
                   </Link>
                 </div>
               </div>
             </RevealSection>
+
+            {/* Enterprise */}
+            <RevealSection>
+              <div className="bg-white rounded-3xl border-2 border-gray-900 p-6 hover:shadow-lg transition-all h-full flex flex-col">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">🏢</span>
+                  <h3 className="text-lg font-bold text-gray-900">Enterprise</h3>
+                </div>
+                <p className="text-xs text-gray-500">For large districts & states</p>
+                <div className="mt-4">
+                  <span className="text-4xl font-extrabold text-gray-900">Custom</span>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-0.5">Volume discounts available</p>
+                <ul className="mt-6 space-y-2.5 flex-1">
+                  {[
+                    'Unlimited students & teachers',
+                    'Everything in Standard',
+                    'Custom AI model training',
+                    'SSO / SAML integration',
+                    'Dedicated account manager',
+                    'SLA & 99.9% uptime',
+                    'Custom LMS connectors',
+                    'On-site training & onboarding',
+                  ].map(item => (
+                    <li key={item} className="flex items-center gap-2 text-xs text-gray-600">
+                      <Check size={14} className="text-green-500 flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/register" className="mt-6 block text-center bg-gray-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition">
+                  Contact Sales
+                </Link>
+              </div>
+            </RevealSection>
           </div>
+
+          {/* Homeschool callout */}
+          <RevealSection className="mt-10">
+            <div className="max-w-3xl mx-auto bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+              <span className="text-4xl">🏡</span>
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900">Homeschool families love Limud!</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Our Free plan is perfect for homeschool parents. AI lesson planning, progress tracking,
+                  gamification, and the AI tutor — all at no cost. Upgrade anytime as your family grows.
+                </p>
+              </div>
+              <Link href="/register" className="btn-primary whitespace-nowrap flex items-center gap-2 text-sm">
+                Start Free <ArrowRight size={14} />
+              </Link>
+            </div>
+          </RevealSection>
         </div>
       </section>
 
@@ -998,10 +1088,10 @@ export default function LandingPage() {
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                   <Link
-                    href="/login"
+                    href="/demo"
                     className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-8 py-4 rounded-2xl font-bold text-base hover:bg-gray-100 transition-all shadow-lg"
                   >
-                    Start Free Demo
+                    Try Live Demo
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
                   <a

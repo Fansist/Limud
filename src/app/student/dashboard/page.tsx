@@ -1,12 +1,12 @@
 'use client';
-
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { redirect, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { XPBar } from '@/components/gamification/RewardComponents';
 import { motion } from 'framer-motion';
 import { cn, daysUntil, getLetterGrade, AVATAR_OPTIONS } from '@/lib/utils';
+import { DEMO_STUDENT, DEMO_ASSIGNMENTS, DEMO_REWARD_STATS } from '@/lib/demo-data';
 import Link from 'next/link';
 import {
   BookOpen, MessageCircle, Trophy, AlertTriangle, ArrowRight,
@@ -15,18 +15,26 @@ import {
 
 export default function StudentDashboard() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [assignments, setAssignments] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isDemo) {
+      setAssignments(DEMO_ASSIGNMENTS);
+      setRewards(DEMO_REWARD_STATS);
+      setLoading(false);
+      return;
+    }
     if (status === 'authenticated') {
       if ((session?.user as any)?.role !== 'STUDENT') {
         redirect('/');
       }
       fetchData();
     }
-  }, [status]);
+  }, [status, isDemo]);
 
   async function fetchData() {
     try {
@@ -49,7 +57,7 @@ export default function StudentDashboard() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (!isDemo && (status === 'loading' || loading)) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
@@ -62,8 +70,19 @@ export default function StudentDashboard() {
     );
   }
 
-  const avatarEmoji = AVATAR_OPTIONS.find(a => a.id === (session?.user as any)?.selectedAvatar)?.emoji || '👤';
-  const firstName = session?.user?.name?.split(' ')[0] || 'Student';
+  if (isDemo && loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const avatarId = isDemo ? DEMO_STUDENT.selectedAvatar : ((session?.user as any)?.selectedAvatar || 'default');
+  const avatarEmoji = AVATAR_OPTIONS.find(a => a.id === avatarId)?.emoji || '👤';
+  const firstName = isDemo ? DEMO_STUDENT.name.split(' ')[0] : (session?.user?.name?.split(' ')[0] || 'Student');
   const upcomingAssignments = assignments
     .filter(a => !a.submissions?.length || a.submissions[0]?.status === 'PENDING')
     .slice(0, 5);

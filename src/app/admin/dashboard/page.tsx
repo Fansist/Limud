@@ -1,11 +1,11 @@
 'use client';
-
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { redirect, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
+import { DEMO_DISTRICT } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import {
@@ -16,15 +16,22 @@ import {
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [districts, setDistricts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isDemo) {
+      setDistricts([DEMO_DISTRICT]);
+      setLoading(false);
+      return;
+    }
     if (status === 'authenticated') {
       if ((session?.user as any)?.role !== 'ADMIN') redirect('/');
       fetchDistricts();
     }
-  }, [status]);
+  }, [status, isDemo]);
 
   async function fetchDistricts() {
     try {

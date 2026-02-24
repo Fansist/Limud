@@ -1,5 +1,5 @@
 // Prisma schema for Limud EdTech Platform
-// Covers: Users (RBAC), Districts, Assignments, Submissions, AI Logs, Gamification
+// Covers: Users (RBAC), Districts, Assignments, Submissions, AI Logs, Gamification, Lesson Plans
 
 generator client {
   provider = "prisma-client-js"
@@ -17,6 +17,12 @@ enum Role {
   TEACHER
   ADMIN
   PARENT
+}
+
+enum AccountType {
+  DISTRICT
+  HOMESCHOOL
+  INDIVIDUAL
 }
 
 enum SubmissionStatus {
@@ -42,6 +48,14 @@ enum SubscriptionStatus {
   CANCELLED
 }
 
+enum SubscriptionTier {
+  FREE
+  STARTER
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
 // ─── SCHOOL DISTRICT ────────────────────────────────────────────────────────
 
 model SchoolDistrict {
@@ -50,11 +64,13 @@ model SchoolDistrict {
   subdomain         String             @unique
   contactEmail      String
   subscriptionStatus SubscriptionStatus @default(TRIAL)
+  subscriptionTier  SubscriptionTier   @default(FREE)
   subscriptionStart DateTime?
   subscriptionEnd   DateTime?
-  pricePerYear      Float              @default(5500)
-  maxStudents       Int                @default(500)
-  maxTeachers       Int                @default(50)
+  pricePerYear      Float              @default(0)
+  maxStudents       Int                @default(5)
+  maxTeachers       Int                @default(1)
+  isHomeschool      Boolean            @default(false)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -72,12 +88,15 @@ model User {
   name           String
   password       String // bcrypt hashed
   role           Role
+  accountType    AccountType     @default(DISTRICT)
   avatarUrl      String?
   selectedAvatar String          @default("default")
   isActive       Boolean         @default(true)
+  isDemo         Boolean         @default(false)
   districtId     String?
   gradeLevel     String?         // For students: "5th", "6th", etc.
   parentId       String?         // Links student to parent
+  onboardingComplete Boolean     @default(false)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -88,6 +107,7 @@ model User {
   // Teacher relations
   taughtCourses  CourseTeacher[]
   createdAssignments Assignment[]
+  lessonPlans    LessonPlan[]
 
   // Student relations
   enrollments    Enrollment[]
@@ -95,10 +115,15 @@ model User {
   rewardStats    RewardStats?
   tutorLogs      AITutorLog[]
   notifications  Notification[]
+  certificates   Certificate[]
 
   // Auth sessions
   sessions       Session[]
   accounts       Account[]
+
+  // Messaging
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 
   @@index([email])
   @@index([role])
@@ -306,4 +331,74 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+// ─── LESSON PLANS (AI-Generated) ────────────────────────────────────────────
+
+model LessonPlan {
+  id            String   @id @default(cuid())
+  teacherId     String
+  title         String
+  subject       String
+  gradeLevel    String
+  duration      String   // e.g., "45 min", "1 hour"
+  objectives    String   @db.Text  // JSON array of learning objectives
+  standards     String?  @db.Text  // Aligned standards (e.g., Common Core)
+  materials     String?  @db.Text  // JSON array of materials needed
+  warmUp        String?  @db.Text  // Opening activity
+  directInstruction String? @db.Text  // Main teaching content
+  guidedPractice String?  @db.Text  // Guided practice activity
+  independentPractice String? @db.Text  // Student independent work
+  assessment    String?  @db.Text  // How learning is assessed
+  closure       String?  @db.Text  // Closing activity
+  differentiation String? @db.Text  // Accommodations for different learners
+  homework      String?  @db.Text  // Homework assignment
+  notes         String?  @db.Text  // Additional teacher notes
+  aiGenerated   Boolean  @default(true)
+  isFavorite    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  teacher User @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId])
+  @@index([subject])
+  @@map("lesson_plans")
+}
+
+// ─── CERTIFICATES ───────────────────────────────────────────────────────────
+
+model Certificate {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String
+  type        String   // "course_completion", "achievement", "milestone"
+  metadata    String?  @db.Text  // JSON with additional data
+  issuedAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("certificates")
+}
+
+// ─── MESSAGES (Parent-Teacher Communication) ────────────────────────────────
+
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  receiverId  String
+  subject     String
+  content     String   @db.Text
+  isRead      Boolean  @default(false)
+  parentOf    String?  // Student ID this message is about
+  createdAt   DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@map("messages")
 }

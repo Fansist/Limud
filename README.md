@@ -1,169 +1,105 @@
 # Limud - Learn Together, Grow Together
 
-An all-in-one educational platform with AI tutoring, gamified learning, and personalized feedback.
-
-## Live Demo
-
-**URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
-
-### Demo Accounts
-| Role | Email | Password |
-|------|-------|----------|
-| Student | student@limud.edu | password123 |
-| Teacher | teacher@limud.edu | password123 |
-| Admin | admin@limud.edu | password123 |
-| Parent | parent@limud.edu | password123 |
+## Project Overview
+- **Name**: Limud
+- **Goal**: All-in-one EdTech platform with AI tutoring, gamification, and personalized learning
+- **Live URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
 
 ## Features
 
-### Student Dashboard
-- **Unified Hub**: Single interface for assignments, scheduling, and resources
-- **AI Companion**: Persistent AI tutor chat that guides students without giving answers
-- **Gamification Engine**: XP, levels, streaks, virtual coins, unlockable avatars, badges
-- **Assignment Viewer**: Submit work, view grades, read AI feedback
-- **Accessibility**: WCAG-compliant high contrast, text-to-speech, dyslexia-friendly font
+### Completed Features
+- **Landing Page**: Full marketing site with animated hero, feature sections, FAQ, testimonials, social proof
+- **4 Pricing Tiers**: Free (homeschool), Starter ($1,200/yr), Standard ($5,500/yr), Enterprise (custom)
+- **Demo Mode**: Interactive demos for all 4 roles (Student, Teacher, Admin, Parent) - no sign-up required
+- **User Registration**: Multi-step signup with role selection, email/password, homeschool support
+- **Login System**: NextAuth.js with JWT sessions, credential-based authentication
+- **Student Portal**: Dashboard, assignments, AI tutor chat, gamification rewards, certificates
+- **Teacher Portal**: Dashboard, assignment manager, AI auto-grader, AI lesson planner, student analytics
+- **Admin Portal**: District management, CSV bulk provisioning, subscription overview
+- **Parent Portal**: Child progress monitoring, grades, activity feed
+- **AI Tutor**: Chat-based tutoring with subject-specific responses (supports OpenAI or demo mode)
+- **AI Auto-Grader**: One-click and batch grading with detailed feedback
+- **AI Lesson Planner**: Generate standards-aligned lesson plans from topic/subject/grade
+- **Gamification**: XP, levels, streaks, virtual coins, avatar shop, badges, certificates
+- **Homeschool Support**: Free tier for homeschool families, parent-as-teacher workflow
+- **Accessibility**: High contrast mode, dyslexia-friendly fonts, text size controls, screen reader support
+- **LMS Integration**: Google Classroom and Canvas sync hooks (roster, assignments, grades)
+- **Responsive Design**: Mobile-first with Tailwind CSS, glass-morphism effects, Framer Motion animations
 
-### Teacher Dashboard
-- **Assignment Manager**: Create, distribute, manage assignments with rubrics
-- **AI Auto-Grader**: One-click or batch AI grading with personalized feedback
-- **Analytics Dashboard**: At-risk student identification, score distributions, streak tracking
-- **Student Performance**: Visual indicators for students needing intervention
+### New in This Update
+1. **Demo Mode** - All portals work without authentication for demos
+2. **Real Account Registration** - Multi-step signup flow with role selection
+3. **Homeschool Option** - Free tier for homeschool parents with auto-created student accounts
+4. **AI Lesson Planner** - Teachers can generate complete lesson plans with AI
+5. **Expanded Pricing** - 4 tiers: Free, Starter, Standard, Enterprise
+6. **Student Certificates** - Achievement certificates for milestones
+7. **Updated Navigation** - Lesson planner added to teacher nav, certificates to student nav
+8. **Updated Landing Page** - New pricing grid, homeschool callout
 
-### Admin/District Dashboard
-- **Subscription Management**: $5,500/year district pricing (~$1-3 per student)
-- **Capacity Overview**: Student/teacher utilization tracking
-- **Bulk Provisioning**: CSV upload to create student/teacher accounts
-- **LMS Integration Status**: Google Classroom & Canvas readiness
+## URLs
+- **Home**: `/` - Landing page (redirects authenticated users to dashboard)
+- **Demo**: `/demo` - Interactive demo selector (no auth required)
+- **Login**: `/login` - Sign in page
+- **Register**: `/register` - Multi-step registration
+- **Student Dashboard**: `/student/dashboard` - Student home
+- **Student Assignments**: `/student/assignments` - View & submit assignments
+- **Student AI Tutor**: `/student/tutor` - Chat with AI tutor
+- **Student Rewards**: `/student/rewards` - XP, coins, avatars, badges
+- **Student Certificates**: `/student/certificates` - Achievement certificates
+- **Teacher Dashboard**: `/teacher/dashboard` - Teacher home
+- **Teacher Assignments**: `/teacher/assignments` - Create & manage assignments
+- **Teacher Grading**: `/teacher/grading` - AI auto-grader
+- **Teacher Lesson Planner**: `/teacher/lesson-planner` - AI lesson plan generator
+- **Teacher Analytics**: `/teacher/analytics` - Student performance analytics
+- **Admin Dashboard**: `/admin/dashboard` - District overview
+- **Admin Provisioning**: `/admin/provision` - Bulk user creation (CSV)
+- **Parent Dashboard**: `/parent/dashboard` - Child progress view
 
-### Parent Portal
-- **View-Only Access**: Track child's assignment completion
-- **AI Feedback Viewer**: See personalized feedback from AI grading
-- **Progress Monitoring**: Grades, streak, level, badge tracking
-
-### LMS Integration Hooks
-- Google Classroom: roster sync, assignment import, grade export
-- Canvas: roster sync, assignment import, grade push
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Frontend | Next.js 14, React 18, Tailwind CSS, Framer Motion |
-| Backend | Next.js API Routes, Prisma ORM |
-| Database | PostgreSQL |
-| Auth | NextAuth.js with JWT, Role-Based Access Control |
-| AI | OpenAI API (with smart demo fallback) |
-| Animations | Framer Motion (gamification effects) |
+### API Endpoints
+- `POST /api/auth/register` - Create new account
+- `GET/POST /api/demo` - Demo data endpoints
+- `POST /api/tutor` - AI tutor chat
+- `POST /api/grade` - AI grading
+- `GET/POST /api/lesson-plans` - AI lesson plan generation
+- `GET/POST /api/assignments` - Assignment CRUD
+- `POST /api/submissions` - Submit assignments
+- `GET/POST /api/rewards` - Gamification
+- `GET/PUT /api/notifications` - Notification management
+- `GET/POST /api/messages` - Parent-teacher messaging
+- `GET /api/analytics` - Student analytics
+- `GET/PUT /api/admin/districts` - District management
+- `POST /api/admin/provision` - Bulk provisioning
+- `GET /api/parent` - Parent child data
+- `GET/POST /api/lms` - LMS integration
 
 ## Data Architecture
+- **Database**: PostgreSQL with Prisma ORM
+- **Models**: User, SchoolDistrict, Course, Assignment, Submission, AITutorLog, RewardStats, Notification, LessonPlan, Certificate, Message
+- **Auth**: NextAuth.js with JWT strategy
+- **AI**: OpenAI GPT-4o-mini (falls back to intelligent demo responses)
 
-### Prisma Models
-- **User**: Multi-role (STUDENT, TEACHER, ADMIN, PARENT) with parent-child linking
-- **SchoolDistrict**: Subscription management, capacity limits
-- **Course / Enrollment / CourseTeacher**: Full course management
-- **Assignment**: Multiple types (Essay, Short Answer, Quiz, Project) with rubrics
-- **Submission**: Full lifecycle (PENDING → SUBMITTED → GRADING → GRADED → RETURNED)
-- **AITutorLog**: Complete conversation history per session
-- **RewardStats**: XP, levels, streaks, coins, unlocked avatars/badges
-- **Notification**: Real-time notification system
+## Tech Stack
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Animation**: Framer Motion
+- **Auth**: NextAuth.js
+- **Database**: PostgreSQL + Prisma
+- **AI**: OpenAI API
+- **Icons**: Lucide React
 
-## API Routes
+## Getting Started
+1. Clone the repository
+2. `npm install`
+3. Set up `.env` with DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL
+4. `npx prisma db push` (or `npx prisma migrate dev`)
+5. `npx prisma db seed` (optional)
+6. `npm run dev`
 
-| Method | Route | Description | Auth |
-|--------|-------|-------------|------|
-| POST | /api/auth/[...nextauth] | Authentication | Public |
-| POST | /api/tutor | AI Tutor chat | Student |
-| GET | /api/tutor | Get chat sessions | Student |
-| POST | /api/grade | Grade single submission | Teacher/Admin |
-| PUT | /api/grade | Batch grade submissions | Teacher/Admin |
-| GET/POST | /api/assignments | List/create assignments | All roles |
-| GET/POST | /api/submissions | List/submit work | Student/Teacher |
-| GET/POST | /api/rewards | Get stats / purchase avatars | Student |
-| GET | /api/analytics | Student performance analytics | Teacher/Admin |
-| GET/PUT | /api/admin/districts | District management | Admin |
-| POST | /api/admin/provision | Bulk account creation | Admin |
-| GET/PUT | /api/notifications | Notification management | All roles |
-| GET | /api/parent | Child progress data | Parent |
-| GET/POST | /api/lms | LMS integration hooks | Teacher/Admin |
-
-## Project Structure
-
-```
-webapp/
-├── prisma/
-│   ├── schema.prisma          # Complete database schema
-│   └── seed.ts                # Demo data seeder
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx         # Root layout
-│   │   ├── page.tsx           # Landing page (role-based redirect)
-│   │   ├── globals.css        # Tailwind + custom styles
-│   │   ├── (auth)/login/      # Login page with demo accounts
-│   │   ├── student/           # Student dashboard, assignments, tutor, rewards
-│   │   ├── teacher/           # Teacher dashboard, assignments, grading, analytics
-│   │   ├── admin/             # Admin dashboard, provisioning
-│   │   ├── parent/            # Parent portal
-│   │   └── api/               # All API routes
-│   ├── components/
-│   │   ├── Providers.tsx      # Session + Accessibility providers
-│   │   ├── layout/            # DashboardLayout (sidebar + topbar)
-│   │   ├── gamification/      # XP bar, streaks, badges, avatar shop
-│   │   ├── accessibility/     # High contrast, dyslexia font, TTS
-│   │   └── ui/                # Shared UI components
-│   ├── lib/
-│   │   ├── prisma.ts          # Prisma client singleton
-│   │   ├── auth.ts            # NextAuth configuration
-│   │   ├── middleware.ts       # RBAC middleware + API handler
-│   │   ├── ai.ts              # AI service (OpenAI + demo fallback)
-│   │   ├── gamification.ts    # XP, streaks, coins, avatar logic
-│   │   └── utils.ts           # Helpers, constants, avatar/badge data
-│   └── types/
-│       └── next-auth.d.ts     # Session type augmentation
-├── ecosystem.config.cjs       # PM2 configuration
-├── package.json
-├── tailwind.config.js
-├── tsconfig.json
-└── next.config.js
-```
-
-## Gamification System
-
-| Action | XP | Coins |
-|--------|-----|-------|
-| Submit assignment | +25 | — |
-| Complete assignment | +50 | +10 |
-| Score 90%+ | +50 | +15 |
-| Perfect score | +100 | +25 |
-| Use AI Tutor | +15 | — |
-| 7-day streak | +75 | +20 |
-| 14-day streak | +150 | +50 |
-| Level up | — | +30 |
+## Demo Mode
+Visit `/demo` to try all portals without creating an account. Demo data is realistic and showcases all features. Add `?demo=true` to any dashboard URL to enable demo mode.
 
 ## Deployment
-
-**Platform**: Next.js standalone (PM2)  
-**Status**: ✅ Active  
-**Last Updated**: 2026-02-24
-
-### Local Development
-```bash
-npm install
-npx prisma db push
-npx tsx prisma/seed.ts
-npm run dev
-```
-
-### Production
-```bash
-npm run build
-pm2 start ecosystem.config.cjs
-```
-
-## Accessibility (WCAG Compliance)
-- High contrast mode toggle
-- OpenDyslexic font option
-- Adjustable text sizes (Normal / Large / XL)
-- Text-to-speech for selected text
-- ARIA labels on all interactive elements
-- Keyboard navigable interface
-- Color-independent status indicators
+- **Platform**: Next.js (self-hosted or Vercel)
+- **Status**: Active
+- **Last Updated**: 2026-02-24

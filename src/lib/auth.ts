@@ -43,6 +43,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          accountType: (user as any).accountType || 'DISTRICT',
           districtId: user.districtId || '',
           districtName: user.district?.name || '',
           selectedAvatar: user.selectedAvatar,
@@ -55,6 +56,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
+        token.accountType = (user as any).accountType;
         token.districtId = (user as any).districtId;
         token.districtName = (user as any).districtName;
         token.selectedAvatar = (user as any).selectedAvatar;
@@ -65,6 +67,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id as string;
         (session.user as any).role = token.role as string;
+        (session.user as any).accountType = token.accountType as string;
         (session.user as any).districtId = token.districtId as string;
         (session.user as any).districtName = token.districtName as string;
         (session.user as any).selectedAvatar = token.selectedAvatar as string;

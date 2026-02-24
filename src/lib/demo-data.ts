@@ -1,0 +1,388 @@
+/**
+ * Demo Data for Limud
+ * Provides realistic mock data for all portal demos (no auth required)
+ */
+
+export const DEMO_STUDENT = {
+  id: 'demo-student',
+  name: 'Alex Rivera',
+  email: 'alex@demo.limud.com',
+  role: 'STUDENT' as const,
+  gradeLevel: '8th',
+  accountType: 'DISTRICT' as const,
+  selectedAvatar: 'astronaut',
+  districtId: 'demo-district',
+  districtName: 'Demo School District',
+};
+
+export const DEMO_TEACHER = {
+  id: 'demo-teacher',
+  name: 'Dr. Sarah Chen',
+  email: 'sarah@demo.limud.com',
+  role: 'TEACHER' as const,
+  districtId: 'demo-district',
+  districtName: 'Demo School District',
+  selectedAvatar: 'owl',
+};
+
+export const DEMO_ADMIN = {
+  id: 'demo-admin',
+  name: 'Michael Torres',
+  email: 'michael@demo.limud.com',
+  role: 'ADMIN' as const,
+  districtId: 'demo-district',
+  districtName: 'Demo School District',
+  selectedAvatar: 'shield',
+};
+
+export const DEMO_PARENT = {
+  id: 'demo-parent',
+  name: 'Jessica Rivera',
+  email: 'jessica@demo.limud.com',
+  role: 'PARENT' as const,
+  districtId: 'demo-district',
+  districtName: 'Demo School District',
+  selectedAvatar: 'heart',
+};
+
+export const DEMO_HOMESCHOOL_PARENT = {
+  id: 'demo-homeschool-parent',
+  name: 'Emily Watson',
+  email: 'emily@demo.limud.com',
+  role: 'PARENT' as const,
+  accountType: 'HOMESCHOOL' as const,
+  districtId: 'demo-homeschool',
+  districtName: 'Watson Homeschool',
+  selectedAvatar: 'sunflower',
+};
+
+export const DEMO_REWARD_STATS = {
+  totalXP: 2750,
+  level: 12,
+  currentStreak: 14,
+  longestStreak: 21,
+  virtualCoins: 485,
+  assignmentsCompleted: 47,
+  tutorSessionsCount: 23,
+  unlockedAvatars: ['default', 'astronaut', 'robot', 'wizard'],
+  unlockedBadges: ['first-login', 'streak-7', 'perfect-score', 'tutor-5'],
+};
+
+export const DEMO_ASSIGNMENTS = [
+  {
+    id: 'demo-a1',
+    title: 'Photosynthesis Lab Report',
+    description: 'Write a detailed lab report explaining the process of photosynthesis, including your observations from the virtual lab experiment. Include a hypothesis, methods, results, and conclusion.',
+    type: 'ESSAY',
+    courseId: 'demo-c1',
+    course: { name: 'Biology 101', subject: 'Science' },
+    dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 100,
+    isPublished: true,
+    submissions: [],
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'demo-a2',
+    title: 'Solving Quadratic Equations',
+    description: 'Complete the worksheet on solving quadratic equations using the quadratic formula. Show all your work for each problem.',
+    type: 'SHORT_ANSWER',
+    courseId: 'demo-c2',
+    course: { name: 'Algebra II', subject: 'Math' },
+    dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 50,
+    isPublished: true,
+    submissions: [],
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'demo-a3',
+    title: 'The Great Gatsby Character Analysis',
+    description: 'Write a 500-word essay analyzing the character development of Jay Gatsby. Use specific quotes from chapters 1-5.',
+    type: 'ESSAY',
+    courseId: 'demo-c3',
+    course: { name: 'English Literature', subject: 'English' },
+    dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 100,
+    isPublished: true,
+    submissions: [{
+      id: 'demo-s3',
+      status: 'GRADED',
+      score: 88,
+      maxScore: 100,
+      submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      aiFeedback: JSON.stringify({
+        feedback: 'Excellent analysis of Gatsby\'s character! Your use of quotes from the text was particularly effective. The connection you drew between Gatsby\'s past and his present motivations showed deep understanding.',
+        strengths: ['Strong thesis statement', 'Effective use of textual evidence', 'Clear paragraph organization'],
+        improvements: ['Consider exploring Gatsby\'s relationship with Daisy more deeply', 'Include analysis from Nick\'s perspective'],
+        encouragement: 'Your writing skills are really developing! Keep up this level of thoughtful analysis. 🌟',
+      }),
+    }],
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'demo-a4',
+    title: 'World War II Timeline Project',
+    description: 'Create a detailed timeline of major WWII events from 1939-1945. Include at least 15 events with dates and brief descriptions.',
+    type: 'PROJECT',
+    courseId: 'demo-c4',
+    course: { name: 'World History', subject: 'History' },
+    dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 150,
+    isPublished: true,
+    submissions: [{
+      id: 'demo-s4',
+      status: 'GRADED',
+      score: 142,
+      maxScore: 150,
+      submittedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+      aiFeedback: JSON.stringify({
+        feedback: 'Outstanding timeline project! You covered all the major events with impressive detail. The descriptions were accurate and well-written.',
+        strengths: ['Comprehensive coverage of events', 'Accurate dates', 'Excellent descriptions'],
+        improvements: ['Could include more about the Pacific theater', 'Add some primary source references'],
+        encouragement: 'This is A+ work! Your passion for history really shines through! 🏆',
+      }),
+    }],
+    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'demo-a5',
+    title: 'Chemical Bonding Quiz',
+    description: 'Complete this quiz covering ionic, covalent, and metallic bonds. Pay attention to electronegativity differences.',
+    type: 'QUIZ',
+    courseId: 'demo-c1',
+    course: { name: 'Biology 101', subject: 'Science' },
+    dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 40,
+    isPublished: true,
+    submissions: [{
+      id: 'demo-s5',
+      status: 'SUBMITTED',
+      score: null,
+      maxScore: 40,
+      submittedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+      aiFeedback: null,
+    }],
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+export const DEMO_TEACHER_ASSIGNMENTS = [
+  {
+    id: 'demo-ta1',
+    title: 'Photosynthesis Lab Report',
+    description: 'Write a detailed lab report explaining the process of photosynthesis.',
+    type: 'ESSAY',
+    courseId: 'demo-c1',
+    course: { name: 'Biology 101', subject: 'Science' },
+    dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 100,
+    isPublished: true,
+    submissions: [
+      { id: 'ts1', status: 'SUBMITTED', score: null, studentId: 's1' },
+      { id: 'ts2', status: 'SUBMITTED', score: null, studentId: 's2' },
+      { id: 'ts3', status: 'GRADED', score: 87, studentId: 's3' },
+      { id: 'ts4', status: 'GRADED', score: 92, studentId: 's4' },
+      { id: 'ts5', status: 'GRADED', score: 78, studentId: 's5' },
+    ],
+  },
+  {
+    id: 'demo-ta2',
+    title: 'Cell Division Worksheet',
+    description: 'Complete the diagram and fill in the blanks about mitosis and meiosis.',
+    type: 'SHORT_ANSWER',
+    courseId: 'demo-c1',
+    course: { name: 'Biology 101', subject: 'Science' },
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 50,
+    isPublished: true,
+    submissions: [
+      { id: 'ts6', status: 'SUBMITTED', score: null, studentId: 's1' },
+      { id: 'ts7', status: 'SUBMITTED', score: null, studentId: 's2' },
+      { id: 'ts8', status: 'SUBMITTED', score: null, studentId: 's3' },
+    ],
+  },
+  {
+    id: 'demo-ta3',
+    title: 'Ecosystem Research Project',
+    description: 'Research and present on a specific ecosystem, including its biotic and abiotic factors.',
+    type: 'PROJECT',
+    courseId: 'demo-c1',
+    course: { name: 'Biology 101', subject: 'Science' },
+    dueDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 200,
+    isPublished: true,
+    submissions: [
+      { id: 'ts9', status: 'GRADED', score: 185, studentId: 's1' },
+      { id: 'ts10', status: 'GRADED', score: 172, studentId: 's2' },
+      { id: 'ts11', status: 'GRADED', score: 190, studentId: 's3' },
+      { id: 'ts12', status: 'GRADED', score: 165, studentId: 's4' },
+      { id: 'ts13', status: 'GRADED', score: 178, studentId: 's5' },
+    ],
+  },
+];
+
+export const DEMO_ANALYTICS = {
+  students: [
+    { id: 's1', name: 'Alex Rivera', email: 'alex@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 91.3, totalSubmissions: 12, currentStreak: 14, totalXP: 2750, level: 12, riskLevel: 'low' },
+    { id: 's2', name: 'Emma Johnson', email: 'emma@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 85.7, totalSubmissions: 11, currentStreak: 7, totalXP: 1900, level: 8, riskLevel: 'low' },
+    { id: 's3', name: 'Liam Williams', email: 'liam@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 72.4, totalSubmissions: 10, currentStreak: 3, totalXP: 1200, level: 5, riskLevel: 'medium' },
+    { id: 's4', name: 'Sophia Brown', email: 'sophia@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 95.1, totalSubmissions: 12, currentStreak: 21, totalXP: 3400, level: 14, riskLevel: 'low' },
+    { id: 's5', name: 'Noah Davis', email: 'noah@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 58.2, totalSubmissions: 8, currentStreak: 0, totalXP: 600, level: 3, riskLevel: 'high' },
+    { id: 's6', name: 'Olivia Miller', email: 'olivia@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 88.9, totalSubmissions: 11, currentStreak: 10, totalXP: 2100, level: 9, riskLevel: 'low' },
+    { id: 's7', name: 'Mason Wilson', email: 'mason@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 67.5, totalSubmissions: 9, currentStreak: 1, totalXP: 800, level: 4, riskLevel: 'medium' },
+    { id: 's8', name: 'Isabella Moore', email: 'isabella@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: null, totalSubmissions: 0, currentStreak: 0, totalXP: 50, level: 1, riskLevel: 'unknown' },
+  ],
+  summary: {
+    totalStudents: 8,
+    atRisk: 1,
+    averageScore: 79.9,
+    pendingSubmissions: 5,
+  },
+};
+
+export const DEMO_DISTRICT = {
+  id: 'demo-district',
+  name: 'Meadowbrook School District',
+  subdomain: 'meadowbrook',
+  contactEmail: 'admin@meadowbrook.edu',
+  subscriptionStatus: 'ACTIVE',
+  subscriptionTier: 'STANDARD',
+  subscriptionStart: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
+  subscriptionEnd: new Date(Date.now() + 185 * 24 * 60 * 60 * 1000).toISOString(),
+  pricePerYear: 5500,
+  maxStudents: 500,
+  maxTeachers: 50,
+  isHomeschool: false,
+  studentCount: 342,
+  teacherCount: 28,
+  costPerStudent: 16.08,
+};
+
+export const DEMO_PARENT_CHILDREN = [
+  {
+    id: 'demo-child-1',
+    name: 'Alex Rivera',
+    gradeLevel: '8th',
+    courses: [
+      { name: 'Biology 101', subject: 'Science' },
+      { name: 'Algebra II', subject: 'Math' },
+      { name: 'English Literature', subject: 'English' },
+      { name: 'World History', subject: 'History' },
+    ],
+    recentSubmissions: [
+      { assignmentTitle: 'The Great Gatsby Character Analysis', courseName: 'English Literature', status: 'GRADED', score: 88, maxScore: 100, feedback: JSON.stringify({ feedback: 'Excellent analysis!', encouragement: 'Keep it up!' }), dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+      { assignmentTitle: 'WWII Timeline Project', courseName: 'World History', status: 'GRADED', score: 142, maxScore: 150, feedback: JSON.stringify({ feedback: 'Outstanding work!' }), dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), submittedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString() },
+      { assignmentTitle: 'Chemical Bonding Quiz', courseName: 'Biology 101', status: 'SUBMITTED', score: null, maxScore: 40, feedback: null, dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), submittedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() },
+    ],
+    averageScore: 89.5,
+    rewards: {
+      level: 12,
+      totalXP: 2750,
+      currentStreak: 14,
+      assignmentsCompleted: 47,
+      badges: ['first-login', 'streak-7', 'perfect-score', 'tutor-5'],
+    },
+  },
+  {
+    id: 'demo-child-2',
+    name: 'Maya Rivera',
+    gradeLevel: '5th',
+    courses: [
+      { name: 'General Science', subject: 'Science' },
+      { name: 'Math 5', subject: 'Math' },
+      { name: 'Reading & Writing', subject: 'English' },
+    ],
+    recentSubmissions: [
+      { assignmentTitle: 'Solar System Poster', courseName: 'General Science', status: 'GRADED', score: 95, maxScore: 100, feedback: JSON.stringify({ feedback: 'Beautiful poster with great detail!' }), dueDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), submittedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() },
+      { assignmentTitle: 'Fraction Practice', courseName: 'Math 5', status: 'GRADED', score: 18, maxScore: 20, feedback: JSON.stringify({ feedback: 'Great work with fractions!' }), dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+    ],
+    averageScore: 93.2,
+    rewards: {
+      level: 8,
+      totalXP: 1850,
+      currentStreak: 9,
+      assignmentsCompleted: 32,
+      badges: ['first-login', 'streak-7'],
+    },
+  },
+];
+
+export const DEMO_NOTIFICATIONS = [
+  { id: 'n1', title: '🎉 Assignment Graded!', message: 'Your "The Great Gatsby Character Analysis" has been graded. Score: 88/100', type: 'grade', isRead: false, createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+  { id: 'n2', title: '🔥 Streak Bonus!', message: 'Amazing! You reached a 14-day streak! +150 XP', type: 'achievement', isRead: false, createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+  { id: 'n3', title: '📝 New Assignment', message: 'Photosynthesis Lab Report has been posted in Biology 101', type: 'assignment', isRead: true, createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'n4', title: '⭐ Level Up!', message: "Congratulations! You're now Level 12!", type: 'achievement', isRead: true, createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() },
+];
+
+export const DEMO_LESSON_PLANS = [
+  {
+    id: 'lp1',
+    title: 'Introduction to Photosynthesis',
+    subject: 'Biology',
+    gradeLevel: '8th',
+    duration: '50 min',
+    objectives: JSON.stringify(['Students will explain the process of photosynthesis', 'Students will identify the reactants and products', 'Students will connect photosynthesis to real-world applications']),
+    standards: 'NGSS MS-LS1-6: Construct a scientific explanation based on evidence for the role of photosynthesis in the cycling of matter and flow of energy.',
+    materials: JSON.stringify(['Textbook Chapter 4', 'Virtual lab simulation', 'Leaf specimens', 'Microscopes', 'Worksheets']),
+    warmUp: 'Ask students: "What did you eat for breakfast? Where did that energy come from originally?" Trace the energy back to sunlight.',
+    directInstruction: 'Present the photosynthesis equation: 6CO2 + 6H2O + light energy → C6H12O6 + 6O2. Use animated diagrams to show the light-dependent and light-independent reactions. Discuss the role of chloroplasts and chlorophyll.',
+    guidedPractice: 'Students work in pairs to label a diagram of the photosynthesis process. Teacher circulates and provides feedback. Class reviews answers together.',
+    independentPractice: 'Students complete the virtual lab simulation, observing how changing light intensity and CO2 concentration affects the rate of photosynthesis. Record observations in lab journal.',
+    assessment: 'Exit ticket: Students write 3 things they learned, 2 things they found interesting, and 1 question they still have.',
+    closure: 'Quick review game: "Photosynthesis Pop Quiz" using a Kahoot-style activity. Preview tomorrow\'s lesson on cellular respiration.',
+    differentiation: 'ELL students: Provide vocabulary list with translations. Advanced students: Research the Calvin Cycle in depth. Visual learners: Additional diagrams and videos.',
+    homework: 'Read textbook pages 84-89. Complete the photosynthesis worksheet. Prepare for the lab report assignment.',
+    aiGenerated: true,
+    isFavorite: true,
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'lp2',
+    title: 'Cell Division: Mitosis vs Meiosis',
+    subject: 'Biology',
+    gradeLevel: '8th',
+    duration: '55 min',
+    objectives: JSON.stringify(['Compare and contrast mitosis and meiosis', 'Identify the stages of each process', 'Explain the importance of cell division in growth and reproduction']),
+    standards: 'NGSS MS-LS3-2: Develop and use a model to describe why asexual reproduction results in offspring with identical genetic information and sexual reproduction results in offspring with genetic variation.',
+    materials: JSON.stringify(['Cell division models', 'Pipe cleaners (for chromosomes)', 'Colored beads', 'Flip chart paper']),
+    warmUp: 'Show a time-lapse video of cell division under a microscope. Ask: "What did you notice happening?"',
+    directInstruction: 'Compare mitosis (growth/repair) and meiosis (reproduction). Walk through each stage using physical models. Highlight key differences: chromosome number, genetic variation.',
+    guidedPractice: 'Students use pipe cleaners and beads to model both processes at their desks, with teacher guidance.',
+    independentPractice: 'Create a Venn diagram comparing mitosis and meiosis. Include at least 5 characteristics in each section.',
+    assessment: 'Partner quiz: Students take turns asking each other questions about the stages and purposes of each type of cell division.',
+    closure: 'Class discussion: "Why do organisms need both mitosis AND meiosis?" Connect to real-world examples.',
+    differentiation: 'Struggling students: Simplified comparison chart. Gifted students: Research genetic disorders caused by errors in meiosis.',
+    homework: 'Complete the cell division worksheet. Study for the upcoming quiz on chapters 3-4.',
+    aiGenerated: true,
+    isFavorite: false,
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+export const DEMO_MESSAGES = [
+  {
+    id: 'msg1',
+    senderId: 'demo-parent',
+    receiverId: 'demo-teacher',
+    senderName: 'Jessica Rivera',
+    receiverName: 'Dr. Sarah Chen',
+    subject: 'Question about Alex\'s progress',
+    content: 'Hi Dr. Chen, I wanted to check in on Alex\'s progress in Biology. He mentioned he\'s been working really hard on the lab reports. Is there anything I can do at home to support his learning?',
+    isRead: true,
+    parentOf: 'demo-child-1',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'msg2',
+    senderId: 'demo-teacher',
+    receiverId: 'demo-parent',
+    senderName: 'Dr. Sarah Chen',
+    receiverName: 'Jessica Rivera',
+    subject: 'Re: Question about Alex\'s progress',
+    content: 'Hi Jessica! Alex is doing wonderfully in class. His lab reports show great attention to detail. I\'d suggest encouraging him to watch science documentaries - he really lights up during discussions about real-world applications. His recent scores have been excellent!',
+    isRead: false,
+    parentOf: 'demo-child-1',
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];

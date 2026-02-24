@@ -220,7 +220,7 @@ export default function LoginPage() {
                 <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-3 bg-white text-gray-400">or try a demo account</span>
+                <span className="px-3 bg-white text-gray-400">or explore without signing in</span>
               </div>
             </div>
 
@@ -249,9 +249,20 @@ export default function LoginPage() {
               ))}
             </div>
 
-            <p className="text-center text-xs text-gray-400 mt-6">
-              Demo password: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-mono">password123</code>
-            </p>
+            <div className="mt-6 text-center space-y-3">
+              <Link
+                href="/demo"
+                className="block w-full py-2.5 px-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl text-sm font-medium text-amber-700 hover:from-amber-100 hover:to-orange-100 transition"
+              >
+                🎮 Try Interactive Demo (No sign-up needed)
+              </Link>
+              <p className="text-sm text-gray-500">
+                Don&apos;t have an account?{' '}
+                <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">
+                  Sign up free
+                </Link>
+              </p>
+            </div>
           </div>
 
           <p className="text-center text-xs text-gray-400 mt-6">

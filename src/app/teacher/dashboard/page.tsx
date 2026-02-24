@@ -1,30 +1,38 @@
 'use client';
-
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { redirect, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { DEMO_ANALYTICS, DEMO_TEACHER_ASSIGNMENTS, DEMO_TEACHER } from '@/lib/demo-data';
 import {
   BookOpen, GraduationCap, BarChart3,
   Users, AlertTriangle, Clock, ArrowRight,
-  TrendingUp, FileText, Sparkles, Zap, Target,
+  TrendingUp, FileText, Sparkles, Zap, Target, Wand2,
 } from 'lucide-react';
 
 export default function TeacherDashboard() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [analytics, setAnalytics] = useState<any>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isDemo) {
+      setAnalytics(DEMO_ANALYTICS);
+      setAssignments(DEMO_TEACHER_ASSIGNMENTS);
+      setLoading(false);
+      return;
+    }
     if (status === 'authenticated') {
       if ((session?.user as any)?.role !== 'TEACHER') redirect('/');
       fetchData();
     }
-  }, [status]);
+  }, [status, isDemo]);
 
   async function fetchData() {
     try {
@@ -44,7 +52,7 @@ export default function TeacherDashboard() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (!isDemo && (status === 'loading' || loading)) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
@@ -59,7 +67,8 @@ export default function TeacherDashboard() {
 
   const summary = analytics?.summary || { totalStudents: 0, atRisk: 0, averageScore: 0, pendingSubmissions: 0 };
   const students = analytics?.students || [];
-  const firstName = session?.user?.name?.split(' ')[0] || 'Teacher';
+  const firstName = isDemo ? DEMO_TEACHER.name.split(' ')[0] : (session?.user?.name?.split(' ')[0] || 'Teacher');
+  const demoSuffix = isDemo ? '?demo=true' : '';
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -83,13 +92,22 @@ export default function TeacherDashboard() {
             </h1>
             <p className="text-gray-500 mt-1">Here's your classroom overview for today</p>
           </div>
-          <Link
-            href="/teacher/assignments"
-            className="btn-primary inline-flex items-center gap-2 w-fit"
-          >
-            <Sparkles size={16} />
-            Create Assignment
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href={`/teacher/lesson-planner${demoSuffix}`}
+              className="btn-secondary inline-flex items-center gap-2 w-fit"
+            >
+              <Wand2 size={16} />
+              AI Lesson Planner
+            </Link>
+            <Link
+              href={`/teacher/assignments${demoSuffix}`}
+              className="btn-primary inline-flex items-center gap-2 w-fit"
+            >
+              <Sparkles size={16} />
+              Create Assignment
+            </Link>
+          </div>
         </motion.div>
 
         {/* Stats Cards */}
@@ -154,7 +172,7 @@ export default function TeacherDashboard() {
         <div className="grid sm:grid-cols-3 gap-4">
           {[
             {
-              href: '/teacher/assignments',
+              href: `/teacher/assignments${demoSuffix}`,
               icon: <BookOpen size={22} />,
               title: 'Manage Assignments',
               desc: `${assignments.length} total assignments`,
@@ -162,7 +180,7 @@ export default function TeacherDashboard() {
               hoverColor: 'group-hover:bg-blue-200',
             },
             {
-              href: '/teacher/grading',
+              href: `/teacher/grading${demoSuffix}`,
               icon: <GraduationCap size={22} />,
               title: 'AI Auto-Grade',
               desc: `${summary.pendingSubmissions} pending submissions`,
@@ -171,7 +189,7 @@ export default function TeacherDashboard() {
               alert: summary.pendingSubmissions > 0,
             },
             {
-              href: '/teacher/analytics',
+              href: `/teacher/analytics${demoSuffix}`,
               icon: <BarChart3 size={22} />,
               title: 'Analytics',
               desc: 'Student performance insights',
@@ -275,7 +293,7 @@ export default function TeacherDashboard() {
                 </div>
                 Recent Assignments
               </h2>
-              <Link href="/teacher/assignments" className="text-xs text-primary-600 font-semibold hover:underline flex items-center gap-1">
+              <Link href={`/teacher/assignments${demoSuffix}`} className="text-xs text-primary-600 font-semibold hover:underline flex items-center gap-1">
                 View all <ArrowRight size={12} />
               </Link>
             </div>

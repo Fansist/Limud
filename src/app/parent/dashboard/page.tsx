@@ -1,11 +1,11 @@
 'use client';
-
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { redirect, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
+import { DEMO_PARENT_CHILDREN } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import {
   Eye, BookOpen, Trophy, TrendingUp, Clock, CheckCircle2,
@@ -14,15 +14,22 @@ import {
 
 export default function ParentDashboard() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [children, setChildren] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isDemo) {
+      setChildren(DEMO_PARENT_CHILDREN);
+      setLoading(false);
+      return;
+    }
     if (status === 'authenticated') {
       if ((session?.user as any)?.role !== 'PARENT') redirect('/');
       fetchChildData();
     }
-  }, [status]);
+  }, [status, isDemo]);
 
   async function fetchChildData() {
     try {
