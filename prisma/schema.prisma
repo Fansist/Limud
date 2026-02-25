@@ -1,5 +1,8 @@
-// Prisma schema for Limud EdTech Platform
-// Covers: Users (RBAC), Districts, Assignments, Submissions, AI Logs, Gamification, Lesson Plans
+// Prisma schema for Limud EdTech Platform v2.0
+// Adaptive AI-Powered K-12 Platform with Cognitive Science Engine
+// Covers: Users (RBAC), Districts, Assignments, Submissions, AI Logs, Gamification,
+//   Lesson Plans, Skill Tracking, Spaced Repetition, Study Planner, Exam Simulation,
+//   Leagues & Tournaments, Mistake Replay, Growth Analytics
 
 generator client {
   provider = "prisma-client-js"
@@ -56,6 +59,14 @@ enum SubscriptionTier {
   ENTERPRISE
 }
 
+enum Difficulty {
+  BEGINNER
+  EASY
+  MEDIUM
+  HARD
+  ADVANCED
+}
+
 // ─── SCHOOL DISTRICT ────────────────────────────────────────────────────────
 
 model SchoolDistrict {
@@ -91,12 +102,14 @@ model User {
   accountType    AccountType     @default(DISTRICT)
   avatarUrl      String?
   selectedAvatar String          @default("default")
+  selectedTheme  String          @default("default") // unlockable themes
   isActive       Boolean         @default(true)
   isDemo         Boolean         @default(false)
   districtId     String?
   gradeLevel     String?         // For students: "5th", "6th", etc.
   parentId       String?         // Links student to parent
   onboardingComplete Boolean     @default(false)
+  preferredTutor String          @default("socratic") // tutor personality
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -108,6 +121,7 @@ model User {
   taughtCourses  CourseTeacher[]
   createdAssignments Assignment[]
   lessonPlans    LessonPlan[]
+  quizTemplates  QuizTemplate[]
 
   // Student relations
   enrollments    Enrollment[]
@@ -116,6 +130,15 @@ model User {
   tutorLogs      AITutorLog[]
   notifications  Notification[]
   certificates   Certificate[]
+
+  // Adaptive learning relations
+  skillRecords       SkillRecord[]
+  spacedRepItems     SpacedRepItem[]
+  studyPlanSessions  StudyPlanSession[]
+  examAttempts       ExamAttempt[]
+  mistakeEntries     MistakeEntry[]
+  challengeParticipants ChallengeParticipant[]
+  weeklyReports      WeeklyReport[]
 
   // Auth sessions
   sessions       Session[]
@@ -128,6 +151,7 @@ model User {
   @@index([email])
   @@index([role])
   @@index([districtId])
+  @@index([parentId])
   @@map("users")
 }
 
@@ -183,6 +207,7 @@ model Course {
   gradeLevel  String
   districtId  String
   isActive    Boolean     @default(true)
+  standards   String?     @db.Text  // JSON: aligned standards (Common Core, NGSS, etc.)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -190,6 +215,7 @@ model Course {
   teachers    CourseTeacher[]
   enrollments Enrollment[]
   assignments Assignment[]
+  skillRecords SkillRecord[]
 
   @@index([districtId])
   @@map("courses")
@@ -235,6 +261,9 @@ model Assignment {
   rubric        String?        @db.Text  // JSON rubric for AI grading
   isPublished   Boolean        @default(false)
   allowLateSubmission Boolean  @default(false)
+  difficulty    Difficulty     @default(MEDIUM)
+  skills        String?        @db.Text  // JSON array of skill tags
+  standards     String?        @db.Text  // JSON aligned standards
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -259,13 +288,16 @@ model Submission {
   maxScore      Float?
   aiFeedback    String?          @db.Text  // AI-generated personalized feedback
   teacherNotes  String?          @db.Text  // Teacher override/additional notes
+  misconceptions String?        @db.Text  // JSON: AI-detected misconceptions
   gradedAt      DateTime?
   submittedAt   DateTime?
+  timeSpentSec  Int?             // Time student spent
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
   assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  mistakeEntries MistakeEntry[]
 
   @@unique([assignmentId, studentId])
   @@index([studentId])
@@ -282,6 +314,7 @@ model AITutorLog {
   role        String   // "user" | "assistant" | "system"
   content     String   @db.Text
   subject     String?  // What subject the question relates to
+  personality String?  // Tutor personality used: socratic, friendly, strict, creative
   tokensUsed  Int      @default(0)
   createdAt   DateTime @default(now())
 
@@ -305,8 +338,13 @@ model RewardStats {
   virtualCoins     Int      @default(0)
   unlockedAvatars  String   @default("[]") // JSON array of unlocked avatar IDs
   unlockedBadges   String   @default("[]") // JSON array of badge IDs
+  unlockedThemes   String   @default("[]") // JSON array of theme IDs
   assignmentsCompleted Int  @default(0)
   tutorSessionsCount   Int  @default(0)
+  perfectScores    Int      @default(0)
+  totalStudyMinutes Int     @default(0)
+  leaguePoints     Int      @default(0)
+  seasonRank       Int?     // Current season ranking
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -322,7 +360,7 @@ model Notification {
   userId    String
   title     String
   message   String
-  type      String   // "assignment", "grade", "achievement", "system"
+  type      String   // "assignment", "grade", "achievement", "system", "alert", "challenge"
   isRead    Boolean  @default(false)
   link      String?  // Optional navigation link
   createdAt DateTime @default(now())
@@ -401,4 +439,238 @@ model Message {
   @@index([senderId])
   @@index([receiverId])
   @@map("messages")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW: ADAPTIVE LEARNING & COGNITIVE SCIENCE ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── SKILL TRACKING ────────────────────────────────────────────────────────
+
+model SkillRecord {
+  id             String   @id @default(cuid())
+  userId         String
+  courseId        String?
+  skillName      String   // e.g., "Fractions", "Photosynthesis", "Essay Structure"
+  skillCategory  String   // e.g., "Math", "Science", "ELA"
+  masteryLevel   Float    @default(0)  // 0-100 mastery percentage
+  totalAttempts  Int      @default(0)
+  correctAttempts Int     @default(0)
+  currentDifficulty Difficulty @default(MEDIUM)
+  lastPracticed  DateTime @default(now())
+  nextReview     DateTime @default(now()) // spaced rep next review
+  easeFactor     Float    @default(2.5)  // SM-2 algorithm ease factor
+  interval       Int      @default(1)    // days until next review
+  repetitions    Int      @default(0)
+  streak         Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, skillName, courseId])
+  @@index([userId, nextReview])
+  @@index([userId, skillCategory])
+  @@map("skill_records")
+}
+
+// ─── SPACED REPETITION ITEMS ───────────────────────────────────────────────
+
+model SpacedRepItem {
+  id            String   @id @default(cuid())
+  userId        String
+  question      String   @db.Text
+  answer        String   @db.Text
+  skillName     String
+  subject       String
+  difficulty    Difficulty @default(MEDIUM)
+  easeFactor    Float    @default(2.5)
+  interval      Int      @default(1)    // days
+  repetitions   Int      @default(0)
+  nextReview    DateTime @default(now())
+  lastReview    DateTime?
+  lastQuality   Int?     // 0-5 quality of last response
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, nextReview])
+  @@index([userId, subject])
+  @@map("spaced_rep_items")
+}
+
+// ─── STUDY PLANNER ─────────────────────────────────────────────────────────
+
+model StudyPlanSession {
+  id            String   @id @default(cuid())
+  userId        String
+  date          DateTime // planned date
+  subject       String
+  topic         String
+  goalMinutes   Int      @default(30)
+  actualMinutes Int      @default(0)
+  completed     Boolean  @default(false)
+  sessionType   String   @default("study") // "study", "review", "practice", "exam_prep"
+  difficulty    Difficulty @default(MEDIUM)
+  notes         String?  @db.Text
+  aiRecommended Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("study_plan_sessions")
+}
+
+// ─── EXAM SIMULATION ───────────────────────────────────────────────────────
+
+model ExamAttempt {
+  id            String   @id @default(cuid())
+  userId        String
+  examTitle     String
+  subject       String
+  gradeLevel    String
+  totalQuestions Int
+  correctAnswers Int     @default(0)
+  score         Float?
+  maxScore      Float?
+  timeSpentSec  Int?
+  timeLimitSec  Int?
+  questions     String   @db.Text  // JSON: array of {question, options, correctAnswer, userAnswer, explanation}
+  strengths     String?  @db.Text  // JSON: skill areas of strength
+  weaknesses    String?  @db.Text  // JSON: skill areas needing work
+  predictedScore Float?  // AI-predicted real exam score
+  completed     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, subject])
+  @@index([userId, createdAt])
+  @@map("exam_attempts")
+}
+
+// ─── MISTAKE REPLAY / ERROR DIAGNOSIS ──────────────────────────────────────
+
+model MistakeEntry {
+  id            String   @id @default(cuid())
+  userId        String
+  submissionId  String?
+  subject       String
+  skillName     String
+  question      String   @db.Text
+  wrongAnswer   String   @db.Text
+  correctAnswer String   @db.Text
+  explanation   String?  @db.Text  // AI explanation of misconception
+  misconceptionType String? // e.g., "sign_error", "concept_confusion", "formula_misapplication"
+  resolved      Boolean  @default(false)
+  reviewCount   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submission Submission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, resolved])
+  @@index([userId, subject])
+  @@map("mistake_entries")
+}
+
+// ─── QUIZ TEMPLATES (AI-Generated for Teachers) ────────────────────────────
+
+model QuizTemplate {
+  id            String   @id @default(cuid())
+  teacherId     String
+  title         String
+  subject       String
+  gradeLevel    String
+  difficulty    Difficulty @default(MEDIUM)
+  questionCount Int      @default(10)
+  questions     String   @db.Text  // JSON: array of {question, type, options, correctAnswer, explanation, skill}
+  standards     String?  @db.Text  // JSON: aligned standards
+  aiGenerated   Boolean  @default(true)
+  isFavorite    Boolean  @default(false)
+  timesUsed     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  teacher User @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId])
+  @@map("quiz_templates")
+}
+
+// ─── CHALLENGES & TOURNAMENTS ──────────────────────────────────────────────
+
+model Challenge {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  subject       String
+  type          String   // "duel", "tournament", "weekly", "seasonal"
+  difficulty    Difficulty @default(MEDIUM)
+  questions     String   @db.Text  // JSON: array of challenge questions
+  maxParticipants Int    @default(50)
+  xpReward      Int      @default(100)
+  coinReward    Int      @default(50)
+  startsAt      DateTime
+  endsAt        DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  participants  ChallengeParticipant[]
+
+  @@index([isActive, startsAt])
+  @@map("challenges")
+}
+
+model ChallengeParticipant {
+  id            String   @id @default(cuid())
+  challengeId   String
+  userId        String
+  score         Float?
+  timeSpentSec  Int?
+  rank          Int?
+  completed     Boolean  @default(false)
+  answers       String?  @db.Text  // JSON: user's answers
+  joinedAt      DateTime @default(now())
+  completedAt   DateTime?
+
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([userId])
+  @@map("challenge_participants")
+}
+
+// ─── WEEKLY REPORTS (Parent) ───────────────────────────────────────────────
+
+model WeeklyReport {
+  id            String   @id @default(cuid())
+  userId        String   // student
+  weekStart     DateTime
+  weekEnd       DateTime
+  totalStudyMin Int      @default(0)
+  assignmentsCompleted Int @default(0)
+  averageScore  Float?
+  skillsImproved String? @db.Text  // JSON: skills that improved
+  skillsStruggling String? @db.Text // JSON: skills needing help
+  streakDays    Int      @default(0)
+  xpEarned      Int      @default(0)
+  tutorSessions Int      @default(0)
+  focusScore    Float?   // 0-100 engagement/focus metric
+  effortScore   Float?   // 0-100 effort metric
+  riskLevel     String?  // "low", "medium", "high"
+  aiSummary     String?  @db.Text  // AI-generated narrative summary
+  projectedGrade String? // Predicted grade if trend continues
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, weekStart])
+  @@map("weekly_reports")
 }

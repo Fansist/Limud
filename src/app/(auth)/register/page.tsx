@@ -519,8 +519,8 @@ export default function RegisterPage() {
 
                 <p className="text-xs text-gray-400">
                   By creating an account, you agree to our{' '}
-                  <a href="#" className="text-primary-600 hover:underline">Terms of Service</a> and{' '}
-                  <a href="#" className="text-primary-600 hover:underline">Privacy Policy</a>.
+                  <Link href="/terms" className="text-primary-600 hover:underline">Terms of Service</Link> and{' '}
+                  <Link href="/privacy" className="text-primary-600 hover:underline">Privacy Policy</Link>.
                   Limud is FERPA & COPPA compliant.
                 </p>
 

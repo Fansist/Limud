@@ -14,6 +14,27 @@
     font-family: var(--font-inter);
   }
 
+  /* Dark mode */
+  .dark body,
+  html.dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+
+  html.dark .bg-gray-50 { @apply bg-gray-950 !important; }
+  html.dark .bg-white { @apply bg-gray-900 !important; }
+  html.dark .bg-white\/80 { background-color: rgba(17, 24, 39, 0.8) !important; }
+  html.dark .text-gray-900 { @apply text-gray-100 !important; }
+  html.dark .text-gray-800 { @apply text-gray-200 !important; }
+  html.dark .text-gray-700 { @apply text-gray-300 !important; }
+  html.dark .text-gray-600 { @apply text-gray-400 !important; }
+  html.dark .text-gray-500 { @apply text-gray-400 !important; }
+  html.dark .border-gray-100 { @apply border-gray-800 !important; }
+  html.dark .border-gray-200 { @apply border-gray-700 !important; }
+  html.dark .bg-gray-100 { @apply bg-gray-800 !important; }
+  html.dark .bg-gray-50 { @apply bg-gray-900 !important; }
+  html.dark .hover\:bg-gray-50:hover { @apply bg-gray-800 !important; }
+  html.dark .hover\:bg-gray-100:hover { @apply bg-gray-700 !important; }
+
   body.high-contrast {
     @apply bg-black text-white;
   }

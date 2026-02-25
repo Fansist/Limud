@@ -1127,31 +1127,55 @@ export default function LandingPage() {
                 <span className="text-xs bg-purple-500/10 text-purple-400 px-2.5 py-1 rounded-full font-medium border border-purple-500/20">WCAG AA</span>
               </div>
             </div>
-            {[
-              {
-                title: 'Product',
-                links: ['Features', 'Pricing', 'AI Tutor', 'Auto-Grading', 'Gamification', 'LMS Integration'],
-              },
-              {
-                title: 'Company',
-                links: ['About', 'Blog', 'Careers', 'Press', 'Contact'],
-              },
-              {
-                title: 'Legal',
-                links: ['Privacy Policy', 'Terms of Service', 'FERPA Compliance', 'COPPA Compliance', 'Accessibility'],
-              },
-            ].map(col => (
-              <div key={col.title}>
-                <h4 className="text-sm font-semibold text-white mb-4">{col.title}</h4>
-                <ul className="space-y-2.5">
-                  {col.links.map(link => (
-                    <li key={link}>
-                      <a href="#" className="text-sm hover:text-white transition">{link}</a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
+              <ul className="space-y-2.5">
+                {[
+                  { label: 'Features', href: '#features' },
+                  { label: 'Pricing', href: '#pricing' },
+                  { label: 'AI Tutor', href: '#features' },
+                  { label: 'Auto-Grading', href: '#features' },
+                  { label: 'Gamification', href: '#features' },
+                  { label: 'LMS Integration', href: '#features' },
+                ].map(link => (
+                  <li key={link.label}>
+                    <a href={link.href} className="text-sm hover:text-white transition">{link.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
+              <ul className="space-y-2.5">
+                {[
+                  { label: 'About', href: '/about' },
+                  { label: 'Blog', href: '/about' },
+                  { label: 'Careers', href: '/contact' },
+                  { label: 'Press', href: '/contact' },
+                  { label: 'Contact', href: '/contact' },
+                ].map(link => (
+                  <li key={link.label}>
+                    <Link href={link.href} className="text-sm hover:text-white transition">{link.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
+              <ul className="space-y-2.5">
+                {[
+                  { label: 'Privacy Policy', href: '/privacy' },
+                  { label: 'Terms of Service', href: '/terms' },
+                  { label: 'FERPA Compliance', href: '/privacy' },
+                  { label: 'COPPA Compliance', href: '/privacy' },
+                  { label: 'Accessibility', href: '/accessibility' },
+                ].map(link => (
+                  <li key={link.label}>
+                    <Link href={link.href} className="text-sm hover:text-white transition">{link.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
           <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm">&copy; {new Date().getFullYear()} Limud Education Inc. All rights reserved.</p>

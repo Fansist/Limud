@@ -33,6 +33,14 @@ import {
   ArrowLeft,
   Users,
   Home,
+  Brain,
+  FileText,
+  Calendar,
+  TrendingUp,
+  Swords,
+  Sun,
+  Moon,
+  Lightbulb,
 } from 'lucide-react';
 
 type NavItem = {
@@ -46,6 +54,9 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/student/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { href: '/student/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
     { href: '/student/tutor', label: 'AI Tutor', icon: <MessageCircle size={20} /> },
+    { href: '/student/study-planner', label: 'Study Planner', icon: <Calendar size={20} /> },
+    { href: '/student/exam-sim', label: 'Exam Simulator', icon: <FileText size={20} /> },
+    { href: '/student/growth', label: 'Growth Analytics', icon: <TrendingUp size={20} /> },
     { href: '/student/rewards', label: 'Rewards', icon: <Trophy size={20} /> },
     { href: '/student/certificates', label: 'Certificates', icon: <Award size={20} /> },
   ],
@@ -53,7 +64,9 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/teacher/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { href: '/teacher/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
     { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
+    { href: '/teacher/quiz-generator', label: 'AI Quiz Generator', icon: <Lightbulb size={20} /> },
     { href: '/teacher/lesson-planner', label: 'AI Lesson Planner', icon: <Wand2 size={20} /> },
+    { href: '/teacher/insights', label: 'Insights & Heatmap', icon: <Brain size={20} /> },
     { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
   ],
   ADMIN: [
@@ -62,6 +75,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
   PARENT: [
     { href: '/parent/dashboard', label: 'Dashboard', icon: <Eye size={20} /> },
+    { href: '/parent/reports', label: 'Growth Reports', icon: <TrendingUp size={20} /> },
   ],
   // Homeschool parent gets parent tools + teacher tools
   HOMESCHOOL_PARENT: [
@@ -299,6 +313,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Bottom section */}
         <div className="p-4 border-t border-gray-100 space-y-2">
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={() => {
+              const html = document.documentElement;
+              html.classList.toggle('dark');
+              localStorage.setItem('limud-dark-mode', html.classList.contains('dark') ? 'true' : 'false');
+            }}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium w-full text-gray-600 hover:bg-gray-50 transition-all"
+            aria-label="Toggle dark mode"
+          >
+            <Sun size={20} className="dark:hidden" />
+            <Moon size={20} className="hidden dark:block" />
+            <span>Dark Mode</span>
+          </button>
+
           <button
             onClick={() => setShowAccessibility(!showAccessibility)}
             className={cn(
