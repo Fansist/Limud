@@ -101,6 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isDemoParam = searchParams.get('demo') === 'true';
   const [isDemo, setIsDemo] = useState(false);
   const [demoRole, setDemoRole] = useState<string>('STUDENT');
+  const [demoReady, setDemoReady] = useState(false);
 
   useEffect(() => {
     const storedDemo = localStorage.getItem('limud-demo-mode') === 'true';
@@ -114,6 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       else if (pathname.startsWith('/parent')) setDemoRole('PARENT');
       else setDemoRole(storedRole);
     }
+    setDemoReady(true);
   }, [isDemoParam, pathname]);
 
   const role = isDemo ? demoRole : ((session?.user as any)?.role || 'STUDENT');
@@ -127,6 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const roleLabel = ROLE_LABELS[role] || 'Portal';
 
   useEffect(() => {
+    if (!demoReady) return; // Wait until demo state is determined
     if (isDemo) {
       setNotifications(DEMO_NOTIFICATIONS as any);
       setUnreadCount(DEMO_NOTIFICATIONS.filter(n => !n.isRead).length);
@@ -135,7 +138,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const interval = setInterval(fetchNotifications, 30000);
       return () => clearInterval(interval);
     }
-  }, [isDemo]);
+  }, [isDemo, demoReady]);
 
   async function fetchNotifications() {
     try {

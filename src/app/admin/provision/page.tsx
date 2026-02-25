@@ -1,6 +1,7 @@
 'use client';
 import { useSession } from 'next-auth/react';
 import { useState, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -20,6 +21,8 @@ type ParsedUser = {
 
 export default function ProvisionPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [parsedUsers, setParsedUsers] = useState<ParsedUser[]>([]);
   const [results, setResults] = useState<any[] | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -59,6 +62,17 @@ export default function ProvisionPage() {
 
     setUploading(true);
     try {
+      if (isDemo) {
+        // Simulate provisioning in demo mode
+        await new Promise(r => setTimeout(r, 1500));
+        const demoResults = parsedUsers.map(u => ({
+          email: u.email, status: 'success', message: 'Created (Demo)',
+        }));
+        setResults(demoResults);
+        toast.success(`${parsedUsers.length} users provisioned (Demo)`);
+        setUploading(false);
+        return;
+      }
       const res = await fetch('/api/admin/provision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,6 +1,7 @@
 'use client';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
@@ -30,6 +31,8 @@ const QUICK_PROMPTS = [
 
 export default function TutorPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,6 +54,22 @@ export default function TutorPage() {
     setLoading(true);
 
     try {
+      if (isDemo) {
+        // Use demo endpoint
+        const res = await fetch('/api/demo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'tutor-chat', message: text }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSessionId(data.sessionId);
+          setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+        } else {
+          toast.error('Tutor is having trouble. Try again!');
+        }
+        return;
+      }
       const res = await fetch('/api/tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

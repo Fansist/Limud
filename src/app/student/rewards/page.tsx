@@ -1,25 +1,34 @@
 'use client';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { XPBar, StreakDisplay, CoinDisplay, StatsGrid, BadgeGrid, AvatarShop } from '@/components/gamification/RewardComponents';
+import { DEMO_REWARD_STATS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import { Trophy, ShoppingBag, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function RewardsPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'shop' | 'badges'>('overview');
 
   useEffect(() => {
     fetchRewards();
-  }, []);
+  }, [isDemo]);
 
   async function fetchRewards() {
     try {
+      if (isDemo) {
+        setStats(DEMO_REWARD_STATS);
+        setLoading(false);
+        return;
+      }
       const res = await fetch('/api/rewards');
       if (res.ok) {
         const data = await res.json();
@@ -33,6 +42,10 @@ export default function RewardsPage() {
   }
 
   async function handlePurchase(avatarId: string, cost: number) {
+    if (isDemo) {
+      toast.success(`Unlocked ${avatarId}! 🎉 (Demo)`);
+      return;
+    }
     try {
       const res = await fetch('/api/rewards', {
         method: 'POST',

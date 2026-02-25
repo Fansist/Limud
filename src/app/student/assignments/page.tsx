@@ -1,9 +1,11 @@
 'use client';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, daysUntil, formatDate } from '@/lib/utils';
+import { DEMO_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import {
@@ -12,6 +14,8 @@ import {
 
 export default function StudentAssignments() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
@@ -21,10 +25,15 @@ export default function StudentAssignments() {
 
   useEffect(() => {
     fetchAssignments();
-  }, []);
+  }, [isDemo]);
 
   async function fetchAssignments() {
     try {
+      if (isDemo) {
+        setAssignments(DEMO_ASSIGNMENTS);
+        setLoading(false);
+        return;
+      }
       const res = await fetch('/api/assignments');
       if (res.ok) {
         const data = await res.json();
@@ -44,6 +53,19 @@ export default function StudentAssignments() {
     }
     setSubmitting(true);
     try {
+      if (isDemo) {
+        // Simulate submission in demo mode
+        await new Promise(r => setTimeout(r, 1000));
+        setAssignments(prev => prev.map(a => 
+          a.id === assignmentId 
+            ? { ...a, submissions: [{ id: `demo-sub-${Date.now()}`, status: 'SUBMITTED', score: null, maxScore: a.totalPoints, submittedAt: new Date().toISOString(), aiFeedback: null }] }
+            : a
+        ));
+        toast.success('Assignment submitted! 🎉 (Demo)');
+        setSelectedAssignment(null);
+        setSubmissionText('');
+        return;
+      }
       const res = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

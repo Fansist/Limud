@@ -1,14 +1,18 @@
 'use client';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
+import { DEMO_TEACHER_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import { GraduationCap, Wand2, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 
 export default function GradingPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [assignments, setAssignments] = useState<any[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<string>('');
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -18,7 +22,7 @@ export default function GradingPage() {
 
   useEffect(() => {
     fetchAssignments();
-  }, []);
+  }, [isDemo]);
 
   useEffect(() => {
     if (selectedAssignment) fetchSubmissions(selectedAssignment);
@@ -26,6 +30,18 @@ export default function GradingPage() {
 
   async function fetchAssignments() {
     try {
+      if (isDemo) {
+        setAssignments(DEMO_TEACHER_ASSIGNMENTS);
+        const withPending = DEMO_TEACHER_ASSIGNMENTS.filter(
+          (a: any) => a.submissions?.some((s: any) => s.status === 'SUBMITTED')
+        );
+        if (withPending.length > 0) {
+          setSelectedAssignment(withPending[0].id);
+          setSubmissions(withPending[0].submissions || []);
+        }
+        setLoading(false);
+        return;
+      }
       const res = await fetch('/api/assignments');
       if (res.ok) {
         const data = await res.json();
@@ -45,6 +61,11 @@ export default function GradingPage() {
   }
 
   async function fetchSubmissions(assignmentId: string) {
+    if (isDemo) {
+      const assignment = DEMO_TEACHER_ASSIGNMENTS.find((a: any) => a.id === assignmentId);
+      setSubmissions(assignment?.submissions || []);
+      return;
+    }
     try {
       const res = await fetch(`/api/submissions?assignmentId=${assignmentId}`);
       if (res.ok) {
@@ -59,6 +80,16 @@ export default function GradingPage() {
   async function gradeSubmission(submissionId: string) {
     setGrading(prev => new Set(prev).add(submissionId));
     try {
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 1500));
+        const score = Math.round(70 + Math.random() * 30);
+        setSubmissions(prev => prev.map(s =>
+          s.id === submissionId ? { ...s, status: 'GRADED', score, maxScore: 100 } : s
+        ));
+        toast.success('Graded successfully! ✨ (Demo)');
+        setGrading(prev => { const next = new Set(prev); next.delete(submissionId); return next; });
+        return;
+      }
       const res = await fetch('/api/grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,6 +125,15 @@ export default function GradingPage() {
 
     setBatchGrading(true);
     try {
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 2000));
+        setSubmissions(prev => prev.map(s =>
+          s.status === 'SUBMITTED' ? { ...s, status: 'GRADED', score: Math.round(70 + Math.random() * 30), maxScore: 100 } : s
+        ));
+        toast.success(`Graded ${pendingIds.length} submissions! 🎉 (Demo)`);
+        setBatchGrading(false);
+        return;
+      }
       const res = await fetch('/api/grade', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

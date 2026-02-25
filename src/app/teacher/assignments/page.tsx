@@ -1,14 +1,18 @@
 'use client';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
+import { DEMO_TEACHER_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import { BookOpen, Plus, X, CheckCircle2, Clock, Users } from 'lucide-react';
 
 export default function TeacherAssignments() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -21,10 +25,16 @@ export default function TeacherAssignments() {
 
   useEffect(() => {
     fetchAssignments();
-  }, []);
+  }, [isDemo]);
 
   async function fetchAssignments() {
     try {
+      if (isDemo) {
+        setAssignments(DEMO_TEACHER_ASSIGNMENTS);
+        setCourses([{ id: 'demo-c1', name: 'Biology 101', subject: 'Science' }]);
+        setLoading(false);
+        return;
+      }
       const res = await fetch('/api/assignments');
       if (res.ok) {
         const data = await res.json();

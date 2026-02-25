@@ -1,22 +1,31 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { DEMO_ANALYTICS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import { BarChart3, Users, AlertTriangle, TrendingUp, Search } from 'lucide-react';
 
 export default function AnalyticsPage() {
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchAnalytics();
-  }, []);
+  }, [isDemo]);
 
   async function fetchAnalytics() {
     try {
+      if (isDemo) {
+        setAnalytics(DEMO_ANALYTICS);
+        setLoading(false);
+        return;
+      }
       const res = await fetch('/api/analytics');
       if (res.ok) setAnalytics(await res.json());
     } catch {
