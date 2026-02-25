@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth, requireRole, apiHandler } from '@/lib/middleware';
+import { requireAuth, requireRole, apiHandler, hasTeacherAccess } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
 export const GET = apiHandler(async (req: Request) => {
@@ -33,13 +33,27 @@ export const GET = apiHandler(async (req: Request) => {
     return NextResponse.json({ assignments });
   }
 
-  if (user.role === 'TEACHER') {
-    // Teachers see assignments they created
+  if (hasTeacherAccess(user)) {
+    // Teachers and homeschool parents see assignments they created
+    // For homeschool parents, also show assignments from their district
+    const whereClause: any = {};
+
+    if (user.role === 'PARENT' && user.isHomeschoolParent) {
+      // Homeschool parent: see assignments they created OR from their district
+      whereClause.OR = [
+        { createdById: user.id },
+        { course: { districtId: user.districtId } },
+      ];
+    } else {
+      whereClause.createdById = user.id;
+    }
+
+    if (courseId) {
+      whereClause.courseId = courseId;
+    }
+
     const assignments = await prisma.assignment.findMany({
-      where: {
-        createdById: user.id,
-        ...(courseId ? { courseId } : {}),
-      },
+      where: whereClause,
       include: {
         course: { select: { name: true, subject: true } },
         submissions: {
@@ -53,19 +67,23 @@ export const GET = apiHandler(async (req: Request) => {
   }
 
   // Admin sees all district assignments
-  const assignments = await prisma.assignment.findMany({
-    where: {
-      course: { districtId: user.districtId },
-    },
-    include: {
-      course: { select: { name: true, subject: true } },
-      createdBy: { select: { name: true } },
-      _count: { select: { submissions: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  if (user.role === 'ADMIN') {
+    const assignments = await prisma.assignment.findMany({
+      where: {
+        course: { districtId: user.districtId },
+      },
+      include: {
+        course: { select: { name: true, subject: true } },
+        createdBy: { select: { name: true } },
+        _count: { select: { submissions: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-  return NextResponse.json({ assignments });
+    return NextResponse.json({ assignments });
+  }
+
+  return NextResponse.json({ assignments: [] });
 });
 
 export const POST = apiHandler(async (req: Request) => {
@@ -81,12 +99,20 @@ export const POST = apiHandler(async (req: Request) => {
     );
   }
 
-  // Verify teacher owns this course
+  // Verify access to this course
   if (user.role === 'TEACHER') {
     const courseTeacher = await prisma.courseTeacher.findFirst({
       where: { courseId, teacherId: user.id },
     });
     if (!courseTeacher) {
+      return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+    }
+  } else if (user.role === 'PARENT' && user.isHomeschoolParent) {
+    // Homeschool parents can create assignments for courses in their district
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, districtId: user.districtId },
+    });
+    if (!course) {
       return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
     }
   }

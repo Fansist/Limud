@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, password, role, accountType, gradeLevel, childName, childGrade } = body;
+    const { name, email, password, role, accountType, gradeLevel, childName, childGrade, children: childrenList } = body;
 
     // Validate required fields
     if (!name || !email || !password || !role) {
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
           subscriptionStatus: 'TRIAL',
           subscriptionTier: 'FREE',
           pricePerYear: 0,
-          maxStudents: 5,
+          maxStudents: 10,
           maxTeachers: 2,
           isHomeschool: true,
         },
@@ -86,46 +86,68 @@ export async function POST(req: Request) {
       await prisma.rewardStats.create({ data: { userId: user.id } });
     }
 
-    // If homeschool parent with child info, create the child account
-    if (userAccountType === 'HOMESCHOOL' && childName && districtId) {
-      const childPassword = await bcrypt.hash(password, 12); // Same password for simplicity
-      const childUser = await prisma.user.create({
-        data: {
-          email: `${email.split('@')[0]}+child@${email.split('@')[1]}`,
-          name: childName,
-          password: childPassword,
-          role: 'STUDENT',
-          accountType: 'HOMESCHOOL',
-          districtId,
-          gradeLevel: childGrade || null,
-          parentId: user.id,
-          isActive: true,
-        },
-      });
-      await prisma.rewardStats.create({ data: { userId: childUser.id } });
+    // Handle children creation for homeschool parents
+    if (userAccountType === 'HOMESCHOOL' && districtId) {
+      const childrenToCreate = childrenList || (childName ? [{ name: childName, grade: childGrade }] : []);
 
-      // Create a default course for the homeschool
-      const course = await prisma.course.create({
-        data: {
-          name: 'General Studies',
-          description: 'Default course for homeschool curriculum',
-          subject: 'General',
-          gradeLevel: childGrade || 'K-12',
-          districtId,
-        },
-      });
+      for (let i = 0; i < childrenToCreate.length; i++) {
+        const child = childrenToCreate[i];
+        if (!child.name) continue;
 
-      // Enroll child in the course
-      await prisma.enrollment.create({
-        data: {
-          courseId: course.id,
-          studentId: childUser.id,
-        },
-      });
+        const childEmailLocal = email.split('@')[0];
+        const childEmailDomain = email.split('@')[1];
+        const childEmail = `${childEmailLocal}+${child.name.toLowerCase().replace(/\s+/g, '')}@${childEmailDomain}`;
 
-      // If parent also acts as teacher, link them to the course
-      if (userRole === 'PARENT') {
-        // We'll handle teacher functionality through the parent role for homeschool
+        // Check if email already exists
+        const existingChild = await prisma.user.findUnique({ where: { email: childEmail } });
+        if (existingChild) continue;
+
+        const childPassword = await bcrypt.hash(password, 12); // Same password for simplicity
+        const childUser = await prisma.user.create({
+          data: {
+            email: childEmail,
+            name: child.name,
+            password: childPassword,
+            role: 'STUDENT',
+            accountType: 'HOMESCHOOL',
+            districtId,
+            gradeLevel: child.grade || null,
+            parentId: user.id,
+            isActive: true,
+          },
+        });
+        await prisma.rewardStats.create({ data: { userId: childUser.id } });
+
+        // Create a default course for each child if this is the first child
+        if (i === 0) {
+          const course = await prisma.course.create({
+            data: {
+              name: 'General Studies',
+              description: 'Default course for homeschool curriculum',
+              subject: 'General',
+              gradeLevel: child.grade || 'K-12',
+              districtId,
+            },
+          });
+
+          // Enroll all children (including this one) in the course
+          await prisma.enrollment.create({
+            data: {
+              courseId: course.id,
+              studentId: childUser.id,
+            },
+          });
+        } else {
+          // Enroll in existing courses
+          const courses = await prisma.course.findMany({
+            where: { districtId },
+          });
+          for (const course of courses) {
+            await prisma.enrollment.create({
+              data: { courseId: course.id, studentId: childUser.id },
+            }).catch(() => {}); // Ignore duplicates
+          }
+        }
       }
     }
 

@@ -48,6 +48,7 @@ function generateDemoLessonPlan(subject: string, gradeLevel: string, topic: stri
   };
 }
 
+// Allow TEACHER, ADMIN, and PARENT (homeschool) to access lesson plans
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
   const { searchParams } = new URL(req.url);
@@ -98,6 +99,7 @@ export const POST = apiHandler(async (req: Request) => {
         ],
         temperature: 0.7,
         max_tokens: 2000,
+        response_format: { type: 'json_object' },
       });
 
       const content = response.choices[0]?.message?.content || '';
@@ -106,7 +108,8 @@ export const POST = apiHandler(async (req: Request) => {
       } catch {
         planData = generateDemoLessonPlan(subject, gradeLevel, topic, duration || '50 min');
       }
-    } catch {
+    } catch (error) {
+      console.error('OpenAI lesson plan error:', error);
       planData = generateDemoLessonPlan(subject, gradeLevel, topic, duration || '50 min');
     }
   } else {

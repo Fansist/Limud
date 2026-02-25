@@ -15,13 +15,23 @@ export const POST = apiHandler(async (req: Request) => {
   const submission = await prisma.submission.findUnique({
     where: { id: submissionId },
     include: {
-      assignment: true,
+      assignment: {
+        include: { course: true },
+      },
       student: { select: { id: true, name: true, email: true } },
     },
   });
 
   if (!submission) {
     return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+  }
+
+  // Verify access: teacher must own the assignment, or homeschool parent must own the district
+  if (user.role === 'TEACHER' && submission.assignment.createdById !== user.id) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+  }
+  if (user.role === 'PARENT' && user.isHomeschoolParent && submission.assignment.course.districtId !== user.districtId) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 
   if (submission.status === 'GRADED') {

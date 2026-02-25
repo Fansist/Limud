@@ -1,16 +1,34 @@
 import { NextResponse } from 'next/server';
-import { requireRole, apiHandler } from '@/lib/middleware';
+import { requireRole, apiHandler, hasTeacherAccess } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
 
-  // Get all students in teacher's courses
-  const courseTeachers = await prisma.courseTeacher.findMany({
-    where: { teacherId: user.id },
-    select: { courseId: true },
-  });
-  const courseIds = courseTeachers.map(ct => ct.courseId);
+  let courseIds: string[] = [];
+
+  if (user.role === 'PARENT' && user.isHomeschoolParent) {
+    // Homeschool parent: get courses from their district
+    const courses = await prisma.course.findMany({
+      where: { districtId: user.districtId },
+      select: { id: true },
+    });
+    courseIds = courses.map(c => c.id);
+  } else if (user.role === 'TEACHER') {
+    // Regular teacher: get their assigned courses
+    const courseTeachers = await prisma.courseTeacher.findMany({
+      where: { teacherId: user.id },
+      select: { courseId: true },
+    });
+    courseIds = courseTeachers.map(ct => ct.courseId);
+  } else if (user.role === 'ADMIN') {
+    // Admin: get all district courses
+    const courses = await prisma.course.findMany({
+      where: { districtId: user.districtId },
+      select: { id: true },
+    });
+    courseIds = courses.map(c => c.id);
+  }
 
   // Get students with their performance data
   const enrollments = await prisma.enrollment.findMany({
@@ -69,13 +87,20 @@ export const GET = apiHandler(async (req: Request) => {
   // Summary stats
   const totalStudents = students.length;
   const atRisk = students.filter(s => s.riskLevel === 'high').length;
-  const avgOverall = students.filter(s => s.averageScore !== null).reduce((sum, s) => sum + s.averageScore, 0) /
-    (students.filter(s => s.averageScore !== null).length || 1);
+  const studentsWithScores = students.filter(s => s.averageScore !== null);
+  const avgOverall = studentsWithScores.length > 0
+    ? studentsWithScores.reduce((sum, s) => sum + s.averageScore, 0) / studentsWithScores.length
+    : 0;
 
   // Submissions awaiting grading
   const pendingSubmissions = await prisma.submission.count({
     where: {
-      assignment: { createdById: user.id },
+      assignment: {
+        OR: [
+          { createdById: user.id },
+          ...(user.districtId ? [{ course: { districtId: user.districtId } }] : []),
+        ],
+      },
       status: 'SUBMITTED',
     },
   });

@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { cn, AVATAR_OPTIONS } from '@/lib/utils';
 import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
 import {
-  DEMO_STUDENT, DEMO_TEACHER, DEMO_ADMIN, DEMO_PARENT, DEMO_NOTIFICATIONS,
+  DEMO_STUDENT, DEMO_TEACHER, DEMO_ADMIN, DEMO_PARENT, DEMO_HOMESCHOOL_PARENT, DEMO_NOTIFICATIONS,
 } from '@/lib/demo-data';
 import {
   LayoutDashboard,
@@ -31,6 +31,8 @@ import {
   Play,
   Sparkles,
   ArrowLeft,
+  Users,
+  Home,
 } from 'lucide-react';
 
 type NavItem = {
@@ -61,6 +63,15 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   PARENT: [
     { href: '/parent/dashboard', label: 'Dashboard', icon: <Eye size={20} /> },
   ],
+  // Homeschool parent gets parent tools + teacher tools
+  HOMESCHOOL_PARENT: [
+    { href: '/parent/dashboard', label: 'My Children', icon: <Users size={20} /> },
+    { href: '/parent/children', label: 'Manage Children', icon: <Home size={20} /> },
+    { href: '/teacher/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
+    { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
+    { href: '/teacher/lesson-planner', label: 'AI Lesson Planner', icon: <Wand2 size={20} /> },
+    { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+  ],
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -68,6 +79,7 @@ const ROLE_COLORS: Record<string, string> = {
   TEACHER: 'from-emerald-500 to-emerald-600',
   ADMIN: 'from-purple-500 to-purple-600',
   PARENT: 'from-pink-500 to-pink-600',
+  HOMESCHOOL_PARENT: 'from-amber-500 to-orange-600',
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -75,6 +87,7 @@ const ROLE_LABELS: Record<string, string> = {
   TEACHER: 'Teacher Portal',
   ADMIN: 'Admin Portal',
   PARENT: 'Parent Portal',
+  HOMESCHOOL_PARENT: 'Homeschool Portal',
 };
 
 function getDemoUser(role: string) {
@@ -83,6 +96,7 @@ function getDemoUser(role: string) {
     case 'TEACHER': return DEMO_TEACHER;
     case 'ADMIN': return DEMO_ADMIN;
     case 'PARENT': return DEMO_PARENT;
+    case 'HOMESCHOOL_PARENT': return DEMO_HOMESCHOOL_PARENT;
     default: return DEMO_STUDENT;
   }
 }
@@ -118,15 +132,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setDemoReady(true);
   }, [isDemoParam, pathname]);
 
-  const role = isDemo ? demoRole : ((session?.user as any)?.role || 'STUDENT');
+  // Determine effective navigation role
+  const sessionRole = (session?.user as any)?.role || 'STUDENT';
+  const isHomeschoolParent = isDemo ? false : ((session?.user as any)?.isHomeschoolParent === true);
+  const role = isDemo ? demoRole : sessionRole;
+  const navKey = isHomeschoolParent ? 'HOMESCHOOL_PARENT' : role;
+
   const demoUser = isDemo ? getDemoUser(role) : null;
   const userName = isDemo ? demoUser?.name : session?.user?.name;
   const userEmail = isDemo ? demoUser?.email : session?.user?.email;
-  const navItems = NAV_ITEMS[role] || [];
+  const navItems = NAV_ITEMS[navKey] || NAV_ITEMS[role] || [];
   const userAvatar = isDemo ? (demoUser?.selectedAvatar || 'default') : ((session?.user as any)?.selectedAvatar || 'default');
   const avatarEmoji = AVATAR_OPTIONS.find(a => a.id === userAvatar)?.emoji || '👤';
-  const roleColor = ROLE_COLORS[role] || ROLE_COLORS.STUDENT;
-  const roleLabel = ROLE_LABELS[role] || 'Portal';
+  const roleColor = ROLE_COLORS[navKey] || ROLE_COLORS[role] || ROLE_COLORS.STUDENT;
+  const roleLabel = ROLE_LABELS[navKey] || ROLE_LABELS[role] || 'Portal';
 
   useEffect(() => {
     if (!demoReady) return; // Wait until demo state is determined
@@ -232,6 +251,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <X size={20} />
           </button>
         </div>
+
+        {/* Homeschool parent indicator */}
+        {isHomeschoolParent && !isDemo && (
+          <div className="mx-4 mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+            <div className="flex items-center gap-2 text-amber-700 text-xs font-medium">
+              <Home size={14} />
+              <span>Homeschool Mode</span>
+            </div>
+            <p className="text-[10px] text-amber-600 mt-0.5">
+              Full teacher tools available
+            </p>
+          </div>
+        )}
 
         {/* Nav */}
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">

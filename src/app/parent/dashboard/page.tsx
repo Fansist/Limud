@@ -2,6 +2,7 @@
 import { useSession } from 'next-auth/react';
 import { redirect, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
@@ -9,7 +10,8 @@ import { DEMO_PARENT_CHILDREN } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import {
   Eye, BookOpen, Trophy, TrendingUp, Clock, CheckCircle2,
-  Flame, Zap, GraduationCap, MessageCircle, Star,
+  Flame, Zap, GraduationCap, MessageCircle, Star, Home,
+  Plus, Wand2, BarChart3, Users,
 } from 'lucide-react';
 
 export default function ParentDashboard() {
@@ -18,6 +20,8 @@ export default function ParentDashboard() {
   const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [children, setChildren] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const isHomeschoolParent = !isDemo && (session?.user as any)?.isHomeschoolParent === true;
 
   useEffect(() => {
     if (isDemo) {
@@ -51,7 +55,7 @@ export default function ParentDashboard() {
         <div className="flex items-center justify-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
-            <p className="text-sm text-gray-400">Loading your child's progress...</p>
+            <p className="text-sm text-gray-400">Loading your children&apos;s progress...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -62,20 +66,66 @@ export default function ParentDashboard() {
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center">
-              <Eye size={20} className="text-primary-500" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center',
+                isHomeschoolParent ? 'bg-amber-50' : 'bg-primary-50'
+              )}>
+                {isHomeschoolParent ? (
+                  <Home size={20} className="text-amber-500" />
+                ) : (
+                  <Eye size={20} className="text-primary-500" />
+                )}
+              </div>
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                  {isHomeschoolParent ? 'Homeschool Dashboard' : 'Parent Portal'}
+                </h1>
+                <p className="text-gray-500 text-sm">
+                  {isHomeschoolParent
+                    ? 'Manage your homeschool and track your children\'s progress'
+                    : 'View your child\'s academic progress'}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
-                Parent Portal
-              </h1>
-              <p className="text-gray-500 text-sm">
-                View-only access to your child's academic progress
-              </p>
-            </div>
+            {isHomeschoolParent && (
+              <Link
+                href="/parent/children"
+                className="btn-primary flex items-center gap-2 text-sm"
+              >
+                <Users size={16} />
+                Manage Children
+              </Link>
+            )}
           </div>
         </motion.div>
+
+        {/* Homeschool Quick Actions */}
+        {isHomeschoolParent && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+          >
+            {[
+              { href: '/teacher/assignments', label: 'Create Assignment', icon: <Plus size={18} />, color: 'bg-blue-50 text-blue-600 hover:bg-blue-100' },
+              { href: '/teacher/grading', label: 'AI Auto-Grade', icon: <GraduationCap size={18} />, color: 'bg-green-50 text-green-600 hover:bg-green-100' },
+              { href: '/teacher/lesson-planner', label: 'Lesson Planner', icon: <Wand2 size={18} />, color: 'bg-purple-50 text-purple-600 hover:bg-purple-100' },
+              { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={18} />, color: 'bg-amber-50 text-amber-600 hover:bg-amber-100' },
+            ].map(action => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className={cn('rounded-2xl p-4 flex flex-col items-center gap-2 transition-all text-center', action.color)}
+              >
+                {action.icon}
+                <span className="text-xs font-medium">{action.label}</span>
+              </Link>
+            ))}
+          </motion.div>
+        )}
 
         {children.length === 0 ? (
           <motion.div
@@ -87,9 +137,17 @@ export default function ParentDashboard() {
               <Eye size={28} className="text-gray-400" />
             </div>
             <p className="text-gray-400 text-lg mb-2 font-medium">No linked students found</p>
-            <p className="text-gray-300 text-sm max-w-sm mx-auto">
-              Contact your school administrator to link your student account to this parent portal.
+            <p className="text-gray-300 text-sm max-w-sm mx-auto mb-4">
+              {isHomeschoolParent
+                ? 'Add your children to get started with your homeschool.'
+                : 'Contact your school administrator to link your student account to this parent portal.'}
             </p>
+            {isHomeschoolParent && (
+              <Link href="/parent/children" className="btn-primary inline-flex items-center gap-2">
+                <Plus size={16} />
+                Add Your First Child
+              </Link>
+            )}
           </motion.div>
         ) : (
           children.map((child, ci) => (
@@ -180,7 +238,7 @@ export default function ParentDashboard() {
               </div>
 
               {/* Courses */}
-              {child.courses.length > 0 && (
+              {child.courses && child.courses.length > 0 && (
                 <div className="card">
                   <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
@@ -232,7 +290,7 @@ export default function ParentDashboard() {
                   Recent Assignment Activity
                 </h3>
                 <div className="space-y-3">
-                  {child.recentSubmissions.length === 0 ? (
+                  {(!child.recentSubmissions || child.recentSubmissions.length === 0) ? (
                     <div className="text-center py-8">
                       <div className="text-3xl mb-2">📝</div>
                       <p className="text-sm text-gray-400">No submissions yet</p>

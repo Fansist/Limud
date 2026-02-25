@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth, requireRole, apiHandler } from '@/lib/middleware';
+import { requireAuth, requireRole, apiHandler, hasTeacherAccess } from '@/lib/middleware';
 import { updateStreak } from '@/lib/gamification';
 import prisma from '@/lib/prisma';
 
@@ -88,17 +88,26 @@ export const GET = apiHandler(async (req: Request) => {
     return NextResponse.json({ submissions });
   }
 
-  if (user.role === 'TEACHER') {
+  if (hasTeacherAccess(user)) {
     if (!assignmentId) {
       return NextResponse.json({ error: 'assignmentId required for teachers' }, { status: 400 });
     }
 
-    // Verify teacher owns this assignment
-    const assignment = await prisma.assignment.findFirst({
-      where: { id: assignmentId, createdById: user.id },
-    });
-    if (!assignment) {
-      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    // Verify access - teacher owns this assignment or homeschool parent's district
+    if (user.role === 'TEACHER') {
+      const assignment = await prisma.assignment.findFirst({
+        where: { id: assignmentId, createdById: user.id },
+      });
+      if (!assignment) {
+        return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+      }
+    } else if (user.role === 'PARENT' && user.isHomeschoolParent) {
+      const assignment = await prisma.assignment.findFirst({
+        where: { id: assignmentId, course: { districtId: user.districtId } },
+      });
+      if (!assignment) {
+        return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+      }
     }
 
     const submissions = await prisma.submission.findMany({

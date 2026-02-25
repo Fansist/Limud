@@ -38,15 +38,19 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid email or password');
         }
 
+        // Determine if this is a homeschool parent (parent role + homeschool account type)
+        const isHomeschoolParent = user.role === 'PARENT' && user.accountType === 'HOMESCHOOL';
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
-          accountType: (user as any).accountType || 'DISTRICT',
+          accountType: user.accountType || 'DISTRICT',
           districtId: user.districtId || '',
           districtName: user.district?.name || '',
           selectedAvatar: user.selectedAvatar,
+          isHomeschoolParent,
         } as any;
       },
     }),
@@ -60,6 +64,7 @@ export const authOptions: NextAuthOptions = {
         token.districtId = (user as any).districtId;
         token.districtName = (user as any).districtName;
         token.selectedAvatar = (user as any).selectedAvatar;
+        token.isHomeschoolParent = (user as any).isHomeschoolParent;
       }
       return token;
     },
@@ -71,6 +76,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).districtId = token.districtId as string;
         (session.user as any).districtName = token.districtName as string;
         (session.user as any).selectedAvatar = token.selectedAvatar as string;
+        (session.user as any).isHomeschoolParent = token.isHomeschoolParent as boolean;
       }
       return session;
     },

@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
-import { requireRole, apiHandler } from '@/lib/middleware';
+import { requireAuth, apiHandler } from '@/lib/middleware';
 import { chatWithTutor } from '@/lib/ai';
 import { onTutorSession, updateStreak } from '@/lib/gamification';
 import prisma from '@/lib/prisma';
 import { randomUUID } from 'crypto';
 
 export const POST = apiHandler(async (req: Request) => {
-  const user = await requireRole('STUDENT');
+  const user = await requireAuth();
+
+  // Allow STUDENT role, or PARENT role (for testing/previewing as homeschool parent)
+  if (user.role !== 'STUDENT' && !(user.role === 'PARENT' && user.isHomeschoolParent)) {
+    return NextResponse.json({ error: 'Only students can use the tutor' }, { status: 403 });
+  }
+
   const { message, sessionId, subject } = await req.json();
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
@@ -53,9 +59,11 @@ export const POST = apiHandler(async (req: Request) => {
     },
   });
 
-  // Gamification: award XP for tutor usage
-  await onTutorSession(user.id);
-  await updateStreak(user.id);
+  // Gamification: award XP for tutor usage (only for students)
+  if (user.role === 'STUDENT') {
+    await onTutorSession(user.id);
+    await updateStreak(user.id);
+  }
 
   return NextResponse.json({
     sessionId: chatSessionId,
@@ -65,7 +73,12 @@ export const POST = apiHandler(async (req: Request) => {
 });
 
 export const GET = apiHandler(async (req: Request) => {
-  const user = await requireRole('STUDENT');
+  const user = await requireAuth();
+
+  if (user.role !== 'STUDENT' && !(user.role === 'PARENT' && user.isHomeschoolParent)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(req.url);
   const sessionId = searchParams.get('sessionId');
 

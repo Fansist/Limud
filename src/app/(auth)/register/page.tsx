@@ -41,9 +41,8 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
 
-  // Homeschool fields
-  const [childName, setChildName] = useState('');
-  const [childGrade, setChildGrade] = useState('');
+  // Homeschool fields - multiple children support
+  const [childrenList, setChildrenList] = useState<{name: string; grade: string}[]>([{ name: '', grade: '' }]);
 
   const passwordStrength = (pw: string) => {
     let score = 0;
@@ -78,8 +77,7 @@ export default function RegisterPage() {
           name, email, password, role,
           accountType: accountType === 'homeschool' ? 'HOMESCHOOL' : accountType === 'district' ? 'DISTRICT' : 'INDIVIDUAL',
           gradeLevel: role === 'STUDENT' ? gradeLevel : undefined,
-          childName: accountType === 'homeschool' ? childName : undefined,
-          childGrade: accountType === 'homeschool' ? childGrade : undefined,
+          children: accountType === 'homeschool' ? childrenList.filter(c => c.name.trim()) : undefined,
         }),
       });
 
@@ -348,42 +346,69 @@ export default function RegisterPage() {
                   </div>
                 )}
 
-                {/* Homeschool child fields */}
+                {/* Homeschool child fields - multiple children */}
                 {accountType === 'homeschool' && role === 'PARENT' && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     className="space-y-4 p-4 bg-amber-50 rounded-2xl border border-amber-200"
                   >
-                    <div className="flex items-center gap-2 text-amber-700">
-                      <Home size={16} />
-                      <p className="text-sm font-medium">Homeschool Student Info</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Child&apos;s Name</label>
-                      <input
-                        type="text"
-                        value={childName}
-                        onChange={e => setChildName(e.target.value)}
-                        className="input-field"
-                        placeholder="Your child's name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Child&apos;s Grade Level</label>
-                      <select
-                        value={childGrade}
-                        onChange={e => setChildGrade(e.target.value)}
-                        className="input-field"
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-amber-700">
+                        <Home size={16} />
+                        <p className="text-sm font-medium">Your Children</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setChildrenList(prev => [...prev, { name: '', grade: '' }])}
+                        className="text-xs text-amber-700 font-medium hover:underline"
                       >
-                        <option value="">Select grade</option>
-                        {GRADE_LEVELS.map(g => (
-                          <option key={g} value={g}>{g}</option>
-                        ))}
-                      </select>
+                        + Add another child
+                      </button>
                     </div>
+                    {childrenList.map((child, idx) => (
+                      <div key={idx} className="space-y-2 bg-white/50 rounded-xl p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-medium text-gray-500">Child {idx + 1}</p>
+                          {childrenList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setChildrenList(prev => prev.filter((_, i) => i !== idx))}
+                              className="text-xs text-red-500 hover:underline"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={child.name}
+                          onChange={e => {
+                            const updated = [...childrenList];
+                            updated[idx] = { ...updated[idx], name: e.target.value };
+                            setChildrenList(updated);
+                          }}
+                          className="input-field"
+                          placeholder="Child's name"
+                        />
+                        <select
+                          value={child.grade}
+                          onChange={e => {
+                            const updated = [...childrenList];
+                            updated[idx] = { ...updated[idx], grade: e.target.value };
+                            setChildrenList(updated);
+                          }}
+                          className="input-field"
+                        >
+                          <option value="">Select grade</option>
+                          {GRADE_LEVELS.map(g => (
+                            <option key={g} value={g}>{g}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
                     <p className="text-xs text-amber-600">
-                      A student account will be created automatically for your child.
+                      Student accounts will be created automatically for each child. You can add more children later.
                     </p>
                   </motion.div>
                 )}
@@ -486,7 +511,9 @@ export default function RegisterPage() {
                     <p><span className="text-gray-400">Email:</span> {email}</p>
                     {accountType === 'homeschool' && <p><span className="text-gray-400">Type:</span> Homeschool</p>}
                     {gradeLevel && <p><span className="text-gray-400">Grade:</span> {gradeLevel}</p>}
-                    {childName && <p><span className="text-gray-400">Child:</span> {childName} ({childGrade})</p>}
+                    {accountType === 'homeschool' && childrenList.filter(c => c.name.trim()).length > 0 && (
+                      <p><span className="text-gray-400">Children:</span> {childrenList.filter(c => c.name.trim()).map(c => `${c.name}${c.grade ? ` (${c.grade})` : ''}`).join(', ')}</p>
+                    )}
                   </div>
                 </div>
 

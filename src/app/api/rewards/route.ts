@@ -1,20 +1,30 @@
 import { NextResponse } from 'next/server';
-import { requireRole, apiHandler } from '@/lib/middleware';
+import { requireAuth, apiHandler } from '@/lib/middleware';
 import { purchaseAvatar } from '@/lib/gamification';
 import prisma from '@/lib/prisma';
 
 export const GET = apiHandler(async (req: Request) => {
-  const user = await requireRole('STUDENT');
+  const user = await requireAuth();
+
+  // Allow students and parents (to preview)
+  if (user.role !== 'STUDENT' && user.role !== 'PARENT') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const userId = user.role === 'STUDENT' ? user.id : user.id;
 
   const stats = await prisma.rewardStats.findUnique({
-    where: { userId: user.id },
+    where: { userId },
   });
 
   if (!stats) {
-    const created = await prisma.rewardStats.create({
-      data: { userId: user.id },
-    });
-    return NextResponse.json({ stats: created });
+    if (user.role === 'STUDENT') {
+      const created = await prisma.rewardStats.create({
+        data: { userId },
+      });
+      return NextResponse.json({ stats: created });
+    }
+    return NextResponse.json({ stats: null });
   }
 
   return NextResponse.json({
@@ -27,7 +37,12 @@ export const GET = apiHandler(async (req: Request) => {
 });
 
 export const POST = apiHandler(async (req: Request) => {
-  const user = await requireRole('STUDENT');
+  const user = await requireAuth();
+
+  if (user.role !== 'STUDENT') {
+    return NextResponse.json({ error: 'Only students can make purchases' }, { status: 403 });
+  }
+
   const { action, avatarId, cost } = await req.json();
 
   if (action === 'purchase-avatar') {
