@@ -12,6 +12,7 @@ export type UserSession = {
   districtName: string;
   selectedAvatar: string;
   isHomeschoolParent: boolean;
+  gradeLevel: string;
 };
 
 /**

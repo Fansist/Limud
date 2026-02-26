@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, ArrowRight, Zap, Star, Crown, Shield, Home } from 'lucide-react';
+import { Check, Sparkles, ArrowRight, Zap, Star, Crown, Shield, Home, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const PLANS = [
@@ -43,7 +44,18 @@ const PLANS = [
   },
 ];
 
+function getCustomPricePerStudent(count: number) {
+  if (count <= 200) return 7;
+  if (count <= 300) return 6.5;
+  if (count <= 400) return 6;
+  return 5.5;
+}
+
 export default function PricingPage() {
+  const [customStudents, setCustomStudents] = useState(200);
+  const customPrice = getCustomPricePerStudent(customStudents);
+  const customTotal = Math.round(customPrice * customStudents * 100) / 100;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
@@ -109,12 +121,77 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* Homeschool callout */}
+        {/* Custom Plan Builder */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-10 max-w-3xl mx-auto bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left"
+          className="mt-10 max-w-3xl mx-auto bg-white rounded-3xl border-2 border-teal-200 shadow-lg overflow-hidden"
+        >
+          <div className="bg-gradient-to-r from-teal-500 to-emerald-500 p-6 text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <SlidersHorizontal size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Custom Plan Builder</h3>
+                <p className="text-sm text-white/80">For schools with 101-499 students. Slide to see your price!</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6 space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Number of Students: <span className="text-teal-600 font-bold text-lg">{customStudents}</span>
+              </label>
+              <input
+                type="range"
+                min={101}
+                max={499}
+                value={customStudents}
+                onChange={e => setCustomStudents(parseInt(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>101</span>
+                <span>200</span>
+                <span>300</span>
+                <span>400</span>
+                <span>499</span>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="bg-teal-50 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-teal-700">${customPrice.toFixed(2)}</p>
+                <p className="text-xs text-gray-500">per student/year</p>
+              </div>
+              <div className="bg-teal-50 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-teal-700">${customTotal.toLocaleString()}</p>
+                <p className="text-xs text-gray-500">total per year</p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-green-600">${((8 * customStudents) - customTotal).toLocaleString()}</p>
+                <p className="text-xs text-gray-500">savings vs Standard</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                Includes: {Math.max(10, Math.ceil(customStudents / 10))} teachers,{' '}
+                {customStudents <= 200 ? 1 : customStudents <= 300 ? 2 : 3} school(s), AI Tutor, Auto-Grader, Game Store
+              </p>
+              <Link href={`/onboard?plan=CUSTOM`} className="bg-teal-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-teal-700 transition flex items-center gap-2">
+                Get Started <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Homeschool callout */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mt-8 max-w-3xl mx-auto bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left"
         >
           <span className="text-4xl">🏡</span>
           <div className="flex-1">

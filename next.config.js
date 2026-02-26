@@ -11,6 +11,7 @@ const nextConfig = {
     minimumCacheTTL: 86400,
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
+    unoptimized: true, // Required for Cloudflare Pages (no image optimization server)
   },
   // Compression & bundle optimization
   compress: true,
@@ -56,8 +57,6 @@ const nextConfig = {
     config.externals = config.externals || [];
     return config;
   },
-  // Route-based code splitting is automatic in Next.js
-  // Modular imports already handled via optimizePackageImports
 };
 
 module.exports = nextConfig;

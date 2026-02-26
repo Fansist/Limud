@@ -3,7 +3,10 @@ import { requireAuth, apiHandler } from '@/lib/middleware';
 import { chatWithTutor } from '@/lib/ai';
 import { onTutorSession, updateStreak } from '@/lib/gamification';
 import prisma from '@/lib/prisma';
-import { randomUUID } from 'crypto';
+
+function generateSessionId() {
+  return 'session-' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+}
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireAuth();
@@ -19,7 +22,7 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Message is required' }, { status: 400 });
   }
 
-  const chatSessionId = sessionId || `session-${randomUUID()}`;
+  const chatSessionId = sessionId || generateSessionId();
 
   // Save user message
   await prisma.aITutorLog.create({
@@ -44,8 +47,32 @@ export const POST = apiHandler(async (req: Request) => {
     content: h.content,
   }));
 
+  // Get student survey data for personalized responses
+  let surveyData = null;
+  try {
+    const survey = await prisma.studentSurvey.findUnique({
+      where: { userId: user.id },
+    });
+    if (survey) {
+      surveyData = {
+        favoriteSubjects: JSON.parse(survey.favoriteSubjects),
+        hobbies: JSON.parse(survey.hobbies),
+        favoriteBooks: survey.favoriteBooks,
+        favoriteMovies: survey.favoriteMovies,
+        favoriteGames: survey.favoriteGames,
+        dreamJob: survey.dreamJob,
+        learningStyle: survey.learningStyle,
+        motivators: JSON.parse(survey.motivators),
+        challenges: JSON.parse(survey.challenges),
+        funFacts: survey.funFacts,
+      };
+    }
+  } catch (e) {
+    console.error('Error fetching survey data:', e);
+  }
+
   // Get AI response
-  const { content, tokensUsed } = await chatWithTutor(messages, subject);
+  const { content, tokensUsed } = await chatWithTutor(messages, subject, surveyData);
 
   // Save AI response
   await prisma.aITutorLog.create({

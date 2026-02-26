@@ -55,6 +55,7 @@ enum SubscriptionStatus {
 enum SubscriptionTier {
   FREE
   STARTER
+  CUSTOM
   STANDARD
   PREMIUM
   ENTERPRISE
@@ -320,6 +321,7 @@ model User {
   emergencyContact String?
   emergencyPhone String?
   onboardingComplete Boolean     @default(false)
+  surveyCompleted    Boolean     @default(false)
   preferredTutor String          @default("socratic") // tutor personality
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -354,6 +356,7 @@ model User {
 
   // v3 New feature relations
   learningDNA        LearningDNA?
+  studentSurvey      StudentSurvey?
   focusSessions      FocusSession[]
   emotionalCheckins  EmotionalCheckin[]
   microLessons       MicroLesson[]
@@ -972,6 +975,30 @@ model LearningDNA {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("learning_dna")
+}
+
+// ─── 1b. STUDENT INTEREST SURVEY ────────────────────────────────────────
+
+model StudentSurvey {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  favoriteSubjects String   @default("[]") @db.Text  // JSON array: ["math", "science"]
+  hobbies          String   @default("[]") @db.Text  // JSON array: ["soccer", "minecraft", "drawing"]
+  favoriteBooks    String?  @db.Text
+  favoriteMovies   String?  @db.Text
+  favoriteGames    String?  @db.Text
+  dreamJob         String?
+  learningStyle    String   @default("visual") // "visual", "auditory", "kinesthetic", "reading"
+  motivators       String   @default("[]") @db.Text  // JSON: ["badges", "competition", "helping-others"]
+  challenges       String   @default("[]") @db.Text  // JSON: what subjects/topics are hard
+  funFacts         String?  @db.Text                  // free-text: something fun about themselves
+  ageGroup         String?                             // "elementary", "middle", "high"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_surveys")
 }
 
 // ─── 2. FOCUS SESSIONS ───────────────────────────────────────────────────

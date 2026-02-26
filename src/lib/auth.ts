@@ -51,6 +51,7 @@ export const authOptions: NextAuthOptions = {
           districtName: user.district?.name || '',
           selectedAvatar: user.selectedAvatar,
           isHomeschoolParent,
+          gradeLevel: user.gradeLevel || '',
         } as any;
       },
     }),
@@ -65,6 +66,7 @@ export const authOptions: NextAuthOptions = {
         token.districtName = (user as any).districtName;
         token.selectedAvatar = (user as any).selectedAvatar;
         token.isHomeschoolParent = (user as any).isHomeschoolParent;
+        token.gradeLevel = (user as any).gradeLevel;
       }
       return token;
     },
@@ -77,6 +79,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).districtName = token.districtName as string;
         (session.user as any).selectedAvatar = token.selectedAvatar as string;
         (session.user as any).isHomeschoolParent = token.isHomeschoolParent as boolean;
+        (session.user as any).gradeLevel = token.gradeLevel as string;
       }
       return session;
     },

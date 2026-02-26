@@ -10,13 +10,77 @@ const TUTOR_SYSTEM_PROMPT = `You are Limud AI, a friendly and encouraging educat
 3. Break complex topics into smaller, digestible pieces.
 4. Celebrate effort and progress, not just correct answers.
 5. If a student is frustrated, acknowledge their feelings and offer a different approach.
-6. Use emojis sparingly to keep the conversation engaging (📚, ✨, 💡, 🎯).
+6. Use emojis sparingly to keep the conversation engaging.
 7. Always relate concepts to real-world examples when possible.
 8. If a student asks about something inappropriate or off-topic, gently redirect them back to learning.
 9. Keep responses concise (2-4 paragraphs max) unless the topic requires more detail.
 10. End responses with a thought-provoking question or next step to keep the student engaged.
 
 You are patient, supportive, and genuinely excited about helping students learn.`;
+
+/**
+ * Build a personalized system prompt that incorporates the student's survey data.
+ * This makes the AI tutor use analogies from their favorite games, movies, hobbies, etc.
+ */
+export function buildPersonalizedPrompt(survey: {
+  favoriteSubjects?: string[];
+  hobbies?: string[];
+  favoriteBooks?: string | null;
+  favoriteMovies?: string | null;
+  favoriteGames?: string | null;
+  dreamJob?: string | null;
+  learningStyle?: string;
+  motivators?: string[];
+  challenges?: string[];
+  funFacts?: string | null;
+} | null, subject?: string): string {
+  let prompt = TUTOR_SYSTEM_PROMPT;
+
+  if (survey) {
+    prompt += '\n\n--- STUDENT PERSONALIZATION ---';
+    prompt += '\nIMPORTANT: Use the following information about this student to make your explanations more engaging and relatable. Reference their interests naturally when creating analogies or examples.';
+
+    if (survey.hobbies?.length) {
+      prompt += `\n\nStudent hobbies: ${survey.hobbies.join(', ')}. Use these as analogy sources when explaining concepts. For example, if they like soccer, compare math operations to passes and goals.`;
+    }
+    if (survey.favoriteGames) {
+      prompt += `\n\nFavorite video games: ${survey.favoriteGames}. Reference game mechanics (levels, XP, crafting, strategy) to explain concepts when relevant.`;
+    }
+    if (survey.favoriteMovies) {
+      prompt += `\n\nFavorite movies/TV: ${survey.favoriteMovies}. Use characters and plotlines from these as relatable examples.`;
+    }
+    if (survey.favoriteBooks) {
+      prompt += `\n\nFavorite books: ${survey.favoriteBooks}. Reference these stories when making comparisons or analogies.`;
+    }
+    if (survey.dreamJob) {
+      prompt += `\n\nDream job: ${survey.dreamJob}. When possible, connect what they're learning to skills needed for this career.`;
+    }
+    if (survey.learningStyle) {
+      const styleGuide: Record<string, string> = {
+        visual: 'This student learns best visually. Use descriptions of diagrams, charts, and visual metaphors. Say things like "Picture this..." or "Imagine a diagram where..."',
+        auditory: 'This student learns best by listening and discussing. Use conversational tone, ask them to "talk through" their thinking, and use rhythm/pattern-based explanations.',
+        kinesthetic: 'This student learns best hands-on. Suggest experiments, physical activities, and real-world applications. Frame things as "Try this..." or "What if you built..."',
+        reading: 'This student learns best through reading and writing. Provide well-structured written explanations, suggest note-taking strategies, and use text-based examples.',
+      };
+      prompt += `\n\nLearning style: ${styleGuide[survey.learningStyle] || survey.learningStyle}`;
+    }
+    if (survey.challenges?.length) {
+      prompt += `\n\nSubjects they find challenging: ${survey.challenges.join(', ')}. Be extra patient and encouraging with these topics. Break things into even smaller steps.`;
+    }
+    if (survey.motivators?.length) {
+      prompt += `\n\nWhat motivates them: ${survey.motivators.join(', ')}. Frame progress in terms of these motivators.`;
+    }
+    if (survey.funFacts) {
+      prompt += `\n\nFun fact about them: ${survey.funFacts}. Occasionally reference this to build rapport.`;
+    }
+  }
+
+  if (subject) {
+    prompt += `\n\nThe student is currently studying: ${subject}`;
+  }
+
+  return prompt;
+}
 
 const GRADER_SYSTEM_PROMPT = `You are an expert educational grading assistant. Your job is to evaluate student submissions fairly and provide constructive, encouraging feedback. Follow these guidelines:
 
@@ -79,17 +143,31 @@ export async function callOpenAI(
 }
 
 // Smart demo responses for when no API key is configured
-function getDemoTutorResponse(message: string): string {
+function getDemoTutorResponse(message: string, survey?: any): string {
   const lower = message.toLowerCase();
 
+  // Build personalized intro based on survey data
+  let personalTouch = '';
+  if (survey) {
+    if (survey.favoriteGames && lower.includes('math')) {
+      personalTouch = `Since you love ${survey.favoriteGames}, think of this like leveling up in a game - each step gets you closer to the answer! `;
+    } else if (survey.hobbies?.includes('sports')) {
+      personalTouch = 'Think of this like a game plan - we need to figure out each play step by step! ';
+    } else if (survey.hobbies?.includes('gaming')) {
+      personalTouch = 'This is like a quest in your favorite game - let\'s figure out the puzzle together! ';
+    } else if (survey.dreamJob) {
+      personalTouch = `Fun fact: ${survey.dreamJob}s use skills like this every day! `;
+    }
+  }
+
   if (lower.includes('math') || lower.includes('equation') || lower.includes('solve') || lower.includes('number')) {
-    return `Great question about math! 🧮 Let me help you think through this step by step.
+    return `${personalTouch}Great question about math! Let me help you think through this step by step.
 
 The key to solving math problems is to break them down into smaller pieces. Instead of looking at the whole problem at once, let's focus on one part at a time.
 
-💡 **Here's a hint**: Think about what operation would help you isolate what you're looking for. What do you already know, and what are you trying to find?
+**Here's a hint**: Think about what operation would help you isolate what you're looking for. What do you already know, and what are you trying to find?
 
-Can you tell me what specific part is giving you trouble? I'd love to walk through it together! ✨`;
+Can you tell me what specific part is giving you trouble? I'd love to walk through it together!`;
   }
 
   if (lower.includes('science') || lower.includes('photosynthesis') || lower.includes('cell') || lower.includes('ecosystem')) {
@@ -156,12 +234,14 @@ function getDemoGradeResponse(content: string, rubric: string | null, maxScore: 
 
 export async function chatWithTutor(
   messages: { role: string; content: string }[],
-  subject?: string
+  subject?: string,
+  surveyData?: any
 ): Promise<{ content: string; tokensUsed: number }> {
   if (isOpenAIConfigured()) {
     try {
+      const systemPrompt = buildPersonalizedPrompt(surveyData || null, subject);
       const fullMessages = [
-        { role: 'system', content: TUTOR_SYSTEM_PROMPT + (subject ? `\n\nThe student is currently studying: ${subject}` : '') },
+        { role: 'system', content: systemPrompt },
         ...messages,
       ];
       const result = await callOpenAI(fullMessages, { temperature: 0.7, maxTokens: 800 });
@@ -172,9 +252,9 @@ export async function chatWithTutor(
     }
   }
 
-  // Demo mode
+  // Demo mode - personalized fallback
   const lastUserMessage = messages.filter(m => m.role === 'user').pop();
-  const content = getDemoTutorResponse(lastUserMessage?.content || '');
+  const content = getDemoTutorResponse(lastUserMessage?.content || '', surveyData);
   return { content, tokensUsed: 0 };
 }
 

@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { cn, daysUntil, getLetterGrade, AVATAR_OPTIONS } from '@/lib/utils';
 import { DEMO_STUDENT, DEMO_ASSIGNMENTS, DEMO_REWARD_STATS } from '@/lib/demo-data';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   BookOpen, MessageCircle, Trophy, AlertTriangle, ArrowRight,
   Sparkles, TrendingUp, Calendar, Zap, Flame, Clock, Target,
@@ -16,6 +17,7 @@ import {
 export default function StudentDashboard() {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
   const [assignments, setAssignments] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any>(null);
@@ -38,9 +40,10 @@ export default function StudentDashboard() {
 
   async function fetchData() {
     try {
-      const [assignRes, rewardRes] = await Promise.all([
+      const [assignRes, rewardRes, surveyRes] = await Promise.all([
         fetch('/api/assignments'),
         fetch('/api/rewards'),
+        fetch('/api/survey'),
       ]);
       if (assignRes.ok) {
         const data = await assignRes.json();
@@ -49,6 +52,15 @@ export default function StudentDashboard() {
       if (rewardRes.ok) {
         const data = await rewardRes.json();
         setRewards(data.stats);
+      }
+      // Check if student needs to complete survey
+      if (surveyRes.ok) {
+        const surveyData = await surveyRes.json();
+        if (!surveyData.surveyCompleted) {
+          // Redirect to survey if first time
+          router.push('/student/survey?first=true');
+          return;
+        }
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
