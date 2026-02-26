@@ -2,15 +2,16 @@
 
 ## Project Overview
 - **Name**: Limud
-- **Version**: 3.0
+- **Version**: 4.0
 - **Goal**: Transform education with AI-powered adaptive learning, gamification, and personalized insights
 - **Stack**: Next.js 14 + React 18 + TypeScript + Tailwind CSS + Prisma + PostgreSQL + OpenAI
 
 ## Live URLs
 - **Development**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
 - **Demo Mode**: Append `?demo=true` to any route
+- **Onboarding/Payment**: `/onboard` (public, no auth needed)
 
-## Completed Features
+## Completed Features (v4)
 
 ### Performance & Optimization
 - SWC minification, aggressive caching (static: immutable/31536000s)
@@ -28,84 +29,112 @@
 |---------|-------|-------------|
 | Dashboard | `/student/dashboard` | XP bar, streak, coins, due-today alerts, quick actions |
 | Focus Mode | `/student/focus` | Distraction-free timer, ambient sounds, swipe questions |
-| Knowledge Dashboard | `/student/knowledge` | Radar chart, heatmap calendar, rank, goal countdown, DNA insights |
-| Growth Analytics | `/student/growth` | Skill mastery by category, predicted grade, struggle detection |
-| AI Tutor | `/student/tutor` | Multiple personalities, subject-aware, session tracking |
-| Study Planner | `/student/study-planner` | Cognitive science-based scheduling, interleaved study |
-| Exam Simulator | `/student/exam-sim` | Timed exams, AI feedback, strength/weakness analysis |
-| Rewards | `/student/rewards` | XP, coins, avatar shop, badges, rank tiers (Bronze→Diamond) |
+| Knowledge | `/student/knowledge` | Skill mastery, radar chart, heatmap, goal countdown, study-next |
+| Assignments | `/student/assignments` | View, submit text + file uploads, AI feedback |
+| AI Tutor | `/student/tutor` | Chat with AI tutor (OpenAI or demo fallback) |
+| Study Planner | `/student/study-planner` | AI-recommended study sessions |
+| Exam Simulator | `/student/exam-sim` | Practice exams with scoring |
+| Growth | `/student/growth` | Progress analytics and grade predictions |
+| Rewards | `/student/rewards` | XP, coins, avatar shop, badges |
+| **Game Store** | `/student/games` | **NEW: Buy games with XP, play educational games** |
 | Certificates | `/student/certificates` | Achievement certificates |
-| Assignments | `/student/assignments` | View, submit, track pending/graded |
 
 ### Teacher Features
 | Feature | Route | Description |
 |---------|-------|-------------|
-| Dashboard | `/teacher/dashboard` | Class overview, at-risk alerts, quick actions |
-| Intelligence Suite | `/teacher/intelligence` | Class mastery, weakest skills, engagement scores, risk AI |
-| AI Grading | `/teacher/grading` | AI-powered auto-grading with feedback |
-| Quiz Generator | `/teacher/quiz-generator` | AI-generated quizzes by topic |
-| Lesson Planner | `/teacher/lesson-planner` | AI lesson planning assistance |
-| Insights & Heatmap | `/teacher/insights` | Misconception heatmaps, student analytics |
+| Dashboard | `/teacher/dashboard` | Class overview, at-risk students, pending grading |
+| Assignments | `/teacher/assignments` | Create, manage, view submissions with file downloads |
+| AI Grading | `/teacher/grading` | AI auto-grade + batch grade + file attachment view |
+| Intelligence | `/teacher/intelligence` | Class mastery, weakest skills, engagement, risk alerts |
+| Quiz Generator | `/teacher/quiz-generator` | AI-powered quiz/worksheet creation |
+| Lesson Planner | `/teacher/lesson-planner` | AI lesson plan generation |
+| Insights | `/teacher/insights` | Heatmap & analytics |
 | Analytics | `/teacher/analytics` | Detailed performance analytics |
+| **Game Control** | `/teacher/games` | **NEW: Toggle game access per classroom** |
 
-### Parent Features
+### Admin/District Features (v4 NEW)
 | Feature | Route | Description |
 |---------|-------|-------------|
-| Dashboard | `/parent/dashboard` | Child overview, performance command center |
-| Growth Reports | `/parent/reports` | Weekly reports, risk alerts, growth tracking |
+| Dashboard | `/admin/dashboard` | District overview, capacity, quick actions |
+| **Student Accounts** | `/admin/students` | **NEW: Create students with full personal info, auto-create 2 parent accounts, sibling linking** |
+| **Schools** | `/admin/schools` | **NEW: Create/manage schools, transfer users between schools** |
+| **Classrooms** | `/admin/classrooms` | **NEW: Create classes, assign students, toggle game access** |
+| Bulk Import | `/admin/provision` | CSV bulk import for students & teachers |
+| **Billing** | `/admin/payments` | **NEW: Plan management, payment history, upgrades** |
 
-### API Endpoints
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/study-next` | GET | AI "What Should I Study Next?" recommendations |
-| `/api/confidence` | GET/POST | Confidence-based scoring, lucky guess detection |
-| `/api/daily-boost` | GET/POST | 5-min boost sessions, surprise rewards |
-| `/api/focus` | GET/POST | Focus session tracking, XP rewards |
-| `/api/mistakes/explain` | GET/POST | "Explain My Mistake" with style variation (simple/analogy/step-by-step/visual/eli5) |
-| `/api/learning-dna` | GET | Learning DNA profile (speed, retention, modality, peak hours) |
-| `/api/skills` | GET/POST | Skill mastery map, SM-2 spaced repetition |
-| `/api/teacher/intelligence` | GET | Class mastery, weakest skills, engagement scores, risk detection |
-| `/api/teacher/auto-assign` | POST | Auto-differentiated assignments (3 tiers) |
+### Payment & Onboarding (v4 NEW)
+| Feature | Route | Description |
+|---------|-------|-------------|
+| **District Onboarding** | `/onboard` | **NEW: 4-step flow - Plan selection, district info, admin account, payment** |
+| **Pricing Tiers** | - | Starter ($5/student), Standard ($8), Premium ($12), Enterprise ($15) |
+| **Auto District Setup** | - | Creates district, superintendent account, applies subscription |
 
-### Core Engines (Backend)
-- **Learning DNA Engine**: Speed, accuracy, retention patterns, preferred modality, peak hours, attention span, subject strengths/weaknesses
-- **Cognitive Science Engine**: SM-2 spaced repetition, adaptive difficulty (70-85% sweet spot), interleaved study, burnout detection
-- **Gamification Engine**: XP rewards, streaks, coins, level-ups, avatar shop, rank tiers
-- **Confidence Scoring**: Tracks confidence vs accuracy, detects lucky guesses, calculates true mastery
+### District Multi-Level Access (v4 NEW)
+| Access Level | Permissions |
+|---|---|
+| **Superintendent** | Full access: accounts, schools, billing, data, classes |
+| **Assistant Superintendent** | All except billing |
+| **Curriculum Director** | View data, manage classes |
+| **Principal** | Create accounts, manage classes |
+| **Vice Principal** | Manage classes only |
+| **District Employee** | View-only access |
+| **IT Admin** | Create accounts, manage schools, view data |
 
-### Mobile-First UX
-- Bottom navigation bar (5 key actions, thumb-friendly)
-- Floating "Ask AI" button (students)
-- 44px minimum tap targets on touch devices
-- Safe area inset support (notched devices)
-- Lite Mode toggle (auto-enabled on low-end devices)
-- Dark mode with OLED optimization
-- Responsive sidebar → bottom nav transition
+### Gamification System
+- XP rewards for assignments (25-100 XP), tutor sessions (15 XP), streaks (75-300 XP)
+- Virtual coins for purchases (avatars, themes)
+- **Game Store**: Students spend XP to buy educational games
+- **Teacher Game Control**: Disable games per classroom during class time
+- **District Game Control**: Admin can disable games district-wide
+- 5 rank tiers: Bronze, Silver, Gold, Platinum, Diamond
+- Mastery animations, surprise rewards, avatar evolution
 
-### Data Architecture
-- **Database**: PostgreSQL via Prisma ORM
-- **Models**: 40+ models including User, Course, Assignment, Submission, SkillRecord, LearningDNA, FocusSession, ConfidenceRating, DailyBoost, etc.
-- **Caching**: In-memory DNA cache (5min TTL), client-side fetch cache (30s TTL)
-- **AI**: OpenAI GPT for tutoring, grading, explanations (with demo fallbacks)
+### File Upload System (v4 NEW)
+- Students upload PDF, DOC, DOCX, PPT, images, ZIP (max 10MB each)
+- Multiple files per submission
+- Teachers view and download student attachments
+- Base64 storage with proper MIME type handling
 
-### Engagement System
-- **Rank Tiers**: Bronze (0 XP) → Silver (500) → Gold (1500) → Platinum (3000) → Diamond (6000)
-- **XP Sources**: Assignments (+25-100), AI Tutor (+15), Daily Login (+10), Streaks (+75-300)
-- **Surprise Rewards**: 15% chance of XP multiplier for consistent learners
-- **Mastery Animations**: Particle bursts on skill mastery milestones
-- **Goal Countdown**: Visual progress toward personal goals
+### AI Components
+| AI Feature | Status | Description |
+|---|---|---|
+| AI Tutor | Working | Socratic tutoring with OpenAI fallback to demo |
+| AI Grading | Working | Auto-grade submissions with rubric analysis |
+| Quiz Generator | Working | AI-generated quizzes with subject/grade targeting |
+| Math Solver | Working | Step-by-step validation with error detection |
+| Writing Coach | Working | Essay analysis with readability scoring |
+| Explain My Mistake | Working | 5 explanation styles for past errors |
+| Study Next | Working | AI-recommended next study action |
+| Learning DNA | Working | Speed, retention, modality, peak hours tracking |
+| Confidence Scoring | Working | Lucky-guess detection + true mastery calculation |
 
-## Deployment
-- **Platform**: Next.js on PM2
-- **Status**: ✅ Active (Development Mode)
-- **Last Updated**: 2026-02-26
+## API Routes Summary
+Total: 52+ API routes across 8 domains
 
-## Next Steps
-- [ ] Production build optimization (code splitting analysis)
-- [ ] School Marketplace (teacher resource selling)
-- [ ] Academic Social Layer (study groups, peer challenges, leaderboards)
-- [ ] Push notifications integration
-- [ ] AI content moderation for social features
-- [ ] Collaborative whiteboard
-- [ ] Reading comprehension analyzer
-- [ ] Smart seating plan generator
+### New v4 API Routes
+- `GET/POST/PUT /api/games` - Game store, purchases, teacher control
+- `GET/POST/DELETE /api/files` - File upload/download system
+- `GET/POST /api/payments` - Payment processing & onboarding
+- `GET/POST/PUT/DELETE /api/district/students` - Student CRUD with auto-parents
+- `GET/POST /api/district/teachers` - Teacher account management
+- `GET/POST/PUT/DELETE /api/district/schools` - School management
+- `GET/POST/PUT/DELETE /api/district/classrooms` - Classroom management
+- `GET/POST/PUT /api/district/access` - Multi-level access control
+
+## Data Architecture
+- **Database**: PostgreSQL with Prisma ORM
+- **Models**: 40+ Prisma models
+- **Key v4 additions**: School, Classroom, ClassroomStudent, DistrictAdmin, Payment, Game, GamePurchase, GameSession, FileUpload
+- **Auth**: NextAuth.js with JWT + credentials provider
+- **AI**: OpenAI gpt-4o-mini with graceful demo fallback
+
+## Tech Stack
+- Next.js 14 (App Router, RSC)
+- React 18 + TypeScript 5
+- Tailwind CSS 3 + Framer Motion
+- Prisma + PostgreSQL
+- NextAuth.js 4
+- OpenAI API (gpt-4o-mini)
+- PM2 for process management
+
+## Last Updated: 2026-02-26
