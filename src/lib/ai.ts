@@ -35,25 +35,47 @@ const GRADER_SYSTEM_PROMPT = `You are an expert educational grading assistant. Y
   "encouragement": "<brief encouraging closing message>"
 }`;
 
-function isOpenAIConfigured(): boolean {
+export function isOpenAIConfigured(): boolean {
   return !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'demo-mode');
 }
 
-async function callOpenAI(
-  messages: { role: string; content: string }[],
-  options: { temperature?: number; maxTokens?: number } = {}
-): Promise<string> {
+export function hasApiKey(): boolean {
+  return isOpenAIConfigured();
+}
+
+export async function callOpenAI(
+  promptOrMessages: string | { role: string; content: string }[],
+  temperatureOrOptions?: number | { temperature?: number; maxTokens?: number },
+  maxTokens?: number
+): Promise<string & { content?: string }> {
   const { default: OpenAI } = await import('openai');
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  let messages: { role: string; content: string }[];
+  let temp: number;
+  let tokens: number;
+
+  if (typeof promptOrMessages === 'string') {
+    messages = [{ role: 'user', content: promptOrMessages }];
+    temp = typeof temperatureOrOptions === 'number' ? temperatureOrOptions : 0.7;
+    tokens = maxTokens ?? 1024;
+  } else {
+    messages = promptOrMessages;
+    const opts = typeof temperatureOrOptions === 'object' ? temperatureOrOptions : {};
+    temp = typeof temperatureOrOptions === 'number' ? temperatureOrOptions : (opts.temperature ?? 0.7);
+    tokens = maxTokens ?? (typeof temperatureOrOptions === 'object' ? temperatureOrOptions.maxTokens ?? 1024 : 1024);
+  }
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: messages as any,
-    temperature: options.temperature ?? 0.7,
-    max_tokens: options.maxTokens ?? 1024,
+    temperature: temp,
+    max_tokens: tokens,
   });
 
-  return response.choices[0]?.message?.content || '';
+  const content = response.choices[0]?.message?.content || '';
+  const result = Object.assign(content, { content });
+  return result;
 }
 
 // Smart demo responses for when no API key is configured
@@ -137,12 +159,17 @@ export async function chatWithTutor(
   subject?: string
 ): Promise<{ content: string; tokensUsed: number }> {
   if (isOpenAIConfigured()) {
-    const fullMessages = [
-      { role: 'system', content: TUTOR_SYSTEM_PROMPT + (subject ? `\n\nThe student is currently studying: ${subject}` : '') },
-      ...messages,
-    ];
-    const content = await callOpenAI(fullMessages, { temperature: 0.7, maxTokens: 800 });
-    return { content, tokensUsed: content.split(' ').length * 2 };
+    try {
+      const fullMessages = [
+        { role: 'system', content: TUTOR_SYSTEM_PROMPT + (subject ? `\n\nThe student is currently studying: ${subject}` : '') },
+        ...messages,
+      ];
+      const result = await callOpenAI(fullMessages, { temperature: 0.7, maxTokens: 800 });
+      const content = typeof result === 'string' ? result : result.content || '';
+      return { content, tokensUsed: content.split(' ').length * 2 };
+    } catch (e) {
+      console.error('OpenAI tutor error, falling back to demo:', e);
+    }
   }
 
   // Demo mode
@@ -165,25 +192,30 @@ export async function gradeSubmission(
   encouragement: string;
 }> {
   if (isOpenAIConfigured()) {
-    const messages = [
-      { role: 'system', content: GRADER_SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `Assignment: ${assignmentDescription}\n\nRubric: ${rubric || 'Use standard academic grading criteria'}\n\nMax Score: ${maxScore}\n\nStudent Submission:\n${studentContent}`,
-      },
-    ];
-    const result = await callOpenAI(messages, { temperature: 0.3, maxTokens: 1024 });
     try {
-      return JSON.parse(result);
-    } catch {
-      return {
-        score: Math.round(maxScore * 0.75),
-        maxScore,
-        feedback: result,
-        strengths: ['Submitted the assignment'],
-        improvements: ['Continue practicing'],
-        encouragement: 'Keep learning!',
-      };
+      const messages = [
+        { role: 'system', content: GRADER_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: `Assignment: ${assignmentDescription}\n\nRubric: ${rubric || 'Use standard academic grading criteria'}\n\nMax Score: ${maxScore}\n\nStudent Submission:\n${studentContent}`,
+        },
+      ];
+      const rawResult = await callOpenAI(messages, { temperature: 0.3, maxTokens: 1024 });
+      const result = typeof rawResult === 'string' ? rawResult : rawResult.content || '';
+      try {
+        return JSON.parse(result);
+      } catch {
+        return {
+          score: Math.round(maxScore * 0.75),
+          maxScore,
+          feedback: result,
+          strengths: ['Submitted the assignment'],
+          improvements: ['Continue practicing'],
+          encouragement: 'Keep learning!',
+        };
+      }
+    } catch (e) {
+      console.error('OpenAI grading error, falling back to demo:', e);
     }
   }
 
@@ -192,4 +224,4 @@ export async function gradeSubmission(
   return JSON.parse(result);
 }
 
-export { TUTOR_SYSTEM_PROMPT, GRADER_SYSTEM_PROMPT };
+export { TUTOR_SYSTEM_PROMPT, GRADER_SYSTEM_PROMPT, callOpenAI as callOpenAIRaw };

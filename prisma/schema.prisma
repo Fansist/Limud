@@ -1,8 +1,9 @@
-// Prisma schema for Limud EdTech Platform v2.0
+// Prisma schema for Limud EdTech Platform v4.0
 // Adaptive AI-Powered K-12 Platform with Cognitive Science Engine
-// Covers: Users (RBAC), Districts, Assignments, Submissions, AI Logs, Gamification,
-//   Lesson Plans, Skill Tracking, Spaced Repetition, Study Planner, Exam Simulation,
-//   Leagues & Tournaments, Mistake Replay, Growth Analytics
+// Covers: Users (RBAC), Districts, Schools, Classes, Assignments, Submissions, AI Logs,
+//   Gamification, Game Store, Lesson Plans, Skill Tracking, Spaced Repetition,
+//   Study Planner, Exam Simulation, Leagues & Tournaments, Mistake Replay,
+//   Growth Analytics, Payment/Billing, File Uploads, District Multi-Level Access
 
 generator client {
   provider = "prisma-client-js"
@@ -67,6 +68,23 @@ enum Difficulty {
   ADVANCED
 }
 
+enum DistrictAccessLevel {
+  SUPERINTENDENT
+  ASSISTANT_SUPERINTENDENT
+  CURRICULUM_DIRECTOR
+  PRINCIPAL
+  VICE_PRINCIPAL
+  DISTRICT_EMPLOYEE
+  IT_ADMIN
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
 // ─── SCHOOL DISTRICT ────────────────────────────────────────────────────────
 
 model SchoolDistrict {
@@ -74,6 +92,11 @@ model SchoolDistrict {
   name              String
   subdomain         String             @unique
   contactEmail      String
+  contactPhone      String?
+  address           String?
+  city              String?
+  state             String?
+  zipCode           String?
   subscriptionStatus SubscriptionStatus @default(TRIAL)
   subscriptionTier  SubscriptionTier   @default(FREE)
   subscriptionStart DateTime?
@@ -81,14 +104,189 @@ model SchoolDistrict {
   pricePerYear      Float              @default(0)
   maxStudents       Int                @default(5)
   maxTeachers       Int                @default(1)
+  maxSchools        Int                @default(1)
   isHomeschool      Boolean            @default(false)
+  gamesEnabled      Boolean            @default(true)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
   users             User[]
   courses           Course[]
+  schools           School[]
+  payments          Payment[]
+  districtAdmins    DistrictAdmin[]
+  classrooms        Classroom[]
 
   @@map("school_districts")
+}
+
+// ─── SCHOOL (within a district) ────────────────────────────────────────────
+
+model School {
+  id          String   @id @default(cuid())
+  districtId  String
+  name        String
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  phone       String?
+  principalId String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  district    SchoolDistrict @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  users       User[]         @relation("SchoolUsers")
+  classrooms  Classroom[]
+
+  @@index([districtId])
+  @@map("schools")
+}
+
+// ─── CLASSROOM (class within a school) ─────────────────────────────────────
+
+model Classroom {
+  id          String   @id @default(cuid())
+  name        String
+  schoolId    String?
+  districtId  String
+  gradeLevel  String?
+  subject     String?
+  period      String?  // e.g., "Period 1", "Block A"
+  teacherId   String?
+  courseId    String?
+  gamesDisabledDuringClass Boolean @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school     School?        @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  district   SchoolDistrict @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  students   ClassroomStudent[]
+
+  @@index([schoolId])
+  @@index([districtId])
+  @@map("classrooms")
+}
+
+model ClassroomStudent {
+  id          String   @id @default(cuid())
+  classroomId String
+  studentId   String
+  enrolledAt  DateTime @default(now())
+
+  classroom Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  student   User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classroomId, studentId])
+  @@map("classroom_students")
+}
+
+// ─── DISTRICT ADMIN ACCESS ────────────────────────────────────────────────
+
+model DistrictAdmin {
+  id          String             @id @default(cuid())
+  userId      String
+  districtId  String
+  accessLevel DistrictAccessLevel @default(DISTRICT_EMPLOYEE)
+  canCreateAccounts   Boolean @default(false)
+  canManageSchools    Boolean @default(false)
+  canManageBilling    Boolean @default(false)
+  canViewAllData      Boolean @default(false)
+  canManageClasses    Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  district SchoolDistrict @relation(fields: [districtId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, districtId])
+  @@map("district_admins")
+}
+
+// ─── PAYMENT / BILLING ──────────────────────────────────────────────────
+
+model Payment {
+  id            String        @id @default(cuid())
+  districtId    String
+  amount        Float
+  currency      String        @default("usd")
+  status        PaymentStatus @default(PENDING)
+  paymentMethod String?       // "card", "bank_transfer", "purchase_order"
+  stripePaymentId String?     @unique
+  description   String?
+  tier          SubscriptionTier @default(STARTER)
+  studentCount  Int           @default(0)
+  teacherCount  Int           @default(0)
+  billingEmail  String?
+  billingName   String?
+  invoiceUrl    String?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  district SchoolDistrict @relation(fields: [districtId], references: [id], onDelete: Cascade)
+
+  @@index([districtId])
+  @@index([status])
+  @@map("payments")
+}
+
+// ─── GAME STORE ─────────────────────────────────────────────────────────
+
+model Game {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  category    String   // "math", "word", "puzzle", "trivia", "typing"
+  subject     String?  // optional alignment to subject
+  thumbnailUrl String?
+  gameUrl     String   @db.Text // embedded game URL or inline HTML
+  xpCost      Int      @default(50)
+  minGrade    String?  // "3rd" - minimum grade level
+  maxGrade    String?  // "8th" - max grade level
+  isEducational Boolean @default(true)
+  isActive    Boolean  @default(true)
+  playCount   Int      @default(0)
+  avgRating   Float    @default(0)
+  ratingCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchases   GamePurchase[]
+
+  @@index([category])
+  @@map("games")
+}
+
+model GamePurchase {
+  id        String   @id @default(cuid())
+  userId    String
+  gameId    String
+  xpSpent   Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId])
+  @@map("game_purchases")
+}
+
+model GameSession {
+  id          String   @id @default(cuid())
+  userId      String
+  gameId      String
+  score       Int?     @default(0)
+  timeSpentSec Int?    @default(0)
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, gameId])
+  @@map("game_sessions")
 }
 
 // ─── USER ───────────────────────────────────────────────────────────────────
@@ -97,6 +295,8 @@ model User {
   id             String          @id @default(cuid())
   email          String          @unique
   name           String
+  firstName      String?
+  lastName       String?
   password       String // bcrypt hashed
   role           Role
   accountType    AccountType     @default(DISTRICT)
@@ -106,14 +306,26 @@ model User {
   isActive       Boolean         @default(true)
   isDemo         Boolean         @default(false)
   districtId     String?
+  schoolId       String?
   gradeLevel     String?         // For students: "5th", "6th", etc.
   parentId       String?         // Links student to parent
+  siblingGroupId String?         // Groups siblings together
+  // Student personal info (required by district)
+  address        String?
+  city           String?
+  state          String?
+  zipCode        String?
+  phone          String?
+  dateOfBirth    DateTime?
+  emergencyContact String?
+  emergencyPhone String?
   onboardingComplete Boolean     @default(false)
   preferredTutor String          @default("socratic") // tutor personality
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   district       SchoolDistrict? @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  school         School?         @relation("SchoolUsers", fields: [schoolId], references: [id], onDelete: SetNull)
   parent         User?           @relation("ParentChildren", fields: [parentId], references: [id], onDelete: SetNull)
   children       User[]          @relation("ParentChildren")
 
@@ -167,6 +379,13 @@ model User {
   questionVotes      QuestionVote[]
   marketplaceListings MarketplaceListing[]
 
+  // v4 Game store & district
+  gamePurchases      GamePurchase[]
+  gameSessions       GameSession[]
+  districtAdmins     DistrictAdmin[]
+  classroomStudents  ClassroomStudent[]
+  fileUploads        FileUpload[]
+
   // Auth sessions
   sessions       Session[]
   accounts       Account[]
@@ -179,6 +398,7 @@ model User {
   @@index([role])
   @@index([districtId])
   @@index([parentId])
+  @@index([schoolId])
   @@map("users")
 }
 
@@ -319,6 +539,8 @@ model Submission {
   gradedAt      DateTime?
   submittedAt   DateTime?
   timeSpentSec  Int?             // Time student spent
+  // File upload support
+  fileUploadIds String?          @db.Text  // JSON array of FileUpload IDs
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
@@ -330,6 +552,27 @@ model Submission {
   @@index([studentId])
   @@index([status])
   @@map("submissions")
+}
+
+// ─── FILE UPLOAD ──────────────────────────────────────────────────────────
+
+model FileUpload {
+  id            String   @id @default(cuid())
+  userId        String
+  fileName      String
+  originalName  String
+  mimeType      String
+  fileSize      Int      // bytes
+  fileData      String   @db.Text  // Base64 encoded for small files, or URL for large
+  purpose       String   @default("submission") // "submission", "assignment", "profile"
+  submissionId  String?  // Optional link to submission
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([submissionId])
+  @@map("file_uploads")
 }
 
 // ─── AI TUTOR LOG ───────────────────────────────────────────────────────────

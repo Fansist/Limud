@@ -9,7 +9,7 @@ import { DEMO_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import {
-  BookOpen, Clock, CheckCircle2, Send, X, FileText, ChevronDown,
+  BookOpen, Clock, CheckCircle2, Send, X, FileText, ChevronDown, Upload, Paperclip, Trash2,
 } from 'lucide-react';
 
 export default function StudentAssignments() {
@@ -22,6 +22,8 @@ export default function StudentAssignments() {
   const [submissionText, setSubmissionText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'submitted' | 'graded'>('all');
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchAssignments();
@@ -47,14 +49,13 @@ export default function StudentAssignments() {
   }
 
   async function handleSubmit(assignmentId: string) {
-    if (!submissionText.trim()) {
-      toast.error('Please write your answer before submitting');
+    if (!submissionText.trim() && uploadedFiles.length === 0) {
+      toast.error('Please write your answer or upload files before submitting');
       return;
     }
     setSubmitting(true);
     try {
       if (isDemo) {
-        // Simulate submission in demo mode
         await new Promise(r => setTimeout(r, 1000));
         setAssignments(prev => prev.map(a => 
           a.id === assignmentId 
@@ -64,17 +65,23 @@ export default function StudentAssignments() {
         toast.success('Assignment submitted! 🎉 (Demo)');
         setSelectedAssignment(null);
         setSubmissionText('');
+        setUploadedFiles([]);
         return;
       }
       const res = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignmentId, content: submissionText }),
+        body: JSON.stringify({
+          assignmentId,
+          content: submissionText || null,
+          fileUploadIds: uploadedFiles.map(f => f.id),
+        }),
       });
       if (res.ok) {
         toast.success('Assignment submitted! 🎉');
         setSelectedAssignment(null);
         setSubmissionText('');
+        setUploadedFiles([]);
         fetchAssignments();
       } else {
         const data = await res.json();
@@ -85,6 +92,46 @@ export default function StudentAssignments() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    for (const file of Array.from(files)) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} is too large (max 10MB)`);
+        continue;
+      }
+      if (isDemo) {
+        setUploadedFiles(prev => [...prev, { id: 'demo-' + Date.now(), originalName: file.name, mimeType: file.type, fileSize: file.size }]);
+        toast.success(`Uploaded ${file.name} (Demo)`);
+        continue;
+      }
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('purpose', 'submission');
+        const res = await fetch('/api/files', { method: 'POST', body: formData });
+        if (res.ok) {
+          const data = await res.json();
+          setUploadedFiles(prev => [...prev, data.file]);
+          toast.success(`Uploaded ${file.name}`);
+        } else {
+          const data = await res.json();
+          toast.error(data.error || `Failed to upload ${file.name}`);
+        }
+      } catch {
+        toast.error(`Failed to upload ${file.name}`);
+      }
+    }
+    setUploading(false);
+    e.target.value = '';
+  }
+
+  function removeFile(fileId: string) {
+    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
   }
 
   const getStatus = (a: any) => {
@@ -293,20 +340,52 @@ export default function StudentAssignments() {
                 aria-label="Your answer"
               />
 
+              {/* File Upload Section */}
+              <div className="mt-4 border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-primary-300 transition">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Paperclip size={14} /> Attach Files
+                  </p>
+                  <label className="btn-secondary text-xs flex items-center gap-1 cursor-pointer">
+                    <Upload size={12} />
+                    {uploading ? 'Uploading...' : 'Choose Files'}
+                    <input type="file" multiple className="hidden" onChange={handleFileUpload} disabled={uploading}
+                      accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.zip" />
+                  </label>
+                </div>
+                <p className="text-xs text-gray-400 mb-2">PDF, DOC, PPT, images, ZIP (max 10MB each)</p>
+                {uploadedFiles.length > 0 && (
+                  <div className="space-y-1">
+                    {uploadedFiles.map(f => (
+                      <div key={f.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <FileText size={14} className="text-primary-500" />
+                          <span className="text-sm text-gray-700 truncate max-w-[200px]">{f.originalName}</span>
+                          <span className="text-xs text-gray-400">({(f.fileSize / 1024).toFixed(0)} KB)</span>
+                        </div>
+                        <button onClick={() => removeFile(f.id)} className="text-red-400 hover:text-red-600 p-1">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-between mt-4">
                 <p className="text-xs text-gray-400">
-                  {submissionText.length} characters
+                  {submissionText.length} characters {uploadedFiles.length > 0 && `· ${uploadedFiles.length} file(s)`}
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setSelectedAssignment(null)}
+                    onClick={() => { setSelectedAssignment(null); setUploadedFiles([]); }}
                     className="btn-secondary"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={() => handleSubmit(selectedAssignment.id)}
-                    disabled={submitting || !submissionText.trim()}
+                    disabled={submitting || (!submissionText.trim() && uploadedFiles.length === 0)}
                     className="btn-primary flex items-center gap-2"
                   >
                     {submitting ? (

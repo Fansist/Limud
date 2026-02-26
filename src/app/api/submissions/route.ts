@@ -5,11 +5,15 @@ import prisma from '@/lib/prisma';
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('STUDENT');
-  const { assignmentId, content } = await req.json();
+  const { assignmentId, content, fileUploadIds } = await req.json();
 
-  if (!assignmentId || !content) {
+  if (!assignmentId) {
+    return NextResponse.json({ error: 'assignmentId is required' }, { status: 400 });
+  }
+
+  if (!content && (!fileUploadIds || fileUploadIds.length === 0)) {
     return NextResponse.json(
-      { error: 'assignmentId and content are required' },
+      { error: 'Either content text or file uploads are required' },
       { status: 400 }
     );
   }
@@ -35,6 +39,16 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Assignment is past due' }, { status: 400 });
   }
 
+  // Validate file uploads belong to the user
+  if (fileUploadIds && fileUploadIds.length > 0) {
+    const files = await prisma.fileUpload.findMany({
+      where: { id: { in: fileUploadIds }, userId: user.id },
+    });
+    if (files.length !== fileUploadIds.length) {
+      return NextResponse.json({ error: 'Some files were not found or do not belong to you' }, { status: 400 });
+    }
+  }
+
   // Upsert submission
   const submission = await prisma.submission.upsert({
     where: {
@@ -46,19 +60,29 @@ export const POST = apiHandler(async (req: Request) => {
     create: {
       assignmentId,
       studentId: user.id,
-      content,
+      content: content || '(File submission - see attached files)',
       status: 'SUBMITTED',
       submittedAt: new Date(),
+      fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
     },
     update: {
-      content,
+      content: content || '(File submission - see attached files)',
       status: 'SUBMITTED',
       submittedAt: new Date(),
       score: null,
       aiFeedback: null,
       gradedAt: null,
+      fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
     },
   });
+
+  // Link file uploads to the submission
+  if (fileUploadIds && fileUploadIds.length > 0) {
+    await prisma.fileUpload.updateMany({
+      where: { id: { in: fileUploadIds } },
+      data: { submissionId: submission.id },
+    });
+  }
 
   // Update streak
   await updateStreak(user.id);
@@ -70,6 +94,38 @@ export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
   const { searchParams } = new URL(req.url);
   const assignmentId = searchParams.get('assignmentId');
+  const submissionId = searchParams.get('submissionId');
+
+  // Get single submission with files
+  if (submissionId) {
+    const submission = await prisma.submission.findUnique({
+      where: { id: submissionId },
+      include: {
+        assignment: {
+          select: { title: true, totalPoints: true, dueDate: true, createdById: true, course: { select: { name: true } } },
+        },
+        student: { select: { id: true, name: true, email: true, gradeLevel: true } },
+      },
+    });
+
+    if (!submission) {
+      return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+    }
+
+    // Access check
+    if (user.role === 'STUDENT' && submission.studentId !== user.id) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
+
+    // Get attached files
+    const files = submission.fileUploadIds ?
+      await prisma.fileUpload.findMany({
+        where: { id: { in: JSON.parse(submission.fileUploadIds) } },
+        select: { id: true, fileName: true, originalName: true, mimeType: true, fileSize: true, createdAt: true },
+      }) : [];
+
+    return NextResponse.json({ submission, files });
+  }
 
   if (user.role === 'STUDENT') {
     const submissions = await prisma.submission.findMany({
@@ -85,7 +141,13 @@ export const GET = apiHandler(async (req: Request) => {
       orderBy: { updatedAt: 'desc' },
     });
 
-    return NextResponse.json({ submissions });
+    // Enrich with file counts
+    const enriched = await Promise.all(submissions.map(async (s) => {
+      const fileCount = s.fileUploadIds ? JSON.parse(s.fileUploadIds).length : 0;
+      return { ...s, fileCount };
+    }));
+
+    return NextResponse.json({ submissions: enriched });
   }
 
   if (hasTeacherAccess(user)) {
@@ -118,7 +180,17 @@ export const GET = apiHandler(async (req: Request) => {
       orderBy: { submittedAt: 'desc' },
     });
 
-    return NextResponse.json({ submissions });
+    // Enrich with file info
+    const enriched = await Promise.all(submissions.map(async (s) => {
+      const fileIds = s.fileUploadIds ? JSON.parse(s.fileUploadIds) as string[] : [];
+      const files = fileIds.length > 0 ? await prisma.fileUpload.findMany({
+        where: { id: { in: fileIds } },
+        select: { id: true, originalName: true, mimeType: true, fileSize: true },
+      }) : [];
+      return { ...s, files, fileCount: files.length };
+    }));
+
+    return NextResponse.json({ submissions: enriched });
   }
 
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

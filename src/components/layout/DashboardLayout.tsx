@@ -16,7 +16,8 @@ import {
   GraduationCap, LogOut, Bell, Menu, X, Upload, Eye, Accessibility,
   ChevronRight, Wand2, Mail, Award, Play, Sparkles, ArrowLeft, Users,
   Home, Brain, FileText, Calendar, TrendingUp, Swords, Sun, Moon,
-  Lightbulb, Focus, Zap, Target, ChevronDown, Settings,
+  Lightbulb, Focus, Zap, Target, ChevronDown, Settings, Gamepad2,
+  Building2, CreditCard, Shield, UserPlus,
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?: React.ReactNode; };
@@ -32,6 +33,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/student/exam-sim', label: 'Exam Simulator', icon: <FileText size={20} /> },
     { href: '/student/growth', label: 'Growth Analytics', icon: <TrendingUp size={20} /> },
     { href: '/student/rewards', label: 'Rewards', icon: <Trophy size={20} /> },
+    { href: '/student/games', label: 'Game Store', icon: <Gamepad2 size={20} /> },
     { href: '/student/certificates', label: 'Certificates', icon: <Award size={20} /> },
   ],
   TEACHER: [
@@ -43,10 +45,15 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/teacher/lesson-planner', label: 'AI Lesson Planner', icon: <Wand2 size={20} /> },
     { href: '/teacher/insights', label: 'Insights & Heatmap', icon: <Target size={20} /> },
     { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+    { href: '/teacher/games', label: 'Game Control', icon: <Gamepad2 size={20} /> },
   ],
   ADMIN: [
     { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { href: '/admin/provision', label: 'Provisioning', icon: <Upload size={20} /> },
+    { href: '/admin/students', label: 'Students', icon: <Users size={20} /> },
+    { href: '/admin/schools', label: 'Schools', icon: <Building2 size={20} /> },
+    { href: '/admin/classrooms', label: 'Classrooms', icon: <BookOpen size={20} /> },
+    { href: '/admin/provision', label: 'Bulk Import', icon: <Upload size={20} /> },
+    { href: '/admin/payments', label: 'Billing', icon: <CreditCard size={20} /> },
   ],
   PARENT: [
     { href: '/parent/dashboard', label: 'Dashboard', icon: <Eye size={20} /> },
@@ -80,7 +87,10 @@ const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.Reac
   ],
   ADMIN: [
     { href: '/admin/dashboard', label: 'Home', icon: <LayoutDashboard size={20} /> },
-    { href: '/admin/provision', label: 'Setup', icon: <Upload size={20} /> },
+    { href: '/admin/students', label: 'Students', icon: <Users size={20} /> },
+    { href: '/admin/schools', label: 'Schools', icon: <Building2 size={20} /> },
+    { href: '/admin/classrooms', label: 'Classes', icon: <BookOpen size={20} /> },
+    { href: '/admin/payments', label: 'Billing', icon: <CreditCard size={20} /> },
   ],
   PARENT: [
     { href: '/parent/dashboard', label: 'Home', icon: <Eye size={20} /> },

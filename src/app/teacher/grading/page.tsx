@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
 import { DEMO_TEACHER_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
-import { GraduationCap, Wand2, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { GraduationCap, Wand2, CheckCircle2, Clock, Loader2, Download, FileText, Paperclip } from 'lucide-react';
 
 export default function GradingPage() {
   const { data: session } = useSession();
@@ -245,6 +245,22 @@ export default function GradingPage() {
                         {/* Student's submission */}
                         <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-700 mb-3">
                           <p className="line-clamp-3">{sub.content}</p>
+                        </div>
+
+                        {/* Attached Files */}
+                        {sub.files && sub.files.length > 0 && (
+                          <div className="mb-3 space-y-1">
+                            <p className="text-xs font-medium text-gray-500 flex items-center gap-1"><Paperclip size={10} /> Attached Files ({sub.files.length})</p>
+                            {sub.files.map((f: any) => (
+                              <a key={f.id} href={`/api/files?id=${f.id}`} download
+                                className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-100 transition">
+                                <FileText size={14} />
+                                <span className="truncate">{f.originalName}</span>
+                                <Download size={12} className="ml-auto flex-shrink-0" />
+                              </a>
+                            ))}
+                          </div>
+                        )
                         </div>
 
                         {/* Graded feedback */}

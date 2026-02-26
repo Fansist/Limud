@@ -11,7 +11,7 @@ import Link from 'next/link';
 import {
   Building2, Users, GraduationCap, DollarSign,
   Upload, ArrowRight, Shield, Settings, Globe,
-  TrendingUp, Calendar, CreditCard,
+  TrendingUp, Calendar, CreditCard, BookOpen,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -141,6 +141,66 @@ export default function AdminDashboard() {
                 transition={{ delay: 0.2 }}
               >
                 <Link
+                  href="/admin/students"
+                  className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
+                >
+                  <div className="p-3 bg-blue-100 rounded-xl group-hover:bg-blue-200 transition">
+                    <Users className="text-blue-600" size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">Student Accounts</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">Create students with auto parent accounts</p>
+                  </div>
+                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
+                </Link>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.22 }}
+              >
+                <Link
+                  href="/admin/schools"
+                  className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
+                >
+                  <div className="p-3 bg-emerald-100 rounded-xl group-hover:bg-emerald-200 transition">
+                    <Building2 className="text-emerald-600" size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">Schools</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">Manage schools & transfer users</p>
+                  </div>
+                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
+                </Link>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.24 }}
+              >
+                <Link
+                  href="/admin/classrooms"
+                  className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
+                >
+                  <div className="p-3 bg-violet-100 rounded-xl group-hover:bg-violet-200 transition">
+                    <GraduationCap className="text-violet-600" size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">Classrooms</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">Create classes & control game access</p>
+                  </div>
+                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
+                </Link>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.26 }}
+              >
+                <Link
                   href="/admin/provision"
                   className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
                 >
@@ -158,18 +218,21 @@ export default function AdminDashboard() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
+                transition={{ delay: 0.28 }}
               >
-                <div className="card flex items-center gap-4 h-full">
-                  <div className="p-3 bg-purple-100 rounded-xl">
-                    <Globe className="text-purple-600" size={24} />
+                <Link
+                  href="/admin/payments"
+                  className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
+                >
+                  <div className="p-3 bg-amber-100 rounded-xl group-hover:bg-amber-200 transition">
+                    <CreditCard className="text-amber-600" size={24} />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">LMS Integrations</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Google Classroom & Canvas sync</p>
+                    <h3 className="font-semibold text-gray-900">Billing & Payments</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">Manage subscription & payment history</p>
                   </div>
-                  <span className="badge badge-success text-[10px]">Ready</span>
-                </div>
+                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
+                </Link>
               </motion.div>
 
               <motion.div
