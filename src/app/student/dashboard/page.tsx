@@ -187,11 +187,11 @@ export default function StudentDashboard() {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             {
               href: '/student/assignments',
-              icon: <BookOpen size={24} />,
+              icon: <BookOpen size={22} />,
               title: 'Assignments',
               desc: `${upcomingAssignments.length} pending`,
               color: 'from-blue-500 to-blue-600',
@@ -199,15 +199,23 @@ export default function StudentDashboard() {
             },
             {
               href: '/student/tutor',
-              icon: <MessageCircle size={24} />,
+              icon: <MessageCircle size={22} />,
               title: 'AI Tutor',
               desc: 'Ask anything',
               color: 'from-violet-500 to-purple-600',
               shadow: 'shadow-purple-500/20',
             },
             {
+              href: '/student/focus',
+              icon: <Target size={22} />,
+              title: 'Focus Mode',
+              desc: 'Distraction-free',
+              color: 'from-indigo-500 to-cyan-500',
+              shadow: 'shadow-indigo-500/20',
+            },
+            {
               href: '/student/rewards',
-              icon: <Trophy size={24} />,
+              icon: <Trophy size={22} />,
               title: 'Rewards',
               desc: 'Shop & badges',
               color: 'from-amber-500 to-orange-600',
@@ -223,20 +231,20 @@ export default function StudentDashboard() {
               <Link
                 href={action.href}
                 className={cn(
-                  'group block p-5 rounded-2xl bg-gradient-to-br text-white',
+                  'group block p-4 rounded-2xl bg-gradient-to-br text-white',
                   'hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1',
                   action.color, action.shadow
                 )}
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center mb-3">
+                    <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center mb-2">
                       {action.icon}
                     </div>
-                    <h3 className="text-lg font-bold">{action.title}</h3>
-                    <p className="text-white/70 text-sm mt-0.5">{action.desc}</p>
+                    <h3 className="text-sm font-bold">{action.title}</h3>
+                    <p className="text-white/70 text-xs mt-0.5">{action.desc}</p>
                   </div>
-                  <ArrowRight size={20} className="text-white/40 group-hover:text-white/80 group-hover:translate-x-1 transition-all" />
+                  <ArrowRight size={16} className="text-white/40 group-hover:text-white/80 group-hover:translate-x-1 transition-all" />
                 </div>
               </Link>
             </motion.div>

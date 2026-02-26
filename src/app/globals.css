@@ -17,47 +17,49 @@
   /* Dark mode */
   .dark body,
   html.dark body {
-    @apply bg-gray-950 text-gray-100;
+    background-color: #030712;
+    color: #f3f4f6;
   }
 
-  html.dark .bg-gray-50 { @apply bg-gray-950 !important; }
-  html.dark .bg-white { @apply bg-gray-900 !important; }
+  html.dark .bg-gray-50 { background-color: #030712 !important; }
+  html.dark .bg-white { background-color: #111827 !important; }
   html.dark .bg-white\/80 { background-color: rgba(17, 24, 39, 0.8) !important; }
-  html.dark .text-gray-900 { @apply text-gray-100 !important; }
-  html.dark .text-gray-800 { @apply text-gray-200 !important; }
-  html.dark .text-gray-700 { @apply text-gray-300 !important; }
-  html.dark .text-gray-600 { @apply text-gray-400 !important; }
-  html.dark .text-gray-500 { @apply text-gray-400 !important; }
-  html.dark .border-gray-100 { @apply border-gray-800 !important; }
-  html.dark .border-gray-200 { @apply border-gray-700 !important; }
-  html.dark .bg-gray-100 { @apply bg-gray-800 !important; }
-  html.dark .bg-gray-50 { @apply bg-gray-900 !important; }
-  html.dark .hover\:bg-gray-50:hover { @apply bg-gray-800 !important; }
-  html.dark .hover\:bg-gray-100:hover { @apply bg-gray-700 !important; }
+  html.dark .text-gray-900 { color: #f3f4f6 !important; }
+  html.dark .text-gray-800 { color: #e5e7eb !important; }
+  html.dark .text-gray-700 { color: #d1d5db !important; }
+  html.dark .text-gray-600 { color: #9ca3af !important; }
+  html.dark .text-gray-500 { color: #9ca3af !important; }
+  html.dark .border-gray-100 { border-color: #1f2937 !important; }
+  html.dark .border-gray-200 { border-color: #374151 !important; }
+  html.dark .bg-gray-100 { background-color: #1f2937 !important; }
+  html.dark .hover\:bg-gray-50:hover { background-color: #1f2937 !important; }
+  html.dark .hover\:bg-gray-100:hover { background-color: #374151 !important; }
 
   body.high-contrast {
-    @apply bg-black text-white;
+    background-color: #000;
+    color: #fff;
   }
 
   body.high-contrast .bg-white {
-    @apply bg-gray-950 !important;
+    background-color: #030712 !important;
   }
 
   body.high-contrast .bg-gray-50 {
-    @apply bg-black !important;
+    background-color: #000 !important;
   }
 
   body.high-contrast .text-gray-500,
   body.high-contrast .text-gray-600 {
-    @apply text-gray-200 !important;
+    color: #e5e7eb !important;
   }
 
   body.high-contrast .border-gray-200 {
-    @apply border-gray-600 !important;
+    border-color: #4b5563 !important;
   }
 
   body.high-contrast .card {
-    @apply bg-gray-900 border-gray-700 !important;
+    background-color: #111827 !important;
+    border-color: #374151 !important;
   }
 
   body.dyslexia-font {
@@ -267,4 +269,110 @@
 /* Selection color */
 ::selection {
   @apply bg-primary-200 text-primary-900;
+}
+
+/* ─── Mastery Burst Animation ─── */
+@keyframes masteryBurst {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translateX(calc(cos(var(--angle, 0deg)) * 40px)) translateY(calc(sin(var(--angle, 0deg)) * 40px)) scale(0); opacity: 0; }
+}
+
+@keyframes xpFloat {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  60% { opacity: 1; transform: translateY(-30px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes progressPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0); }
+}
+
+@keyframes rankGlow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+}
+
+/* ─── Mobile Touch Targets ─── */
+@media (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ─── Swipe Support Styles ─── */
+.swipe-container {
+  overflow-x: hidden;
+  touch-action: pan-y;
+}
+
+.swipe-page {
+  will-change: transform;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Focus Mode Styles ─── */
+.focus-mode body {
+  background: #0f172a !important;
+}
+
+.focus-mode .sidebar,
+.focus-mode header,
+.focus-mode .bottom-nav {
+  display: none !important;
+}
+
+/* ─── Smooth 60fps Animations ─── */
+.will-change-transform {
+  will-change: transform;
+}
+
+.gpu-accelerate {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* ─── OLED Dark Mode Enhancement ─── */
+@media (prefers-color-scheme: dark) {
+  html.dark {
+    --bg-oled: #000000;
+  }
+  html.dark.oled .bg-gray-950 {
+    background-color: #000000 !important;
+  }
+  html.dark.oled .bg-gray-900 {
+    background-color: #0a0a0a !important;
+  }
+}
+
+/* ─── Bottom Nav Mobile ─── */
+.bottom-nav {
+  @apply fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-gray-100;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html.dark .bottom-nav {
+  background-color: rgba(17, 24, 39, 0.95);
+  border-color: rgb(31, 41, 55);
+}
+
+/* ─── Sticky Progress Bar ─── */
+.sticky-progress {
+  @apply fixed top-0 left-0 right-0 z-[55] h-1;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #d946ef);
+}
+
+/* ─── Floating Action Button ─── */
+.fab {
+  @apply fixed z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center;
+  @apply bg-gradient-to-br from-primary-600 to-accent-600 text-white;
+  @apply hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  right: 16px;
 }

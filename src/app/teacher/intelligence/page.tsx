@@ -1,0 +1,283 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { SkeletonDashboard } from '@/lib/performance';
+import {
+  Brain, Users, AlertTriangle, TrendingUp, Target, BarChart3,
+  Zap, ArrowRight, ChevronRight, Sparkles, Shield, BookOpen,
+} from 'lucide-react';
+
+// Demo data
+const DEMO_INTELLIGENCE = {
+  classMastery: [
+    { subject: 'English', avgMastery: 58, studentCount: 24 },
+    { subject: 'Math', avgMastery: 65, studentCount: 28 },
+    { subject: 'Science', avgMastery: 72, studentCount: 22 },
+    { subject: 'History', avgMastery: 74, studentCount: 20 },
+  ],
+  weakestSkills: [
+    { skill: 'Fractions', subject: 'Math', avgMastery: 42, studentCount: 18 },
+    { skill: 'Essay Writing', subject: 'English', avgMastery: 48, studentCount: 15 },
+    { skill: 'Vocabulary', subject: 'English', avgMastery: 51, studentCount: 20 },
+    { skill: 'Cell Biology', subject: 'Science', avgMastery: 55, studentCount: 12 },
+    { skill: 'Algebra', subject: 'Math', avgMastery: 58, studentCount: 16 },
+  ],
+  students: [
+    { id: '1', name: 'Alex Johnson', gradeLevel: '8', avgScore: 45, engagementScore: 22, streakDays: 0, studyMinutes: 30, riskLevel: 'high', daysSinceActive: 8 },
+    { id: '2', name: 'Emma Davis', gradeLevel: '8', avgScore: 52, engagementScore: 35, streakDays: 1, studyMinutes: 60, riskLevel: 'high', daysSinceActive: 5 },
+    { id: '3', name: 'Marcus Lee', gradeLevel: '7', avgScore: 62, engagementScore: 48, streakDays: 2, studyMinutes: 90, riskLevel: 'medium', daysSinceActive: 3 },
+    { id: '4', name: 'Sofia Martinez', gradeLevel: '8', avgScore: 78, engagementScore: 72, streakDays: 5, studyMinutes: 180, riskLevel: 'low', daysSinceActive: 0 },
+    { id: '5', name: 'James Wilson', gradeLevel: '7', avgScore: 88, engagementScore: 85, streakDays: 12, studyMinutes: 320, riskLevel: 'low', daysSinceActive: 0 },
+    { id: '6', name: 'Olivia Brown', gradeLevel: '8', avgScore: 92, engagementScore: 91, streakDays: 18, studyMinutes: 450, riskLevel: 'low', daysSinceActive: 0 },
+  ],
+  atRisk: [
+    { id: '1', name: 'Alex Johnson', gradeLevel: '8', avgScore: 45, engagementScore: 22, riskLevel: 'high', daysSinceActive: 8 },
+    { id: '2', name: 'Emma Davis', gradeLevel: '8', avgScore: 52, engagementScore: 35, riskLevel: 'high', daysSinceActive: 5 },
+  ],
+  summary: { totalStudents: 28, avgEngagement: 59, atRiskCount: 2, classAvgScore: 67 },
+};
+
+function EngagementBar({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' }) {
+  const color = score >= 70 ? 'bg-emerald-500' : score >= 40 ? 'bg-amber-500' : 'bg-red-500';
+  return (
+    <div className={cn('bg-gray-200 rounded-full overflow-hidden', size === 'sm' ? 'h-1.5 w-16' : 'h-2 w-24')}>
+      <motion.div className={cn('h-full rounded-full', color)} initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 0.8 }} />
+    </div>
+  );
+}
+
+export default function TeacherIntelligencePage() {
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'overview' | 'students' | 'risk'>('overview');
+
+  useEffect(() => {
+    if (isDemo) {
+      setData(DEMO_INTELLIGENCE);
+      setLoading(false);
+      return;
+    }
+    fetch('/api/teacher/intelligence')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setData(d); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [isDemo]);
+
+  if (loading) return <DashboardLayout><SkeletonDashboard /></DashboardLayout>;
+  if (!data) return <DashboardLayout><div className="text-center py-12 text-gray-400">Could not load intelligence data.</div></DashboardLayout>;
+
+  const { classMastery, weakestSkills, students, atRisk, summary } = data;
+
+  return (
+    <DashboardLayout>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-sm">
+            <Brain size={22} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Teacher Intelligence</h1>
+            <p className="text-xs text-gray-400">AI-powered classroom insights & risk detection</p>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { icon: <Users size={20} />, label: 'Students', value: summary.totalStudents, color: 'bg-blue-50 text-blue-600', iconBg: 'bg-blue-100' },
+            { icon: <TrendingUp size={20} />, label: 'Class Avg Score', value: `${summary.classAvgScore}%`, color: 'bg-green-50 text-green-600', iconBg: 'bg-green-100' },
+            { icon: <Zap size={20} />, label: 'Avg Engagement', value: summary.avgEngagement, color: 'bg-purple-50 text-purple-600', iconBg: 'bg-purple-100' },
+            { icon: <AlertTriangle size={20} />, label: 'At Risk', value: summary.atRiskCount, color: summary.atRiskCount > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600', iconBg: summary.atRiskCount > 0 ? 'bg-red-100' : 'bg-green-100' },
+          ].map((stat, i) => (
+            <motion.div key={stat.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              className="card flex items-start gap-3"
+            >
+              <div className={cn('p-2.5 rounded-xl', stat.iconBg)}>
+                <span className={stat.color.split(' ')[1]}>{stat.icon}</span>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-xs text-gray-500">{stat.label}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+          {(['overview', 'students', 'risk'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              )}
+            >
+              {t === 'overview' ? 'Overview' : t === 'students' ? 'All Students' : `At Risk (${summary.atRiskCount})`}
+            </button>
+          ))}
+        </div>
+
+        {/* Overview Tab */}
+        {tab === 'overview' && (
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Class Mastery by Subject */}
+            <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} className="card">
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-4">
+                <BarChart3 size={16} className="text-indigo-500" /> Class Mastery by Subject
+              </h2>
+              <div className="space-y-4">
+                {classMastery.map((item: any) => (
+                  <div key={item.subject}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold text-gray-900">{item.subject}</span>
+                      <span className={cn('text-sm font-bold', item.avgMastery >= 70 ? 'text-green-600' : item.avgMastery >= 50 ? 'text-amber-600' : 'text-red-600')}>
+                        {item.avgMastery}%
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <motion.div
+                        className={cn('h-full rounded-full', item.avgMastery >= 70 ? 'bg-emerald-500' : item.avgMastery >= 50 ? 'bg-amber-500' : 'bg-red-500')}
+                        initial={{ width: 0 }} animate={{ width: `${item.avgMastery}%` }} transition={{ duration: 0.8 }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{item.studentCount} students</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Weakest Skills */}
+            <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} className="card">
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-4">
+                <Target size={16} className="text-red-500" /> Weakest Skills (Class-wide)
+              </h2>
+              <div className="space-y-3">
+                {weakestSkills.map((skill: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0',
+                      skill.avgMastery < 50 ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                    )}>
+                      {skill.avgMastery}%
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{skill.skill}</p>
+                      <p className="text-[10px] text-gray-400">{skill.subject} · {skill.studentCount} students struggling</p>
+                    </div>
+                    <button className="text-xs text-indigo-600 font-medium hover:underline whitespace-nowrap flex items-center gap-1">
+                      Auto-assign <ChevronRight size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button className="w-full mt-4 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-semibold hover:bg-indigo-100 transition flex items-center justify-center gap-2">
+                <Sparkles size={14} /> Generate Auto-Differentiated Assignments
+              </button>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Students Tab */}
+        {tab === 'students' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Student</th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-gray-500 uppercase">Avg Score</th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-gray-500 uppercase">Engagement</th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-gray-500 uppercase">Streak</th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-gray-500 uppercase">Study Time</th>
+                    <th className="text-center py-3 px-2 text-xs font-semibold text-gray-500 uppercase">Risk</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((stu: any) => (
+                    <tr key={stu.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                      <td className="py-3 px-4">
+                        <p className="font-semibold text-gray-900">{stu.name}</p>
+                        <p className="text-[10px] text-gray-400">Grade {stu.gradeLevel}</p>
+                      </td>
+                      <td className="text-center py-3 px-2">
+                        <span className={cn('font-bold', (stu.avgScore ?? 0) >= 70 ? 'text-green-600' : (stu.avgScore ?? 0) >= 50 ? 'text-amber-600' : 'text-red-600')}>
+                          {stu.avgScore ?? '--'}%
+                        </span>
+                      </td>
+                      <td className="py-3 px-2">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-xs font-medium text-gray-600 w-6">{stu.engagementScore}</span>
+                          <EngagementBar score={stu.engagementScore} size="sm" />
+                        </div>
+                      </td>
+                      <td className="text-center py-3 px-2">
+                        <span className="text-sm text-gray-700">{stu.streakDays}d</span>
+                      </td>
+                      <td className="text-center py-3 px-2">
+                        <span className="text-sm text-gray-700">{Math.round((stu.studyMinutes || 0) / 60)}h</span>
+                      </td>
+                      <td className="text-center py-3 px-2">
+                        <span className={cn('badge text-[10px]',
+                          stu.riskLevel === 'high' ? 'badge-danger' : stu.riskLevel === 'medium' ? 'badge-warning' : 'badge-success'
+                        )}>
+                          {stu.riskLevel === 'high' ? 'At Risk' : stu.riskLevel === 'medium' ? 'Watch' : 'OK'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        )}
+
+        {/* At Risk Tab */}
+        {tab === 'risk' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            {atRisk.length === 0 ? (
+              <div className="card text-center py-12">
+                <Shield size={32} className="mx-auto text-green-400 mb-3" />
+                <p className="text-lg font-bold text-gray-900">All Clear!</p>
+                <p className="text-sm text-gray-400">No students currently flagged as at-risk.</p>
+              </div>
+            ) : (
+              atRisk.map((stu: any) => (
+                <div key={stu.id} className="card border-l-4 border-l-red-500">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-gray-900">{stu.name} <span className="text-xs text-gray-400">· Grade {stu.gradeLevel}</span></p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                        <span>Avg: <strong className="text-red-600">{stu.avgScore ?? '--'}%</strong></span>
+                        <span>Engagement: <strong className="text-red-600">{stu.engagementScore}</strong></span>
+                        <span>Inactive: <strong className="text-red-600">{stu.daysSinceActive}d</strong></span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="btn-secondary text-xs flex items-center gap-1">
+                        <BookOpen size={12} /> Assign Review
+                      </button>
+                      <button className="btn-primary text-xs flex items-center gap-1">
+                        <Sparkles size={12} /> AI Intervention
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-3 bg-red-50 rounded-xl">
+                    <p className="text-xs text-red-700 font-medium">
+                      <AlertTriangle size={12} className="inline mr-1" />
+                      AI Recommendation: Schedule a 1-on-1 check-in. Consider reducing assignment difficulty to rebuild confidence. Assign targeted review on their weakest skills.
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </motion.div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}

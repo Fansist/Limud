@@ -140,6 +140,33 @@ model User {
   challengeParticipants ChallengeParticipant[]
   weeklyReports      WeeklyReport[]
 
+  // v3 New feature relations
+  learningDNA        LearningDNA?
+  focusSessions      FocusSession[]
+  emotionalCheckins  EmotionalCheckin[]
+  microLessons       MicroLesson[]
+  homeworkScans      HomeworkScan[]
+  whiteboardMembers  WhiteboardMember[]
+  goalContracts      GoalContract[]
+  conceptMaps        ConceptMap[]
+  vocabEntries       VocabEntry[]
+  interventionPlans  InterventionPlan[]  // teacher creates
+  parentGoals        ParentGoal[]
+  peerTutorOfferings PeerTutorMatch[]    @relation("TutorOfferings")
+  peerTutorRequests  PeerTutorMatch[]    @relation("TuteeRequests")
+  progressSnapshots  ProgressSnapshot[]
+  writingSubmissions WritingSubmission[]
+  mathAttempts       MathStepAttempt[]
+
+  // v3.1 Engagement & intelligence
+  confidenceRatings  ConfidenceRating[]
+  seasonPassProgress SeasonPassProgress[]
+  dailyBoosts        DailyBoost[]
+  studyGroupMembers  StudyGroupMember[]
+  questionPosts      QuestionPost[]
+  questionVotes      QuestionVote[]
+  marketplaceListings MarketplaceListing[]
+
   // Auth sessions
   sessions       Session[]
   accounts       Account[]
@@ -673,4 +700,534 @@ model WeeklyReport {
 
   @@index([userId, weekStart])
   @@map("weekly_reports")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// V3: 20 NEW FEATURES - Intelligence, Focus, Social, Analytics
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── 1. LEARNING DNA PROFILE ─────────────────────────────────────────────
+
+model LearningDNA {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  learningSpeed     Float    @default(1.0)
+  retentionRate     Float    @default(0.7)
+  preferredModality String   @default("visual")
+  peakHourStart     Int      @default(9)
+  peakHourEnd       Int      @default(11)
+  avgSessionMinutes Int      @default(25)
+  optimalChunkSize  Int      @default(5)
+  attentionSpanMin  Int      @default(20)
+  subjectStrengths  String   @default("{}") @db.Text
+  subjectWeaknesses String   @default("{}") @db.Text
+  learningPatterns  String   @default("{}") @db.Text
+  lastUpdated       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("learning_dna")
+}
+
+// ─── 2. FOCUS SESSIONS ───────────────────────────────────────────────────
+
+model FocusSession {
+  id              String    @id @default(cuid())
+  userId          String
+  subject         String
+  topic           String?
+  plannedMinutes  Int       @default(25)
+  actualMinutes   Int       @default(0)
+  breakMinutes    Int       @default(5)
+  focusScore      Float?
+  distractionCount Int      @default(0)
+  completed       Boolean   @default(false)
+  sessionType     String    @default("pomodoro")
+  itemsCompleted  Int       @default(0)
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  createdAt       DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+  @@map("focus_sessions")
+}
+
+// ─── 3. EMOTIONAL CHECK-INS ──────────────────────────────────────────────
+
+model EmotionalCheckin {
+  id          String   @id @default(cuid())
+  userId      String
+  mood        String
+  energy      Int      @default(3)
+  confidence  Int      @default(3)
+  context     String?
+  notes       String?  @db.Text
+  aiResponse  String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("emotional_checkins")
+}
+
+// ─── 4. AI MICRO-LESSONS ─────────────────────────────────────────────────
+
+model MicroLesson {
+  id            String     @id @default(cuid())
+  userId        String?
+  subject       String
+  topic         String
+  title         String
+  content       String     @db.Text
+  durationMin   Int        @default(3)
+  difficulty    Difficulty @default(MEDIUM)
+  skillTags     String?    @db.Text
+  completions   Int        @default(0)
+  avgRating     Float      @default(0)
+  aiGenerated   Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  creator User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([subject, difficulty])
+  @@map("micro_lessons")
+}
+
+// ─── 5. HOMEWORK SCANNER ─────────────────────────────────────────────────
+
+model HomeworkScan {
+  id              String   @id @default(cuid())
+  userId          String
+  imageUrl        String?  @db.Text
+  extractedText   String?  @db.Text
+  subject         String
+  autoGrade       Float?
+  feedback        String?  @db.Text
+  corrections     String?  @db.Text
+  skillsDetected  String?  @db.Text
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("homework_scans")
+}
+
+// ─── 6. COLLABORATIVE WHITEBOARD ─────────────────────────────────────────
+
+model Whiteboard {
+  id          String   @id @default(cuid())
+  title       String
+  subject     String?
+  boardData   String   @default("{}") @db.Text
+  isPublic    Boolean  @default(false)
+  maxMembers  Int      @default(5)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members WhiteboardMember[]
+
+  @@map("whiteboards")
+}
+
+model WhiteboardMember {
+  id           String   @id @default(cuid())
+  whiteboardId String
+  userId       String
+  role         String   @default("editor")
+  joinedAt     DateTime @default(now())
+
+  whiteboard Whiteboard @relation(fields: [whiteboardId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([whiteboardId, userId])
+  @@map("whiteboard_members")
+}
+
+// ─── 7. AI GOAL-CONTRACT SYSTEM ──────────────────────────────────────────
+
+model GoalContract {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String
+  description     String   @db.Text
+  targetType      String
+  targetValue     Float
+  currentValue    Float    @default(0)
+  startDate       DateTime @default(now())
+  endDate         DateTime
+  reward          String?
+  status          String   @default("active")
+  checkpoints     String?  @db.Text
+  aiCoachNotes    String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("goal_contracts")
+}
+
+// ─── 8. AI CONCEPT MAP ───────────────────────────────────────────────────
+
+model ConceptMap {
+  id          String   @id @default(cuid())
+  userId      String
+  subject     String
+  topic       String
+  nodes       String   @db.Text
+  edges       String   @db.Text
+  summary     String?  @db.Text
+  aiGenerated Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, subject])
+  @@map("concept_maps")
+}
+
+// ─── 9. VOCABULARY VAULT ─────────────────────────────────────────────────
+
+model VocabEntry {
+  id            String    @id @default(cuid())
+  userId        String
+  word          String
+  definition    String    @db.Text
+  partOfSpeech  String?
+  example       String?   @db.Text
+  pronunciation String?
+  subject       String    @default("ELA")
+  imageUrl      String?
+  mnemonicHint  String?   @db.Text
+  masteryLevel  Float     @default(0)
+  easeFactor    Float     @default(2.5)
+  interval      Int       @default(1)
+  repetitions   Int       @default(0)
+  nextReview    DateTime  @default(now())
+  lastReview    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, word, subject])
+  @@index([userId, nextReview])
+  @@map("vocab_entries")
+}
+
+// ─── 10. TEACHER INTERVENTION PLANS ──────────────────────────────────────
+
+model InterventionPlan {
+  id              String   @id @default(cuid())
+  teacherId       String
+  studentId       String?
+  title           String
+  targetSkills    String   @db.Text
+  strategies      String   @db.Text
+  milestones      String?  @db.Text
+  status          String   @default("draft")
+  progressNotes   String?  @db.Text
+  aiGenerated     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  teacher User @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId, status])
+  @@map("intervention_plans")
+}
+
+// ─── 11. PARENT GOAL TRACKING ────────────────────────────────────────────
+
+model ParentGoal {
+  id          String   @id @default(cuid())
+  parentId    String
+  childId     String?
+  title       String
+  category    String
+  targetValue String
+  currentValue String?
+  notes       String?  @db.Text
+  milestones  String?  @db.Text
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent User @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([parentId, status])
+  @@map("parent_goals")
+}
+
+// ─── 12. PEER TUTORING MATCHING ──────────────────────────────────────────
+
+model PeerTutorMatch {
+  id          String   @id @default(cuid())
+  tutorId     String
+  tuteeId     String
+  subject     String
+  skillName   String
+  status      String   @default("pending")
+  sessionCount Int     @default(0)
+  rating      Float?
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tutor User @relation("TutorOfferings", fields: [tutorId], references: [id], onDelete: Cascade)
+  tutee User @relation("TuteeRequests", fields: [tuteeId], references: [id], onDelete: Cascade)
+
+  @@index([tutorId])
+  @@index([tuteeId])
+  @@map("peer_tutor_matches")
+}
+
+// ─── 13. PROGRESS SNAPSHOT ───────────────────────────────────────────────
+
+model ProgressSnapshot {
+  id              String   @id @default(cuid())
+  userId          String
+  period          String
+  periodStart     DateTime
+  periodEnd       DateTime
+  overallGrade    String?
+  gpa             Float?
+  subjectGrades   String   @db.Text
+  achievements    String?  @db.Text
+  teacherComments String?  @db.Text
+  aiNarrative     String?  @db.Text
+  strengths       String?  @db.Text
+  areasForGrowth  String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, periodStart])
+  @@map("progress_snapshots")
+}
+
+// ─── 14. AI WRITING COACH ────────────────────────────────────────────────
+
+model WritingSubmission {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String?
+  content         String   @db.Text
+  writingType     String   @default("essay")
+  rubricUsed      String?  @db.Text
+  scores          String?  @db.Text
+  overallScore    Float?
+  feedback        String?  @db.Text
+  suggestions     String?  @db.Text
+  wordCount       Int      @default(0)
+  readabilityGrade Float?
+  revisionNumber  Int      @default(1)
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("writing_submissions")
+}
+
+// ─── 15. STEP-BY-STEP MATH SOLVER ────────────────────────────────────────
+
+model MathStepAttempt {
+  id              String   @id @default(cuid())
+  userId          String
+  problem         String   @db.Text
+  studentSteps    String   @db.Text
+  correctSteps    String?  @db.Text
+  errorStep       Int?
+  errorType       String?
+  hintGiven       String?  @db.Text
+  isCorrect       Boolean  @default(false)
+  subject         String   @default("math")
+  topic           String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("math_step_attempts")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// V3.1: CONFIDENCE, ENGAGEMENT, SOCIAL, MARKETPLACE
+// ═══════════════════════════════════════════════════════════════════════════
+
+model ConfidenceRating {
+  id           String   @id @default(cuid())
+  userId       String
+  questionId   String?  // links to assignment question or spaced rep item
+  subject      String
+  skillName    String?
+  confidence   Int      // 1-5 how sure they are
+  wasCorrect   Boolean
+  isLuckyGuess Boolean  @default(false) // high confidence + wrong OR low confidence + right
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, subject])
+  @@map("confidence_ratings")
+}
+
+model SeasonPassProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  season      String   // "2026-spring", "2026-summer"
+  tier        Int      @default(0) // 0=free, 1=bronze, 2=silver, 3=gold
+  currentXP   Int      @default(0)
+  missions    String   @default("[]") @db.Text // JSON: [{id, title, xpReward, completed}]
+  rewards     String   @default("[]") @db.Text // JSON: unlocked rewards
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, season])
+  @@map("season_pass_progress")
+}
+
+model DailyBoost {
+  id            String   @id @default(cuid())
+  userId        String
+  date          DateTime @default(now())
+  questionsAsked Int     @default(0)
+  questionsCorrect Int   @default(0)
+  xpEarned      Int      @default(0)
+  timeSpentSec  Int      @default(0)
+  streakSaved   Boolean  @default(false)
+  completed     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("daily_boosts")
+}
+
+// ─── STUDY GROUPS (Academic Social) ──────────────────────────────────────
+
+model StudyGroup {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String?
+  description String?
+  inviteCode  String   @unique @default(cuid())
+  isPublic    Boolean  @default(false)
+  maxMembers  Int      @default(10)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members  StudyGroupMember[]
+  messages StudyGroupMessage[]
+
+  @@map("study_groups")
+}
+
+model StudyGroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  role      String   @default("member") // owner, moderator, member
+  joinedAt  DateTime @default(now())
+
+  group StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("study_group_members")
+}
+
+model StudyGroupMessage {
+  id        String   @id @default(cuid())
+  groupId   String
+  authorId  String
+  content   String   @db.Text
+  isAI      Boolean  @default(false)
+  flagged   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  group StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
+  @@map("study_group_messages")
+}
+
+// ─── QUESTION FEED (Academic Q&A) ────────────────────────────────────────
+
+model QuestionPost {
+  id            String   @id @default(cuid())
+  authorId      String
+  subject       String
+  title         String
+  content       String   @db.Text
+  aiSummary     String?  @db.Text
+  isEndorsed    Boolean  @default(false)
+  endorsedBy    String?  // teacher userId
+  upvotes       Int      @default(0)
+  answerCount   Int      @default(0)
+  isClosed      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  author User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes  QuestionVote[]
+
+  @@index([subject, createdAt])
+  @@map("question_posts")
+}
+
+model QuestionVote {
+  id         String   @id @default(cuid())
+  postId     String
+  userId     String
+  isUpvote   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  post QuestionPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("question_votes")
+}
+
+// ─── TEACHER MARKETPLACE ─────────────────────────────────────────────────
+
+model MarketplaceListing {
+  id            String   @id @default(cuid())
+  teacherId     String
+  title         String
+  description   String   @db.Text
+  type          String   // lesson_pack, worksheet, quiz, curriculum
+  subject       String
+  gradeLevel    String
+  price         Float    @default(0) // 0 = free
+  content       String   @db.Text // JSON: the actual resource data
+  standards     String?  @db.Text // JSON: aligned standards
+  downloads     Int      @default(0)
+  rating        Float    @default(0)
+  ratingCount   Int      @default(0)
+  isPublished   Boolean  @default(false)
+  tags          String?  // comma-separated
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  teacher User @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([subject, type])
+  @@index([teacherId])
+  @@map("marketplace_listings")
 }

@@ -3,6 +3,7 @@
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'react-hot-toast';
 import { ReactNode, createContext, useContext, useState, useEffect } from 'react';
+import { PerfProvider } from '@/lib/performance';
 
 // Accessibility context
 type AccessibilitySettings = {
@@ -77,18 +78,20 @@ function AccessibilityProvider({ children }: { children: ReactNode }) {
 export default function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
-      <AccessibilityProvider>
-        {children}
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: { borderRadius: '12px', padding: '16px', fontSize: '14px' },
-            success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
-            error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-          }}
-        />
-      </AccessibilityProvider>
+      <PerfProvider>
+        <AccessibilityProvider>
+          {children}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: { borderRadius: '12px', padding: '16px', fontSize: '14px' },
+              success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
+              error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+            }}
+          />
+        </AccessibilityProvider>
+      </PerfProvider>
     </SessionProvider>
   );
 }
