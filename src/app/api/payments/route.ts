@@ -3,20 +3,20 @@ import { requireAuth, requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
 // Pricing tiers
-const PRICING = {
+const PRICING: Record<string, { pricePerStudent: number; maxStudents: number; maxTeachers: number; maxSchools: number }> = {
+  FREE: { pricePerStudent: 0, maxStudents: 5, maxTeachers: 2, maxSchools: 0 },
   STARTER: { pricePerStudent: 5, maxStudents: 100, maxTeachers: 10, maxSchools: 1 },
   STANDARD: { pricePerStudent: 8, maxStudents: 500, maxTeachers: 50, maxSchools: 5 },
   PREMIUM: { pricePerStudent: 12, maxStudents: 2000, maxTeachers: 200, maxSchools: 20 },
   ENTERPRISE: { pricePerStudent: 15, maxStudents: 10000, maxTeachers: 1000, maxSchools: 100 },
 };
 
-// GET /api/payments - List payments for district & get pricing
+// GET /api/payments - Pricing info (public) or payment history (admin)
 export const GET = apiHandler(async (req: Request) => {
-  const user = await requireAuth();
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action');
 
-  // Public pricing endpoint
+  // Public pricing endpoint - no auth required
   if (action === 'pricing') {
     return NextResponse.json({
       pricing: Object.entries(PRICING).map(([tier, info]) => ({
@@ -30,6 +30,8 @@ export const GET = apiHandler(async (req: Request) => {
     });
   }
 
+  // Auth required for payment history
+  const user = await requireAuth();
   if (user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
   }
@@ -47,12 +49,14 @@ export const GET = apiHandler(async (req: Request) => {
   return NextResponse.json({ payments, district, pricing: PRICING });
 });
 
-// POST /api/payments - Create a new payment (simulated checkout)
+// POST /api/payments - Handle various payment actions
 export const POST = apiHandler(async (req: Request) => {
   const body = await req.json();
   const { action } = body;
 
-  // === Onboarding: create district + payment in one flow ===
+  // ═══════════════════════════════════════════════════════════════════════
+  // ACTION: onboard - Create new district + admin + payment in one flow
+  // ═══════════════════════════════════════════════════════════════════════
   if (action === 'onboard') {
     const {
       districtName, contactEmail, contactPhone, address, city, state, zipCode,
@@ -77,7 +81,7 @@ export const POST = apiHandler(async (req: Request) => {
     // Check if admin email exists
     const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (existingAdmin) {
-      return NextResponse.json({ error: 'Admin email already exists' }, { status: 409 });
+      return NextResponse.json({ error: 'An account with this email already exists. Please use a different email or sign in.' }, { status: 409 });
     }
 
     // Create district
@@ -95,7 +99,7 @@ export const POST = apiHandler(async (req: Request) => {
         state: state || null,
         zipCode: zipCode || null,
         subscriptionStatus: 'ACTIVE',
-        subscriptionTier: tierKey,
+        subscriptionTier: tierKey as any,
         subscriptionStart: new Date(),
         subscriptionEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         pricePerYear: amount,
@@ -139,10 +143,10 @@ export const POST = apiHandler(async (req: Request) => {
       data: {
         districtId: district.id,
         amount,
-        status: 'COMPLETED', // Simulated payment
+        status: 'COMPLETED',
         paymentMethod: paymentMethod || 'card',
         description: `${tierKey} plan - ${studentCount} students`,
-        tier: tierKey,
+        tier: tierKey as any,
         studentCount,
         teacherCount: tierInfo.maxTeachers,
         billingEmail: billingEmail || contactEmail,
@@ -174,7 +178,73 @@ export const POST = apiHandler(async (req: Request) => {
     }, { status: 201 });
   }
 
-  // === Additional payment for existing district ===
+  // ═══════════════════════════════════════════════════════════════════════
+  // ACTION: homeschool-upgrade - Upgrade a homeschool parent's plan
+  // ═══════════════════════════════════════════════════════════════════════
+  if (action === 'homeschool-upgrade') {
+    const { email, tier, studentCount: count, paymentMethod } = body;
+
+    if (!email || !tier) {
+      return NextResponse.json({ error: 'email and tier required' }, { status: 400 });
+    }
+
+    const tierKey = tier.toUpperCase() as keyof typeof PRICING;
+    const tierInfo = PRICING[tierKey];
+    if (!tierInfo) {
+      return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
+    }
+
+    // Find the user and their district
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { district: true },
+    });
+
+    if (!user || !user.districtId) {
+      return NextResponse.json({ error: 'User or district not found' }, { status: 404 });
+    }
+
+    const amount = tierInfo.pricePerStudent * (count || 5);
+
+    // Update district subscription
+    await prisma.schoolDistrict.update({
+      where: { id: user.districtId },
+      data: {
+        subscriptionStatus: 'ACTIVE',
+        subscriptionTier: tierKey as any,
+        subscriptionStart: new Date(),
+        subscriptionEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        pricePerYear: amount,
+        maxStudents: Math.max(count || 5, tierInfo.maxStudents),
+        maxTeachers: tierInfo.maxTeachers,
+        maxSchools: tierInfo.maxSchools,
+      },
+    });
+
+    // Create payment record
+    const payment = await prisma.payment.create({
+      data: {
+        districtId: user.districtId,
+        amount,
+        status: 'COMPLETED',
+        paymentMethod: paymentMethod || 'card',
+        description: `Homeschool ${tierKey} plan upgrade`,
+        tier: tierKey as any,
+        studentCount: count || 5,
+        paidAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Plan upgraded successfully!',
+      payment: { id: payment.id, amount: payment.amount, status: payment.status },
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ACTION: upgrade / renew - Existing district admin upgrades or renews
+  // ═══════════════════════════════════════════════════════════════════════
   if (action === 'upgrade' || action === 'renew') {
     const user = await requireRole('ADMIN');
     const { tier, studentCount } = body;
@@ -194,7 +264,7 @@ export const POST = apiHandler(async (req: Request) => {
         status: 'COMPLETED',
         paymentMethod: 'card',
         description: `${action === 'upgrade' ? 'Upgrade' : 'Renewal'} - ${tierKey} plan`,
-        tier: tierKey,
+        tier: tierKey as any,
         studentCount: studentCount || 100,
         paidAt: new Date(),
       },
@@ -204,7 +274,7 @@ export const POST = apiHandler(async (req: Request) => {
     await prisma.schoolDistrict.update({
       where: { id: user.districtId },
       data: {
-        subscriptionTier: tierKey,
+        subscriptionTier: tierKey as any,
         subscriptionStatus: 'ACTIVE',
         subscriptionEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         maxStudents: Math.max(studentCount || 100, tierInfo.maxStudents),
@@ -217,13 +287,51 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ success: true, payment });
   }
 
-  return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  // ═══════════════════════════════════════════════════════════════════════
+  // ACTION: check-subscription - Check if a user's subscription is valid
+  // ═══════════════════════════════════════════════════════════════════════
+  if (action === 'check-subscription') {
+    const user = await requireAuth();
+
+    if (!user.districtId) {
+      return NextResponse.json({
+        active: false,
+        tier: 'FREE',
+        message: 'No subscription found',
+      });
+    }
+
+    const district = await prisma.schoolDistrict.findUnique({
+      where: { id: user.districtId },
+    });
+
+    if (!district) {
+      return NextResponse.json({ active: false, tier: 'FREE', message: 'District not found' });
+    }
+
+    const isActive = district.subscriptionStatus === 'ACTIVE' ||
+      district.subscriptionStatus === 'TRIAL';
+    const isExpired = district.subscriptionEnd && new Date(district.subscriptionEnd) < new Date();
+
+    return NextResponse.json({
+      active: isActive && !isExpired,
+      tier: district.subscriptionTier,
+      status: district.subscriptionStatus,
+      expiresAt: district.subscriptionEnd,
+      maxStudents: district.maxStudents,
+      maxTeachers: district.maxTeachers,
+      isHomeschool: district.isHomeschool,
+    });
+  }
+
+  return NextResponse.json({ error: 'Invalid action. Valid actions: onboard, homeschool-upgrade, upgrade, renew, check-subscription' }, { status: 400 });
 });
 
 function getTierFeatures(tier: string): string[] {
   const base = ['AI Tutoring', 'Gamification', 'Progress Tracking', 'Parent Portal'];
   switch (tier) {
-    case 'STARTER': return [...base, 'Up to 100 students', '1 school'];
+    case 'FREE': return ['Up to 5 students', 'AI Tutor (50 sessions/mo)', 'Basic gamification', 'Parent dashboard'];
+    case 'STARTER': return [...base, 'Up to 100 students', '1 school', 'AI Auto-Grader', 'Game Store'];
     case 'STANDARD': return [...base, 'Up to 500 students', '5 schools', 'Advanced Analytics', 'LMS Integration'];
     case 'PREMIUM': return [...base, 'Up to 2000 students', '20 schools', 'Premium Support', 'Custom Branding', 'API Access'];
     case 'ENTERPRISE': return [...base, 'Unlimited students', '100 schools', '24/7 Support', 'Custom Development', 'SLA'];

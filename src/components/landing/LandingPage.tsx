@@ -876,7 +876,7 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/register" className="mt-6 block text-center bg-gray-100 text-gray-900 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition">
+                <Link href="/onboard?plan=STARTER" className="mt-6 block text-center bg-gray-100 text-gray-900 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition">
                   Start Free Trial
                 </Link>
               </div>
@@ -916,7 +916,7 @@ export default function LandingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/register" className="mt-6 block text-center bg-white text-primary-700 py-3 rounded-xl font-bold text-sm hover:bg-gray-100 transition">
+                  <Link href="/onboard?plan=STANDARD" className="mt-6 block text-center bg-white text-primary-700 py-3 rounded-xl font-bold text-sm hover:bg-gray-100 transition">
                     Start Free Trial
                   </Link>
                 </div>
@@ -952,7 +952,7 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/register" className="mt-6 block text-center bg-gray-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition">
+                <Link href="/onboard?plan=ENTERPRISE" className="mt-6 block text-center bg-gray-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition">
                   Contact Sales
                 </Link>
               </div>
@@ -970,7 +970,7 @@ export default function LandingPage() {
                   gamification, and the AI tutor — all at no cost. Upgrade anytime as your family grows.
                 </p>
               </div>
-              <Link href="/register" className="btn-primary whitespace-nowrap flex items-center gap-2 text-sm">
+              <Link href="/onboard?type=homeschool" className="btn-primary whitespace-nowrap flex items-center gap-2 text-sm">
                 Start Free <ArrowRight size={14} />
               </Link>
             </div>
