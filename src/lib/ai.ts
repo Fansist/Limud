@@ -111,7 +111,7 @@ export async function callOpenAI(
   promptOrMessages: string | { role: string; content: string }[],
   temperatureOrOptions?: number | { temperature?: number; maxTokens?: number },
   maxTokens?: number
-): Promise<string & { content?: string }> {
+): Promise<string> {
   const { default: OpenAI } = await import('openai');
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -244,8 +244,7 @@ export async function chatWithTutor(
         { role: 'system', content: systemPrompt },
         ...messages,
       ];
-      const result = await callOpenAI(fullMessages, { temperature: 0.7, maxTokens: 800 });
-      const content = typeof result === 'string' ? result : result.content || '';
+      const content = await callOpenAI(fullMessages, { temperature: 0.7, maxTokens: 800 });
       return { content, tokensUsed: content.split(' ').length * 2 };
     } catch (e) {
       console.error('OpenAI tutor error, falling back to demo:', e);
@@ -280,8 +279,7 @@ export async function gradeSubmission(
           content: `Assignment: ${assignmentDescription}\n\nRubric: ${rubric || 'Use standard academic grading criteria'}\n\nMax Score: ${maxScore}\n\nStudent Submission:\n${studentContent}`,
         },
       ];
-      const rawResult = await callOpenAI(messages, { temperature: 0.3, maxTokens: 1024 });
-      const result = typeof rawResult === 'string' ? rawResult : rawResult.content || '';
+      const result = await callOpenAI(messages, { temperature: 0.3, maxTokens: 1024 });
       try {
         return JSON.parse(result);
       } catch {

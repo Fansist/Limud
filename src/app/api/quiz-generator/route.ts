@@ -71,7 +71,7 @@ Return JSON array: [{"question":"...","type":"MULTIPLE_CHOICE"|"SHORT_ANSWER","o
 For SHORT_ANSWER type, options can be empty array.`;
 
       const response = await callOpenAI(prompt, 0.7, 3000);
-      const parsed = JSON.parse(response.content || '[]');
+      const parsed = JSON.parse(response || '[]');
       if (Array.isArray(parsed) && parsed.length > 0) questions = parsed;
     } catch {
       // Fallback

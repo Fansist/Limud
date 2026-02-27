@@ -17,7 +17,7 @@ import {
   ChevronRight, Wand2, Mail, Award, Play, Sparkles, ArrowLeft, Users,
   Home, Brain, FileText, Calendar, TrendingUp, Swords, Sun, Moon,
   Lightbulb, Focus, Zap, Target, ChevronDown, Settings, Gamepad2,
-  Building2, CreditCard, Shield, UserPlus,
+  Building2, CreditCard, Shield, UserPlus, HelpCircle,
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?: React.ReactNode; };
@@ -34,6 +34,9 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/student/growth', label: 'Growth Analytics', icon: <TrendingUp size={20} /> },
     { href: '/student/rewards', label: 'Rewards', icon: <Trophy size={20} /> },
     { href: '/student/games', label: 'Game Store', icon: <Gamepad2 size={20} /> },
+    { href: '/student/daily-challenge', label: 'Daily Challenge', icon: <Zap size={20} /> },
+    { href: '/student/leaderboard', label: 'Leaderboard', icon: <Swords size={20} /> },
+    { href: '/student/badges', label: 'Badges', icon: <Award size={20} /> },
     { href: '/student/certificates', label: 'Certificates', icon: <Award size={20} /> },
   ],
   TEACHER: [
@@ -45,6 +48,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/teacher/lesson-planner', label: 'AI Lesson Planner', icon: <Wand2 size={20} /> },
     { href: '/teacher/insights', label: 'Insights & Heatmap', icon: <Target size={20} /> },
     { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+    { href: '/teacher/students', label: 'My Students', icon: <Users size={20} /> },
     { href: '/teacher/games', label: 'Game Control', icon: <Gamepad2 size={20} /> },
   ],
   ADMIN: [
@@ -53,10 +57,12 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/admin/schools', label: 'Schools', icon: <Building2 size={20} /> },
     { href: '/admin/classrooms', label: 'Classrooms', icon: <BookOpen size={20} /> },
     { href: '/admin/provision', label: 'Bulk Import', icon: <Upload size={20} /> },
+    { href: '/admin/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { href: '/admin/payments', label: 'Billing', icon: <CreditCard size={20} /> },
   ],
   PARENT: [
     { href: '/parent/dashboard', label: 'Dashboard', icon: <Eye size={20} /> },
+    { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
     { href: '/parent/reports', label: 'Growth Reports', icon: <TrendingUp size={20} /> },
   ],
   HOMESCHOOL_PARENT: [
@@ -362,6 +368,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </motion.div>
             )}
           </AnimatePresence>
+
+          <Link href={buildHref('/help')}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium w-full text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+          >
+            <HelpCircle size={20} /> <span>Help & FAQ</span>
+          </Link>
 
           {/* User profile */}
           <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl">

@@ -29,6 +29,12 @@ pids/
 logs/
 *.log
 
+# Vercel build output
+.vercel/
+
+# Core dumps
+core
+
 # OS files
 .DS_Store
 Thumbs.db

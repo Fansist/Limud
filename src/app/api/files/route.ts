@@ -104,7 +104,7 @@ export const GET = apiHandler(async (req: Request) => {
       const base64Data = file.fileData.split(',')[1];
       const buffer = Buffer.from(base64Data, 'base64');
 
-      return new Response(buffer, {
+      return new NextResponse(buffer, {
         headers: {
           'Content-Type': file.mimeType,
           'Content-Disposition': `attachment; filename="${file.originalName}"`,

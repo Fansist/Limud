@@ -1,36 +1,23 @@
 # Wrangler configuration for Limud EdTech Platform
-# This is a Next.js project that can be deployed via @cloudflare/next-on-pages
-# or using Cloudflare Workers with the Pages runtime.
+# Deployed via @cloudflare/next-on-pages
 
 name = "limud"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
-
-# For Cloudflare Pages deployment:
-# 1. Install: npm install -D @cloudflare/next-on-pages
-# 2. Build: npx @cloudflare/next-on-pages
-# 3. Deploy: npx wrangler pages deploy .vercel/output/static
-#
-# For local development, use the standard Next.js dev server:
-# npm run dev
+pages_build_output_dir = ".vercel/output/static"
 
 # Environment variables (set via wrangler secret or Cloudflare dashboard)
-# Required secrets:
-# - DATABASE_URL: PostgreSQL connection string (e.g., via Neon or Supabase)
+# Required secrets (set with: npx wrangler pages secret put SECRET_NAME --project-name limud):
+# - DATABASE_URL: PostgreSQL connection string (e.g., Neon, Supabase, or PlanetScale)
 # - NEXTAUTH_SECRET: Secret for NextAuth.js JWT signing
-# - NEXTAUTH_URL: The deployment URL
+# - NEXTAUTH_URL: The production deployment URL
 # - OPENAI_API_KEY: OpenAI API key for AI features (or "demo-mode" for demo)
 
 [vars]
 NEXT_PUBLIC_APP_NAME = "Limud"
 
-# D1 Database binding (optional - for future migration from PostgreSQL)
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "limud-production"
-# database_id = "your-database-id-here"
-
-# KV namespace for session/cache storage (optional)
-# [[kv_namespaces]]
-# binding = "KV"
-# id = "your-kv-namespace-id"
+# Note: For production, use a hosted PostgreSQL provider:
+# - Neon (neon.tech) - Serverless PostgreSQL, free tier available
+# - Supabase (supabase.com) - PostgreSQL + extras, free tier
+# - PlanetScale (planetscale.com) - MySQL-compatible, free tier
+# Set the DATABASE_URL secret to your provider's connection string

@@ -3,10 +3,10 @@ module.exports = {
     {
       name: 'limud',
       script: 'npm',
-      args: 'run dev',
+      args: 'run start',
       cwd: '/home/user/webapp',
       env: {
-        NODE_ENV: 'development',
+        NODE_ENV: 'production',
         PORT: 3000,
       },
       watch: false,

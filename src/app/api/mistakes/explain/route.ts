@@ -28,11 +28,11 @@ export const POST = apiHandler(async (req: Request) => {
 
   // For demo/no API key, generate helpful static explanations
   const demoExplanations: Record<string, string> = {
-    simple: `The mistake was in ${mistake?.misconception || 'the approach'}. The correct concept is: when you see this type of problem, focus on ${mistake?.skillName || 'the fundamentals'} first. Remember: ${mistake?.correctAnswer || 'double-check your work by going back to basics'}.`,
+    simple: `The mistake was in ${mistake?.misconceptionType || 'the approach'}. The correct concept is: when you see this type of problem, focus on ${mistake?.skillName || 'the fundamentals'} first. Remember: ${mistake?.correctAnswer || 'double-check your work by going back to basics'}.`,
     analogy: `Think of it like baking a cake — if you mix up the order of ingredients (like adding flour before eggs), the result won't be right. In this problem, the "ingredient order" matters: you need to ${mistake?.correctAnswer || 'follow the proper sequence of operations'}.`,
-    'step-by-step': `Step 1: Read the question carefully.\nStep 2: Identify what's being asked — ${mistake?.skillName || 'the core concept'}.\nStep 3: The mistake happened because ${mistake?.misconception || 'a common misconception was applied'}.\nStep 4: The correct approach is: ${mistake?.correctAnswer || 'apply the fundamental rule first, then solve'}.`,
-    visual: `Imagine a number line. Your answer went to the LEFT when it should have gone RIGHT. The key is: ${mistake?.misconception || 'the direction depends on the operation'}. Picture ${mistake?.correctAnswer || 'the correct path'} and trace it step by step.`,
-    eli5: `Okay! So imagine you have a box of crayons. ${mistake?.misconception || 'You picked the red one when you needed blue'}. It's easy to mix up! The trick is: ${mistake?.correctAnswer || 'always check the label first'}. You'll get it next time! 🌟`,
+    'step-by-step': `Step 1: Read the question carefully.\nStep 2: Identify what's being asked — ${mistake?.skillName || 'the core concept'}.\nStep 3: The mistake happened because ${mistake?.misconceptionType || 'a common misconception was applied'}.\nStep 4: The correct approach is: ${mistake?.correctAnswer || 'apply the fundamental rule first, then solve'}.`,
+    visual: `Imagine a number line. Your answer went to the LEFT when it should have gone RIGHT. The key is: ${mistake?.misconceptionType || 'the direction depends on the operation'}. Picture ${mistake?.correctAnswer || 'the correct path'} and trace it step by step.`,
+    eli5: `Okay! So imagine you have a box of crayons. ${mistake?.misconceptionType || 'You picked the red one when you needed blue'}. It's easy to mix up! The trick is: ${mistake?.correctAnswer || 'always check the label first'}. You'll get it next time! 🌟`,
   };
 
   const explanation = demoExplanations[explanationStyle] || demoExplanations.simple;
@@ -41,7 +41,7 @@ export const POST = apiHandler(async (req: Request) => {
   if (mistake) {
     await prisma.mistakeEntry.update({
       where: { id: mistake.id },
-      data: { resolutionCount: { increment: 1 } },
+      data: { reviewCount: { increment: 1 } },
     });
   }
 
@@ -66,16 +66,16 @@ export const GET = apiHandler(async (req: Request) => {
     take: limit,
     select: {
       id: true, skillName: true, subject: true, question: true,
-      wrongAnswer: true, correctAnswer: true, misconception: true,
-      resolutionCount: true, resolved: true, createdAt: true,
+      wrongAnswer: true, correctAnswer: true, misconceptionType: true,
+      reviewCount: true, resolved: true, createdAt: true,
     },
   });
 
   const stats = {
     total: mistakes.length,
     resolved: mistakes.filter(m => m.resolved).length,
-    reviewed: mistakes.filter(m => m.resolutionCount > 0).length,
-    unreviewed: mistakes.filter(m => m.resolutionCount === 0).length,
+    reviewed: mistakes.filter(m => m.reviewCount > 0).length,
+    unreviewed: mistakes.filter(m => m.reviewCount === 0).length,
   };
 
   return NextResponse.json({ mistakes, stats });

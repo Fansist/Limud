@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
     optimizePackageImports: ['lucide-react', 'framer-motion', 'recharts', 'date-fns'],
   },
   images: {
@@ -16,8 +16,7 @@ const nextConfig = {
   // Compression & bundle optimization
   compress: true,
   poweredByHeader: false,
-  // SWC minification (faster than Terser)
-  swcMinify: true,
+  // SWC minification (enabled by default in Next.js 15)
   // Optimized headers for aggressive caching
   async headers() {
     return [

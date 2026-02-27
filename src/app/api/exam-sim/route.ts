@@ -86,7 +86,7 @@ export const POST = apiHandler(async (req: Request) => {
       const prompt = `Generate ${questionCount} multiple-choice exam questions for a ${level} grade ${subject} exam. Each question should have 4 options.
 Return JSON array: [{"question":"...","options":["A","B","C","D"],"correctAnswer":"...","skill":"...","explanation":"..."}]`;
       const response = await callOpenAI(prompt, 0.7, 2048);
-      const parsed = JSON.parse(response.content || '[]');
+      const parsed = JSON.parse(response || '[]');
       if (Array.isArray(parsed) && parsed.length > 0) questions = parsed;
     } catch {
       // Fallback to demo

@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import Providers from '@/components/Providers';
 
+// Force dynamic rendering for all pages (they all use useSearchParams/session)
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Limud - Learn Together, Grow Together',
   description: 'An all-in-one educational platform with AI tutoring, gamification, and personalized learning.',

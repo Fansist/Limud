@@ -260,8 +260,7 @@ export default function GradingPage() {
                               </a>
                             ))}
                           </div>
-                        )
-                        </div>
+                        )}
 
                         {/* Graded feedback */}
                         {feedback && (
