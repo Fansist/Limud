@@ -50,6 +50,30 @@ export default function QuizGeneratorPage() {
   async function generateQuiz() {
     setGenerating(true);
     if (isDemo) {
+      await new Promise(r => setTimeout(r, 1000));
+      const demoQuiz = {
+        id: `dq-${Date.now()}`,
+        title: `${form.subject} - ${form.topic || 'General'} Quiz (${form.gradeLevel} Grade)`,
+        subject: form.subject,
+        gradeLevel: form.gradeLevel,
+        difficulty: form.difficulty,
+        questionCount: form.questionCount,
+        isFavorite: false,
+        createdAt: new Date().toISOString(),
+        questions: JSON.stringify(
+          Array.from({ length: Math.min(form.questionCount, 5) }, (_, i) => ({
+            question: `Sample ${form.subject} question ${i + 1} for ${form.gradeLevel} grade`,
+            type: i % 2 === 0 ? 'MULTIPLE_CHOICE' : 'SHORT_ANSWER',
+            options: i % 2 === 0 ? ['Option A', 'Option B', 'Option C', 'Option D'] : undefined,
+            correctAnswer: i % 2 === 0 ? 'Option A' : 'Sample answer',
+            explanation: `Explanation for question ${i + 1}`,
+            skill: form.topic || form.subject,
+            difficulty: form.difficulty,
+          }))
+        ),
+      };
+      setQuizzes(prev => [demoQuiz, ...prev]);
+      setSelectedQuiz(demoQuiz);
       toast.success('Quiz generated! (Demo)');
       setGenerating(false);
       return;

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Gamepad2, Shield, ToggleLeft, ToggleRight, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 
 const DEMO_CLASSROOMS = [
   { id: 'c1', name: 'Math 101 - Period 1', subject: 'Math', gradeLevel: '6th', gamesDisabledDuringClass: false, _count: { students: 24 } },
@@ -59,13 +60,16 @@ export default function TeacherGameControlPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
-      </div>
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
+    <DashboardLayout>
     <div className="max-w-4xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-3">
@@ -133,5 +137,6 @@ export default function TeacherGameControlPage() {
         </div>
       )}
     </div>
+    </DashboardLayout>
   );
 }

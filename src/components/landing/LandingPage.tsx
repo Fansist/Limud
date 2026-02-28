@@ -44,32 +44,58 @@ function AnimatedNumber({ target, suffix = '' }: { target: number; suffix?: stri
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
-// ── Floating particles ──────────────────────────────────────────────────────
+// ── Floating particles (client-only to avoid hydration mismatch) ────────────
 function FloatingParticles({ count = 15 }: { count?: number }) {
+  const [mounted, setMounted] = useState(false);
+  const particles = useRef<Array<{
+    w: number; h: number; hue: number; alpha: number;
+    x: number; y: number; scale: number;
+    targetY: number; dur: number; delay: number;
+  }>>([]);
+
+  useEffect(() => {
+    // Generate random values only on client to avoid SSR hydration mismatch
+    particles.current = Array.from({ length: count }, () => ({
+      w: Math.random() * 4 + 2,
+      h: Math.random() * 4 + 2,
+      hue: Math.random() * 60 + 210,
+      alpha: Math.random() * 0.3 + 0.1,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      scale: Math.random() * 0.5 + 0.5,
+      targetY: Math.random() * -30 - 10,
+      dur: Math.random() * 8 + 6,
+      delay: Math.random() * 5,
+    }));
+    setMounted(true);
+  }, [count]);
+
+  if (!mounted) return <div className="absolute inset-0 overflow-hidden pointer-events-none" />;
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(count)].map((_, i) => (
+      {particles.current.map((p, i) => (
         <motion.div
           key={i}
           className="absolute rounded-full"
           style={{
-            width: Math.random() * 4 + 2,
-            height: Math.random() * 4 + 2,
-            background: `hsla(${Math.random() * 60 + 210}, 80%, 70%, ${Math.random() * 0.3 + 0.1})`,
+            width: p.w,
+            height: p.h,
+            background: `hsla(${p.hue}, 80%, 70%, ${p.alpha})`,
           }}
           initial={{
-            x: `${Math.random() * 100}%`,
-            y: `${Math.random() * 100}%`,
-            scale: Math.random() * 0.5 + 0.5,
+            x: `${p.x}%`,
+            y: `${p.y}%`,
+            scale: p.scale,
           }}
           animate={{
-            y: [null, `${Math.random() * -30 - 10}%`],
+            y: [null, `${p.targetY}%`],
             opacity: [0, 0.6, 0],
           }}
           transition={{
-            duration: Math.random() * 8 + 6,
+            duration: p.dur,
             repeat: Infinity,
-            delay: Math.random() * 5,
+            delay: p.delay,
             ease: 'easeInOut',
           }}
         />
@@ -153,6 +179,16 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Smooth scroll handler for anchor links
+  function scrollToSection(e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) {
+    e.preventDefault();
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setMobileMenu(false);
+  }
+
   return (
     <div className="bg-white overflow-x-hidden">
       {/* ─── NAVBAR ─────────────────────────────────────────────────────── */}
@@ -177,15 +213,19 @@ export default function LandingPage() {
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
-              {['Features', 'How It Works', 'Pricing', 'Testimonials', 'FAQ'].map(item => (
-                <a
-                  key={item}
-                  href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  {item}
-                </a>
-              ))}
+              {['Features', 'How It Works', 'Pricing', 'Testimonials', 'FAQ'].map(item => {
+                const sectionId = item.toLowerCase().replace(/\s+/g, '-');
+                return (
+                  <a
+                    key={item}
+                    href={`#${sectionId}`}
+                    onClick={(e) => scrollToSection(e, sectionId)}
+                    className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+                  >
+                    {item}
+                  </a>
+                );
+              })}
             </div>
 
             <div className="flex items-center gap-3">
@@ -221,22 +261,25 @@ export default function LandingPage() {
             animate={{ height: 'auto', opacity: 1 }}
             className="md:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-2"
           >
-            {['Features', 'How It Works', 'Pricing', 'Testimonials', 'FAQ'].map(item => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
-                onClick={() => setMobileMenu(false)}
-                className="block px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg"
-              >
-                {item}
-              </a>
-            ))}
+            {['Features', 'How It Works', 'Pricing', 'Testimonials', 'FAQ'].map(item => {
+              const sectionId = item.toLowerCase().replace(/\s+/g, '-');
+              return (
+                <a
+                  key={item}
+                  href={`#${sectionId}`}
+                  onClick={(e) => scrollToSection(e, sectionId)}
+                  className="block px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer"
+                >
+                  {item}
+                </a>
+              );
+            })}
           </motion.div>
         )}
       </motion.nav>
 
       {/* ─── HERO ───────────────────────────────────────────────────────── */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center pt-16 overflow-hidden">
+      <section ref={heroRef} className="relative min-h-screen flex items-center pt-16 overflow-hidden" style={{ position: 'relative' }}>
         {/* Animated gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-accent-50/30" />
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-primary-200/30 to-transparent rounded-full blur-3xl -translate-y-1/3 translate-x-1/4 animate-gradient" />
@@ -283,7 +326,8 @@ export default function LandingPage() {
                 </Link>
                 <a
                   href="#how-it-works"
-                  className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-8 py-4 rounded-2xl font-bold text-base border-2 border-gray-200 hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 transition-all"
+                  onClick={(e) => scrollToSection(e, 'how-it-works')}
+                  className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-8 py-4 rounded-2xl font-bold text-base border-2 border-gray-200 hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 transition-all cursor-pointer"
                 >
                   <Play size={18} className="text-primary-500" />
                   See How It Works
@@ -1096,7 +1140,8 @@ export default function LandingPage() {
                   </Link>
                   <a
                     href="#pricing"
-                    className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-2xl font-bold text-base border border-white/20 hover:bg-white/20 transition-all"
+                    onClick={(e) => scrollToSection(e, 'pricing')}
+                    className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-2xl font-bold text-base border border-white/20 hover:bg-white/20 transition-all cursor-pointer"
                   >
                     View Pricing
                   </a>

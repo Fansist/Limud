@@ -6,6 +6,12 @@
 
 :root {
   --font-inter: 'Inter', system-ui, sans-serif;
+  scroll-behavior: smooth;
+}
+
+/* Scroll margin for anchor links (avoid navbar overlap) */
+[id] {
+  scroll-margin-top: 80px;
 }
 
 @layer base {

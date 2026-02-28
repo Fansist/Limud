@@ -62,6 +62,28 @@ export default function TeacherAssignments() {
     }
     setCreating(true);
     try {
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 800));
+        const newAssignment = {
+          id: `demo-a-${Date.now()}`,
+          title: form.title,
+          description: form.description,
+          type: form.type,
+          courseId: form.courseId,
+          course: courses.find(c => c.id === form.courseId) || { name: 'Demo Course' },
+          dueDate: form.dueDate,
+          totalPoints: form.totalPoints,
+          isPublished: form.isPublished,
+          submissions: [],
+          createdAt: new Date().toISOString(),
+        };
+        setAssignments(prev => [newAssignment, ...prev]);
+        toast.success('Assignment created! (Demo)');
+        setShowCreate(false);
+        setForm({ title: '', description: '', type: 'SHORT_ANSWER', courseId: '', dueDate: '', totalPoints: 100, isPublished: true });
+        setCreating(false);
+        return;
+      }
       const res = await fetch('/api/assignments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

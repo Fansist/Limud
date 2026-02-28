@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud
-- **Version**: 4.1
+- **Version**: 4.1.2
 - **Goal**: Transform education with AI-powered adaptive learning, gamification, and personalized insights
 - **Stack**: Next.js 14.2 + React 18 + TypeScript + Tailwind CSS + Prisma + PostgreSQL + OpenAI
 - **GitHub**: https://github.com/Fansist/Limud
@@ -12,9 +12,21 @@
 - **Demo Mode**: Append `?demo=true` to any route
 - **Onboarding/Payment**: `/onboard` (public, no auth needed)
 
-## Recent Changes (v4.1 - 2026-02-28)
+## Recent Changes (v4.1.2 - 2026-02-28)
 
-### Critical Bug Fixes
+### Landing Page Button Fixes
+1. **Fixed: Hydration mismatch breaking all buttons on landing page**
+   - **Root cause**: `FloatingParticles` component used `Math.random()` during render, producing different values on server vs client. This caused React hydration to fail, which broke event handler attachment for all interactive elements (buttons, links, accordion, scroll-to-top).
+   - **Fix**: Deferred random value generation to a `useEffect` (client-only), preventing SSR/client mismatch.
+
+2. **Fixed: Navigation anchor links not scrolling to sections**
+   - **Root cause**: Standard `<a href="#section">` links may not smooth-scroll reliably in Next.js SPA context.
+   - **Fix**: Added explicit `scrollToSection()` handler using `scrollIntoView({ behavior: 'smooth' })` for all nav links (desktop, mobile, hero CTA, footer CTA).
+
+3. **Fixed: Sections hidden behind fixed navbar when scrolling to anchor**
+   - **Fix**: Added `scroll-margin-top: 80px` to all `[id]` elements in `globals.css` and enabled `scroll-behavior: smooth` on `:root`.
+
+### Previous Fixes (v4.1.1)
 1. **Fixed: Runtime TypeError "Cannot read properties of undefined (reading 'call')"**
    - **Root cause**: Next.js 15.5.2 was paired with React 18.3.1 (incompatible - Next.js 15 requires React 19)
    - **Fix**: Downgraded to Next.js 14.2.21 which is fully compatible with React 18
