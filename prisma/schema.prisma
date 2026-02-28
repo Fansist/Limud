@@ -299,6 +299,8 @@ model User {
   firstName      String?
   lastName       String?
   password       String // bcrypt hashed
+  resetToken     String?   @unique
+  resetTokenExp  DateTime?
   role           Role
   accountType    AccountType     @default(DISTRICT)
   avatarUrl      String?

@@ -7,8 +7,9 @@ import { cn } from '@/lib/utils';
 import { SkeletonDashboard } from '@/lib/performance';
 import {
   Brain, Users, AlertTriangle, TrendingUp, Target, BarChart3,
-  Zap, ArrowRight, ChevronRight, Sparkles, Shield, BookOpen,
+  Zap, ArrowRight, ChevronRight, Sparkles, Shield, BookOpen, Loader2, X, CheckCircle, FileText,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 // Demo data
 const DEMO_INTELLIGENCE = {
@@ -55,6 +56,66 @@ export default function TeacherIntelligencePage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'overview' | 'students' | 'risk'>('overview');
+  const [autoAssigning, setAutoAssigning] = useState<string | null>(null);
+  const [interventionModal, setInterventionModal] = useState<any>(null);
+  const [generatingIntervention, setGeneratingIntervention] = useState(false);
+  const [interventionResult, setInterventionResult] = useState<any>(null);
+
+  async function handleAutoAssign(skill: any) {
+    setAutoAssigning(skill.skill);
+    if (isDemo) {
+      await new Promise(r => setTimeout(r, 1200));
+      toast.success(`Auto-differentiated assignments created for "${skill.skill}" (${skill.studentCount} students)`);
+      setAutoAssigning(null);
+      return;
+    }
+    try {
+      const res = await fetch('/api/teacher/auto-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skillName: skill.skill, subject: skill.subject }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Created ${data.tiers?.length || 0} tiered assignments for ${skill.skill}`);
+      } else {
+        toast.error('Failed to auto-assign');
+      }
+    } catch { toast.error('Error creating assignments'); }
+    setAutoAssigning(null);
+  }
+
+  async function handleGenerateIntervention(student: any) {
+    setInterventionModal(student);
+    setGeneratingIntervention(true);
+    setInterventionResult(null);
+    if (isDemo) {
+      await new Promise(r => setTimeout(r, 1500));
+      setInterventionResult({
+        plan: { title: `Intervention Plan for ${student.name}` },
+        strategies: [
+          { title: 'Strengthen: Core Concepts', type: 'targeted_practice', description: `Focused practice on ${student.name}'s weakest areas with scaffolded support.`, duration: '2-3 weeks', resources: ['Diagnostic assessment', 'Visual aids', 'AI Tutor sessions', 'Peer tutoring'], activities: [{ day: 'Week 1', task: 'Diagnostic + identify gaps', minutes: 30 }, { day: 'Week 1-2', task: 'Guided practice with scaffolding', minutes: 20 }, { day: 'Week 2-3', task: 'Independent practice + AI tutor', minutes: 25 }], successCriteria: '70%+ mastery on reassessment' },
+          { title: 'Build Confidence', type: 'engagement', description: 'Restore confidence through achievable challenges and positive reinforcement.', duration: '1-2 weeks', resources: ['Low-stakes quizzes', 'Achievement celebrations', 'Growth mindset materials'], activities: [{ day: 'Daily', task: 'One success-oriented mini challenge', minutes: 10 }], successCriteria: 'Student self-reports increased confidence' },
+        ],
+      });
+      setGeneratingIntervention(false);
+      toast.success('Intervention plan generated!');
+      return;
+    }
+    try {
+      const res = await fetch('/api/teacher/interventions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: student.id, targetSkills: [], title: `Intervention for ${student.name}` }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInterventionResult(data);
+        toast.success('Intervention plan generated!');
+      } else { toast.error('Failed to generate intervention'); }
+    } catch { toast.error('Error generating intervention'); }
+    setGeneratingIntervention(false);
+  }
 
   useEffect(() => {
     if (isDemo) {
@@ -169,14 +230,16 @@ export default function TeacherIntelligencePage() {
                       <p className="text-sm font-semibold text-gray-900">{skill.skill}</p>
                       <p className="text-[10px] text-gray-400">{skill.subject} · {skill.studentCount} students struggling</p>
                     </div>
-                    <button className="text-xs text-indigo-600 font-medium hover:underline whitespace-nowrap flex items-center gap-1">
-                      Auto-assign <ChevronRight size={12} />
+                    <button onClick={() => handleAutoAssign(skill)} disabled={autoAssigning === skill.skill}
+                      className="text-xs text-indigo-600 font-medium hover:underline whitespace-nowrap flex items-center gap-1 disabled:opacity-50">
+                      {autoAssigning === skill.skill ? <><Loader2 size={12} className="animate-spin" /> Assigning...</> : <>Auto-assign <ChevronRight size={12} /></>}
                     </button>
                   </div>
                 ))}
               </div>
-              <button className="w-full mt-4 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-semibold hover:bg-indigo-100 transition flex items-center justify-center gap-2">
-                <Sparkles size={14} /> Generate Auto-Differentiated Assignments
+              <button onClick={() => { weakestSkills.forEach((s: any) => handleAutoAssign(s)); }}
+                className="w-full mt-4 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-semibold hover:bg-indigo-100 transition flex items-center justify-center gap-2">
+                <Sparkles size={14} /> Generate Auto-Differentiated Assignments for All
               </button>
             </motion.div>
           </div>
@@ -258,10 +321,12 @@ export default function TeacherIntelligencePage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button className="btn-secondary text-xs flex items-center gap-1">
+                      <button onClick={() => handleAutoAssign({ skill: 'Core Review', subject: 'Mixed', studentCount: 1 })}
+                        className="btn-secondary text-xs flex items-center gap-1">
                         <BookOpen size={12} /> Assign Review
                       </button>
-                      <button className="btn-primary text-xs flex items-center gap-1">
+                      <button onClick={() => handleGenerateIntervention(stu)}
+                        className="btn-primary text-xs flex items-center gap-1">
                         <Sparkles size={12} /> AI Intervention
                       </button>
                     </div>
@@ -276,6 +341,57 @@ export default function TeacherIntelligencePage() {
               ))
             )}
           </motion.div>
+        )}
+
+        {/* Intervention Plan Modal */}
+        {interventionModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setInterventionModal(null); setInterventionResult(null); }}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={e => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900">AI Intervention Plan: {interventionModal.name}</h2>
+                <button onClick={() => { setInterventionModal(null); setInterventionResult(null); }} className="p-1 hover:bg-gray-100 rounded-full"><X size={20} /></button>
+              </div>
+              {generatingIntervention ? (
+                <div className="text-center py-12">
+                  <Loader2 size={40} className="animate-spin text-indigo-500 mx-auto mb-4" />
+                  <p className="text-sm text-gray-500">AI is generating a personalized intervention plan...</p>
+                </div>
+              ) : interventionResult ? (
+                <div className="space-y-4">
+                  {interventionResult.strategies?.map((strategy: any, i: number) => (
+                    <div key={i} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Target size={16} className="text-indigo-600" />
+                        <h3 className="font-bold text-gray-900">{strategy.title}</h3>
+                        <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{strategy.duration}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">{strategy.description}</p>
+                      <div className="space-y-2 mb-3">
+                        <p className="text-xs font-semibold text-gray-700">Activities:</p>
+                        {strategy.activities?.map((a: any, j: number) => (
+                          <div key={j} className="flex items-center gap-2 text-xs text-gray-600">
+                            <CheckCircle size={12} className="text-green-500" />
+                            <span className="font-medium">{a.day}:</span> {a.task} ({a.minutes} min)
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {strategy.resources?.map((r: string, j: number) => (
+                          <span key={j} className="text-[10px] bg-white px-2 py-0.5 rounded border text-gray-500">{r}</span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-green-600 font-medium mt-2">Success: {strategy.successCriteria}</p>
+                    </div>
+                  ))}
+                  <button onClick={() => { toast.success('Intervention plan saved!'); setInterventionModal(null); setInterventionResult(null); }}
+                    className="w-full btn-primary py-2.5 flex items-center justify-center gap-2">
+                    <CheckCircle size={16} /> Save & Activate Plan
+                  </button>
+                </div>
+              ) : null}
+            </motion.div>
+          </div>
         )}
       </div>
     </DashboardLayout>

@@ -303,3 +303,221 @@ export async function gradeSubmission(
 }
 
 export { TUTOR_SYSTEM_PROMPT, GRADER_SYSTEM_PROMPT, callOpenAI as callOpenAIRaw };
+
+// ─── TEACHER AI FEATURES ────────────────────────────────────────────────────
+
+const REPORT_SYSTEM_PROMPT = `You are an expert educational analyst. Generate comprehensive, data-driven student progress reports for teachers. Your reports should be:
+
+1. Professional and well-structured
+2. Data-backed with specific metrics
+3. Include actionable recommendations
+4. Highlight both strengths and areas for growth
+5. Be suitable for sharing with parents/guardians
+
+Format your response as JSON:
+{
+  "summary": "Overall summary paragraph",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "areasForGrowth": ["area 1", "area 2"],
+  "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"],
+  "parentNote": "Brief note suitable for parent communication",
+  "gradeProjection": "Projected end-of-term grade with reasoning",
+  "behavioralNotes": "Notes on engagement, participation, effort",
+  "nextSteps": ["step 1", "step 2"]
+}`;
+
+const CURRICULUM_ANALYSIS_PROMPT = `You are an expert curriculum analyst. Analyze student performance data across skills and provide:
+
+1. Skill gap analysis with specific remediation strategies
+2. Curriculum pacing recommendations
+3. Differentiation suggestions for high/low performers
+4. Cross-curricular connection opportunities
+5. Assessment strategy recommendations
+
+Return JSON:
+{
+  "skillAnalysis": [{"skill":"...","status":"mastered|progressing|struggling","recommendation":"..."}],
+  "pacingRecommendation": "...",
+  "differentiationStrategies": {"advanced":"...","onLevel":"...","struggling":"..."},
+  "assessmentRecommendations": ["..."],
+  "crossCurricularConnections": ["..."]
+}`;
+
+const WRITING_FEEDBACK_PROMPT = `You are an expert writing coach for K-12 education. Provide detailed, constructive feedback on student writing that:
+
+1. Identifies specific grammar and mechanics issues
+2. Evaluates organization and structure
+3. Assesses voice and tone appropriateness
+4. Checks argument strength and evidence use
+5. Provides revision suggestions with examples
+
+Return JSON:
+{
+  "overallScore": <0-100>,
+  "categories": {
+    "mechanics": {"score":<0-100>,"feedback":"...","examples":["..."]},
+    "organization": {"score":<0-100>,"feedback":"...","examples":["..."]},
+    "voice": {"score":<0-100>,"feedback":"...","examples":["..."]},
+    "content": {"score":<0-100>,"feedback":"...","examples":["..."]},
+    "creativity": {"score":<0-100>,"feedback":"...","examples":["..."]}
+  },
+  "strengths": ["..."],
+  "revisionSuggestions": ["..."],
+  "encouragement": "..."
+}`;
+
+/**
+ * Generate AI-powered student progress report
+ */
+export async function generateStudentReport(
+  studentData: {
+    name: string;
+    grade: string;
+    subjects: { name: string; avgScore: number; trend: string; skills: string[] }[];
+    attendance: number;
+    engagement: number;
+    streak: number;
+    recentScores: number[];
+  }
+): Promise<any> {
+  if (isOpenAIConfigured()) {
+    try {
+      const messages = [
+        { role: 'system', content: REPORT_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: `Generate a progress report for:\n\nStudent: ${studentData.name} (Grade ${studentData.grade})\n\nSubject Performance:\n${studentData.subjects.map(s => `- ${s.name}: ${s.avgScore}% avg (${s.trend}), Skills: ${s.skills.join(', ')}`).join('\n')}\n\nEngagement: ${studentData.engagement}%\nStreak: ${studentData.streak} days\nRecent Scores: ${studentData.recentScores.join(', ')}%`,
+        },
+      ];
+      const result = await callOpenAI(messages, { temperature: 0.5, maxTokens: 1500 });
+      try { return JSON.parse(result); } catch { /* fallthrough */ }
+    } catch (e) { console.error('Report generation error:', e); }
+  }
+
+  // Demo fallback
+  const avgScore = studentData.subjects.length > 0
+    ? Math.round(studentData.subjects.reduce((a, b) => a + b.avgScore, 0) / studentData.subjects.length) : 75;
+  const isStrong = avgScore >= 80;
+
+  return {
+    summary: `${studentData.name} has shown ${isStrong ? 'excellent' : 'steady'} progress this reporting period with an overall average of ${avgScore}%. ${isStrong ? 'They consistently demonstrate strong understanding and engagement.' : 'There are some areas that would benefit from additional focus and practice.'}`,
+    strengths: [
+      isStrong ? 'Consistently high performance across subjects' : 'Shows determination and effort',
+      `${studentData.streak > 3 ? 'Excellent learning consistency with a ' + studentData.streak + '-day streak' : 'Regular participation in learning activities'}`,
+      'Demonstrates growth mindset in challenging topics',
+    ],
+    areasForGrowth: studentData.subjects.filter(s => s.avgScore < 70).map(s => `${s.name}: Focus on ${s.skills[0] || 'core concepts'}`).slice(0, 3),
+    recommendations: [
+      'Continue using the AI tutor for personalized practice',
+      avgScore < 70 ? 'Schedule additional review sessions for struggling subjects' : 'Challenge with advanced problems to maintain engagement',
+      'Encourage peer collaboration through study groups',
+    ],
+    parentNote: `${studentData.name} is making ${isStrong ? 'great' : 'good'} progress. Please encourage consistent daily practice to maintain momentum.`,
+    gradeProjection: `Based on current trends, projected end-of-term grade: ${avgScore >= 90 ? 'A' : avgScore >= 80 ? 'B+' : avgScore >= 70 ? 'B-' : avgScore >= 60 ? 'C' : 'C-'}`,
+    behavioralNotes: `Engagement score: ${studentData.engagement}%. ${studentData.engagement >= 70 ? 'Actively participates and shows strong interest in learning.' : 'Could benefit from more interactive and engaging activities.'}`,
+    nextSteps: [
+      'Review spaced repetition recommendations',
+      'Complete upcoming assignments before due dates',
+    ],
+  };
+}
+
+/**
+ * AI-powered curriculum analysis for a class
+ */
+export async function analyzeCurriculum(
+  classData: {
+    subject: string;
+    gradeLevel: string;
+    skills: { name: string; avgMastery: number; studentCount: number }[];
+    overallAvg: number;
+  }
+): Promise<any> {
+  if (isOpenAIConfigured()) {
+    try {
+      const messages = [
+        { role: 'system', content: CURRICULUM_ANALYSIS_PROMPT },
+        {
+          role: 'user',
+          content: `Analyze curriculum for ${classData.gradeLevel} grade ${classData.subject}.\n\nOverall class average: ${classData.overallAvg}%\n\nSkill mastery:\n${classData.skills.map(s => `- ${s.name}: ${s.avgMastery}% avg (${s.studentCount} students)`).join('\n')}`,
+        },
+      ];
+      const result = await callOpenAI(messages, { temperature: 0.4, maxTokens: 1500 });
+      try { return JSON.parse(result); } catch { /* fallthrough */ }
+    } catch (e) { console.error('Curriculum analysis error:', e); }
+  }
+
+  // Demo fallback
+  return {
+    skillAnalysis: classData.skills.map(s => ({
+      skill: s.name,
+      status: s.avgMastery >= 75 ? 'mastered' : s.avgMastery >= 50 ? 'progressing' : 'struggling',
+      recommendation: s.avgMastery < 50
+        ? `Dedicate additional class time to ${s.name}. Consider small group instruction.`
+        : s.avgMastery < 75
+        ? `Continue current instruction with added practice opportunities for ${s.name}.`
+        : `${s.name} is well-understood. Consider extension activities.`,
+    })),
+    pacingRecommendation: classData.overallAvg < 65
+      ? 'Consider slowing pace and revisiting foundational concepts before advancing.'
+      : 'Current pacing is appropriate. Maintain balance between review and new material.',
+    differentiationStrategies: {
+      advanced: 'Provide enrichment problems, peer tutoring opportunities, and independent research projects.',
+      onLevel: 'Continue with standard instruction, add collaborative learning activities.',
+      struggling: 'Provide scaffolded worksheets, visual aids, and additional one-on-one support.',
+    },
+    assessmentRecommendations: [
+      'Use formative checks every 15 minutes during instruction',
+      'Implement exit tickets to gauge daily understanding',
+      'Create tiered assessments for different ability levels',
+    ],
+    crossCurricularConnections: [
+      `Connect ${classData.subject} concepts to real-world applications`,
+      'Integrate writing activities to deepen understanding',
+      'Use technology tools for interactive practice',
+    ],
+  };
+}
+
+/**
+ * AI-powered writing feedback for student submissions
+ */
+export async function analyzeWriting(
+  content: string,
+  gradeLevel: string,
+  assignmentType: string
+): Promise<any> {
+  if (isOpenAIConfigured()) {
+    try {
+      const messages = [
+        { role: 'system', content: WRITING_FEEDBACK_PROMPT },
+        {
+          role: 'user',
+          content: `Grade Level: ${gradeLevel}\nAssignment Type: ${assignmentType}\n\nStudent Writing:\n${content}`,
+        },
+      ];
+      const result = await callOpenAI(messages, { temperature: 0.3, maxTokens: 1500 });
+      try { return JSON.parse(result); } catch { /* fallthrough */ }
+    } catch (e) { console.error('Writing analysis error:', e); }
+  }
+
+  // Demo fallback
+  const wordCount = content.split(/\s+/).length;
+  const hasStructure = content.includes('\n\n') || content.length > 500;
+  const score = Math.min(95, Math.round(50 + (wordCount / 10) + (hasStructure ? 15 : 0)));
+
+  return {
+    overallScore: score,
+    categories: {
+      mechanics: { score: score + 5, feedback: 'Good use of grammar and punctuation overall.', examples: [] },
+      organization: { score: hasStructure ? score + 10 : score - 10, feedback: hasStructure ? 'Well-organized with clear structure.' : 'Consider adding more paragraph breaks.', examples: [] },
+      voice: { score: score, feedback: 'Writing voice is developing nicely.', examples: [] },
+      content: { score: score - 5, feedback: 'Content addresses the prompt. Could benefit from more specific examples.', examples: [] },
+      creativity: { score: score + 3, feedback: 'Shows creative thinking in approach.', examples: [] },
+    },
+    strengths: ['Addresses the assignment prompt', 'Shows understanding of the topic'],
+    revisionSuggestions: ['Add more specific examples to support your points', 'Consider varying sentence structure for better flow'],
+    encouragement: 'Great effort! Your writing is improving with each assignment. Keep practicing!',
+  };
+}
+

@@ -48,6 +48,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/teacher/lesson-planner', label: 'AI Lesson Planner', icon: <Wand2 size={20} /> },
     { href: '/teacher/insights', label: 'Insights & Heatmap', icon: <Target size={20} /> },
     { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+    { href: '/teacher/reports', label: 'AI Reports', icon: <FileText size={20} /> },
     { href: '/teacher/students', label: 'My Students', icon: <Users size={20} /> },
     { href: '/teacher/games', label: 'Game Control', icon: <Gamepad2 size={20} /> },
   ],
