@@ -113,7 +113,10 @@ export async function callOpenAI(
   maxTokens?: number
 ): Promise<string> {
   const { default: OpenAI } = await import('openai');
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_BASE_URL || undefined,
+  });
 
   let messages: { role: string; content: string }[];
   let temp: number;
@@ -131,15 +134,14 @@ export async function callOpenAI(
   }
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-5-mini',
     messages: messages as any,
     temperature: temp,
     max_tokens: tokens,
   });
 
   const content = response.choices[0]?.message?.content || '';
-  const result = Object.assign(content, { content });
-  return result;
+  return content;
 }
 
 // Smart demo responses for when no API key is configured

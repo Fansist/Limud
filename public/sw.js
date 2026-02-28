@@ -1,5 +1,5 @@
 // Limud Service Worker - Offline & Cache Strategy
-const CACHE_NAME = 'limud-v2';
+const CACHE_NAME = 'limud-v3';
 const STATIC_ASSETS = [
   '/',
   '/student/dashboard',
@@ -29,18 +29,24 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip non-GET
+  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
+
+  // Skip chrome-extension, blob, and data URIs
+  if (!url.protocol.startsWith('http')) return;
 
   // API routes: network-first with cache fallback
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request.clone())
         .then(response => {
-          // Cache successful GET API responses for 30s
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          if (response.ok && response.status === 200) {
+            try {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+            } catch (e) {
+              // Ignore cache errors
+            }
           }
           return response;
         })
@@ -53,12 +59,17 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/_next/static/') || url.pathname.match(/\.(js|css|png|jpg|svg|ico|woff2)$/)) {
     event.respondWith(
       caches.match(event.request).then(cached => {
-        const fetchPromise = fetch(event.request).then(response => {
+        const fetchPromise = fetch(event.request.clone()).then(response => {
           if (response.ok) {
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
+            try {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+            } catch (e) {
+              // Ignore cache errors
+            }
           }
           return response;
-        });
+        }).catch(() => cached);
         return cached || fetchPromise;
       })
     );
@@ -67,11 +78,15 @@ self.addEventListener('fetch', (event) => {
 
   // HTML pages: network-first
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request.clone())
       .then(response => {
         if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          try {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          } catch (e) {
+            // Ignore cache errors
+          }
         }
         return response;
       })

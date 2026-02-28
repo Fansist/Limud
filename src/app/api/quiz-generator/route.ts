@@ -95,7 +95,7 @@ For SHORT_ANSWER type, options can be empty array.`;
     },
   });
 
-  return NextResponse.json({ quiz: { ...quiz, questions } });
+  return NextResponse.json({ quiz });
 });
 
 export const DELETE = apiHandler(async (req: Request) => {

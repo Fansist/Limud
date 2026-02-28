@@ -7,6 +7,14 @@ import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { Lightbulb, Sparkles, Trash2, Copy, FileText, Star, CheckCircle } from 'lucide-react';
 
+function safeParseQuestions(data: any): any[] {
+  if (Array.isArray(data)) return data;
+  if (typeof data === 'string') {
+    try { return JSON.parse(data); } catch { return []; }
+  }
+  return [];
+}
+
 export default function QuizGeneratorPage() {
   const searchParams = useSearchParams();
   const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
@@ -141,7 +149,7 @@ export default function QuizGeneratorPage() {
                   <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', diffColors[selectedQuiz.difficulty] || 'bg-gray-100')}>{selectedQuiz.difficulty}</span>
                 </div>
                 <div className="space-y-4">
-                  {JSON.parse(selectedQuiz.questions).map((q: any, i: number) => (
+                  {safeParseQuestions(selectedQuiz.questions).map((q: any, i: number) => (
                     <div key={i} className="p-4 rounded-xl bg-gray-50">
                       <div className="flex items-start gap-2 mb-2">
                         <span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>

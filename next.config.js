@@ -6,7 +6,10 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', 'framer-motion', 'recharts', 'date-fns'],
   },
   images: {
-    domains: ['avatars.githubusercontent.com', 'lh3.googleusercontent.com'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+    ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 86400,
     deviceSizes: [640, 750, 828, 1080, 1200],

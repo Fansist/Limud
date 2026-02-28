@@ -86,10 +86,13 @@ export const POST = apiHandler(async (req: Request) => {
   if (openAIConfigured) {
     try {
       const { default: OpenAI } = await import('openai');
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+        baseURL: process.env.OPENAI_BASE_URL || undefined,
+      });
 
       const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         messages: [
           { role: 'system', content: LESSON_PLAN_SYSTEM_PROMPT },
           {
