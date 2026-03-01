@@ -6,9 +6,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  TrendingUp, AlertTriangle, Brain, Flame, Trophy, BarChart3, Clock,
-  BookOpen, Target, CheckCircle, Shield, Calendar, Sparkles, Users,
-} from 'lucide-react';
+  TrendingUp, AlertTriangle, Brain, Flame, BarChart3, Clock, BookOpen, CheckCircle, Calendar, Users,
+} from 'lucide-react';;
 
 export default function ParentReportsPage() {
   const isDemo = useIsDemo();

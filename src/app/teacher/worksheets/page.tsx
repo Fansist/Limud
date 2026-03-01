@@ -5,23 +5,15 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { SUBJECTS, GRADE_LEVELS } from '@/lib/constants';
 import toast from 'react-hot-toast';
 import {
-  PenTool, Plus, Trash2, Copy, Download, Eye, Save, GripVertical,
-  Type, CheckSquare, Circle, AlignLeft, Hash, Image, Sparkles,
-  ChevronDown, ChevronUp, Settings, FileText, Clock, Star,
+  PenTool, Plus, Trash2, Copy, Save,
+  Type, Circle, AlignLeft, Hash, Sparkles,
+  ChevronDown, FileText, Clock,
   BookOpen, GraduationCap, Loader2, Wand2, List, ToggleLeft,
-  Upload, Globe2, ArrowUp, ArrowDown, X,
+  Globe2, ArrowUp, ArrowDown, X,
 } from 'lucide-react';
-
-const SUBJECTS = [
-  { value: 'Math', icon: '🧮' }, { value: 'Science', icon: '🔬' },
-  { value: 'English', icon: '📖' }, { value: 'History', icon: '🏛️' },
-  { value: 'Art', icon: '🎨' }, { value: 'Computer Science', icon: '💻' },
-  { value: 'Social Studies', icon: '🗺️' }, { value: 'Foreign Language', icon: '🌍' },
-  { value: 'Music', icon: '🎵' }, { value: 'Physical Education', icon: '⚽' },
-];
-const GRADE_LEVELS = ['K','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th'];
 
 type QuestionType = 'multiple_choice' | 'true_false' | 'short_answer' | 'fill_blank' | 'matching' | 'essay' | 'number';
 

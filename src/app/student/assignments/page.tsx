@@ -10,9 +10,8 @@ import { DEMO_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import {
-  BookOpen, Clock, CheckCircle2, Send, X, FileText, ChevronDown, Upload, Paperclip, Trash2,
-  Link2, Mic, Video, Code2, PenTool, Globe,
-} from 'lucide-react';
+  BookOpen, Clock, Send, X, FileText, Upload, Paperclip, Trash2, Link2, Mic, Video, Code2, PenTool, Globe,
+} from 'lucide-react';;
 
 export default function StudentAssignments() {
   const { data: session } = useSession();

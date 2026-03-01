@@ -6,9 +6,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  TrendingUp, Target, Brain, Flame, Trophy, BarChart3, Zap, AlertTriangle,
-  CheckCircle, XCircle, ArrowUp, ArrowDown, Minus as MinusIcon,
-} from 'lucide-react';
+  TrendingUp, Brain, Flame, AlertTriangle,
+} from 'lucide-react';;
 
 export default function GrowthPage() {
   const isDemo = useIsDemo();

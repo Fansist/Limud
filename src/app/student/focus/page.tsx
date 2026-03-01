@@ -7,10 +7,8 @@ import { cn } from '@/lib/utils';
 import { haptic } from '@/lib/performance';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
-  Focus, Play, Pause, RotateCcw, Volume2, VolumeX,
-  ChevronLeft, ChevronRight, Check, X, Zap, Timer,
-  Brain, Sparkles, ArrowRight,
-} from 'lucide-react';
+  Focus, Play, Pause, RotateCcw, ChevronRight, Check, X, Zap, Timer, Brain, Sparkles, ArrowRight,
+} from 'lucide-react';;
 
 const AMBIENT_SOUNDS = [
   { id: 'none', label: 'None', emoji: '🔇' },

@@ -6,9 +6,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
-  Sparkles, ArrowRight, ArrowLeft, CheckCircle2, BookOpen, Gamepad2,
-  Music, Palette, Trophy, Brain, Heart, Star, Rocket, Puzzle,
-} from 'lucide-react';
+  Sparkles, ArrowRight, ArrowLeft, CheckCircle2, BookOpen, Music, Trophy, Brain, Heart, Star, Rocket, Puzzle,
+} from 'lucide-react';;
 import { cn } from '@/lib/utils';
 
 const SUBJECTS = [

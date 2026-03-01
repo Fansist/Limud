@@ -5,7 +5,15 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
-    optimizePackageImports: ['lucide-react', 'framer-motion', 'recharts', 'date-fns'],
+    optimizePackageImports: [
+      'lucide-react',
+      'framer-motion',
+      'recharts',
+      'date-fns',
+      'react-hot-toast',
+      'react-markdown',
+      'zod',
+    ],
   },
   images: {
     remotePatterns: [
@@ -14,26 +22,20 @@ const nextConfig = {
     ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 86400,
-    deviceSizes: [640, 750, 828, 1080, 1200],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256],
-    unoptimized: true, // Required for Cloudflare Pages (no image optimization server)
+    deviceSizes: [640, 750, 1080, 1200],
+    imageSizes: [16, 32, 64, 128],
+    unoptimized: true,
   },
-  // Compression & bundle optimization
   compress: true,
   poweredByHeader: false,
-  // SWC minification (enabled by default in Next.js 14+)
   swcMinify: true,
-  // Optimized headers for aggressive caching
+  // Reduce build memory usage
+  output: 'standalone',
+  // Aggressive caching headers
   async headers() {
     return [
       {
         source: '/_next/static/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
-      {
-        source: '/fonts/(.*)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
@@ -56,10 +58,15 @@ const nextConfig = {
       },
     ];
   },
-  // Webpack optimizations
   webpack: (config, { isServer }) => {
-    // Ignore unnecessary modules in bundle
-    config.externals = config.externals || [];
+    if (!isServer) {
+      // Tree-shake unused modules from client bundle
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'openai': false,
+        'bcryptjs': false,
+      };
+    }
     return config;
   },
 };

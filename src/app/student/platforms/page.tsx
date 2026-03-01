@@ -7,9 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import {
-  Link2, ExternalLink, CheckCircle2, XCircle, Plus, Settings,
-  BookOpen, Brain, Rocket, Monitor, ArrowRight, Unlink, RefreshCw,
-} from 'lucide-react';
+  Link2, ExternalLink, CheckCircle2, Plus, Unlink, RefreshCw,
+} from 'lucide-react';;
 
 const PLATFORMS = [
   {

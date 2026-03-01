@@ -5,7 +5,9 @@ import { useEffect, useState } from 'react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { BookOpen, Plus, Users, GraduationCap, X, Gamepad2, ToggleLeft, ToggleRight } from 'lucide-react';
+import {
+  BookOpen, Plus, Users, Gamepad2, ToggleLeft, ToggleRight,
+} from 'lucide-react';;
 import { cn } from '@/lib/utils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 

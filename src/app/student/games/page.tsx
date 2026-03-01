@@ -5,7 +5,9 @@ import { useEffect, useState } from 'react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Gamepad2, Lock, Star, Coins, Zap, Trophy, ShoppingCart, Play, AlertTriangle } from 'lucide-react';
+import {
+  Gamepad2, Star, Zap, Trophy, ShoppingCart, Play, AlertTriangle,
+} from 'lucide-react';;
 import { cn } from '@/lib/utils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 

@@ -6,7 +6,9 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Award, Download, Star, Trophy, Flame, Target, Sparkles } from 'lucide-react';
+import {
+  Award, Download, Sparkles,
+} from 'lucide-react';;
 
 const DEMO_CERTIFICATES = [
   {

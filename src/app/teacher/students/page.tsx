@@ -8,9 +8,8 @@ import { motion } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import {
-  Users, Search, User, TrendingUp, BookOpen, Brain, Flame, Trophy,
-  ArrowLeft, BarChart3, Clock, CheckCircle2, AlertTriangle, Star, MessageCircle
-} from 'lucide-react';
+  Users, Search, User, TrendingUp, BookOpen, Brain, Flame, ArrowLeft, BarChart3, Clock, Star,
+} from 'lucide-react';;
 
 const DEMO_STUDENTS = [
   { id: 's1', name: 'Alex Rivera', email: 'alex@demo.com', gradeLevel: '8th', avatar: '🚀',

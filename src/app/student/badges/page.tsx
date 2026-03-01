@@ -6,7 +6,9 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Award, Lock, Star, Flame, BookOpen, Brain, Zap, Trophy, Target, Clock, CheckCircle2 } from 'lucide-react';
+import {
+  Award, Lock, Star, CheckCircle2,
+} from 'lucide-react';;
 
 type Badge = {
   id: string; name: string; description: string; emoji: string; category: string;

@@ -7,7 +7,9 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import { Trophy, Medal, Crown, Flame, Star, TrendingUp, Users, ChevronDown } from 'lucide-react';
+import {
+  Trophy, Flame,
+} from 'lucide-react';;
 
 const RANK_TIERS = [
   { min: 0, label: 'Bronze', color: 'text-amber-700 bg-amber-50 border-amber-200', emoji: '🥉' },

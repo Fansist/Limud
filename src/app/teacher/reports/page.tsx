@@ -7,10 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import {
-  FileText, Sparkles, Users, BarChart3, BookOpen, Download, Loader2,
-  ChevronDown, TrendingUp, AlertTriangle, Star, Send, Printer, Brain,
-  PenLine, GraduationCap, Target, CheckCircle, X
-} from 'lucide-react';
+  FileText, Sparkles, Users, BarChart3, BookOpen, Download, Loader2, TrendingUp, AlertTriangle, Star, Send, Printer, Brain, PenLine, GraduationCap, Target, CheckCircle,
+} from 'lucide-react';;
 
 const DEMO_STUDENTS = [
   { id: 's1', name: 'Alex Johnson', gradeLevel: '8', avgScore: 78, engagement: 72, streak: 5 },

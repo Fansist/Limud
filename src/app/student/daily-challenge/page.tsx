@@ -7,7 +7,9 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import { Zap, CheckCircle2, XCircle, Clock, Flame, Star, Trophy, ArrowRight, RotateCw } from 'lucide-react';
+import {
+  Zap, CheckCircle2, XCircle, Clock, Flame, RotateCw,
+} from 'lucide-react';;
 
 const DAILY_QUESTIONS = {
   math: [

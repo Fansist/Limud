@@ -5,23 +5,14 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { SUBJECTS, GRADE_LEVELS, RESOURCE_TYPES } from '@/lib/constants';
 import toast from 'react-hot-toast';
 import {
   Globe2, Search, Plus, Heart, MessageCircle, Download, Star, Filter,
-  BookOpen, GraduationCap, Clock, User, MapPin, ThumbsUp, Eye,
-  FileText, Send, X, ChevronDown, Loader2, Sparkles, Upload,
-  TrendingUp, Award, ArrowRight, Bookmark, Share2, Flag,
+  BookOpen, GraduationCap, User, MapPin,
+  FileText, Send, Loader2, Upload,
+  Bookmark,
 } from 'lucide-react';
-
-const SUBJECTS = [
-  { value: 'Math', icon: '🧮' }, { value: 'Science', icon: '🔬' },
-  { value: 'English', icon: '📖' }, { value: 'History', icon: '🏛️' },
-  { value: 'Art', icon: '🎨' }, { value: 'Computer Science', icon: '💻' },
-  { value: 'Social Studies', icon: '🗺️' }, { value: 'Foreign Language', icon: '🌍' },
-  { value: 'Music', icon: '🎵' }, { value: 'Physical Education', icon: '⚽' },
-];
-const GRADE_LEVELS = ['K','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th'];
-const RESOURCE_TYPES = ['Worksheet', 'Lesson Plan', 'Activity', 'Assessment', 'Presentation', 'Project', 'Game', 'Other'];
 
 type ExchangeItem = {
   id: string;

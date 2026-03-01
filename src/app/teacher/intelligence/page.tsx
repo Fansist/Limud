@@ -7,9 +7,8 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { SkeletonDashboard } from '@/lib/performance';
 import {
-  Brain, Users, AlertTriangle, TrendingUp, Target, BarChart3,
-  Zap, ArrowRight, ChevronRight, Sparkles, Shield, BookOpen, Loader2, X, CheckCircle, FileText,
-} from 'lucide-react';
+  Brain, Users, AlertTriangle, TrendingUp, Target, BarChart3, Zap, ChevronRight, Sparkles, Shield, BookOpen, Loader2, X, CheckCircle,
+} from 'lucide-react';;
 import toast from 'react-hot-toast';
 
 // Demo data

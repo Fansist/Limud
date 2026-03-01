@@ -11,9 +11,8 @@ import { DEMO_STUDENT, DEMO_ASSIGNMENTS, DEMO_REWARD_STATS } from '@/lib/demo-da
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  BookOpen, MessageCircle, Trophy, AlertTriangle, ArrowRight,
-  Sparkles, TrendingUp, Calendar, Zap, Flame, Clock, Target,
-} from 'lucide-react';
+  BookOpen, MessageCircle, Trophy, AlertTriangle, ArrowRight, TrendingUp, Calendar, Zap, Flame, Target,
+} from 'lucide-react';;
 
 export default function StudentDashboard() {
   const { data: session, status } = useSession();

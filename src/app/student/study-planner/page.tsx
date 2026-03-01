@@ -8,9 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import {
-  Brain, Clock, Target, Play, CheckCircle, RotateCcw, Sparkles, Calendar,
-  TrendingUp, Flame, BookOpen, PlusCircle, Zap, AlertTriangle,
-} from 'lucide-react';
+  Brain, Clock, Target, CheckCircle, RotateCcw, Sparkles, Calendar, BookOpen, PlusCircle, Zap, AlertTriangle,
+} from 'lucide-react';;
 
 export default function StudyPlannerPage() {
   const { data: session } = useSession();

@@ -8,7 +8,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
 import { DEMO_TEACHER_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
-import { BookOpen, Plus, X, CheckCircle2, Clock, Users } from 'lucide-react';
+import {
+  BookOpen, Plus, X, Clock, Users,
+} from 'lucide-react';;
 
 export default function TeacherAssignments() {
   const { data: session } = useSession();

@@ -10,10 +10,8 @@ import { DEMO_DISTRICT } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import {
-  Building2, Users, GraduationCap, DollarSign,
-  Upload, ArrowRight, Shield, Settings, Globe,
-  TrendingUp, Calendar, CreditCard, BookOpen,
-} from 'lucide-react';
+  Building2, Users, GraduationCap, DollarSign, Upload, ArrowRight, Shield, TrendingUp, Calendar, CreditCard,
+} from 'lucide-react';;
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();

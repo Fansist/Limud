@@ -5,7 +5,9 @@ import { useEffect, useState } from 'react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Users, Plus, UserPlus, Search, Building2, GraduationCap, MapPin, Phone, Calendar, Shield, X } from 'lucide-react';
+import {
+  Users, Plus, UserPlus, Search, Building2, MapPin, Phone, Shield, X,
+} from 'lucide-react';;
 import { cn } from '@/lib/utils';
 
 const GRADE_LEVELS = ['Kindergarten','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th'];

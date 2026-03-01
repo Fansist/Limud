@@ -6,7 +6,9 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
-import { Lightbulb, Sparkles, Trash2, Copy, FileText, Star, CheckCircle } from 'lucide-react';
+import {
+  Lightbulb, Sparkles, FileText, Star, CheckCircle,
+} from 'lucide-react';;
 
 function safeParseQuestions(data: any): any[] {
   if (Array.isArray(data)) return data;

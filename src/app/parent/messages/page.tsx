@@ -7,7 +7,9 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import { Mail, Send, ArrowLeft, Plus, Search, User, Check, CheckCheck } from 'lucide-react';
+import {
+  Mail, Send, ArrowLeft, Search, User, Check, CheckCheck,
+} from 'lucide-react';;
 
 const DEMO_CONVERSATIONS = [
   { id: 'c1', otherUser: { id: 't1', name: 'Dr. Sarah Chen', role: 'TEACHER' }, lastMessage: 'Alex is doing great in math this week! His algebra scores improved significantly.', lastDate: '2026-02-27T10:30:00', unread: 2, subject: 'Math Progress Update' },

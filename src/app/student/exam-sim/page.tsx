@@ -8,9 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import {
-  FileText, Clock, Target, CheckCircle, XCircle, Play, Trophy,
-  Brain, TrendingUp, BarChart3, ArrowRight, RotateCcw, Sparkles,
-} from 'lucide-react';
+  FileText, Clock, CheckCircle, XCircle, Play, TrendingUp, BarChart3, ArrowRight, RotateCcw, Sparkles,
+} from 'lucide-react';;
 
 type ExamState = 'setup' | 'taking' | 'results' | 'history';
 

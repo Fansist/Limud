@@ -5,28 +5,11 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { SUBJECTS, GRADE_LEVELS, DURATIONS } from '@/lib/constants';
 import toast from 'react-hot-toast';
 import {
-  Wand2, Plus, BookOpen, Clock, Star, ChevronDown, ChevronUp,
-  Copy, Heart, Loader2, Sparkles, GraduationCap, FileText,
-  Target, Users, Brain, Lightbulb, ClipboardList, Search,
-  ExternalLink, Globe, Download,
-} from 'lucide-react';
-
-const SUBJECTS = [
-  { value: 'Math', icon: '🧮', color: 'bg-blue-100 text-blue-700' },
-  { value: 'Science', icon: '🔬', color: 'bg-green-100 text-green-700' },
-  { value: 'English', icon: '📖', color: 'bg-purple-100 text-purple-700' },
-  { value: 'History', icon: '🏛️', color: 'bg-amber-100 text-amber-700' },
-  { value: 'Art', icon: '🎨', color: 'bg-pink-100 text-pink-700' },
-  { value: 'Music', icon: '🎵', color: 'bg-indigo-100 text-indigo-700' },
-  { value: 'Physical Education', icon: '⚽', color: 'bg-orange-100 text-orange-700' },
-  { value: 'Computer Science', icon: '💻', color: 'bg-cyan-100 text-cyan-700' },
-  { value: 'Foreign Language', icon: '🌍', color: 'bg-teal-100 text-teal-700' },
-  { value: 'Social Studies', icon: '🗺️', color: 'bg-yellow-100 text-yellow-700' },
-];
-const GRADE_LEVELS = ['K','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th'];
-const DURATIONS = ['30 min','45 min','50 min','60 min','90 min'];
+  Wand2, Plus, BookOpen, Clock, Star, ChevronDown, ChevronUp, Copy, Heart, Loader2, Sparkles, GraduationCap, FileText, Target, Users, Lightbulb, ClipboardList, Search, ExternalLink, Globe, Download,
+} from 'lucide-react';;
 
 type LessonPlan = {
   id: string; title: string; subject: string; gradeLevel: string; duration: string;

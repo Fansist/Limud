@@ -1,5 +1,7 @@
 import Link from 'next/link';
-import { BookOpen, Brain, Trophy, BarChart3, Shield, Users, Heart, Target, Sparkles, GraduationCap } from 'lucide-react';
+import {
+  Brain, Trophy, BarChart3, Shield, Users, Heart, Target, Sparkles, GraduationCap,
+} from 'lucide-react';;
 
 export default function AboutPage() {
   return (
