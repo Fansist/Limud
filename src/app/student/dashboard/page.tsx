@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen, MessageCircle, Trophy, AlertTriangle, ArrowRight, TrendingUp, Calendar, Zap, Flame, Target,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 export default function StudentDashboard() {
   const { data: session, status } = useSession();

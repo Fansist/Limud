@@ -11,7 +11,7 @@ import { DEMO_PARENT_CHILDREN } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import {
   Eye, BookOpen, Trophy, TrendingUp, Flame, Zap, GraduationCap, MessageCircle, Star, Home, Plus, Wand2, BarChart3, Users,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 export default function ParentDashboard() {
   const { data: session, status } = useSession();

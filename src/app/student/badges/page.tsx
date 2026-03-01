@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
   Award, Lock, Star, CheckCircle2,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 type Badge = {
   id: string; name: string; description: string; emoji: string; category: string;

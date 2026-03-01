@@ -9,7 +9,7 @@ import { SUBJECTS, GRADE_LEVELS, DURATIONS } from '@/lib/constants';
 import toast from 'react-hot-toast';
 import {
   Wand2, Plus, BookOpen, Clock, Star, ChevronDown, ChevronUp, Copy, Heart, Loader2, Sparkles, GraduationCap, FileText, Target, Users, Lightbulb, ClipboardList, Search, ExternalLink, Globe, Download,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 type LessonPlan = {
   id: string; title: string; subject: string; gradeLevel: string; duration: string;

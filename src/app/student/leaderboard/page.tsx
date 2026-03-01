@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import {
   Trophy, Flame,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 const RANK_TIERS = [
   { min: 0, label: 'Bronze', color: 'text-amber-700 bg-amber-50 border-amber-200', emoji: '🥉' },

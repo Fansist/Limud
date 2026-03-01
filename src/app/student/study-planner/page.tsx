@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import {
   Brain, Clock, Target, CheckCircle, RotateCcw, Sparkles, Calendar, BookOpen, PlusCircle, Zap, AlertTriangle,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 export default function StudyPlannerPage() {
   const { data: session } = useSession();

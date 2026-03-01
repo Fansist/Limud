@@ -10,7 +10,7 @@ import { DEMO_TEACHER_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import {
   GraduationCap, Wand2, CheckCircle2, Loader2, Download, FileText, Paperclip,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 export default function GradingPage() {
   const { data: session } = useSession();

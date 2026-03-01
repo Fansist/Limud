@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import {
   Building2, Users, GraduationCap, DollarSign, Upload, ArrowRight, Shield, TrendingUp, Calendar, CreditCard,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();

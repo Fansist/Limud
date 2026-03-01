@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { DEMO_ANALYTICS, DEMO_TEACHER_ASSIGNMENTS, DEMO_TEACHER } from '@/lib/demo-data';
 import {
   BookOpen, GraduationCap, BarChart3, Users, AlertTriangle, Clock, ArrowRight, TrendingUp, FileText, Sparkles, Wand2,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 export default function TeacherDashboard() {
   const { data: session, status } = useSession();

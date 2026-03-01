@@ -9,7 +9,7 @@ import { cn, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import {
   Users, Search, User, TrendingUp, BookOpen, Brain, Flame, ArrowLeft, BarChart3, Clock, Star,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 const DEMO_STUDENTS = [
   { id: 's1', name: 'Alex Rivera', email: 'alex@demo.com', gradeLevel: '8th', avatar: '🚀',

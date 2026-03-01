@@ -8,7 +8,7 @@ import { SkeletonDashboard } from '@/lib/performance';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   Brain, Target, Flame, Trophy, Zap, ArrowRight, Calendar, Radar, Star, Sparkles,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 // Rank tiers
 const RANKS = [

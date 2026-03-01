@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import {
   Zap, CheckCircle2, XCircle, Clock, Flame, RotateCw,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 const DAILY_QUESTIONS = {
   math: [

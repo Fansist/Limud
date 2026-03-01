@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Sparkles, ArrowRight, ArrowLeft, CheckCircle2, BookOpen, Music, Trophy, Brain, Heart, Star, Rocket, Puzzle,
-} from 'lucide-react';;
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SUBJECTS = [

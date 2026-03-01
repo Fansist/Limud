@@ -1,220 +1,236 @@
 # Limud - AI-Powered Adaptive Learning Platform
 
 ## Project Overview
-- **Name**: Limud
-- **Version**: 6.0.0
-- **Goal**: Transform education with AI-powered adaptive learning, gamification, cross-platform integrations, and collaborative teacher tools
-- **Stack**: Next.js 14.2 + React 18 + TypeScript + Tailwind CSS + Prisma + PostgreSQL + OpenAI
+- **Name**: Limud (Hebrew: "learning")
+- **Version**: 7.0.0
+- **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
+- **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
 
-## Live URLs
-- **Development**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
-- **Demo Mode**: Append `?demo=true` to any route (no login required)
+## What's New in v7.0.0
 
----
+### Platform Linking - Major Expansion (16+ Platforms)
+- **Added 10 new platforms**: Schoology, Clever, IXL Learning, Quizlet, Newsela, Desmos, Kahoot!, BrainPOP, Edpuzzle, Nearpod
+- **Existing 6 platforms**: Khan Academy, i-Ready, Amplify, PLTW, Google Classroom, Canvas LMS
+- **Complete linking feature**: Connect, disconnect, sync, auto-sync toggle, sync status tracking, item count
+- **Search & filter**: Search by name/description, filter by 14 categories (Learning, LMS, Assessment, STEM, etc.)
+- **Detailed sync status**: Active/error/syncing states, last sync timestamp, items synced count
+- **Security**: Encrypted credentials notice, privacy assurance, one-click disconnect
+- **Platform detail expansion**: View all features and syncable data types for each platform
+- **Stats dashboard**: Connected count, auto-syncing count, total items synced
 
-## What's New (v6.0.0 - 2026-03-01)
+### Landing Page / Home Screen - Complete Redesign
+- **New integrations section**: Showcases all 16+ connected platforms with animated logos
+- **Updated hero section**: Highlights "16+ integrations" badge, shows platform integration preview in dashboard mockup
+- **New feature grid**: 12 feature cards covering all capabilities (AI Tutor, Lesson Planner, Quiz Generator, Auto-Grader, Gamification, Games, Platform Links, Assignment Manager, Knowledge Analytics, Game Control, Parent Portal, Admin Dashboard)
+- **Updated social proof**: Now shows 16+ integrations as a stat
+- **Updated pricing**: Plans now mention platform link limits (3, 10, All 16+, Unlimited)
+- **Updated FAQ**: New question about which platforms are supported
+- **Updated testimonials**: References i-Ready and Amplify syncing
+- **Updated "How It Works"**: Step 2 now covers platform connections
 
-### AI Lesson Planner - Fully Specialized (`/teacher/lesson-planner`)
-**Completely rebuilt AI content generation** - no more generic templates:
-- **Topic-specific lesson plans**: Generates detailed, standards-aligned content unique to each topic
-  - Math topics: Fractions (LCD method, Recipe Rescue activity, tiered problems), Algebra (balance principle, Equation Detectives), Geometry, and more
-  - Science topics: Photosynthesis (Elodea Bubble Lab, chloroplast diagrams), Biology, Physics, Chemistry
-  - English: SOAPSTone analysis, RACE paragraphs, Literature Circles
-  - History: HIPP source analysis, Document Stations, primary source investigation
-- **Rich lesson flow**: Warm-up with real-world connections, direct instruction with step-by-step examples, guided practice with specific activities, independent practice with tiered difficulty, formative + summative assessment, closure
-- **Differentiation built-in**: ELL accommodations, IEP modifications, advanced extensions, kinesthetic alternatives
-- **Real standards alignment**: CCSS Math, NGSS Science, C3 History framework references
-- **Worksheet finder tab**: Search education.com, Teachers Pay Teachers, K5 Learning, Common Core Sheets, Science Buddies, ReadWriteThink, PLTW
+### Bug Fixes & Optimization
+- **Fixed 27 double-semicolon syntax errors** across all TSX files (import statements had `;;` instead of `;`)
+- **Removed 541MB core dump file** that was bloating the repository
+- **Knowledge page**: Already fixed hydration issues with deterministic pseudo-random for heatmap data (from v6.0)
+- **All pages verified**: 15+ pages returning HTTP 200 including landing, all role dashboards, and feature pages
 
-### AI Quiz Generator - Real Questions (`/teacher/quiz-generator`)
-**Completely rebuilt question generation** with curriculum-aligned content:
-- **Subject-specific question banks**: Math (Algebra, Geometry, Fractions, Statistics), Science (Biology, Chemistry, Physics), English (Literary Devices, Grammar, Reading Comp), History (US History, World History, Government)
-- **Real questions with real answers**: Actual math equations to solve, scientific facts, literary analysis
-- **Detailed explanations**: Every question includes step-by-step solution explanations
-- **Skill tags**: Each question tagged with specific skill (e.g., "Linear Equations", "Cell Biology", "Literary Devices")
-- **Difficulty filtering**: Questions tagged EASY/MEDIUM/HARD with appropriate filtering
-- **Show/hide answers toggle**: Teachers can preview quiz with or without answer key
-- **Copy to clipboard**: Export full quiz as text for printing or sharing
-- **Delete quizzes**: Clean up quiz list
+### Previously Implemented (v6.0 - Maintained)
+- **AI Lesson Planner**: Generates specialized, detailed lesson plans with real objectives, standards, materials, warm-up, instruction, practice, assessment, closure, differentiation, and homework
+- **AI Quiz Generator**: Creates curriculum-aligned quizzes with real questions, correct answers, and explanations per subject/topic
+- **Game Store**: 6 games with real playable mini-games (Math Blaster, Word Quest, Trivia)
+- **Game Control**: Per-class toggle, global block/unblock, game stats dashboard
+- **Assignment Manager**: Categories with grade weighting (Homework 20%, Classwork 20%, Quizzes 25%, Tests 25%, Projects 10%), extra credit support, file upload (25MB), link attachments, multi-format submissions
+- **Student Assignments**: Worksheet/link viewing, multi-format submissions (text, code, link, audio, video, drawing), AI feedback display
 
-### Game Store - Interactive Mini-Games (`/student/games`)
-**Real playable games** instead of placeholder screens:
-- **Math Blaster**: 30-second timed arithmetic challenge (addition, subtraction, multiplication) with 4-option multiple choice, running score, correct/wrong feedback
-- **Word Quest**: Hangman-style vocabulary game with educational hints, letter-by-letter guessing, multi-word progression, scoring based on efficiency
-- **Trivia Games**: Subject-specific trivia (History, Geography, Science) with 5-question rounds, instant feedback, score tracking
-- **Purchase system**: Spend XP to unlock games, play owned games, game-blocked detection from teacher
-- **Game session tracking**: Play counts, ratings, top players
+## Features by Role
 
-### Game Control - Enhanced Teacher Dashboard (`/teacher/games`)
-- **Quick action cards**: Block All / Unblock All toggle, blocked count summary, game stats panel
-- **Student game activity stats**: Plays per game, average scores, top players
-- **Per-classroom controls**: Toggle games on/off per class period
-- **Class schedule display**: Shows class times for quick reference
-- **Global block mode**: Disable all games across all classes with one click
+### Student Features
+| Feature | Path | Description |
+|---------|------|-------------|
+| Dashboard | `/student/dashboard` | Welcome screen, stats, quick actions |
+| Assignments | `/student/assignments` | View assignments with attachments, submit work |
+| AI Tutor | `/student/tutor` | Socratic questioning AI assistant |
+| Focus Mode | `/student/focus` | Distraction-free study timer |
+| Knowledge | `/student/knowledge` | Skill radar, study heatmap, rank system |
+| Study Planner | `/student/study-planner` | Schedule and plan study sessions |
+| Exam Simulator | `/student/exam-sim` | Practice test environment |
+| Growth Analytics | `/student/growth` | Progress tracking over time |
+| Rewards | `/student/rewards` | XP, levels, streaks, coin shop |
+| Game Store | `/student/games` | Purchase and play educational games |
+| Daily Challenge | `/student/daily-challenge` | Streak-maintaining quick exercises |
+| Leaderboard | `/student/leaderboard` | Class and school rankings |
+| Badges | `/student/badges` | Achievement badge collection |
+| Certificates | `/student/certificates` | Progress certificates |
+| My Platforms | `/student/platforms` | **16+ platform connections** with search, filter, sync |
 
-### Platform Linking - Full Integration (`/student/platforms`)
-Connect and sync with 6 external learning platforms:
-- **Khan Academy** - Progress, mastery, assignments
-- **i-Ready** - Scores, diagnostics, growth data
-- **Amplify** - Assignments, scores, curriculum progress
-- **PLTW** - Projects, assessments, certificates
-- **Google Classroom** - Classes, assignments, grades, roster
-- **Canvas LMS** - Courses, assignments, grades, rubrics
-- Connect/disconnect with username, manual sync, last-sync tracking, "Open" quick link
+### Teacher Features
+| Feature | Path | Description |
+|---------|------|-------------|
+| Dashboard | `/teacher/dashboard` | Overview, class stats, pending items |
+| Assignment Manager | `/teacher/assignments` | Create with categories, weights, attachments, extra credit |
+| AI Grading | `/teacher/grading` | One-click rubric-based auto-grading |
+| Intelligence | `/teacher/intelligence` | Student behavior insights |
+| AI Quiz Generator | `/teacher/quiz-generator` | Curriculum-aligned quiz creation |
+| AI Lesson Planner | `/teacher/lesson-planner` | Complete lesson plans + worksheet finder |
+| Game Control | `/teacher/games` | Per-class game access toggle + stats |
+| Teacher Exchange | `/teacher/exchange` | Share resources with other teachers |
+| Worksheets | `/teacher/worksheets` | Worksheet library and builder |
+| Reports | `/teacher/reports` | Class and student reports |
+| Students | `/teacher/students` | Student management and profiles |
+| Analytics | `/teacher/analytics` | At-risk identification and trends |
 
-### Teacher Assignment Manager - Categories, Weighing & Attachments (`/teacher/assignments`)
-**Major upgrade with grade management features:**
-- **Assignment categories**: Homework (20%), Classwork (20%), Quizzes (25%), Tests/Exams (25%), Projects (10%), Extra Credit (bonus)
-- **Adjustable grade weights**: Slider-based weight adjustment per category with real-time total validation
-- **Extra credit support**: Dedicated extra credit toggle - bonus points added on top of weighted grade
-- **Worksheet/file attachments**: Upload PDFs, DOCs, PPTs, images, ZIPs (up to 25MB) to any assignment
-- **Link attachments**: Attach URLs (Khan Academy resources, Google Docs, educational sites) to assignments
-- **Category filtering**: Filter assignment list by category (homework, classwork, quiz, test, project, extra credit)
-- **Students see attachments**: Resources appear as downloadable/clickable items in student assignment view
+### Admin Features
+| Feature | Path | Description |
+|---------|------|-------------|
+| Dashboard | `/admin/dashboard` | District overview, stats, subscription |
+| Schools | `/admin/schools` | School management |
+| Classrooms | `/admin/classrooms` | Classroom management |
+| Students | `/admin/students` | District student management |
+| Analytics | `/admin/analytics` | District-wide analytics |
 
-### Student Assignments - Resource Access & Extra Credit (`/student/assignments`)
-- **Teacher resources panel**: Blue highlighted section showing attached worksheets, files, and links per assignment
-- **Download/open resources**: Click to download PDFs or open links in new tab
-- **Extra credit filter**: Dedicated filter to see only extra credit assignments
-- **Extra credit badge**: Pink badge clearly marks bonus assignments
-- **Resources in submission modal**: When starting work, all teacher attachments are visible for reference
-- **6 submission types**: Written, Link/URL, Audio, Video, Code, Drawing with file attachments
+### Parent Features
+| Feature | Path | Description |
+|---------|------|-------------|
+| Dashboard | `/parent/dashboard` | Children overview, grades, progress |
+| Reports | `/parent/reports` | Detailed progress reports |
+| Messages | `/parent/messages` | Parent-teacher communication |
 
-### Knowledge Dashboard - Hydration Fix (`/student/knowledge`)
-- **Fixed hydration mismatch**: Replaced `Math.random()` in render with deterministic seeded pseudo-random using useMemo
-- **HeatCalendar optimized**: Memoized week computation with useMemo to prevent recalculation
-- **Radar chart**: Knowledge gap visualization across subjects
-- **Study consistency heatmap**: GitHub-style 12-week activity calendar
-- **Skill mastery list**: Individual skill tracking with progress bars
-- **Goal countdown**: Track progress toward XP, streak, mastery, and assignment goals
-- **Rank system**: Bronze → Silver → Gold → Platinum → Diamond with XP progress
+## Platform Integrations (16+)
 
----
+| Platform | Category | Syncable Data |
+|----------|----------|---------------|
+| Khan Academy | Learning | Progress, mastery, assignments, exercise data |
+| i-Ready | Assessment | Diagnostic scores, growth data, lesson progress, time on task |
+| Amplify | Curriculum | Assignments, assessment scores, curriculum progress, reading levels |
+| PLTW | STEM | Projects, assessments, certificates, portfolio items |
+| Google Classroom | LMS | Classes, assignments, grades, roster, announcements |
+| Canvas LMS | LMS | Courses, assignments, grades, rubrics, modules |
+| Schoology | LMS | Courses, grades, assignments, attendance |
+| Clever | SSO | Roster, app usage, login data |
+| IXL Learning | Practice | Skill scores, practice data, diagnostics, time spent |
+| Quizlet | Study Tools | Study sets, progress, scores, class data |
+| Newsela | Reading | Reading levels, quiz scores, articles read, annotations |
+| Desmos | Math Tools | Activity progress, responses, graphs saved |
+| Kahoot! | Gamified | Quiz scores, participation data, reports |
+| BrainPOP | Learning | Video progress, quiz scores, assignments |
+| Edpuzzle | Video Learning | Video progress, responses, completion data |
+| Nearpod | Interactive | Lesson progress, responses, assessments |
 
-## Complete Feature List
+## Assignment System
 
-### Student Routes
-| Route | Feature | Status |
-|-------|---------|--------|
-| `/student/dashboard` | Main dashboard with stats, recent assignments, streak | Working |
-| `/student/assignments` | View assignments, teacher resources, submit work (6 types), extra credit | Working |
-| `/student/tutor` | AI tutor chatbot with personalized responses | Working |
-| `/student/knowledge` | Knowledge radar, heatmap, skills, rank system | Working |
-| `/student/study-planner` | AI-powered study schedule generator | Working |
-| `/student/exam-sim` | Practice exams with AI grading | Working |
-| `/student/growth` | Growth analytics with charts | Working |
-| `/student/rewards` | XP, coins, avatar shop | Working |
-| `/student/games` | Game store with playable mini-games | Working |
-| `/student/daily-challenge` | Daily streak challenges | Working |
-| `/student/leaderboard` | Class and school rankings | Working |
-| `/student/badges` | Achievement badges collection | Working |
-| `/student/certificates` | Earned certificates gallery | Working |
-| `/student/platforms` | Connect Khan Academy, iReady, Amplify, PLTW, Google Classroom, Canvas | Working |
-| `/student/focus` | Focus mode with Pomodoro timer | Working |
-| `/student/study-groups` | Collaborative study groups | Working |
-| `/student/survey` | Learning style survey | Working |
+### Categories & Weights
+| Category | Default Weight | Color |
+|----------|---------------|-------|
+| Homework | 20% | Blue |
+| Classwork | 20% | Green |
+| Quizzes | 25% | Amber |
+| Tests/Exams | 25% | Red |
+| Projects | 10% | Purple |
+| Extra Credit | Bonus (adds to total) | Pink |
 
-### Teacher Routes
-| Route | Feature | Status |
-|-------|---------|--------|
-| `/teacher/dashboard` | Teacher dashboard with class overview | Working |
-| `/teacher/assignments` | Create assignments with categories, weights, attachments, extra credit | Working |
-| `/teacher/grading` | AI-assisted grading | Working |
-| `/teacher/quiz-generator` | AI quiz generator with real curriculum questions | Working |
-| `/teacher/lesson-planner` | AI lesson planner with specialized content + worksheet finder | Working |
-| `/teacher/worksheets` | Custom worksheet builder (7 question types) | Working |
-| `/teacher/exchange` | Teacher Exchange community hub | Working |
-| `/teacher/insights` | Student engagement heatmap | Working |
-| `/teacher/intelligence` | Class intelligence dashboard | Working |
-| `/teacher/analytics` | Teacher analytics | Working |
-| `/teacher/reports` | AI-powered reports | Working |
-| `/teacher/students` | Student management | Working |
-| `/teacher/games` | Game access control with stats & quick actions | Working |
+### Attachment Support
+- **File uploads**: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT, CSV, images, ZIP (max 25MB)
+- **Links**: Any URL with optional custom title
+- **Worksheets**: Searchable from education.com, TeachersPayTeachers, K5 Learning, etc.
+- Students can view all attachments directly from their assignment view
 
-### Admin Routes
-| Route | Feature | Status |
-|-------|---------|--------|
-| `/admin/dashboard` | District overview | Working |
-| `/admin/students` | Student account management, bulk CSV import | Working |
-| `/admin/schools` | School management | Working |
-| `/admin/classrooms` | Classroom management | Working |
-| `/admin/analytics` | District analytics | Working |
-| `/admin/payments` | Billing and subscriptions | Working |
+## API Endpoints
 
-### Parent Routes
-| Route | Feature | Status |
-|-------|---------|--------|
-| `/parent/dashboard` | Children overview | Working |
-| `/parent/reports` | Progress reports per child | Working |
-| `/parent/messages` | Teacher messaging | Working |
-| `/parent/children` | Manage linked children | Working |
+### Demo API (`/api/demo`)
+- `GET ?type=student-assignments|student-rewards|teacher-assignments|teacher-analytics|admin-districts|parent-children|notifications|lesson-plans|messages|user`
+- `POST type=generate-lesson-plan` - AI lesson plan generation
+- `POST type=generate-quiz` - AI quiz generation
+- `POST type=tutor-chat` - AI tutor conversation
+- `POST type=grade-submission` - AI grading
 
----
+### Core APIs
+| Endpoint | Methods | Description |
+|----------|---------|-------------|
+| `/api/assignments` | GET, POST | Assignment CRUD |
+| `/api/submissions` | POST | Submit student work |
+| `/api/lesson-plans` | GET, POST, PUT, DELETE | Lesson plan management |
+| `/api/quiz-generator` | GET, POST | Quiz generation |
+| `/api/platforms` | GET, POST, PUT, DELETE | Platform linking |
+| `/api/games` | GET, POST, PUT | Game store and controls |
+| `/api/rewards` | GET, POST | Reward system |
+| `/api/tutor` | POST | AI tutor conversations |
+| `/api/grade` | POST | AI auto-grading |
 
 ## Data Architecture
-- **Database**: PostgreSQL with Prisma ORM (40+ models)
-- **Auth**: NextAuth.js with JWT sessions
-- **AI**: OpenAI API (gpt-5-mini) for tutoring, grading, quiz/lesson generation
-- **File Storage**: Base64 encoded with MIME type handling (max 10MB per file)
-- **Demo Mode**: Full client-side demo data with `?demo=true` query parameter
+- **Database**: PostgreSQL via Prisma ORM
+- **Auth**: NextAuth.js with credentials + OAuth providers
+- **AI**: OpenAI GPT for tutoring, grading, lesson planning, quiz generation
+- **Storage**: Prisma for all relational data
+- **State**: React state + Zustand for global state
+- **Demo Mode**: Full-featured demo mode via `?demo=true` URL parameter
 
-## API Routes
-52+ API routes covering:
-- `/api/assignments` - CRUD with categories, attachments, extra credit
-- `/api/submissions` - Multi-type submissions with file uploads
-- `/api/lesson-plans` - AI-powered lesson generation with real content
-- `/api/quiz-generator` - AI quiz with curriculum-aligned questions
-- `/api/demo` - Specialized demo content generators
-- `/api/games` - Game store, purchases, play sessions, teacher controls
-- `/api/platforms` - Platform linking, sync, disconnect
-- `/api/grading` - AI-assisted grading with feedback
-- `/api/tutor` - AI tutor with personalized responses
-- `/api/files` - File upload/download management
-- `/api/exchange` - Teacher Exchange community
-- `/api/worksheets` - Custom worksheet builder
-- And 40+ more routes for analytics, rewards, admin, etc.
+## Deployment
+- **Platform**: Vercel / Cloudflare Pages compatible
+- **Status**: Active
+- **Last Updated**: March 1, 2026
+- **Build**: `npx next build` (all 15+ pages compile successfully)
+- **Dev Server**: `pm2 start ecosystem.config.cjs` on port 3000
 
-## AI Content Generation System (`/src/lib/ai-generators.ts`)
-Specialized content banks for demo mode:
-- **Lesson Plans**: Math (Fractions, Algebra + defaults), Science (Photosynthesis + defaults), English, History - each with 8+ detailed sections
-- **Quiz Questions**: 50+ real questions across Math (Algebra, Geometry, Fractions), Science (Biology), English (Literary Devices), History (US/World) with answers, explanations, and skill tags
+## Version History
 
-## Tech Stack
-- **Framework**: Next.js 14.2 (standalone output)
-- **Runtime**: React 18.3 + TypeScript 5.7
-- **Styling**: Tailwind CSS 3.4
-- **Database**: PostgreSQL + Prisma 5.22
-- **Auth**: NextAuth.js
-- **AI**: OpenAI API (gpt-5-mini)
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **PM2**: Process management with memory limits
+### v7.0.0 (March 1, 2026) - Platform Expansion & Landing Page Redesign
+- Added 10 new educational platform integrations (total: 16+)
+- Complete platform linking with search, filter, sync status, auto-sync toggle
+- Landing page redesign with integrations section, updated features grid, pricing
+- Fixed 27 double-semicolon syntax errors across codebase
+- Removed 541MB core dump file
+- All pages verified working (HTTP 200)
 
-## Development
-```bash
-npm install
-npx prisma db push
-npm run seed
-pm2 start ecosystem.config.cjs
-# Access: http://localhost:3000
-# Demo: http://localhost:3000?demo=true
-```
+### v6.0.0 (March 1, 2026) - Major Feature Overhaul
+- Specialized AI lesson plan generation (not generic templates)
+- Specialized AI quiz generation with real curriculum content
+- Interactive game store with playable mini-games
+- Game control with per-class toggles and stats
+- Assignment categories with grade weighting
+- Extra credit assignment support
+- File and link attachments for assignments
+- Knowledge page hydration fix
 
-## Gamification System
-- XP earned from assignments, streaks, tutor sessions
-- Virtual coins for game store purchases
-- Rank tiers: Bronze → Silver → Gold → Platinum → Diamond
-- Achievement badges (15+ types)
-- Teacher-controlled game access per classroom
-- Interactive mini-games (Math Blaster, Word Quest, Trivia)
+### v5.0.0 - Full Optimization
+- Performance optimization across all pages
+- Reduced bundle sizes
+- Improved loading states
 
-## Pending / Future
-- Production deployment to Cloudflare Pages
-- Real-time WebSocket notifications
-- Advanced AI model fine-tuning
-- Student portfolio system
-- Parent-teacher video conferencing
-- Multi-language support
+### v4.0.0 - Worksheet Builder & Teacher Exchange
+- Worksheet builder and template library
+- Teacher resource exchange platform
+- Enhanced submission types
 
-**Last Updated**: 2026-03-01
+### Earlier Versions
+- Core platform with student, teacher, admin, parent dashboards
+- AI tutor with Socratic questioning
+- Gamification engine (XP, levels, streaks, coins)
+- Accessibility suite (dyslexia font, high contrast, TTS)
+- FERPA & COPPA compliance framework
+
+## User Guide
+
+### For Teachers
+1. Visit any teacher page with `?demo=true` to explore features
+2. **Create assignments** with the Assignment Manager - set categories, weights, and attach files/links
+3. **Generate lesson plans** with the AI Lesson Planner - get complete, standards-aligned plans
+4. **Generate quizzes** with the AI Quiz Generator - get curriculum-aligned questions
+5. **Control games** per-class during instruction time
+
+### For Students
+1. Visit any student page with `?demo=true` to explore features
+2. **Connect platforms** like Khan Academy, i-Ready, Google Classroom to sync progress
+3. **Use AI Tutor** for homework help with Socratic guidance
+4. **Play educational games** purchased from the Game Store
+5. **Track progress** on the Knowledge dashboard with skill radar and study heatmap
+
+### For Administrators
+1. Visit `/admin/dashboard?demo=true` for the admin overview
+2. Manage schools, classrooms, and students
+3. Monitor district-wide analytics
+
+### For Parents
+1. Visit `/parent/dashboard?demo=true` for the parent view
+2. Track children's grades, progress, and reward activity
+3. Communicate with teachers via messaging

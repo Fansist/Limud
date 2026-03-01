@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import {
   Users, Plus, MessageCircle, Send, Crown, UserPlus, Search, BookOpen, Clock, Globe, Lock, Star, X,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 const DEMO_GROUPS = [
   {

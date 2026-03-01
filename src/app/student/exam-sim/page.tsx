@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import {
   FileText, Clock, CheckCircle, XCircle, Play, TrendingUp, BarChart3, ArrowRight, RotateCcw, Sparkles,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 type ExamState = 'setup' | 'taking' | 'results' | 'history';
 

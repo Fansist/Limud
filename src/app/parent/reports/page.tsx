@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
   TrendingUp, AlertTriangle, Brain, Flame, BarChart3, Clock, BookOpen, CheckCircle, Calendar, Users,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 export default function ParentReportsPage() {
   const isDemo = useIsDemo();

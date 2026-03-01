@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import {
   BarChart3, Users, TrendingUp, GraduationCap, BookOpen, Brain, Clock, ArrowUp, ArrowDown, Minus,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 const DEMO_ANALYTICS = {
   overview: {

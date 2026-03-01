@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   Brain, Trophy, BarChart3, Shield, Users, Heart, Target, Sparkles, GraduationCap,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 export default function AboutPage() {
   return (

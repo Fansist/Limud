@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
   TrendingUp, Brain, Flame, AlertTriangle,
-} from 'lucide-react';;
+} from 'lucide-react';
 
 export default function GrowthPage() {
   const isDemo = useIsDemo();
