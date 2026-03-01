@@ -1,11 +1,13 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Building2, Plus, Users, GraduationCap, MapPin, ArrowRightLeft, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 
 const DEMO_SCHOOLS = [
   { id: 's1', name: 'Lincoln Elementary', address: '100 Main St', city: 'Springfield', state: 'IL', studentCount: 245, teacherCount: 18, _count: { classrooms: 12 }, isActive: true },
@@ -15,8 +17,7 @@ const DEMO_SCHOOLS = [
 
 export default function AdminSchoolsPage() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
   const [schools, setSchools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -51,10 +52,11 @@ export default function AdminSchoolsPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" /></div>;
+    return <DashboardLayout><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" /></div></DashboardLayout>;
   }
 
   return (
+    <DashboardLayout>
     <div className="max-w-6xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
@@ -128,5 +130,6 @@ export default function AdminSchoolsPage() {
         </div>
       )}
     </div>
+    </DashboardLayout>
   );
 }

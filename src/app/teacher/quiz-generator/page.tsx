@@ -1,6 +1,7 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -16,8 +17,7 @@ function safeParseQuestions(data: any): any[] {
 }
 
 export default function QuizGeneratorPage() {
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);

@@ -1,7 +1,8 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
@@ -11,8 +12,7 @@ import { BookOpen, Plus, X, CheckCircle2, Clock, Users } from 'lucide-react';
 
 export default function TeacherAssignments() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);

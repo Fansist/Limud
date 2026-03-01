@@ -1,6 +1,7 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -9,8 +10,7 @@ import toast from 'react-hot-toast';
 import { BarChart3, Users, AlertTriangle, TrendingUp, Search } from 'lucide-react';
 
 export default function AnalyticsPage() {
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

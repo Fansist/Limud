@@ -1,6 +1,7 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { haptic } from '@/lib/performance';
@@ -37,9 +38,8 @@ const DEMO_QUESTIONS = [
 ];
 
 export default function FocusModePage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
 
   // Session state
   const [phase, setPhase] = useState<'setup' | 'active' | 'review' | 'complete'>('setup');

@@ -1,6 +1,7 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -10,8 +11,7 @@ import {
 } from 'lucide-react';
 
 export default function GrowthPage() {
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

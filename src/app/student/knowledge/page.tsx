@@ -1,9 +1,11 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useEffect, useState, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { SkeletonDashboard } from '@/lib/performance';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   Brain, Target, Flame, Trophy, Zap, ArrowRight, Calendar,
   TrendingUp, Radar, Star, ChevronRight, Sparkles, HelpCircle,
@@ -113,8 +115,7 @@ function HeatCalendar({ data }: { data: Record<string, number> }) {
 }
 
 export default function KnowledgeDashboard() {
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -135,7 +136,7 @@ export default function KnowledgeDashboard() {
     });
   }, [isDemo]);
 
-  if (loading) return <SkeletonDashboard />;
+  if (loading) return <DashboardLayout><SkeletonDashboard /></DashboardLayout>;
 
   const skills = data?.skills || [];
   const rewards = data?.rewards || { totalXP: 750, level: 4, currentStreak: 3, virtualCoins: 120 };
@@ -165,6 +166,7 @@ export default function KnowledgeDashboard() {
   const rankProgress = rank.nextRank ? Math.round(((rewards.totalXP - rank.min) / (rank.nextRank.min - rank.min)) * 100) : 100;
 
   return (
+    <DashboardLayout>
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Study Next CTA */}
       {studyNext.primaryAction && (
@@ -339,6 +341,7 @@ export default function KnowledgeDashboard() {
         </div>
       </motion.div>
     </div>
+    </DashboardLayout>
   );
 }
 

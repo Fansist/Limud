@@ -1,7 +1,8 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -13,8 +14,7 @@ import {
 
 export default function StudyPlannerPage() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
   const [sessions, setSessions] = useState<any[]>([]);
   const [byDate, setByDate] = useState<Record<string, any[]>>({});
   const [stats, setStats] = useState<any>(null);

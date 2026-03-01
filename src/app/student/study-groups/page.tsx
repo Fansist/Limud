@@ -1,7 +1,8 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -65,9 +66,8 @@ const SUBJECT_COLORS: Record<string, string> = {
 
 export default function StudyGroupsPage() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
 
   const [groups, setGroups] = useState<any[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);

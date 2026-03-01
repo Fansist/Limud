@@ -1,6 +1,7 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -23,8 +24,7 @@ const DEMO_STUDENTS = [
 type ReportType = 'student' | 'curriculum' | 'writing';
 
 export default function TeacherReportsPage() {
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
 
   const [reportType, setReportType] = useState<ReportType>('student');
   const [students, setStudents] = useState<any[]>([]);

@@ -1,11 +1,13 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { BookOpen, Plus, Users, GraduationCap, X, Gamepad2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 
 const DEMO_CLASSROOMS = [
   { id: 'dc1', name: 'Math 101', subject: 'Math', gradeLevel: '6th', period: 'Period 1', gamesDisabledDuringClass: false, school: { name: 'Lincoln Elementary' }, _count: { students: 24 } },
@@ -16,8 +18,7 @@ const DEMO_CLASSROOMS = [
 
 export default function AdminClassroomsPage() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
   const [classrooms, setClassrooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -61,9 +62,10 @@ export default function AdminClassroomsPage() {
     } catch { toast.error('Failed'); }
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" /></div>;
+  if (loading) return <DashboardLayout><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" /></div></DashboardLayout>;
 
   return (
+    <DashboardLayout>
     <div className="max-w-6xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
@@ -129,5 +131,6 @@ export default function AdminClassroomsPage() {
         </div>
       )}
     </div>
+    </DashboardLayout>
   );
 }

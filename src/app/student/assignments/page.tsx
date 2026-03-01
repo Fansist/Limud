@@ -1,7 +1,8 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, daysUntil, formatDate } from '@/lib/utils';
@@ -10,12 +11,12 @@ import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import {
   BookOpen, Clock, CheckCircle2, Send, X, FileText, ChevronDown, Upload, Paperclip, Trash2,
+  Link2, Mic, Video, Code2, PenTool, Globe,
 } from 'lucide-react';
 
 export default function StudentAssignments() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
@@ -24,6 +25,8 @@ export default function StudentAssignments() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'submitted' | 'graded'>('all');
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [submissionType, setSubmissionType] = useState<'text' | 'link' | 'audio' | 'video' | 'code' | 'drawing'>('text');
+  const [linkUrl, setLinkUrl] = useState('');
 
   useEffect(() => {
     fetchAssignments();
@@ -49,8 +52,9 @@ export default function StudentAssignments() {
   }
 
   async function handleSubmit(assignmentId: string) {
-    if (!submissionText.trim() && uploadedFiles.length === 0) {
-      toast.error('Please write your answer or upload files before submitting');
+    const hasContent = submissionText.trim() || uploadedFiles.length > 0 || linkUrl.trim();
+    if (!hasContent) {
+      toast.error('Please provide your answer, upload files, or add a link');
       return;
     }
     setSubmitting(true);
@@ -74,6 +78,8 @@ export default function StudentAssignments() {
         body: JSON.stringify({
           assignmentId,
           content: submissionText || null,
+          linkUrl: linkUrl || null,
+          submissionType,
           fileUploadIds: uploadedFiles.map(f => f.id),
         }),
       });
@@ -82,6 +88,8 @@ export default function StudentAssignments() {
         setSelectedAssignment(null);
         setSubmissionText('');
         setUploadedFiles([]);
+        setLinkUrl('');
+        setSubmissionType('text');
         fetchAssignments();
       } else {
         const data = await res.json();
@@ -330,15 +338,81 @@ export default function StudentAssignments() {
               </div>
 
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Answer
+                Submission Type
               </label>
-              <textarea
-                value={submissionText}
-                onChange={e => setSubmissionText(e.target.value)}
-                className="input-field min-h-[200px] resize-y"
-                placeholder="Write your answer here..."
-                aria-label="Your answer"
-              />
+              <div className="flex flex-wrap gap-2 mb-4">
+                {[
+                  { type: 'text' as const, icon: <FileText size={14} />, label: 'Written' },
+                  { type: 'link' as const, icon: <Link2 size={14} />, label: 'Link / URL' },
+                  { type: 'audio' as const, icon: <Mic size={14} />, label: 'Audio' },
+                  { type: 'video' as const, icon: <Video size={14} />, label: 'Video' },
+                  { type: 'code' as const, icon: <Code2 size={14} />, label: 'Code' },
+                  { type: 'drawing' as const, icon: <PenTool size={14} />, label: 'Drawing' },
+                ].map(st => (
+                  <button key={st.type} onClick={() => setSubmissionType(st.type)}
+                    className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition',
+                      submissionType === st.type
+                        ? 'border-primary-500 bg-primary-50 text-primary-700'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    )}>
+                    {st.icon} {st.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Written answer */}
+              {(submissionType === 'text' || submissionType === 'code') && (
+                <>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {submissionType === 'code' ? 'Your Code' : 'Your Answer'}
+                  </label>
+                  <textarea
+                    value={submissionText}
+                    onChange={e => setSubmissionText(e.target.value)}
+                    className={cn('input-field min-h-[200px] resize-y', submissionType === 'code' && 'font-mono text-sm')}
+                    placeholder={submissionType === 'code' ? 'Paste your code here...' : 'Write your answer here...'}
+                  />
+                </>
+              )}
+
+              {/* Link submission */}
+              {submissionType === 'link' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <Globe size={14} /> Submit a Link
+                  </label>
+                  <input value={linkUrl} onChange={e => setLinkUrl(e.target.value)}
+                    className="input-field" placeholder="https://docs.google.com/... or any URL" />
+                  <p className="text-xs text-gray-400 mt-1">Google Docs, Slides, YouTube, GitHub, or any web link</p>
+                  <label className="block text-sm font-medium text-gray-700 mt-3 mb-2">Description (optional)</label>
+                  <textarea value={submissionText} onChange={e => setSubmissionText(e.target.value)}
+                    className="input-field min-h-[80px] resize-y" placeholder="Describe what you're submitting..." />
+                </div>
+              )}
+
+              {/* Audio / Video / Drawing */}
+              {(submissionType === 'audio' || submissionType === 'video' || submissionType === 'drawing') && (
+                <div className="text-center py-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                  <div className="text-4xl mb-2">{submissionType === 'audio' ? '🎙️' : submissionType === 'video' ? '🎥' : '🎨'}</div>
+                  <p className="text-sm font-medium text-gray-700">
+                    {submissionType === 'audio' ? 'Upload an audio recording' :
+                     submissionType === 'video' ? 'Upload a video' : 'Upload your drawing or artwork'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1 mb-3">
+                    {submissionType === 'audio' ? 'MP3, WAV, M4A (max 50MB)' :
+                     submissionType === 'video' ? 'MP4, MOV, WebM (max 100MB)' : 'PNG, JPG, SVG, PDF (max 25MB)'}
+                  </p>
+                  <label className="btn-primary text-sm cursor-pointer inline-flex items-center gap-2">
+                    <Upload size={14} /> Choose File
+                    <input type="file" className="hidden" onChange={handleFileUpload}
+                      accept={submissionType === 'audio' ? '.mp3,.wav,.m4a,.ogg,.aac' :
+                              submissionType === 'video' ? '.mp4,.mov,.webm,.avi' : '.png,.jpg,.jpeg,.svg,.pdf,.gif'} />
+                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mt-4 mb-1 text-left px-4">Notes (optional)</label>
+                  <textarea value={submissionText} onChange={e => setSubmissionText(e.target.value)}
+                    className="input-field min-h-[60px] resize-y mx-4" style={{width:'calc(100% - 2rem)'}} placeholder="Any additional notes..." />
+                </div>
+              )}
 
               {/* File Upload Section */}
               <div className="mt-4 border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-primary-300 transition">
@@ -385,7 +459,7 @@ export default function StudentAssignments() {
                   </button>
                   <button
                     onClick={() => handleSubmit(selectedAssignment.id)}
-                    disabled={submitting || (!submissionText.trim() && uploadedFiles.length === 0)}
+                    disabled={submitting || (!submissionText.trim() && uploadedFiles.length === 0 && !linkUrl.trim())}
                     className="btn-primary flex items-center gap-2"
                   >
                     {submitting ? (

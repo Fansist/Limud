@@ -1,6 +1,7 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
+
 import { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
@@ -48,8 +49,7 @@ const DEMO_CERTIFICATES = [
 
 export default function CertificatesPage() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
-  const isDemo = searchParams.get('demo') === 'true' || (typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true');
+  const isDemo = useIsDemo();
   const [selectedCert, setSelectedCert] = useState<any>(null);
 
   const certificates = DEMO_CERTIFICATES;

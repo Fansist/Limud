@@ -18,6 +18,7 @@ import {
   Home, Brain, FileText, Calendar, TrendingUp, Swords, Sun, Moon,
   Lightbulb, Focus, Zap, Target, ChevronDown, Settings, Gamepad2,
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
+  Link2, PenTool, Globe2,
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?: React.ReactNode; };
@@ -38,6 +39,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/student/leaderboard', label: 'Leaderboard', icon: <Swords size={20} /> },
     { href: '/student/badges', label: 'Badges', icon: <Award size={20} /> },
     { href: '/student/certificates', label: 'Certificates', icon: <Award size={20} /> },
+    { href: '/student/platforms', label: 'My Platforms', icon: <Link2 size={20} /> },
   ],
   TEACHER: [
     { href: '/teacher/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
@@ -46,6 +48,8 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/teacher/intelligence', label: 'Intelligence', icon: <Brain size={20} /> },
     { href: '/teacher/quiz-generator', label: 'AI Quiz Generator', icon: <Lightbulb size={20} /> },
     { href: '/teacher/lesson-planner', label: 'AI Lesson Planner', icon: <Wand2 size={20} /> },
+    { href: '/teacher/worksheets', label: 'Worksheet Builder', icon: <PenTool size={20} /> },
+    { href: '/teacher/exchange', label: 'Teacher Exchange', icon: <Globe2 size={20} /> },
     { href: '/teacher/insights', label: 'Insights & Heatmap', icon: <Target size={20} /> },
     { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { href: '/teacher/reports', label: 'AI Reports', icon: <FileText size={20} /> },
