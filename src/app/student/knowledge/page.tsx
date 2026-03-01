@@ -77,18 +77,21 @@ function RadarChart({ data }: { data: { label: string; value: number }[] }) {
 
 // Heatmap Calendar (GitHub-style)
 function HeatCalendar({ data }: { data: Record<string, number> }) {
-  const today = new Date();
-  const weeks: { date: string; value: number }[][] = [];
-  for (let w = 0; w < 12; w++) {
-    const week: { date: string; value: number }[] = [];
-    for (let d = 0; d < 7; d++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - (11 - w) * 7 - (6 - d));
-      const key = date.toISOString().split('T')[0];
-      week.push({ date: key, value: data[key] || 0 });
+  const weeks = useMemo(() => {
+    const today = new Date();
+    const result: { date: string; value: number }[][] = [];
+    for (let w = 0; w < 12; w++) {
+      const week: { date: string; value: number }[] = [];
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - (11 - w) * 7 - (6 - d));
+        const key = date.toISOString().split('T')[0];
+        week.push({ date: key, value: data[key] || 0 });
+      }
+      result.push(week);
     }
-    weeks.push(week);
-  }
+    return result;
+  }, [data]);
 
   const getColor = (v: number) => {
     if (v === 0) return 'bg-gray-100';
@@ -153,13 +156,21 @@ export default function KnowledgeDashboard() {
     label, value: Math.round(vals.reduce((a: number, b: number) => a + b, 0) / vals.length),
   }));
 
-  // Heatmap data (simulated for demo, real from API in production)
-  const heatData: Record<string, number> = {};
-  for (let i = 0; i < 84; i++) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    const key = d.toISOString().split('T')[0];
-    heatData[key] = Math.random() > 0.3 ? Math.floor(Math.random() * 80) : 0;
-  }
+  // Heatmap data - use useMemo with seeded pseudo-random to avoid hydration mismatch
+  const heatData = useMemo(() => {
+    const data: Record<string, number> = {};
+    const today = new Date();
+    for (let i = 0; i < 84; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      // Seeded pseudo-random based on day offset to be deterministic
+      const seed = (i * 2654435761) >>> 0;
+      const val = seed % 100;
+      data[key] = val > 30 ? (seed % 80) : 0;
+    }
+    return data;
+  }, []);
 
   const nextXPNeeded = rank.nextRank ? rank.nextRank.min - rewards.totalXP : 0;
   const rankProgress = rank.nextRank ? Math.round(((rewards.totalXP - rank.min) / (rank.nextRank.min - rank.min)) * 100) : 100;
