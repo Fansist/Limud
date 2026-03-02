@@ -8,7 +8,9 @@ import { cn } from '@/lib/utils';
 import { SUBJECTS, GRADE_LEVELS, DURATIONS } from '@/lib/constants';
 import toast from 'react-hot-toast';
 import {
-  Wand2, Plus, BookOpen, Clock, Star, ChevronDown, ChevronUp, Copy, Heart, Loader2, Sparkles, GraduationCap, FileText, Target, Users, Lightbulb, ClipboardList, Search, ExternalLink, Globe, Download,
+  Wand2, Plus, BookOpen, Clock, Star, ChevronDown, ChevronUp, Copy, Heart, Loader2,
+  Sparkles, GraduationCap, FileText, Target, Users, Lightbulb, ClipboardList,
+  Search, ExternalLink, Globe, Download, Printer, Trash2, CheckCircle,
 } from 'lucide-react';
 
 type LessonPlan = {
@@ -29,6 +31,15 @@ const DEMO_WORKSHEETS = [
   { id:'ws6', title:'Scientific Method Lab Report Template', description:'Guided template for writing lab reports including hypothesis, materials, procedure, data, and conclusion.', subject:'Science', gradeLevel:'6th-9th', source:'sciencebuddies.org', url:'https://www.sciencebuddies.org/', pageCount:2, rating:4.6, downloads:15300, free:true },
   { id:'ws7', title:'Persuasive Essay Graphic Organizer', description:'Help students plan a 5-paragraph persuasive essay with claim, evidence, and reasoning sections.', subject:'English', gradeLevel:'5th-8th', source:'readwritethink.org', url:'https://www.readwritethink.org/', pageCount:1, rating:4.4, downloads:9400, free:true },
   { id:'ws8', title:'Engineering Design Process', description:'Walk through the engineering design process with a hands-on building challenge activity sheet.', subject:'Computer Science', gradeLevel:'6th-9th', source:'pltw.org', url:'https://www.pltw.org/', pageCount:4, rating:4.7, downloads:6800, free:false },
+];
+
+const FLOW_SECTIONS = [
+  { key: 'warmUp', label: 'Warm-Up', icon: '🔥', desc: 'Hook & engage (5 min)', color: 'border-l-orange-400' },
+  { key: 'directInstruction', label: 'Direct Instruction', icon: '📖', desc: 'Teach concepts (10-15 min)', color: 'border-l-blue-400' },
+  { key: 'guidedPractice', label: 'Guided Practice', icon: '👥', desc: 'Work together (10-15 min)', color: 'border-l-green-400' },
+  { key: 'independentPractice', label: 'Independent Practice', icon: '✍️', desc: 'Apply skills (10-15 min)', color: 'border-l-purple-400' },
+  { key: 'assessment', label: 'Assessment', icon: '📊', desc: 'Check understanding', color: 'border-l-amber-400' },
+  { key: 'closure', label: 'Closure', icon: '🎯', desc: 'Reflect & preview (5 min)', color: 'border-l-cyan-400' },
 ];
 
 export default function LessonPlannerPage() {
@@ -100,11 +111,36 @@ export default function LessonPlannerPage() {
     } catch { toast.error('Failed to update'); }
   }
 
+  function deletePlan(id: string) {
+    setPlans(prev => prev.filter(p => p.id !== id));
+    if (expandedPlan === id) setExpandedPlan(null);
+    toast.success('Lesson plan deleted');
+  }
+
   function copyToClipboard(plan: LessonPlan) {
     const objectives = safeJSON(plan.objectives, []);
     const materials = safeJSON(plan.materials || '[]', []);
-    const text = `LESSON PLAN: ${plan.title}\nSubject: ${plan.subject} | Grade: ${plan.gradeLevel} | Duration: ${plan.duration}\n\nOBJECTIVES:\n${objectives.map((o:string,i:number)=>`${i+1}. ${o}`).join('\n')}\n\n${plan.standards?`STANDARDS: ${plan.standards}\n`:''}MATERIALS: ${materials.join(', ')}\n\nWARM-UP: ${plan.warmUp||'N/A'}\nDIRECT INSTRUCTION: ${plan.directInstruction||'N/A'}\nGUIDED PRACTICE: ${plan.guidedPractice||'N/A'}\nINDEPENDENT PRACTICE: ${plan.independentPractice||'N/A'}\nASSESSMENT: ${plan.assessment||'N/A'}\nCLOSURE: ${plan.closure||'N/A'}\nDIFFERENTIATION: ${plan.differentiation||'N/A'}\nHOMEWORK: ${plan.homework||'N/A'}`;
-    navigator.clipboard.writeText(text); toast.success('Copied to clipboard!');
+    const sections = [
+      `LESSON PLAN: ${plan.title}`,
+      `Subject: ${plan.subject} | Grade: ${plan.gradeLevel} | Duration: ${plan.duration}`,
+      `\nOBJECTIVES:\n${objectives.map((o:string,i:number)=>`${i+1}. ${o}`).join('\n')}`,
+      plan.standards ? `\nSTANDARDS:\n${plan.standards}` : '',
+      materials.length > 0 ? `\nMATERIALS:\n${materials.map((m:string) => `- ${m}`).join('\n')}` : '',
+      plan.warmUp ? `\nWARM-UP:\n${plan.warmUp}` : '',
+      plan.directInstruction ? `\nDIRECT INSTRUCTION:\n${plan.directInstruction}` : '',
+      plan.guidedPractice ? `\nGUIDED PRACTICE:\n${plan.guidedPractice}` : '',
+      plan.independentPractice ? `\nINDEPENDENT PRACTICE:\n${plan.independentPractice}` : '',
+      plan.assessment ? `\nASSESSMENT:\n${plan.assessment}` : '',
+      plan.closure ? `\nCLOSURE:\n${plan.closure}` : '',
+      plan.differentiation ? `\nDIFFERENTIATION:\n${plan.differentiation}` : '',
+      plan.homework ? `\nHOMEWORK:\n${plan.homework}` : '',
+    ].filter(Boolean).join('\n');
+    navigator.clipboard.writeText(sections); toast.success('Copied to clipboard!');
+  }
+
+  function printPlan(plan: LessonPlan) {
+    copyToClipboard(plan);
+    toast.success('Plan copied! Use Ctrl+P to print from a new document.');
   }
 
   function safeJSON(str: string, fb: any) { try { return JSON.parse(str); } catch { return fb; } }
@@ -141,12 +177,15 @@ export default function LessonPlannerPage() {
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="page-header">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Wand2 className="text-primary-500" /> AI Lesson Planner
+            <h1 className="page-title">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <Wand2 size={20} />
+              </div>
+              AI Lesson Planner
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Generate lesson plans & find worksheets from across the web</p>
+            <p className="page-subtitle">Generate complete, standards-aligned lesson plans with AI</p>
           </div>
           <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
             <Plus size={16} /> Generate New Plan
@@ -154,14 +193,14 @@ export default function LessonPlannerPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        <div className="tab-group">
           <button onClick={() => setActiveTab('plans')}
-            className={cn('px-4 py-2 rounded-lg text-sm font-medium transition', activeTab === 'plans' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}>
-            <Wand2 size={14} className="inline mr-1.5" /> Lesson Plans ({plans.length})
+            className={cn('tab-item flex items-center gap-1.5', activeTab === 'plans' ? 'tab-item-active' : 'tab-item-inactive')}>
+            <Wand2 size={14} /> Lesson Plans ({plans.length})
           </button>
           <button onClick={() => setActiveTab('worksheets')}
-            className={cn('px-4 py-2 rounded-lg text-sm font-medium transition', activeTab === 'worksheets' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}>
-            <Search size={14} className="inline mr-1.5" /> Find Worksheets
+            className={cn('tab-item flex items-center gap-1.5', activeTab === 'worksheets' ? 'tab-item-active' : 'tab-item-inactive')}>
+            <Search size={14} /> Find Worksheets
           </button>
         </div>
 
@@ -169,12 +208,14 @@ export default function LessonPlannerPage() {
           /* ─── WORKSHEET FINDER ─── */
           <div className="space-y-6">
             <div className="card">
-              <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Search size={18} className="text-primary-500" /> Search Worksheets Online</h2>
+              <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <Search size={18} className="text-primary-500" /> Search Worksheets Online
+              </h2>
               <p className="text-sm text-gray-500 mb-4">Find free and premium worksheets from education.com, Teachers Pay Teachers, K5 Learning, Common Core Sheets, and more.</p>
               <div className="grid sm:grid-cols-4 gap-3">
                 <div className="sm:col-span-2">
                   <input value={worksheetQuery} onChange={e => setWorksheetQuery(e.target.value)} onKeyDown={e => e.key==='Enter' && searchWorksheets()}
-                    className="input-field" placeholder="Topic, e.g. fractions, photosynthesis..." />
+                    className="input-field" placeholder="Search by topic, e.g. fractions, photosynthesis..." />
                 </div>
                 <select value={wsSubject} onChange={e => setWsSubject(e.target.value)} className="input-field">
                   <option value="">All Subjects</option>
@@ -185,7 +226,7 @@ export default function LessonPlannerPage() {
                   {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
-              <button onClick={searchWorksheets} disabled={searchingWorksheets} className="btn-primary mt-3 flex items-center gap-2">
+              <button onClick={searchWorksheets} disabled={searchingWorksheets} className="btn-primary mt-4 flex items-center gap-2">
                 {searchingWorksheets ? <><Loader2 size={14} className="animate-spin" /> Searching...</> : <><Search size={14} /> Search Worksheets</>}
               </button>
             </div>
@@ -228,10 +269,10 @@ export default function LessonPlannerPage() {
                 })}
               </div>
             ) : !searchingWorksheets && (
-              <div className="card text-center py-12">
-                <Globe size={48} className="text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg font-medium">Search for worksheets</p>
-                <p className="text-gray-400 text-sm mt-1">Find worksheets from education.com, Teachers Pay Teachers, K5 Learning, and more</p>
+              <div className="empty-state">
+                <Globe size={48} className="empty-state-icon" />
+                <p className="empty-state-title">Search for worksheets</p>
+                <p className="empty-state-desc">Find worksheets from education.com, Teachers Pay Teachers, K5 Learning, and more</p>
               </div>
             )}
           </div>
@@ -239,10 +280,12 @@ export default function LessonPlannerPage() {
           /* ─── LESSON PLANS TAB ─── */
           <>
             <div className="flex gap-2">
-              <button onClick={() => setFilter('all')} className={cn('px-4 py-2 rounded-xl text-sm font-medium transition', filter==='all' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200')}>
+              <button onClick={() => setFilter('all')}
+                className={cn('filter-pill', filter==='all' ? 'filter-pill-active' : 'filter-pill-inactive')}>
                 All Plans ({plans.length})
               </button>
-              <button onClick={() => setFilter('favorites')} className={cn('px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1', filter==='favorites' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200')}>
+              <button onClick={() => setFilter('favorites')}
+                className={cn('filter-pill flex items-center gap-1', filter==='favorites' ? 'bg-amber-100 text-amber-700' : 'filter-pill-inactive')}>
                 <Star size={14} /> Favorites ({plans.filter(p=>p.isFavorite).length})
               </button>
             </div>
@@ -250,10 +293,10 @@ export default function LessonPlannerPage() {
             {loading ? (
               <div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" /></div>
             ) : filtered.length === 0 ? (
-              <div className="card text-center py-12">
-                <Wand2 size={48} className="text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg font-medium">No lesson plans yet</p>
-                <p className="text-gray-400 text-sm mt-1">Generate your first AI-powered lesson plan!</p>
+              <div className="empty-state">
+                <Wand2 size={48} className="empty-state-icon" />
+                <p className="empty-state-title">No lesson plans yet</p>
+                <p className="empty-state-desc">Generate your first AI-powered lesson plan!</p>
                 <button onClick={() => setShowForm(true)} className="btn-primary mt-4"><Plus size={16} className="mr-2 inline" /> Generate Lesson Plan</button>
               </div>
             ) : (
@@ -270,47 +313,110 @@ export default function LessonPlannerPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-bold text-gray-900 text-lg">{plan.title}</h3>
-                            {plan.aiGenerated && <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full"><Sparkles size={10} /> AI</span>}
+                            {plan.aiGenerated && <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full"><Sparkles size={10} /> AI Generated</span>}
                           </div>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                          <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
                             <span className="flex items-center gap-1"><BookOpen size={12} /> {plan.subject}</span>
                             <span className="flex items-center gap-1"><GraduationCap size={12} /> {plan.gradeLevel} Grade</span>
                             <span className="flex items-center gap-1"><Clock size={12} /> {plan.duration}</span>
                           </div>
-                          {!isExpanded && objectives.length > 0 && <p className="text-sm text-gray-500 mt-2 line-clamp-1">Objectives: {objectives.join('; ')}</p>}
+                          {!isExpanded && objectives.length > 0 && (
+                            <p className="text-sm text-gray-500 mt-2 line-clamp-2">
+                              <span className="font-medium text-gray-600">Objectives:</span> {objectives.join('; ')}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          <button onClick={() => toggleFavorite(plan)} className={cn('p-2 rounded-lg transition', plan.isFavorite ? 'text-amber-500 bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50')}>
+                          <button onClick={() => toggleFavorite(plan)} className={cn('p-2 rounded-lg transition', plan.isFavorite ? 'text-amber-500 bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50')} title="Favorite">
                             <Heart size={16} fill={plan.isFavorite ? 'currentColor' : 'none'} />
                           </button>
-                          <button onClick={() => copyToClipboard(plan)} className="p-2 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 transition"><Copy size={16} /></button>
+                          <button onClick={() => copyToClipboard(plan)} className="p-2 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 transition" title="Copy to clipboard"><Copy size={16} /></button>
+                          <button onClick={() => printPlan(plan)} className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition" title="Print"><Printer size={16} /></button>
+                          <button onClick={() => deletePlan(plan.id)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition" title="Delete"><Trash2 size={16} /></button>
                           <button onClick={() => setExpandedPlan(isExpanded ? null : plan.id)} className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
                             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
                         </div>
                       </div>
+
+                      {/* ─── Expanded Lesson Plan Detail ─── */}
                       <AnimatePresence>
                         {isExpanded && (
                           <motion.div initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}} className="mt-6 overflow-hidden">
-                            <div className="space-y-5">
-                              {objectives.length > 0 && <PlanSection icon={<Target size={16} />} title="Learning Objectives" color="text-blue-600">
-                                <ul className="space-y-1.5">{objectives.map((obj:string,j:number)=><li key={j} className="text-sm text-gray-700 flex items-start gap-2"><span className="text-blue-500 mt-0.5">•</span> {obj}</li>)}</ul>
-                              </PlanSection>}
-                              {plan.standards && <PlanSection icon={<ClipboardList size={16} />} title="Standards" color="text-green-600"><p className="text-sm text-gray-700">{plan.standards}</p></PlanSection>}
-                              {materials.length > 0 && <PlanSection icon={<FileText size={16} />} title="Materials" color="text-amber-600">
-                                <div className="flex flex-wrap gap-2">{materials.map((m:string,j:number)=><span key={j} className="text-xs px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg">{m}</span>)}</div>
-                              </PlanSection>}
-                              <div className="border-t border-gray-100 pt-5">
-                                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><BookOpen size={16} className="text-primary-500" /> Lesson Flow</h4>
-                                <div className="space-y-4">
-                                  {[{key:'warmUp',label:'🔥 Warm-Up',content:plan.warmUp},{key:'directInstruction',label:'📖 Direct Instruction',content:plan.directInstruction},
-                                    {key:'guidedPractice',label:'👥 Guided Practice',content:plan.guidedPractice},{key:'independentPractice',label:'✍️ Independent Practice',content:plan.independentPractice},
-                                    {key:'assessment',label:'📊 Assessment',content:plan.assessment},{key:'closure',label:'🎯 Closure',content:plan.closure},
-                                  ].map(s => s.content && <div key={s.key} className="bg-gray-50 rounded-xl p-4"><h5 className="text-sm font-semibold text-gray-800 mb-2">{s.label}</h5><div className="text-sm text-gray-600 whitespace-pre-wrap">{s.content}</div></div>)}
+                            <div className="space-y-6">
+                              {/* Objectives */}
+                              {objectives.length > 0 && (
+                                <div className="bg-blue-50 rounded-xl p-5 border border-blue-100">
+                                  <h4 className="text-sm font-semibold text-blue-700 flex items-center gap-2 mb-3"><Target size={16} /> Learning Objectives</h4>
+                                  <ul className="space-y-2">
+                                    {objectives.map((obj:string,j:number) => (
+                                      <li key={j} className="text-sm text-gray-700 flex items-start gap-2.5">
+                                        <CheckCircle size={16} className="text-blue-500 mt-0.5 flex-shrink-0" /> {obj}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Standards & Materials Row */}
+                              <div className="grid md:grid-cols-2 gap-4">
+                                {plan.standards && (
+                                  <div className="bg-green-50 rounded-xl p-5 border border-green-100">
+                                    <h4 className="text-sm font-semibold text-green-700 flex items-center gap-2 mb-2"><ClipboardList size={16} /> Standards Alignment</h4>
+                                    <p className="text-sm text-gray-700 leading-relaxed">{plan.standards}</p>
+                                  </div>
+                                )}
+                                {materials.length > 0 && (
+                                  <div className="bg-amber-50 rounded-xl p-5 border border-amber-100">
+                                    <h4 className="text-sm font-semibold text-amber-700 flex items-center gap-2 mb-2"><FileText size={16} /> Materials Needed</h4>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {materials.map((m:string,j:number) => (
+                                        <span key={j} className="text-xs px-2.5 py-1 bg-white text-amber-700 rounded-lg border border-amber-200">{m}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Lesson Flow - The Main Lesson Sections */}
+                              <div>
+                                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-base">
+                                  <BookOpen size={18} className="text-primary-500" /> Lesson Flow
+                                </h4>
+                                <div className="space-y-3">
+                                  {FLOW_SECTIONS.map(section => {
+                                    const content = (plan as any)[section.key];
+                                    if (!content) return null;
+                                    return (
+                                      <div key={section.key} className={cn('bg-white rounded-xl p-5 border border-gray-100 border-l-4 shadow-sm', section.color)}>
+                                        <div className="flex items-center justify-between mb-2">
+                                          <h5 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                                            <span className="text-base">{section.icon}</span> {section.label}
+                                          </h5>
+                                          <span className="text-[10px] text-gray-400 font-medium">{section.desc}</span>
+                                        </div>
+                                        <div className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{content}</div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
-                              {plan.differentiation && <PlanSection icon={<Users size={16} />} title="Differentiation" color="text-purple-600"><div className="text-sm text-gray-700 whitespace-pre-wrap">{plan.differentiation}</div></PlanSection>}
-                              {plan.homework && <PlanSection icon={<Lightbulb size={16} />} title="Homework" color="text-orange-600"><div className="text-sm text-gray-700 whitespace-pre-wrap">{plan.homework}</div></PlanSection>}
+
+                              {/* Differentiation */}
+                              {plan.differentiation && (
+                                <div className="bg-purple-50 rounded-xl p-5 border border-purple-100">
+                                  <h4 className="text-sm font-semibold text-purple-700 flex items-center gap-2 mb-3"><Users size={16} /> Differentiation Strategies</h4>
+                                  <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{plan.differentiation}</div>
+                                </div>
+                              )}
+
+                              {/* Homework */}
+                              {plan.homework && (
+                                <div className="bg-orange-50 rounded-xl p-5 border border-orange-100">
+                                  <h4 className="text-sm font-semibold text-orange-700 flex items-center gap-2 mb-3"><Lightbulb size={16} /> Homework Assignment</h4>
+                                  <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{plan.homework}</div>
+                                </div>
+                              )}
                             </div>
                           </motion.div>
                         )}
@@ -327,19 +433,33 @@ export default function LessonPlannerPage() {
       {/* Generate Modal */}
       <AnimatePresence>
         {showForm && (
-          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-            <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}} exit={{scale:0.9,y:20}} className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
+            <motion.div initial={{scale:0.95,y:20}} animate={{scale:1,y:0}} exit={{scale:0.95,y:20}} className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-xl flex items-center justify-center text-white"><Wand2 size={20} /></div>
-                <div><h2 className="text-xl font-bold text-gray-900">Generate Lesson Plan</h2><p className="text-sm text-gray-500">AI will create a complete, standards-aligned plan</p></div>
+                <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-sm"><Wand2 size={20} /></div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Generate Lesson Plan</h2>
+                  <p className="text-sm text-gray-500">AI will create a complete, standards-aligned lesson</p>
+                </div>
               </div>
+
+              {/* What you'll get */}
+              <div className="bg-gradient-to-r from-primary-50 to-indigo-50 rounded-xl p-4 mb-6 border border-primary-100">
+                <p className="text-xs font-semibold text-primary-700 mb-2">Your lesson plan will include:</p>
+                <div className="grid grid-cols-2 gap-1.5 text-[11px] text-primary-600">
+                  {['Learning objectives', 'Standards alignment', 'Materials list', 'Warm-up activity', 'Direct instruction script', 'Guided practice', 'Independent practice', 'Assessment & exit ticket', 'Closure activity', 'Differentiation strategies', 'Homework assignment'].map(item => (
+                    <div key={item} className="flex items-center gap-1"><CheckCircle size={10} className="text-primary-500" /> {item}</div>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
                   <div className="grid grid-cols-5 gap-2">
                     {SUBJECTS.map(s => (
                       <button key={s.value} onClick={() => setSubject(s.value)}
-                        className={cn('p-2 rounded-xl text-center transition border-2', subject===s.value ? 'border-primary-500 bg-primary-50' : 'border-gray-200 bg-white hover:border-gray-300')}>
+                        className={cn('p-2 rounded-xl text-center transition border-2', subject===s.value ? 'border-primary-500 bg-primary-50 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300')}>
                         <span className="text-lg">{s.icon}</span><p className="text-[10px] mt-1 font-medium text-gray-600 truncate">{s.value}</p>
                       </button>
                     ))}
@@ -354,12 +474,13 @@ export default function LessonPlannerPage() {
                   </div>
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Topic *</label>
-                  <input value={topic} onChange={e => setTopic(e.target.value)} className="input-field" placeholder="e.g., Introduction to Photosynthesis" />
+                  <input value={topic} onChange={e => setTopic(e.target.value)} className="input-field" placeholder="e.g., Introduction to Photosynthesis, Fractions, Algebra" />
+                  <p className="text-xs text-gray-400 mt-1">Be specific for better results. E.g., "Adding fractions with unlike denominators" rather than "Fractions"</p>
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Additional Notes (optional)</label>
-                  <textarea value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} className="input-field min-h-[80px]" placeholder="Any specific requirements..." />
+                  <textarea value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} className="input-field min-h-[80px]" placeholder="Specific requirements, student needs, focus areas..." />
                 </div>
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-3 pt-2">
                   <button onClick={() => { setShowForm(false); resetForm(); }} className="btn-secondary flex-1">Cancel</button>
                   <button onClick={handleGenerate} disabled={generating||!subject||!gradeLevel||!topic}
                     className={cn('btn-primary flex-1 flex items-center justify-center gap-2', (generating||!subject||!gradeLevel||!topic) && 'opacity-50 cursor-not-allowed')}>
@@ -373,8 +494,4 @@ export default function LessonPlannerPage() {
       </AnimatePresence>
     </DashboardLayout>
   );
-}
-
-function PlanSection({ icon, title, color, children }: { icon: React.ReactNode; title: string; color: string; children: React.ReactNode }) {
-  return <div><h4 className={cn('text-sm font-semibold flex items-center gap-2 mb-2', color)}>{icon} {title}</h4>{children}</div>;
 }

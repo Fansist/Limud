@@ -2,46 +2,64 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 7.0.0
+- **Version**: 7.1.0
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
+- **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
 
-## What's New in v7.0.0
+## What's New in v7.1.0 - Professional Polish & Consistency Update
 
-### Platform Linking - Major Expansion (16+ Platforms)
-- **Added 10 new platforms**: Schoology, Clever, IXL Learning, Quizlet, Newsela, Desmos, Kahoot!, BrainPOP, Edpuzzle, Nearpod
-- **Existing 6 platforms**: Khan Academy, i-Ready, Amplify, PLTW, Google Classroom, Canvas LMS
-- **Complete linking feature**: Connect, disconnect, sync, auto-sync toggle, sync status tracking, item count
-- **Search & filter**: Search by name/description, filter by 14 categories (Learning, LMS, Assessment, STEM, etc.)
-- **Detailed sync status**: Active/error/syncing states, last sync timestamp, items synced count
-- **Security**: Encrypted credentials notice, privacy assurance, one-click disconnect
-- **Platform detail expansion**: View all features and syncable data types for each platform
-- **Stats dashboard**: Connected count, auto-syncing count, total items synced
+### UI/UX Professional Polish
+- **Global CSS system overhaul**: Standardized component classes (`.page-header`, `.page-title`, `.page-subtitle`, `.section-header`, `.empty-state`, `.tab-group`, `.filter-pill`, `.btn-danger`)
+- **Consistent page headers**: All pages now use unified `page-header`/`page-title`/`page-subtitle` patterns with gradient icon badges
+- **Unified empty states**: All empty states follow `.empty-state` pattern with icon, title, and description
+- **Tab and filter consistency**: Tab groups and filter pills standardized across all pages
+- **Print stylesheet**: Added `@media print` styles for lesson plans, quizzes, and assignments
+- **Better card system**: Refined shadow, hover states, and border styles for professional appearance
 
-### Landing Page / Home Screen - Complete Redesign
-- **New integrations section**: Showcases all 16+ connected platforms with animated logos
-- **Updated hero section**: Highlights "16+ integrations" badge, shows platform integration preview in dashboard mockup
-- **New feature grid**: 12 feature cards covering all capabilities (AI Tutor, Lesson Planner, Quiz Generator, Auto-Grader, Gamification, Games, Platform Links, Assignment Manager, Knowledge Analytics, Game Control, Parent Portal, Admin Dashboard)
-- **Updated social proof**: Now shows 16+ integrations as a stat
-- **Updated pricing**: Plans now mention platform link limits (3, 10, All 16+, Unlimited)
-- **Updated FAQ**: New question about which platforms are supported
-- **Updated testimonials**: References i-Ready and Amplify syncing
-- **Updated "How It Works"**: Step 2 now covers platform connections
+### AI Lesson Planner - Major Overhaul
+- **Specialized lesson generation**: AI generates fully fleshed, detailed lesson plans - not just titled templates
+- **Color-coded lesson flow sections**: Warm-Up, Direct Instruction, Guided Practice, Independent Practice, Assessment, Closure - each with distinct left-border color, icon, and timing descriptor
+- **Rich objective display**: Blue-themed section with checkmark icons for each learning objective
+- **Standards alignment box**: Green-themed section showing Common Core / NGSS alignment
+- **Materials list**: Amber-themed section with pill-style material tags
+- **Differentiation strategies**: Purple-themed section for ELL, IEP, Advanced, and kinesthetic learners
+- **Homework section**: Orange-themed section with full homework descriptions
+- **Generation preview**: Modal shows exactly what sections will be generated (11 sections listed)
+- **Better topic guidance**: Hint text encourages specific topics for better results
+- **Print & delete actions**: Added print and delete buttons per lesson plan
+- **Professional card expansion**: Smooth animated expansion with proper section hierarchy
 
-### Bug Fixes & Optimization
-- **Fixed 27 double-semicolon syntax errors** across all TSX files (import statements had `;;` instead of `;`)
-- **Removed 541MB core dump file** that was bloating the repository
-- **Knowledge page**: Already fixed hydration issues with deterministic pseudo-random for heatmap data (from v6.0)
-- **All pages verified**: 15+ pages returning HTTP 200 including landing, all role dashboards, and feature pages
+### AI Quiz Generator - Enhanced
+- **Labeled form fields**: Each dropdown/input has a descriptive label for clarity
+- **Student-version copy**: Button to copy quiz without answers for student distribution
+- **Quiz header stats**: Shows grade level, difficulty badge, question count in organized header
+- **Question type indicators**: Shows "Multiple Choice" or "Short Answer" badge per question
+- **Answer/explanation styling**: Green/blue themed answer and explanation boxes with borders
+- **Footer stats**: Shows MC vs SA count and creation date
+- **Better quiz list**: Improved sidebar with favorite stars, difficulty badges, and delete buttons
 
-### Previously Implemented (v6.0 - Maintained)
-- **AI Lesson Planner**: Generates specialized, detailed lesson plans with real objectives, standards, materials, warm-up, instruction, practice, assessment, closure, differentiation, and homework
-- **AI Quiz Generator**: Creates curriculum-aligned quizzes with real questions, correct answers, and explanations per subject/topic
-- **Game Store**: 6 games with real playable mini-games (Math Blaster, Word Quest, Trivia)
-- **Game Control**: Per-class toggle, global block/unblock, game stats dashboard
-- **Assignment Manager**: Categories with grade weighting (Homework 20%, Classwork 20%, Quizzes 25%, Tests 25%, Projects 10%), extra credit support, file upload (25MB), link attachments, multi-format submissions
-- **Student Assignments**: Worksheet/link viewing, multi-format submissions (text, code, link, audio, video, drawing), AI feedback display
+### Game Control - Enhanced
+- **4-column stat grid**: Block All, Classes Blocked, Total Students, Game Stats
+- **Subject color coding**: Classroom cards show subject abbreviation with color-coded icon
+- **Blocked classroom styling**: Red tint on cards for blocked classrooms
+- **Game stats with trends**: Each game shows play count, avg score, top player, and trend percentage
+- **Better toggle layout**: Larger status badges with clear Blocked/Allowed labels
+
+### Global Styling Improvements
+- **Button system**: Added `.btn-danger` class
+- **Lesson flow CSS**: Added `.lesson-flow-section` class for consistent lesson plan rendering
+- **Form labels**: Consistent `text-xs font-medium text-gray-500` label styling
+- **Card borders**: Refined border colors for different states (active, error, success)
+- **Backdrop blur on modals**: All modals now use `backdrop-blur-sm` for professional overlay effect
+
+### Previous Features (Maintained from v7.0.0)
+- **16+ Platform Integrations**: Khan Academy, i-Ready, Amplify, PLTW, Google Classroom, Canvas, Schoology, Clever, IXL, Quizlet, Newsela, Desmos, Kahoot!, BrainPOP, Edpuzzle, Nearpod
+- **Assignment Manager**: Categories with grade weighting, extra credit, file/link attachments
+- **Game Store**: 6 games with playable mini-games (Math Blaster, Word Quest, Trivia)
+- **Knowledge Page**: Skill radar, study heatmap, rank system, goal tracking
+- **All role dashboards**: Student, Teacher, Admin, Parent, Homeschool
 
 ## Features by Role
 
@@ -62,7 +80,7 @@
 | Leaderboard | `/student/leaderboard` | Class and school rankings |
 | Badges | `/student/badges` | Achievement badge collection |
 | Certificates | `/student/certificates` | Progress certificates |
-| My Platforms | `/student/platforms` | **16+ platform connections** with search, filter, sync |
+| My Platforms | `/student/platforms` | 16+ platform connections with search, filter, sync |
 
 ### Teacher Features
 | Feature | Path | Description |
@@ -71,9 +89,9 @@
 | Assignment Manager | `/teacher/assignments` | Create with categories, weights, attachments, extra credit |
 | AI Grading | `/teacher/grading` | One-click rubric-based auto-grading |
 | Intelligence | `/teacher/intelligence` | Student behavior insights |
-| AI Quiz Generator | `/teacher/quiz-generator` | Curriculum-aligned quiz creation |
-| AI Lesson Planner | `/teacher/lesson-planner` | Complete lesson plans + worksheet finder |
-| Game Control | `/teacher/games` | Per-class game access toggle + stats |
+| AI Quiz Generator | `/teacher/quiz-generator` | Curriculum-aligned quiz creation with student-version export |
+| AI Lesson Planner | `/teacher/lesson-planner` | Complete lesson plans with 11 sections + worksheet finder |
+| Game Control | `/teacher/games` | Per-class game access toggle + stats + trends |
 | Teacher Exchange | `/teacher/exchange` | Share resources with other teachers |
 | Worksheets | `/teacher/worksheets` | Worksheet library and builder |
 | Reports | `/teacher/reports` | Class and student reports |
@@ -135,12 +153,26 @@
 - **Worksheets**: Searchable from education.com, TeachersPayTeachers, K5 Learning, etc.
 - Students can view all attachments directly from their assignment view
 
+## AI Lesson Plan Structure
+Each generated lesson plan includes these fully detailed sections:
+1. **Learning Objectives** - 3+ specific, measurable objectives
+2. **Standards Alignment** - Common Core, NGSS, or subject-specific standards
+3. **Materials Needed** - Complete materials list with specifics
+4. **Warm-Up** (5 min) - Engaging hook activity with discussion prompts
+5. **Direct Instruction** (10-15 min) - Step-by-step teaching script with examples
+6. **Guided Practice** (10-15 min) - Collaborative activities with teacher facilitation
+7. **Independent Practice** (10-15 min) - Tiered problem sets (approaching/on grade/advanced)
+8. **Assessment** - Exit ticket with rubric and scoring criteria
+9. **Closure** (5 min) - Reflection activity and preview of next lesson
+10. **Differentiation** - Strategies for ELL, IEP, Advanced, and kinesthetic learners
+11. **Homework** - Extension activities with real-world connections
+
 ## API Endpoints
 
 ### Demo API (`/api/demo`)
 - `GET ?type=student-assignments|student-rewards|teacher-assignments|teacher-analytics|admin-districts|parent-children|notifications|lesson-plans|messages|user`
-- `POST type=generate-lesson-plan` - AI lesson plan generation
-- `POST type=generate-quiz` - AI quiz generation
+- `POST type=generate-lesson-plan` - AI lesson plan generation (specialized per subject/topic)
+- `POST type=generate-quiz` - AI quiz generation (specialized per subject/topic)
 - `POST type=tutor-chat` - AI tutor conversation
 - `POST type=grade-submission` - AI grading
 
@@ -168,11 +200,20 @@
 ## Deployment
 - **Platform**: Vercel / Cloudflare Pages compatible
 - **Status**: Active
-- **Last Updated**: March 1, 2026
-- **Build**: `npx next build` (all 15+ pages compile successfully)
+- **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
+- **Last Updated**: March 2, 2026
+- **Build**: `npx next build` (all pages compile successfully)
 - **Dev Server**: `pm2 start ecosystem.config.cjs` on port 3000
 
 ## Version History
+
+### v7.1.0 (March 2, 2026) - Professional Polish & Consistency
+- Global CSS system overhaul with standardized component classes
+- AI Lesson Planner major overhaul with color-coded lesson flow sections
+- AI Quiz Generator enhanced with labeled fields, student-version export
+- Game Control enhanced with 4-column stats, subject colors, trends
+- Print stylesheet for lesson plans and quizzes
+- Unified page headers, empty states, tabs, and filters across all pages
 
 ### v7.0.0 (March 1, 2026) - Platform Expansion & Landing Page Redesign
 - Added 10 new educational platform integrations (total: 16+)
@@ -180,27 +221,15 @@
 - Landing page redesign with integrations section, updated features grid, pricing
 - Fixed 27 double-semicolon syntax errors across codebase
 - Removed 541MB core dump file
-- All pages verified working (HTTP 200)
 
 ### v6.0.0 (March 1, 2026) - Major Feature Overhaul
-- Specialized AI lesson plan generation (not generic templates)
+- Specialized AI lesson plan generation
 - Specialized AI quiz generation with real curriculum content
 - Interactive game store with playable mini-games
 - Game control with per-class toggles and stats
 - Assignment categories with grade weighting
 - Extra credit assignment support
 - File and link attachments for assignments
-- Knowledge page hydration fix
-
-### v5.0.0 - Full Optimization
-- Performance optimization across all pages
-- Reduced bundle sizes
-- Improved loading states
-
-### v4.0.0 - Worksheet Builder & Teacher Exchange
-- Worksheet builder and template library
-- Teacher resource exchange platform
-- Enhanced submission types
 
 ### Earlier Versions
 - Core platform with student, teacher, admin, parent dashboards
@@ -214,8 +243,8 @@
 ### For Teachers
 1. Visit any teacher page with `?demo=true` to explore features
 2. **Create assignments** with the Assignment Manager - set categories, weights, and attach files/links
-3. **Generate lesson plans** with the AI Lesson Planner - get complete, standards-aligned plans
-4. **Generate quizzes** with the AI Quiz Generator - get curriculum-aligned questions
+3. **Generate lesson plans** with the AI Lesson Planner - get complete, standards-aligned plans with 11 detailed sections
+4. **Generate quizzes** with the AI Quiz Generator - get curriculum-aligned questions with explanations
 5. **Control games** per-class during instruction time
 
 ### For Students

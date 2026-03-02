@@ -1,22 +1,34 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useEffect, useState } from 'react';
-
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import { SUBJECTS, GRADE_LEVELS } from '@/lib/constants';
 import {
   Lightbulb, Sparkles, FileText, Star, CheckCircle, Copy, Trash2, Printer,
+  Loader2, ChevronDown, ChevronUp, Download, Eye, EyeOff, GraduationCap,
+  Target, BarChart3, Clock,
 } from 'lucide-react';
 
 function safeParseQuestions(data: any): any[] {
   if (Array.isArray(data)) return data;
-  if (typeof data === 'string') {
-    try { return JSON.parse(data); } catch { return []; }
-  }
+  if (typeof data === 'string') { try { return JSON.parse(data); } catch { return []; } }
   return [];
 }
+
+const DIFF_COLORS: Record<string, string> = {
+  BEGINNER: 'bg-green-100 text-green-700 border-green-200',
+  EASY: 'bg-blue-100 text-blue-700 border-blue-200',
+  MEDIUM: 'bg-amber-100 text-amber-700 border-amber-200',
+  HARD: 'bg-red-100 text-red-700 border-red-200',
+  ADVANCED: 'bg-purple-100 text-purple-700 border-purple-200',
+};
+
+const DIFF_LABELS: Record<string, string> = {
+  BEGINNER: 'Beginner', EASY: 'Easy', MEDIUM: 'Medium', HARD: 'Hard', ADVANCED: 'Advanced',
+};
 
 export default function QuizGeneratorPage() {
   const isDemo = useIsDemo();
@@ -51,60 +63,37 @@ export default function QuizGeneratorPage() {
   }, [isDemo]);
 
   async function generateQuiz() {
+    if (!form.topic && !form.subject) { toast.error('Please enter a topic or select a subject'); return; }
     setGenerating(true);
-    if (isDemo) {
-      try {
-        const res = await fetch('/api/demo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'generate-quiz',
-            subject: form.subject,
-            gradeLevel: form.gradeLevel,
-            topic: form.topic,
-            questionCount: form.questionCount,
-            difficulty: form.difficulty,
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setQuizzes(prev => [data.quiz, ...prev]);
-          setSelectedQuiz(data.quiz);
-          toast.success('Quiz generated with specialized questions!');
-        }
-      } catch { toast.error('Failed to generate quiz'); }
-      setGenerating(false);
-      return;
-    }
+    const endpoint = isDemo ? '/api/demo' : '/api/quiz-generator';
+    const body = isDemo ? { type: 'generate-quiz', ...form } : form;
     try {
-      const res = await fetch('/api/quiz-generator', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (res.ok) {
         const data = await res.json();
         setQuizzes(prev => [data.quiz, ...prev]);
         setSelectedQuiz(data.quiz);
-        toast.success('Quiz generated!');
+        toast.success('Quiz generated with specialized questions!');
       }
     } catch { toast.error('Failed to generate quiz'); }
     setGenerating(false);
   }
 
-  function copyQuizToClipboard() {
+  function copyQuizToClipboard(studentVersion = false) {
     if (!selectedQuiz) return;
     const questions = safeParseQuestions(selectedQuiz.questions);
-    const text = `${selectedQuiz.title}\n${'='.repeat(40)}\n\n` +
-      questions.map((q: any, i: number) => {
-        let qText = `${i + 1}. ${q.question}\n`;
-        if (q.options) qText += q.options.map((o: string, j: number) => `   ${String.fromCharCode(65 + j)}. ${o}`).join('\n') + '\n';
-        qText += `   Answer: ${q.correctAnswer}\n`;
+    let text = `${selectedQuiz.title}\n${'='.repeat(50)}\nSubject: ${selectedQuiz.subject} | Grade: ${selectedQuiz.gradeLevel} | Difficulty: ${selectedQuiz.difficulty}\n\n`;
+    text += questions.map((q: any, i: number) => {
+      let qText = `${i + 1}. ${q.question}\n`;
+      if (q.options) qText += q.options.map((o: string, j: number) => `   ${String.fromCharCode(65 + j)}. ${o}`).join('\n') + '\n';
+      if (!studentVersion) {
+        qText += `\n   Answer: ${q.correctAnswer}\n`;
         if (q.explanation) qText += `   Explanation: ${q.explanation}\n`;
-        return qText;
-      }).join('\n');
+      }
+      return qText;
+    }).join('\n');
     navigator.clipboard.writeText(text);
-    toast.success('Quiz copied to clipboard!');
+    toast.success(studentVersion ? 'Student version copied (no answers)!' : 'Quiz with answers copied!');
   }
 
   function deleteQuiz(id: string) {
@@ -113,24 +102,23 @@ export default function QuizGeneratorPage() {
     toast.success('Quiz deleted');
   }
 
-  const diffColors: Record<string, string> = {
-    BEGINNER: 'bg-green-100 text-green-700',
-    EASY: 'bg-blue-100 text-blue-700',
-    MEDIUM: 'bg-amber-100 text-amber-700',
-    HARD: 'bg-red-100 text-red-700',
-    ADVANCED: 'bg-purple-100 text-purple-700',
-  };
+  function toggleFavorite(id: string) {
+    setQuizzes(prev => prev.map(q => q.id === id ? { ...q, isFavorite: !q.isFavorite } : q));
+  }
 
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
-            <Lightbulb size={22} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">AI Quiz Generator</h1>
-            <p className="text-xs text-gray-400">Generate quizzes with real, curriculum-aligned questions</p>
+        {/* Header */}
+        <div className="page-header">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-sm">
+              <Lightbulb size={22} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">AI Quiz Generator</h1>
+              <p className="text-xs text-gray-400">Generate curriculum-aligned quizzes with real questions and explanations</p>
+            </div>
           </div>
         </div>
 
@@ -140,51 +128,77 @@ export default function QuizGeneratorPage() {
             <Sparkles size={16} className="text-primary-500" /> Generate New Quiz
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <select className="input-field" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })}>
-              {['Math', 'Science', 'English', 'History', 'Writing'].map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select className="input-field" value={form.gradeLevel} onChange={e => setForm({ ...form, gradeLevel: e.target.value })}>
-              {['3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th'].map(g => <option key={g} value={g}>{g} Grade</option>)}
-            </select>
-            <select className="input-field" value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })}>
-              {['BEGINNER', 'EASY', 'MEDIUM', 'HARD', 'ADVANCED'].map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <input className="input-field" placeholder="Topic (e.g., Algebra, Fractions, Biology)" value={form.topic} onChange={e => setForm({ ...form, topic: e.target.value })} />
-            <select className="input-field" value={form.questionCount} onChange={e => setForm({ ...form, questionCount: +e.target.value })}>
-              {[5, 8, 10, 15, 20].map(n => <option key={n} value={n}>{n} questions</option>)}
-            </select>
-            <button onClick={generateQuiz} disabled={generating} className="btn-primary flex items-center justify-center gap-2">
-              <Sparkles size={16} /> {generating ? 'Generating...' : 'Generate Quiz'}
-            </button>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Subject</label>
+              <select className="input-field" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })}>
+                {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.icon} {s.value}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Grade Level</label>
+              <select className="input-field" value={form.gradeLevel} onChange={e => setForm({ ...form, gradeLevel: e.target.value })}>
+                {GRADE_LEVELS.map(g => <option key={g} value={g}>{g} Grade</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Difficulty</label>
+              <select className="input-field" value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })}>
+                {Object.entries(DIFF_LABELS).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Topic (optional)</label>
+              <input className="input-field" placeholder="e.g., Algebra, Photosynthesis" value={form.topic} onChange={e => setForm({ ...form, topic: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Questions</label>
+              <select className="input-field" value={form.questionCount} onChange={e => setForm({ ...form, questionCount: +e.target.value })}>
+                {[5, 8, 10, 15, 20].map(n => <option key={n} value={n}>{n} questions</option>)}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button onClick={generateQuiz} disabled={generating} className="btn-primary w-full flex items-center justify-center gap-2">
+                {generating ? <><Loader2 size={16} className="animate-spin" /> Generating...</> : <><Sparkles size={16} /> Generate Quiz</>}
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-gray-400 mt-2">Questions are specialized per subject and topic with real curriculum content, correct answers, and explanations.</p>
+          <p className="text-xs text-gray-400 mt-3">Questions are specialized per subject and topic with real curriculum content, correct answers, and detailed explanations.</p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Quiz List */}
           <div className="space-y-3">
-            <h3 className="font-bold text-gray-900 text-sm">Saved Quizzes ({quizzes.length})</h3>
+            <h3 className="section-header">
+              <FileText size={14} className="text-gray-400" /> Saved Quizzes ({quizzes.length})
+            </h3>
             {loading ? (
               <div className="text-center py-8"><div className="animate-spin h-6 w-6 border-3 border-primary-500 border-t-transparent rounded-full mx-auto" /></div>
             ) : quizzes.length === 0 ? (
               <div className="card text-center py-8"><FileText size={30} className="mx-auto text-gray-300 mb-2" /><p className="text-sm text-gray-400">No quizzes yet</p></div>
             ) : quizzes.map(q => (
               <div key={q.id} className="flex items-center gap-1">
-                <button onClick={() => setSelectedQuiz(q)} className={cn('flex-1 text-left p-4 rounded-xl border transition', selectedQuiz?.id === q.id ? 'border-primary-300 bg-primary-50' : 'border-gray-100 bg-white hover:bg-gray-50')}>
+                <button onClick={() => setSelectedQuiz(q)} className={cn('flex-1 text-left p-4 rounded-xl border-2 transition', selectedQuiz?.id === q.id ? 'border-primary-300 bg-primary-50 shadow-sm' : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm')}>
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 line-clamp-1">{q.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', diffColors[q.difficulty] || 'bg-gray-100 text-gray-600')}>{q.difficulty}</span>
-                        <span className="text-[10px] text-gray-400">{q.questionCount} Qs</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 line-clamp-2">{q.title}</p>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium border', DIFF_COLORS[q.difficulty] || 'bg-gray-100 text-gray-600 border-gray-200')}>{DIFF_LABELS[q.difficulty] || q.difficulty}</span>
+                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><Target size={9} /> {q.questionCount} Qs</span>
                       </div>
                     </div>
-                    {q.isFavorite && <Star size={14} className="text-amber-400 fill-amber-400 flex-shrink-0" />}
+                    <div className="flex flex-col items-end gap-1">
+                      {q.isFavorite && <Star size={14} className="text-amber-400 fill-amber-400" />}
+                    </div>
                   </div>
                 </button>
-                <button onClick={() => deleteQuiz(q.id)} className="p-2 text-gray-300 hover:text-red-500 transition" title="Delete">
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex flex-col gap-1">
+                  <button onClick={() => toggleFavorite(q.id)} className={cn('p-1.5 rounded-lg transition', q.isFavorite ? 'text-amber-400' : 'text-gray-300 hover:text-amber-400')} title="Favorite">
+                    <Star size={12} fill={q.isFavorite ? 'currentColor' : 'none'} />
+                  </button>
+                  <button onClick={() => deleteQuiz(q.id)} className="p-1.5 text-gray-300 hover:text-red-500 transition" title="Delete">
+                    <Trash2 size={12} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -192,62 +206,87 @@ export default function QuizGeneratorPage() {
           {/* Quiz Preview */}
           <div className="lg:col-span-2">
             {selectedQuiz ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-gray-900">{selectedQuiz.title}</h3>
-                  <div className="flex items-center gap-2">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card">
+                {/* Quiz Header */}
+                <div className="flex items-start justify-between mb-5 pb-4 border-b border-gray-100">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{selectedQuiz.title}</h3>
+                    <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+                      <span className="flex items-center gap-1"><GraduationCap size={12} /> {selectedQuiz.gradeLevel} Grade</span>
+                      <span className={cn('px-2 py-0.5 rounded-full font-medium border', DIFF_COLORS[selectedQuiz.difficulty] || 'bg-gray-100')}>{DIFF_LABELS[selectedQuiz.difficulty] || selectedQuiz.difficulty}</span>
+                      <span className="flex items-center gap-1"><Target size={12} /> {safeParseQuestions(selectedQuiz.questions).length} Questions</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
                     <button onClick={() => setShowAnswers(!showAnswers)}
-                      className={cn('text-xs px-3 py-1.5 rounded-lg font-medium transition', showAnswers ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500')}>
-                      {showAnswers ? 'Hide Answers' : 'Show Answers'}
+                      className={cn('text-xs px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1', showAnswers ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500')}>
+                      {showAnswers ? <><Eye size={12} /> Answers On</> : <><EyeOff size={12} /> Answers Off</>}
                     </button>
-                    <button onClick={copyQuizToClipboard} className="p-2 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 transition" title="Copy quiz">
+                    <button onClick={() => copyQuizToClipboard(false)} className="p-2 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 transition" title="Copy with answers">
                       <Copy size={16} />
                     </button>
-                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', diffColors[selectedQuiz.difficulty] || 'bg-gray-100')}>{selectedQuiz.difficulty}</span>
+                    <button onClick={() => copyQuizToClipboard(true)} className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition" title="Copy student version (no answers)">
+                      <Printer size={16} />
+                    </button>
                   </div>
                 </div>
+
+                {/* Questions */}
                 <div className="space-y-4">
                   {safeParseQuestions(selectedQuiz.questions).map((q: any, i: number) => (
-                    <div key={i} className="p-4 rounded-xl bg-gray-50">
-                      <div className="flex items-start gap-2 mb-2">
-                        <span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
+                    <div key={i} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                      <div className="flex items-start gap-3 mb-3">
+                        <span className="w-7 h-7 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i + 1}</span>
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">{q.question}</p>
-                          {q.skill && <span className="text-[10px] text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full mt-1 inline-block">{q.skill}</span>}
+                          <p className="text-sm font-semibold text-gray-900 leading-relaxed">{q.question}</p>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            {q.skill && <span className="text-[10px] text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full border border-primary-100">{q.skill}</span>}
+                            {q.difficulty && (
+                              <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium border', DIFF_COLORS[q.difficulty] || 'bg-gray-100 text-gray-500 border-gray-200')}>
+                                {DIFF_LABELS[q.difficulty] || q.difficulty}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-gray-400">{q.type === 'MULTIPLE_CHOICE' ? 'Multiple Choice' : 'Short Answer'}</span>
+                          </div>
                         </div>
-                        {q.difficulty && (
-                          <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0', diffColors[q.difficulty] || 'bg-gray-100 text-gray-500')}>
-                            {q.difficulty}
-                          </span>
-                        )}
                       </div>
                       {q.options && q.options.length > 0 && (
-                        <div className="ml-8 space-y-1">
+                        <div className="ml-10 space-y-1.5">
                           {q.options.map((opt: string, j: number) => (
-                            <div key={j} className={cn('text-xs px-3 py-1.5 rounded-lg transition',
-                              showAnswers && opt === q.correctAnswer ? 'bg-green-100 text-green-700 font-semibold' : 'bg-white text-gray-600')}>
-                              {String.fromCharCode(65 + j)}. {opt} {showAnswers && opt === q.correctAnswer && <CheckCircle size={12} className="inline ml-1" />}
+                            <div key={j} className={cn('text-sm px-3.5 py-2 rounded-lg transition border',
+                              showAnswers && opt === q.correctAnswer ? 'bg-green-50 text-green-700 font-medium border-green-200' : 'bg-white text-gray-600 border-gray-100')}>
+                              <span className="font-medium text-gray-500 mr-2">{String.fromCharCode(65 + j)}.</span> {opt}
+                              {showAnswers && opt === q.correctAnswer && <CheckCircle size={14} className="inline ml-2 text-green-500" />}
                             </div>
                           ))}
                         </div>
                       )}
                       {showAnswers && (
-                        <>
+                        <div className="ml-10 mt-2 space-y-1.5">
                           {q.type === 'SHORT_ANSWER' && (
-                            <p className="ml-8 text-xs text-green-700 bg-green-50 px-3 py-1.5 rounded-lg mt-1"><strong>Answer:</strong> {q.correctAnswer}</p>
+                            <p className="text-sm text-green-700 bg-green-50 px-3.5 py-2 rounded-lg border border-green-100"><strong>Answer:</strong> {q.correctAnswer}</p>
                           )}
-                          {q.explanation && <p className="ml-8 text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg mt-1"><strong>Explanation:</strong> {q.explanation}</p>}
-                        </>
+                          {q.explanation && <p className="text-sm text-blue-600 bg-blue-50 px-3.5 py-2 rounded-lg border border-blue-100"><strong>Explanation:</strong> {q.explanation}</p>}
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
+
+                {/* Stats footer */}
+                <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1"><BarChart3 size={12} /> {safeParseQuestions(selectedQuiz.questions).filter((q:any) => q.type === 'MULTIPLE_CHOICE').length} Multiple Choice</span>
+                    <span className="flex items-center gap-1"><FileText size={12} /> {safeParseQuestions(selectedQuiz.questions).filter((q:any) => q.type === 'SHORT_ANSWER').length} Short Answer</span>
+                  </div>
+                  <span className="flex items-center gap-1"><Clock size={12} /> Created {new Date(selectedQuiz.createdAt).toLocaleDateString()}</span>
+                </div>
               </motion.div>
             ) : (
-              <div className="card text-center py-16">
-                <Lightbulb size={40} className="mx-auto text-gray-300 mb-3" />
-                <h3 className="font-bold text-gray-900 mb-1">Select or generate a quiz</h3>
-                <p className="text-sm text-gray-400">Click a quiz from the list or generate a new one with AI</p>
+              <div className="empty-state">
+                <Lightbulb size={48} className="empty-state-icon" />
+                <p className="empty-state-title">Select or generate a quiz</p>
+                <p className="empty-state-desc">Click a quiz from the list or generate a new one with AI</p>
               </div>
             )}
           </div>
