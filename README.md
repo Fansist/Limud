@@ -2,13 +2,34 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 7.1.0
+- **Version**: 7.1.1
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
 
-## What's New in v7.1.0 - Professional Polish & Consistency Update
+## What's New in v7.1.1 - Bug Fix & Mini-Game Expansion
+
+### Critical Bug Fixes
+- **Worksheet Search Fixed**: The "Find Worksheets" tab in the AI Lesson Planner now correctly returns results. Previously, searches would never find worksheets due to overly strict validation requiring both a query and subject filter. Now you can search with any combination of filters or browse all worksheets with no filters at all.
+- **Grade-Level Filtering Added**: Worksheet search now applies the grade-level filter in demo mode (was previously collected but completely ignored in the filtering logic).
+- **"Browse All" Button**: Added a "Browse All Worksheets" button on the empty state so users can immediately discover available worksheets without typing anything.
+- **"No Results" State**: When a search returns zero results, users now see a helpful message with a "Browse All Worksheets" button instead of the generic empty state.
+- **Clear Filters Button**: Added a "Clear filters" link when results are displayed with active filters.
+- **Expanded Worksheet Library**: Added 4 new worksheets (Vocabulary Building, Ancient Civilizations, Geometry Shapes, Water Cycle) for a total of 12 demo worksheets covering more subjects and grade levels.
+
+### Demo Data Accuracy Fixes
+- **Lesson Plan Subjects Fixed**: Demo lesson plans ("Introduction to Photosynthesis" and "Cell Division: Mitosis vs Meiosis") now correctly show `Science` as their subject instead of `Biology`, matching the app's subject taxonomy. This fixes missing icons and color coding on lesson plan cards.
+
+### Game Store - New Playable Mini-Games
+- **Science Puzzle Lab**: 6-question science trivia game with explanations after each answer. Covers chemistry, physics, biology with A/B/C/D options and running score.
+- **Typing Champions**: Type-the-sentence racing game with 3 rounds, WPM calculation, live accuracy tracking, and character-by-character highlighting. Sentences are education-themed.
+- All 6 games in the store now have fully playable mini-games (previously Science Puzzle Lab and Typing Champions fell through to a "coming soon" placeholder).
+
+### Game Control Fix
+- **Global Block/Unblock Sync**: The "Block All" / "Unblock All" toggle now properly reflects the current state of all classrooms. Previously it used a separate `globalBlock` state variable that could desync from individual classroom toggles. Now it derives state directly from whether all classrooms are blocked.
+
+### Previous v7.1.0 Features (Retained)
 
 ### UI/UX Professional Polish
 - **Global CSS system overhaul**: Standardized component classes (`.page-header`, `.page-title`, `.page-subtitle`, `.section-header`, `.empty-state`, `.tab-group`, `.filter-pill`, `.btn-danger`)
@@ -57,7 +78,7 @@
 ### Previous Features (Maintained from v7.0.0)
 - **16+ Platform Integrations**: Khan Academy, i-Ready, Amplify, PLTW, Google Classroom, Canvas, Schoology, Clever, IXL, Quizlet, Newsela, Desmos, Kahoot!, BrainPOP, Edpuzzle, Nearpod
 - **Assignment Manager**: Categories with grade weighting, extra credit, file/link attachments
-- **Game Store**: 6 games with playable mini-games (Math Blaster, Word Quest, Trivia)
+- **Game Store**: 6 games with playable mini-games (Math Blaster, Word Quest, Science Puzzle Lab, Typing Champions, History Trivia, Geography Explorer)
 - **Knowledge Page**: Skill radar, study heatmap, rank system, goal tracking
 - **All role dashboards**: Student, Teacher, Admin, Parent, Homeschool
 
@@ -206,6 +227,18 @@ Each generated lesson plan includes these fully detailed sections:
 - **Dev Server**: `pm2 start ecosystem.config.cjs` on port 3000
 
 ## Version History
+
+### v7.1.1 (March 2, 2026) - Bug Fix & Mini-Game Expansion
+- **Fixed**: Worksheet search never returning results (overly strict validation)
+- **Fixed**: Grade-level filter not applied in demo worksheet search
+- **Fixed**: Demo lesson plans showing "Biology" instead of "Science" (subject taxonomy mismatch)
+- **Fixed**: Science Puzzle Lab & Typing Champions showing "coming soon" instead of playable games
+- **Fixed**: Game Control "Block All" toggle desyncing from individual classroom states
+- **Added**: Science Puzzle Lab mini-game (6-question science trivia with explanations)
+- **Added**: Typing Champions mini-game (3-round typing race with WPM & accuracy)
+- **Added**: 4 new demo worksheets (12 total) covering more subjects and grade levels
+- **Added**: "Browse All Worksheets" button, "No results" state, "Clear filters" link
+- All 6 Game Store games now fully playable
 
 ### v7.1.0 (March 2, 2026) - Professional Polish & Consistency
 - Global CSS system overhaul with standardized component classes

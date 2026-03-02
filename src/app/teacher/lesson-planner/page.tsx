@@ -31,6 +31,10 @@ const DEMO_WORKSHEETS = [
   { id:'ws6', title:'Scientific Method Lab Report Template', description:'Guided template for writing lab reports including hypothesis, materials, procedure, data, and conclusion.', subject:'Science', gradeLevel:'6th-9th', source:'sciencebuddies.org', url:'https://www.sciencebuddies.org/', pageCount:2, rating:4.6, downloads:15300, free:true },
   { id:'ws7', title:'Persuasive Essay Graphic Organizer', description:'Help students plan a 5-paragraph persuasive essay with claim, evidence, and reasoning sections.', subject:'English', gradeLevel:'5th-8th', source:'readwritethink.org', url:'https://www.readwritethink.org/', pageCount:1, rating:4.4, downloads:9400, free:true },
   { id:'ws8', title:'Engineering Design Process', description:'Walk through the engineering design process with a hands-on building challenge activity sheet.', subject:'Computer Science', gradeLevel:'6th-9th', source:'pltw.org', url:'https://www.pltw.org/', pageCount:4, rating:4.7, downloads:6800, free:false },
+  { id:'ws9', title:'Vocabulary Building: Context Clues', description:'Practice determining word meanings from context with grade-appropriate reading passages.', subject:'English', gradeLevel:'3rd-5th', source:'education.com', url:'https://www.education.com/worksheets/vocabulary/', pageCount:3, rating:4.6, downloads:18200, free:true },
+  { id:'ws10', title:'Ancient Civilizations Map Activity', description:'Label and color key features of ancient Egyptian, Greek, and Roman civilizations on a world map.', subject:'History', gradeLevel:'5th-7th', source:'teacherspayteachers.com', url:'https://www.teacherspayteachers.com/', pageCount:2, rating:4.5, downloads:7300, free:false },
+  { id:'ws11', title:'Geometry Shapes & Angles', description:'Identify, measure, and classify angles and 2D shapes. Includes protractor practice problems.', subject:'Math', gradeLevel:'4th-6th', source:'k5learning.com', url:'https://www.k5learning.com/worksheets/math/geometry', pageCount:5, rating:4.6, downloads:15800, free:true },
+  { id:'ws12', title:'Water Cycle Diagram', description:'Label the water cycle diagram and answer questions about evaporation, condensation, and precipitation.', subject:'Science', gradeLevel:'3rd-5th', source:'education.com', url:'https://www.education.com/worksheets/science/', pageCount:2, rating:4.8, downloads:22400, free:true },
 ];
 
 const FLOW_SECTIONS = [
@@ -66,6 +70,7 @@ export default function LessonPlannerPage() {
   const [searchingWorksheets, setSearchingWorksheets] = useState(false);
   const [wsSubject, setWsSubject] = useState('');
   const [wsGrade, setWsGrade] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => { fetchPlans(); }, []);
 
@@ -146,19 +151,22 @@ export default function LessonPlannerPage() {
   function safeJSON(str: string, fb: any) { try { return JSON.parse(str); } catch { return fb; } }
 
   async function searchWorksheets() {
-    if (!worksheetQuery.trim() && !wsSubject) { toast.error('Enter a topic or select a subject'); return; }
+    // Allow searching with any combination of filters (query, subject, grade)
+    // or with no filters at all (show all worksheets)
     setSearchingWorksheets(true);
+    setHasSearched(true);
     try {
       if (isDemo) {
-        await new Promise(r => setTimeout(r, 1200));
-        const q = worksheetQuery.toLowerCase();
+        await new Promise(r => setTimeout(r, 800));
+        const q = worksheetQuery.toLowerCase().trim();
         const results = DEMO_WORKSHEETS.filter(w => {
           const matchQ = !q || w.title.toLowerCase().includes(q) || w.description.toLowerCase().includes(q) || w.subject.toLowerCase().includes(q);
           const matchS = !wsSubject || w.subject === wsSubject;
-          return matchQ && matchS;
+          const matchG = !wsGrade || w.gradeLevel.includes(wsGrade.replace(/[a-z]/gi, '').trim());
+          return matchQ && matchS && matchG;
         });
         setWorksheetResults(results);
-        toast.success(`Found ${results.length} worksheets`);
+        toast.success(`Found ${results.length} worksheet${results.length !== 1 ? 's' : ''}`);
       } else {
         const params = new URLSearchParams();
         if (worksheetQuery) params.set('q', worksheetQuery);
@@ -233,7 +241,13 @@ export default function LessonPlannerPage() {
 
             {worksheetResults.length > 0 ? (
               <div className="space-y-3">
-                <p className="text-sm text-gray-500 font-medium">{worksheetResults.length} worksheets found</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-500 font-medium">{worksheetResults.length} worksheet{worksheetResults.length !== 1 ? 's' : ''} found</p>
+                  {(worksheetQuery || wsSubject || wsGrade) && (
+                    <button onClick={() => { setWorksheetQuery(''); setWsSubject(''); setWsGrade(''); setWorksheetResults([]); setHasSearched(false); }}
+                      className="text-xs text-gray-400 hover:text-gray-600 transition">Clear filters</button>
+                  )}
+                </div>
                 {worksheetResults.map((ws, i) => {
                   const subj = SUBJECTS.find(s => s.value === ws.subject);
                   return (
@@ -268,11 +282,22 @@ export default function LessonPlannerPage() {
                   );
                 })}
               </div>
+            ) : !searchingWorksheets && hasSearched ? (
+              <div className="empty-state">
+                <Search size={48} className="empty-state-icon" />
+                <p className="empty-state-title">No worksheets found</p>
+                <p className="empty-state-desc">Try different search terms, change the subject filter, or clear all filters to browse all worksheets</p>
+                <button onClick={() => { setWorksheetQuery(''); setWsSubject(''); setWsGrade(''); searchWorksheets(); }}
+                  className="btn-primary mt-4 text-sm">Browse All Worksheets</button>
+              </div>
             ) : !searchingWorksheets && (
               <div className="empty-state">
                 <Globe size={48} className="empty-state-icon" />
                 <p className="empty-state-title">Search for worksheets</p>
                 <p className="empty-state-desc">Find worksheets from education.com, Teachers Pay Teachers, K5 Learning, and more</p>
+                <button onClick={searchWorksheets} className="btn-primary mt-4 text-sm flex items-center gap-2 mx-auto">
+                  <Search size={14} /> Browse All Worksheets
+                </button>
               </div>
             )}
           </div>

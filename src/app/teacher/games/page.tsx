@@ -62,7 +62,9 @@ export default function TeacherGameControlPage() {
   }
 
   function toggleAllGames() {
-    const newState = !globalBlock;
+    // Determine new state based on whether ALL classes are currently blocked
+    const allBlocked = classrooms.every(c => c.gamesDisabledDuringClass);
+    const newState = !allBlocked;
     setGlobalBlock(newState);
     setClassrooms(prev => prev.map(c => ({ ...c, gamesDisabledDuringClass: newState })));
     toast.success(newState ? 'Games disabled for all classes' : 'Games enabled for all classes');
@@ -74,6 +76,7 @@ export default function TeacherGameControlPage() {
 
   const blockedCount = classrooms.filter(c => c.gamesDisabledDuringClass).length;
   const totalStudents = classrooms.reduce((sum, c) => sum + (c._count?.students || 0), 0);
+  const allBlocked = classrooms.length > 0 && classrooms.every(c => c.gamesDisabledDuringClass);
 
   return (
     <DashboardLayout>
@@ -95,10 +98,10 @@ export default function TeacherGameControlPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
             className="card text-center cursor-pointer hover:shadow-md transition" onClick={toggleAllGames}>
-            <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center mx-auto mb-2', globalBlock ? 'bg-red-100' : 'bg-green-100')}>
-              {globalBlock ? <Lock size={20} className="text-red-600" /> : <Unlock size={20} className="text-green-600" />}
+            <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center mx-auto mb-2', allBlocked ? 'bg-red-100' : 'bg-green-100')}>
+              {allBlocked ? <Lock size={20} className="text-red-600" /> : <Unlock size={20} className="text-green-600" />}
             </div>
-            <p className="text-sm font-bold text-gray-900">{globalBlock ? 'Unblock All' : 'Block All'}</p>
+            <p className="text-sm font-bold text-gray-900">{allBlocked ? 'Unblock All' : 'Block All'}</p>
             <p className="text-[10px] text-gray-400 mt-0.5">Toggle all classes</p>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card text-center">

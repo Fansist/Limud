@@ -323,7 +323,7 @@ export const DEMO_LESSON_PLANS = [
   {
     id: 'lp1',
     title: 'Introduction to Photosynthesis',
-    subject: 'Biology',
+    subject: 'Science',
     gradeLevel: '8th',
     duration: '50 min',
     objectives: JSON.stringify(['Students will explain the process of photosynthesis', 'Students will identify the reactants and products', 'Students will connect photosynthesis to real-world applications']),
@@ -344,7 +344,7 @@ export const DEMO_LESSON_PLANS = [
   {
     id: 'lp2',
     title: 'Cell Division: Mitosis vs Meiosis',
-    subject: 'Biology',
+    subject: 'Science',
     gradeLevel: '8th',
     duration: '55 min',
     objectives: JSON.stringify(['Compare and contrast mitosis and meiosis', 'Identify the stages of each process', 'Explain the importance of cell division in growth and reproduction']),

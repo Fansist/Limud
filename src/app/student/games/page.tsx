@@ -268,6 +268,181 @@ function TriviaGame({ subject, onClose }: { subject: string; onClose: () => void
   );
 }
 
+// ─── MINI-GAME: Science Puzzle Lab ──────────────────────────
+function SciencePuzzleGame({ onClose }: { onClose: () => void }) {
+  const PUZZLES = [
+    { question: 'What is the chemical formula for table salt?', options: ['NaCl', 'H2O', 'CO2', 'KBr'], answer: 0, explanation: 'Sodium Chloride (NaCl) is common table salt.' },
+    { question: 'Which element has the symbol "Fe"?', options: ['Fluorine', 'Iron', 'Francium', 'Fermium'], answer: 1, explanation: 'Fe comes from the Latin word "Ferrum" meaning iron.' },
+    { question: 'What force keeps planets in orbit around the sun?', options: ['Magnetism', 'Friction', 'Gravity', 'Nuclear force'], answer: 2, explanation: 'Gravitational force keeps planets in their orbital paths.' },
+    { question: 'What is the speed of light approximately?', options: ['300 km/s', '3,000 km/s', '300,000 km/s', '3,000,000 km/s'], answer: 2, explanation: 'Light travels at approximately 300,000 km/s in a vacuum.' },
+    { question: 'How many bones does an adult human have?', options: ['106', '206', '306', '186'], answer: 1, explanation: 'An adult human skeleton has 206 bones.' },
+    { question: 'What gas do plants absorb during photosynthesis?', options: ['Oxygen', 'Nitrogen', 'Carbon dioxide', 'Hydrogen'], answer: 2, explanation: 'Plants absorb CO₂ and release O₂ during photosynthesis.' },
+  ];
+
+  const [qIdx, setQIdx] = useState(0);
+  const [score, setScore] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [done, setDone] = useState(false);
+
+  function handleAnswer(idx: number) {
+    if (selected !== null) return;
+    setSelected(idx);
+    if (idx === PUZZLES[qIdx].answer) setScore(s => s + 15);
+    setShowExplanation(true);
+    setTimeout(() => {
+      if (qIdx + 1 >= PUZZLES.length) { setDone(true); }
+      else { setQIdx(i => i + 1); setSelected(null); setShowExplanation(false); }
+    }, 2000);
+  }
+
+  if (done) return (
+    <div className="text-center">
+      <p className="text-3xl font-bold text-gray-900 mb-2">Lab Complete! 🧪</p>
+      <p className="text-lg text-purple-600 mb-1">Score: {score}/{PUZZLES.length * 15}</p>
+      <p className="text-sm text-gray-500 mb-6">{score >= 70 ? 'You\'re a science genius!' : score >= 40 ? 'Great work, young scientist!' : 'Keep experimenting!'}</p>
+      <div className="flex gap-2 justify-center">
+        <button onClick={() => { setQIdx(0); setScore(0); setSelected(null); setShowExplanation(false); setDone(false); }} className="btn-primary">Play Again</button>
+        <button onClick={onClose} className="btn-secondary">Exit</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm text-gray-500">Puzzle {qIdx + 1}/{PUZZLES.length}</span>
+        <span className="text-lg font-bold text-purple-600">Score: {score}</span>
+      </div>
+      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 mb-4">
+        <p className="text-lg font-bold text-gray-900">{PUZZLES[qIdx].question}</p>
+      </div>
+      <div className="space-y-2">
+        {PUZZLES[qIdx].options.map((opt, i) => (
+          <button key={i} onClick={() => handleAnswer(i)}
+            className={cn('w-full text-left px-4 py-3 rounded-xl border-2 transition text-sm font-medium',
+              selected === null ? 'border-gray-200 hover:border-green-400 hover:bg-green-50' :
+              i === PUZZLES[qIdx].answer ? 'border-green-500 bg-green-50 text-green-700' :
+              selected === i ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 opacity-50')}>
+            {String.fromCharCode(65 + i)}. {opt}
+          </button>
+        ))}
+      </div>
+      {showExplanation && (
+        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+          className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-200 text-sm text-blue-700">
+          💡 {PUZZLES[qIdx].explanation}
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// ─── MINI-GAME: Typing Champions ─────────────────────────────
+function TypingGame({ onClose }: { onClose: () => void }) {
+  const SENTENCES = [
+    'The quick brown fox jumps over the lazy dog.',
+    'Science is a way of thinking much more than it is a body of knowledge.',
+    'Education is the most powerful weapon to change the world.',
+    'Math is the language in which God wrote the universe.',
+    'Practice makes progress, not perfection.',
+    'Every expert was once a beginner who never gave up.',
+  ];
+
+  const [sentenceIdx, setSentenceIdx] = useState(0);
+  const [input, setInput] = useState('');
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [wpm, setWpm] = useState(0);
+  const [accuracy, setAccuracy] = useState(100);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [done, setDone] = useState(false);
+  const [bestWpm, setBestWpm] = useState(0);
+
+  const target = SENTENCES[sentenceIdx % SENTENCES.length];
+
+  function handleType(value: string) {
+    if (!startTime) setStartTime(Date.now());
+    setInput(value);
+
+    // Calculate accuracy
+    let correct = 0;
+    for (let i = 0; i < value.length; i++) {
+      if (value[i] === target[i]) correct++;
+    }
+    const acc = value.length > 0 ? Math.round((correct / value.length) * 100) : 100;
+    setAccuracy(acc);
+
+    // Check if completed
+    if (value === target) {
+      const elapsed = (Date.now() - (startTime || Date.now())) / 1000 / 60;
+      const words = target.split(' ').length;
+      const currentWpm = Math.round(words / Math.max(elapsed, 0.01));
+      setWpm(currentWpm);
+      if (currentWpm > bestWpm) setBestWpm(currentWpm);
+      setCompletedCount(c => c + 1);
+
+      if (completedCount + 1 >= 3) {
+        setDone(true);
+      } else {
+        setTimeout(() => {
+          setSentenceIdx(i => i + 1);
+          setInput('');
+          setStartTime(null);
+        }, 800);
+      }
+    }
+  }
+
+  if (done) return (
+    <div className="text-center">
+      <p className="text-3xl font-bold text-gray-900 mb-2">Race Complete! ⌨️</p>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-purple-50 rounded-xl p-3"><p className="text-2xl font-bold text-purple-600">{bestWpm}</p><p className="text-xs text-gray-500">Best WPM</p></div>
+        <div className="bg-green-50 rounded-xl p-3"><p className="text-2xl font-bold text-green-600">{accuracy}%</p><p className="text-xs text-gray-500">Accuracy</p></div>
+      </div>
+      <p className="text-sm text-gray-500 mb-6">{bestWpm >= 60 ? 'Lightning fast! 🔥' : bestWpm >= 40 ? 'Great speed! Keep it up!' : 'Nice work! Practice makes perfect!'}</p>
+      <div className="flex gap-2 justify-center">
+        <button onClick={() => { setSentenceIdx(0); setInput(''); setStartTime(null); setCompletedCount(0); setDone(false); setBestWpm(0); }} className="btn-primary">Play Again</button>
+        <button onClick={onClose} className="btn-secondary">Exit</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm text-gray-500">Sentence {completedCount + 1}/3</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-green-600">{accuracy}% accuracy</span>
+          {wpm > 0 && <span className="text-sm font-medium text-purple-600">{wpm} WPM</span>}
+        </div>
+      </div>
+      <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-6 mb-4 font-mono">
+        <p className="text-lg leading-relaxed">
+          {target.split('').map((char, i) => (
+            <span key={i} className={cn(
+              i < input.length
+                ? (input[i] === char ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-100')
+                : i === input.length ? 'bg-primary-200 animate-pulse' : 'text-gray-400'
+            )}>{char}</span>
+          ))}
+        </p>
+      </div>
+      <input
+        type="text"
+        value={input}
+        onChange={e => handleType(e.target.value)}
+        className="input-field font-mono text-sm"
+        placeholder="Start typing here..."
+        autoFocus
+        spellCheck={false}
+        autoComplete="off"
+      />
+      <p className="text-xs text-gray-400 mt-2 text-center">Type the sentence above exactly as shown</p>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ──────────────────────────────────────────────
 export default function GameStorePage() {
   const { data: session } = useSession();
@@ -439,6 +614,10 @@ export default function GameStorePage() {
                 <MathBlasterGame onClose={() => setActiveGame(null)} />
               ) : activeGame.id === 'g2' || activeGame.category === 'word' ? (
                 <WordQuestGame onClose={() => setActiveGame(null)} />
+              ) : activeGame.id === 'g3' || activeGame.category === 'puzzle' ? (
+                <SciencePuzzleGame onClose={() => setActiveGame(null)} />
+              ) : activeGame.id === 'g5' || activeGame.category === 'typing' ? (
+                <TypingGame onClose={() => setActiveGame(null)} />
               ) : activeGame.category === 'trivia' ? (
                 <TriviaGame subject={activeGame.subject || 'Science'} onClose={() => setActiveGame(null)} />
               ) : (
