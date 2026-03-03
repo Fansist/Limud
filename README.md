@@ -2,32 +2,41 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 7.1.1
+- **Version**: 7.3
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
 
-## What's New in v7.1.1 - Bug Fix & Mini-Game Expansion
+## What's New in v7.3 - Page Duplication Fix, Editable Grade Weights & Polish
 
 ### Critical Bug Fixes
-- **Worksheet Search Fixed**: The "Find Worksheets" tab in the AI Lesson Planner now correctly returns results. Previously, searches would never find worksheets due to overly strict validation requiring both a query and subject filter. Now you can search with any combination of filters or browse all worksheets with no filters at all.
-- **Grade-Level Filtering Added**: Worksheet search now applies the grade-level filter in demo mode (was previously collected but completely ignored in the filtering logic).
-- **"Browse All" Button**: Added a "Browse All Worksheets" button on the empty state so users can immediately discover available worksheets without typing anything.
-- **"No Results" State**: When a search returns zero results, users now see a helpful message with a "Browse All Worksheets" button instead of the generic empty state.
-- **Clear Filters Button**: Added a "Clear filters" link when results are displayed with active filters.
-- **Expanded Worksheet Library**: Added 4 new worksheets (Vocabulary Building, Ancient Civilizations, Geometry Shapes, Water Cycle) for a total of 12 demo worksheets covering more subjects and grade levels.
+- **Page Duplication Fix**: Fixed the bug where 7 pages (teacher/games, student/games, student/knowledge, student/focus, admin/classrooms, admin/payments, admin/schools) rendered as a complete duplicate copy of themselves. Root cause: both the route `layout.tsx` AND the page component wrapped content in `<DashboardLayout>`, causing double sidebar/header rendering. Fixed by removing `DashboardLayout` from the 7 affected layouts and replacing with `<Suspense>` only.
+- **Suspense Boundaries Added**: Added `<Suspense>` wrappers to 18 route layouts that were missing them. The `useIsDemo()` hook relies on `useSearchParams()` which requires a Suspense boundary in Next.js 13+. Missing Suspense caused hydration issues and flash-of-content on initial load for pages under teacher/, student/, admin/, and parent/ routes.
+- **useIsDemo Hook Fixed**: The hook now reads `?demo=true` synchronously from `useSearchParams()` on the first client render, eliminating the race condition where `isDemo` started as `false` and flipped to `true` after mount. Previously this caused pages to fetch with `isDemo=false`, fail/return empty, and then re-fetch correctly — producing a visible flash or empty state.
 
-### Demo Data Accuracy Fixes
-- **Lesson Plan Subjects Fixed**: Demo lesson plans ("Introduction to Photosynthesis" and "Cell Division: Mitosis vs Meiosis") now correctly show `Science` as their subject instead of `Biology`, matching the app's subject taxonomy. This fixes missing icons and color coding on lesson plan cards.
+### New Feature: Editable Category Weights
+- **Weight Editing Panel**: Teachers can now edit assignment category weights with an enhanced Grade Weights panel featuring:
+  - **Slider + Numeric Input**: Both a range slider and a direct number input per category for precise weight control
+  - **Visual Weight Bar**: Color-coded stacked progress bar showing the visual distribution of all categories
+  - **Auto-Balance**: One-click button to distribute weights equally across all graded categories
+  - **Save/Reset**: Explicit Save button (disabled until weights total 100%) and Reset button to revert to last saved values
+  - **Dirty State Tracking**: Unsaved changes indicator warns teachers before navigating away
+  - **Validation Feedback**: Real-time total percentage display with red warning when not at 100%, including helpful text showing how much to add/remove
+  - **Extra Credit Clarity**: Extra Credit category is visually separated with pink styling and explanation
 
-### Game Store - New Playable Mini-Games
-- **Science Puzzle Lab**: 6-question science trivia game with explanations after each answer. Covers chemistry, physics, biology with A/B/C/D options and running score.
-- **Typing Champions**: Type-the-sentence racing game with 3 rounds, WPM calculation, live accuracy tracking, and character-by-character highlighting. Sentences are education-themed.
-- All 6 games in the store now have fully playable mini-games (previously Science Puzzle Lab and Typing Champions fell through to a "coming soon" placeholder).
+### Polish & Consistency
+- All 40+ demo-mode pages now have proper Suspense boundaries for clean initial rendering
+- Eliminated all instances of double `DashboardLayout` wrapping across the app
+- Consistent loading spinner styling across all route layouts
 
-### Game Control Fix
-- **Global Block/Unblock Sync**: The "Block All" / "Unblock All" toggle now properly reflects the current state of all classrooms. Previously it used a separate `globalBlock` state variable that could desync from individual classroom toggles. Now it derives state directly from whether all classrooms are blocked.
+### Previous v7.1.1 Features (Retained)
+- **Worksheet Search Fixed**: Correctly returns results with any filter combination
+- **Grade-Level Filtering**: Applied correctly in demo mode
+- **Expanded Worksheet Library**: 12 demo worksheets covering more subjects and grade levels
+- **Science Puzzle Lab & Typing Champions Mini-Games**: Fully playable in Game Store
+- **Game Control Global Block Sync**: Block All toggle correctly reflects classroom states
+- **Demo Lesson Plan Subjects**: Now correctly show "Science" matching the app taxonomy
 
 ### Previous v7.1.0 Features (Retained)
 
@@ -107,7 +116,7 @@
 | Feature | Path | Description |
 |---------|------|-------------|
 | Dashboard | `/teacher/dashboard` | Overview, class stats, pending items |
-| Assignment Manager | `/teacher/assignments` | Create with categories, weights, attachments, extra credit |
+| Assignment Manager | `/teacher/assignments` | Create with categories, editable weights, save/reset, auto-balance, attachments, extra credit |
 | AI Grading | `/teacher/grading` | One-click rubric-based auto-grading |
 | Intelligence | `/teacher/intelligence` | Student behavior insights |
 | AI Quiz Generator | `/teacher/quiz-generator` | Curriculum-aligned quiz creation with student-version export |
@@ -222,11 +231,19 @@ Each generated lesson plan includes these fully detailed sections:
 - **Platform**: Vercel / Cloudflare Pages compatible
 - **Status**: Active
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
-- **Last Updated**: March 2, 2026
+- **Last Updated**: March 3, 2026
 - **Build**: `npx next build` (all pages compile successfully)
 - **Dev Server**: `pm2 start ecosystem.config.cjs` on port 3000
 
 ## Version History
+
+### v7.3 (March 3, 2026) - Page Duplication Fix & Editable Weights
+- **Fixed**: 7 pages rendering double DashboardLayout (complete page duplication)
+- **Fixed**: 18 route layouts missing Suspense boundaries for useSearchParams
+- **Fixed**: useIsDemo hook race condition causing flash-of-empty-state on page load
+- **Added**: Teacher-editable category weights with slider + numeric input, auto-balance, save/reset, visual weight bar
+- **Added**: Weight validation (must equal 100%), dirty state tracking, unsaved changes warning
+- **Polish**: All 40+ pages now have proper Suspense boundaries and consistent loading spinners
 
 ### v7.1.1 (March 2, 2026) - Bug Fix & Mini-Game Expansion
 - **Fixed**: Worksheet search never returning results (overly strict validation)

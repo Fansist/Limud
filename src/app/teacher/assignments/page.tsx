@@ -10,6 +10,7 @@ import { DEMO_TEACHER_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import {
   BookOpen, Plus, X, Clock, Users, Paperclip, Link2, FileText, Upload, Star, Scale, Tag, Trash2, ExternalLink,
+  Save, RotateCcw, Wand2, Check, AlertTriangle,
 } from 'lucide-react';
 
 const ASSIGNMENT_CATEGORIES = [
@@ -37,6 +38,9 @@ export default function TeacherAssignments() {
   const [showCreate, setShowCreate] = useState(false);
   const [showWeights, setShowWeights] = useState(false);
   const [categories, setCategories] = useState(ASSIGNMENT_CATEGORIES);
+  const [savedCategories, setSavedCategories] = useState(ASSIGNMENT_CATEGORIES);
+  const [weightsDirty, setWeightsDirty] = useState(false);
+  const [savingWeights, setSavingWeights] = useState(false);
   const [form, setForm] = useState({
     title: '', description: '', type: 'SHORT_ANSWER', courseId: '',
     dueDate: '', totalPoints: 100, isPublished: true,
@@ -210,7 +214,59 @@ export default function TeacherAssignments() {
   }
 
   function updateWeight(catId: string, newWeight: number) {
-    setCategories(prev => prev.map(c => c.id === catId ? { ...c, weight: newWeight } : c));
+    setCategories(prev => {
+      const updated = prev.map(c => c.id === catId ? { ...c, weight: Math.max(0, Math.min(100, newWeight)) } : c);
+      return updated;
+    });
+    setWeightsDirty(true);
+  }
+
+  function autoBalanceWeights() {
+    const gradedCats = categories.filter(c => c.id !== 'extra-credit');
+    const count = gradedCats.length;
+    const base = Math.floor(100 / count);
+    const remainder = 100 - base * count;
+    let idx = 0;
+    setCategories(prev => prev.map(c => {
+      if (c.id === 'extra-credit') return c;
+      const w = base + (idx < remainder ? 1 : 0);
+      idx++;
+      return { ...c, weight: w };
+    }));
+    setWeightsDirty(true);
+    toast.success('Weights auto-balanced to equal distribution');
+  }
+
+  function resetWeights() {
+    setCategories(savedCategories);
+    setWeightsDirty(false);
+    toast.success('Weights reset to last saved values');
+  }
+
+  async function saveWeights() {
+    if (totalWeight !== 100) {
+      toast.error('Total weight must equal 100% before saving');
+      return;
+    }
+    setSavingWeights(true);
+    try {
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 500));
+      } else {
+        await fetch('/api/settings/weights', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ categories: categories.map(c => ({ id: c.id, weight: c.weight })) }),
+        });
+      }
+      setSavedCategories([...categories]);
+      setWeightsDirty(false);
+      toast.success('Category weights saved successfully!');
+    } catch {
+      toast.error('Failed to save weights');
+    } finally {
+      setSavingWeights(false);
+    }
   }
 
   const totalWeight = categories.filter(c => c.id !== 'extra-credit').reduce((sum, c) => sum + c.weight, 0);
@@ -239,35 +295,94 @@ export default function TeacherAssignments() {
         <AnimatePresence>
           {showWeights && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-              <div className="card border-2 border-primary-100">
-                <div className="flex items-center justify-between mb-4">
+              <div className={cn('card border-2', totalWeight === 100 ? 'border-primary-100' : 'border-red-200')}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <h2 className="font-bold text-gray-900 flex items-center gap-2">
                     <Scale size={16} className="text-primary-500" /> Assignment Category Weights
                   </h2>
-                  <span className={cn('text-sm font-bold', totalWeight === 100 ? 'text-green-600' : 'text-red-600')}>
-                    Total: {totalWeight}% {totalWeight !== 100 && '(should be 100%)'}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Total indicator */}
+                    <span className={cn('text-sm font-bold px-3 py-1 rounded-full flex items-center gap-1',
+                      totalWeight === 100 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                      {totalWeight === 100 ? <Check size={12} /> : <AlertTriangle size={12} />}
+                      {totalWeight}%
+                    </span>
+                    {/* Action buttons */}
+                    <button onClick={autoBalanceWeights} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex items-center gap-1" title="Distribute weights equally">
+                      <Wand2 size={12} /> Auto-Balance
+                    </button>
+                    <button onClick={resetWeights} disabled={!weightsDirty}
+                      className={cn('text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1', weightsDirty ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-gray-50 text-gray-300 cursor-not-allowed')}
+                      title="Reset to last saved values">
+                      <RotateCcw size={12} /> Reset
+                    </button>
+                    <button onClick={saveWeights} disabled={!weightsDirty || totalWeight !== 100 || savingWeights}
+                      className={cn('text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1 font-medium',
+                        weightsDirty && totalWeight === 100 ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm' : 'bg-gray-50 text-gray-300 cursor-not-allowed')}
+                      title="Save weight changes">
+                      <Save size={12} /> {savingWeights ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
                 </div>
+
+                {/* Weight progress bar */}
+                <div className="mb-4">
+                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden flex">
+                    {categories.filter(c => c.id !== 'extra-credit').map(cat => (
+                      <div key={cat.id}
+                        className={cn('h-full transition-all duration-300', cat.color.split(' ')[0])}
+                        style={{ width: `${cat.weight}%` }}
+                        title={`${cat.label}: ${cat.weight}%`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    {categories.filter(c => c.id !== 'extra-credit').map(cat => (
+                      <span key={cat.id} className="text-[9px] text-gray-400" style={{ width: `${cat.weight}%`, minWidth: cat.weight > 0 ? '20px' : '0' }}>
+                        {cat.weight > 5 ? cat.label.slice(0, 4) : ''}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {categories.map(cat => (
-                    <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-                      <span className={cn('text-xs px-2 py-1 rounded-full font-semibold', cat.color)}>{cat.label}</span>
-                      <div className="flex-1">
-                        {cat.id === 'extra-credit' ? (
-                          <p className="text-xs text-gray-400 italic">Bonus (adds to total)</p>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <input type="range" min="0" max="100" value={cat.weight}
-                              onChange={e => updateWeight(cat.id, +e.target.value)}
-                              className="flex-1 h-1.5 accent-primary-500" />
-                            <span className="text-sm font-bold text-gray-700 w-10 text-right">{cat.weight}%</span>
-                          </div>
+                    <div key={cat.id} className={cn('p-3 rounded-xl border transition',
+                      cat.id === 'extra-credit' ? 'bg-pink-50/50 border-pink-100' : 'bg-gray-50 border-gray-100 hover:border-gray-200')}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={cn('text-xs px-2 py-1 rounded-full font-semibold', cat.color)}>{cat.label}</span>
+                        {cat.id !== 'extra-credit' && (
+                          <input type="number" min="0" max="100" value={cat.weight}
+                            onChange={e => updateWeight(cat.id, parseInt(e.target.value) || 0)}
+                            className="w-14 text-sm font-bold text-gray-700 text-right bg-white border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400" />
                         )}
                       </div>
+                      {cat.id === 'extra-credit' ? (
+                        <p className="text-xs text-pink-400 italic flex items-center gap-1"><Star size={10} /> Bonus points on top of weighted grade</p>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <input type="range" min="0" max="100" value={cat.weight}
+                            onChange={e => updateWeight(cat.id, +e.target.value)}
+                            className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-3">Extra credit assignments add bonus points on top of the weighted grade.</p>
+
+                {totalWeight !== 100 && (
+                  <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-xs text-red-700">
+                    <AlertTriangle size={14} />
+                    <span>Weights must add up to <strong>100%</strong>. Currently at <strong>{totalWeight}%</strong> — {totalWeight > 100 ? `reduce by ${totalWeight - 100}%` : `add ${100 - totalWeight}%`}.</span>
+                  </div>
+                )}
+
+                {weightsDirty && totalWeight === 100 && (
+                  <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-xs text-amber-700">
+                    <AlertTriangle size={14} />
+                    <span>You have unsaved changes. Click <strong>Save</strong> to apply your new weights.</span>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
