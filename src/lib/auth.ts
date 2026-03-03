@@ -3,6 +3,81 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 
+// Master Demo account - full access to all features across all roles
+const MASTER_DEMO = {
+  email: 'master@limud.edu',
+  password: 'LimudMaster2026!',
+  user: {
+    id: 'master-demo',
+    email: 'master@limud.edu',
+    name: 'Master Demo',
+    role: 'TEACHER', // Default role, can switch in-app
+    accountType: 'DISTRICT',
+    districtId: 'demo-district',
+    districtName: 'Demo School District',
+    selectedAvatar: 'default',
+    isHomeschoolParent: false,
+    gradeLevel: '',
+    isMasterDemo: true,
+  },
+};
+
+// Role-specific demo accounts that bypass database
+const DEMO_ACCOUNTS: Record<string, any> = {
+  'student@limud.edu': {
+    id: 'demo-student',
+    email: 'student@limud.edu',
+    name: 'Alex Rivera',
+    role: 'STUDENT',
+    accountType: 'DISTRICT',
+    districtId: 'demo-district',
+    districtName: 'Demo School District',
+    selectedAvatar: 'default',
+    isHomeschoolParent: false,
+    gradeLevel: '8th',
+    isMasterDemo: false,
+  },
+  'teacher@limud.edu': {
+    id: 'demo-teacher',
+    email: 'teacher@limud.edu',
+    name: 'Dr. Sarah Chen',
+    role: 'TEACHER',
+    accountType: 'DISTRICT',
+    districtId: 'demo-district',
+    districtName: 'Demo School District',
+    selectedAvatar: 'default',
+    isHomeschoolParent: false,
+    gradeLevel: '',
+    isMasterDemo: false,
+  },
+  'admin@limud.edu': {
+    id: 'demo-admin',
+    email: 'admin@limud.edu',
+    name: 'Michael Torres',
+    role: 'ADMIN',
+    accountType: 'DISTRICT',
+    districtId: 'demo-district',
+    districtName: 'Demo School District',
+    selectedAvatar: 'default',
+    isHomeschoolParent: false,
+    gradeLevel: '',
+    isMasterDemo: false,
+  },
+  'parent@limud.edu': {
+    id: 'demo-parent',
+    email: 'parent@limud.edu',
+    name: 'Jessica Rivera',
+    role: 'PARENT',
+    accountType: 'DISTRICT',
+    districtId: 'demo-district',
+    districtName: 'Demo School District',
+    selectedAvatar: 'default',
+    isHomeschoolParent: false,
+    gradeLevel: '',
+    isMasterDemo: false,
+  },
+};
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
@@ -24,35 +99,53 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password are required');
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-          include: { district: true },
-        });
-
-        if (!user || !user.isActive) {
-          throw new Error('Invalid email or password');
+        // Check Master Demo account first
+        if (credentials.email === MASTER_DEMO.email && credentials.password === MASTER_DEMO.password) {
+          return MASTER_DEMO.user as any;
         }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) {
-          throw new Error('Invalid email or password');
+        // Check role-specific demo accounts (password: password123)
+        const demoAccount = DEMO_ACCOUNTS[credentials.email];
+        if (demoAccount && credentials.password === 'password123') {
+          return demoAccount as any;
         }
 
-        // Determine if this is a homeschool parent (parent role + homeschool account type)
-        const isHomeschoolParent = user.role === 'PARENT' && user.accountType === 'HOMESCHOOL';
+        // Fall through to database authentication
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+            include: { district: true },
+          });
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          accountType: user.accountType || 'DISTRICT',
-          districtId: user.districtId || '',
-          districtName: user.district?.name || '',
-          selectedAvatar: user.selectedAvatar,
-          isHomeschoolParent,
-          gradeLevel: user.gradeLevel || '',
-        } as any;
+          if (!user || !user.isActive) {
+            throw new Error('Invalid email or password');
+          }
+
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+          if (!isValid) {
+            throw new Error('Invalid email or password');
+          }
+
+          const isHomeschoolParent = user.role === 'PARENT' && user.accountType === 'HOMESCHOOL';
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            accountType: user.accountType || 'DISTRICT',
+            districtId: user.districtId || '',
+            districtName: user.district?.name || '',
+            selectedAvatar: user.selectedAvatar,
+            isHomeschoolParent,
+            gradeLevel: user.gradeLevel || '',
+            isMasterDemo: false,
+          } as any;
+        } catch (e: any) {
+          // If Prisma/DB is unavailable, only demo accounts work
+          if (e.message === 'Invalid email or password') throw e;
+          throw new Error('Invalid email or password');
+        }
       },
     }),
   ],
@@ -67,6 +160,7 @@ export const authOptions: NextAuthOptions = {
         token.selectedAvatar = (user as any).selectedAvatar;
         token.isHomeschoolParent = (user as any).isHomeschoolParent;
         token.gradeLevel = (user as any).gradeLevel;
+        token.isMasterDemo = (user as any).isMasterDemo || false;
       }
       return token;
     },
@@ -80,6 +174,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).selectedAvatar = token.selectedAvatar as string;
         (session.user as any).isHomeschoolParent = token.isHomeschoolParent as boolean;
         (session.user as any).gradeLevel = token.gradeLevel as string;
+        (session.user as any).isMasterDemo = token.isMasterDemo as boolean;
       }
       return session;
     },

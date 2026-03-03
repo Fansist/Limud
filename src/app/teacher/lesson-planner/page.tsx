@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import {
   Wand2, Plus, BookOpen, Clock, Star, ChevronDown, ChevronUp, Copy, Heart, Loader2,
   Sparkles, GraduationCap, FileText, Target, Users, Lightbulb, ClipboardList,
-  Search, ExternalLink, Globe, Download, Printer, Trash2, CheckCircle,
+  Search, ExternalLink, Download, Printer, Trash2, CheckCircle, X,
 } from 'lucide-react';
 
 type LessonPlan = {
@@ -23,18 +23,24 @@ type LessonPlan = {
 };
 
 const DEMO_WORKSHEETS = [
-  { id:'ws1', title:'Fraction Operations Practice', description:'Students practice adding, subtracting, multiplying and dividing fractions with step-by-step problems.', subject:'Math', gradeLevel:'5th-6th', source:'education.com', url:'https://www.education.com/worksheets/fractions/', pageCount:4, rating:4.7, downloads:12500, free:true },
-  { id:'ws2', title:'Photosynthesis Diagram & Questions', description:'Label the parts of a plant cell involved in photosynthesis. Answer comprehension questions.', subject:'Science', gradeLevel:'6th-8th', source:'teacherspayteachers.com', url:'https://www.teacherspayteachers.com/', pageCount:3, rating:4.9, downloads:8700, free:false },
-  { id:'ws3', title:'Reading Comprehension: Short Story', description:'Read the passage and answer multiple-choice and open-ended questions about theme, character, and plot.', subject:'English', gradeLevel:'4th-5th', source:'commoncoresheets.com', url:'https://www.commoncoresheets.com/', pageCount:2, rating:4.5, downloads:20100, free:true },
-  { id:'ws4', title:'Multiplication Tables Speed Drill', description:'Timed multiplication practice from 1x1 to 12x12 with answer key included.', subject:'Math', gradeLevel:'3rd-4th', source:'k5learning.com', url:'https://www.k5learning.com/worksheets/math/multiplication', pageCount:6, rating:4.8, downloads:34200, free:true },
-  { id:'ws5', title:'US Constitution Vocabulary', description:'Match key terms from the Constitution with their definitions. Includes crossword puzzle.', subject:'History', gradeLevel:'7th-8th', source:'education.com', url:'https://www.education.com/worksheets/us-history/', pageCount:3, rating:4.3, downloads:5600, free:true },
-  { id:'ws6', title:'Scientific Method Lab Report Template', description:'Guided template for writing lab reports including hypothesis, materials, procedure, data, and conclusion.', subject:'Science', gradeLevel:'6th-9th', source:'sciencebuddies.org', url:'https://www.sciencebuddies.org/', pageCount:2, rating:4.6, downloads:15300, free:true },
-  { id:'ws7', title:'Persuasive Essay Graphic Organizer', description:'Help students plan a 5-paragraph persuasive essay with claim, evidence, and reasoning sections.', subject:'English', gradeLevel:'5th-8th', source:'readwritethink.org', url:'https://www.readwritethink.org/', pageCount:1, rating:4.4, downloads:9400, free:true },
-  { id:'ws8', title:'Engineering Design Process', description:'Walk through the engineering design process with a hands-on building challenge activity sheet.', subject:'Computer Science', gradeLevel:'6th-9th', source:'pltw.org', url:'https://www.pltw.org/', pageCount:4, rating:4.7, downloads:6800, free:false },
-  { id:'ws9', title:'Vocabulary Building: Context Clues', description:'Practice determining word meanings from context with grade-appropriate reading passages.', subject:'English', gradeLevel:'3rd-5th', source:'education.com', url:'https://www.education.com/worksheets/vocabulary/', pageCount:3, rating:4.6, downloads:18200, free:true },
-  { id:'ws10', title:'Ancient Civilizations Map Activity', description:'Label and color key features of ancient Egyptian, Greek, and Roman civilizations on a world map.', subject:'History', gradeLevel:'5th-7th', source:'teacherspayteachers.com', url:'https://www.teacherspayteachers.com/', pageCount:2, rating:4.5, downloads:7300, free:false },
-  { id:'ws11', title:'Geometry Shapes & Angles', description:'Identify, measure, and classify angles and 2D shapes. Includes protractor practice problems.', subject:'Math', gradeLevel:'4th-6th', source:'k5learning.com', url:'https://www.k5learning.com/worksheets/math/geometry', pageCount:5, rating:4.6, downloads:15800, free:true },
-  { id:'ws12', title:'Water Cycle Diagram', description:'Label the water cycle diagram and answer questions about evaporation, condensation, and precipitation.', subject:'Science', gradeLevel:'3rd-5th', source:'education.com', url:'https://www.education.com/worksheets/science/', pageCount:2, rating:4.8, downloads:22400, free:true },
+  { id:'ws1', title:'Fraction Operations Practice', description:'Students practice adding, subtracting, multiplying and dividing fractions with step-by-step problems. Includes common denominators and mixed numbers.', subject:'Math', gradeLevel:'5th-6th', source:'education.com', url:'https://www.education.com/worksheets/fractions/', pageCount:4, rating:4.7, downloads:12500, free:true, tags:['fractions','math','operations','addition','subtraction','multiplication','division'] },
+  { id:'ws2', title:'Photosynthesis Diagram & Questions', description:'Label the parts of a plant cell involved in photosynthesis. Answer comprehension questions about chloroplasts, light energy, and glucose production.', subject:'Science', gradeLevel:'6th-8th', source:'teacherspayteachers.com', url:'https://www.teacherspayteachers.com/', pageCount:3, rating:4.9, downloads:8700, free:false, tags:['photosynthesis','plants','biology','cells','science'] },
+  { id:'ws3', title:'Reading Comprehension: Short Story', description:'Read the passage and answer multiple-choice and open-ended questions about theme, character, and plot.', subject:'English', gradeLevel:'4th-5th', source:'commoncoresheets.com', url:'https://www.commoncoresheets.com/', pageCount:2, rating:4.5, downloads:20100, free:true, tags:['reading','comprehension','english','stories','literature'] },
+  { id:'ws4', title:'Multiplication Tables Speed Drill', description:'Timed multiplication practice from 1x1 to 12x12 with answer key included.', subject:'Math', gradeLevel:'3rd-4th', source:'k5learning.com', url:'https://www.k5learning.com/worksheets/math/multiplication', pageCount:6, rating:4.8, downloads:34200, free:true, tags:['multiplication','times tables','math','arithmetic','drill'] },
+  { id:'ws5', title:'US Constitution Vocabulary', description:'Match key terms from the Constitution with their definitions. Includes crossword puzzle about government, rights, and amendments.', subject:'History', gradeLevel:'7th-8th', source:'education.com', url:'https://www.education.com/worksheets/us-history/', pageCount:3, rating:4.3, downloads:5600, free:true, tags:['constitution','government','history','vocabulary','civics'] },
+  { id:'ws6', title:'Scientific Method Lab Report Template', description:'Guided template for writing lab reports including hypothesis, materials, procedure, data, and conclusion.', subject:'Science', gradeLevel:'6th-9th', source:'sciencebuddies.org', url:'https://www.sciencebuddies.org/', pageCount:2, rating:4.6, downloads:15300, free:true, tags:['scientific method','lab report','science','experiment','hypothesis'] },
+  { id:'ws7', title:'Persuasive Essay Graphic Organizer', description:'Help students plan a 5-paragraph persuasive essay with claim, evidence, and reasoning sections.', subject:'English', gradeLevel:'5th-8th', source:'readwritethink.org', url:'https://www.readwritethink.org/', pageCount:1, rating:4.4, downloads:9400, free:true, tags:['essay','writing','persuasive','graphic organizer','english'] },
+  { id:'ws8', title:'Engineering Design Process', description:'Walk through the engineering design process with a hands-on building challenge activity sheet.', subject:'Computer Science', gradeLevel:'6th-9th', source:'pltw.org', url:'https://www.pltw.org/', pageCount:4, rating:4.7, downloads:6800, free:false, tags:['engineering','design','STEM','technology','building'] },
+  { id:'ws9', title:'Vocabulary Building: Context Clues', description:'Practice determining word meanings from context with grade-appropriate reading passages.', subject:'English', gradeLevel:'3rd-5th', source:'education.com', url:'https://www.education.com/worksheets/vocabulary/', pageCount:3, rating:4.6, downloads:18200, free:true, tags:['vocabulary','context clues','reading','english','words'] },
+  { id:'ws10', title:'Ancient Civilizations Map Activity', description:'Label and color key features of ancient Egyptian, Greek, and Roman civilizations on a world map.', subject:'History', gradeLevel:'5th-7th', source:'teacherspayteachers.com', url:'https://www.teacherspayteachers.com/', pageCount:2, rating:4.5, downloads:7300, free:false, tags:['ancient civilizations','maps','history','egypt','rome','greece'] },
+  { id:'ws11', title:'Geometry Shapes & Angles', description:'Identify, measure, and classify angles and 2D shapes. Includes protractor practice problems.', subject:'Math', gradeLevel:'4th-6th', source:'k5learning.com', url:'https://www.k5learning.com/worksheets/math/geometry', pageCount:5, rating:4.6, downloads:15800, free:true, tags:['geometry','shapes','angles','math','measurement'] },
+  { id:'ws12', title:'Water Cycle Diagram', description:'Label the water cycle diagram and answer questions about evaporation, condensation, and precipitation.', subject:'Science', gradeLevel:'3rd-5th', source:'education.com', url:'https://www.education.com/worksheets/science/', pageCount:2, rating:4.8, downloads:22400, free:true, tags:['water cycle','evaporation','condensation','precipitation','science'] },
+  { id:'ws13', title:'Algebraic Expressions & Equations', description:'Solve one-step and two-step algebraic equations. Translate word problems into expressions and simplify.', subject:'Math', gradeLevel:'7th-9th', source:'k5learning.com', url:'https://www.k5learning.com/worksheets/math/algebra', pageCount:5, rating:4.7, downloads:19300, free:true, tags:['algebra','equations','expressions','math','variables'] },
+  { id:'ws14', title:'Parts of Speech Review', description:'Identify nouns, verbs, adjectives, adverbs, prepositions, and conjunctions in sentences. Grammar practice with answer key.', subject:'English', gradeLevel:'3rd-6th', source:'education.com', url:'https://www.education.com/worksheets/grammar/', pageCount:4, rating:4.5, downloads:27800, free:true, tags:['grammar','parts of speech','nouns','verbs','english','language'] },
+  { id:'ws15', title:'Solar System Planets Activity', description:'Research each planet and complete a fact sheet about size, distance from the sun, atmosphere, and unique features.', subject:'Science', gradeLevel:'4th-6th', source:'education.com', url:'https://www.education.com/worksheets/science/', pageCount:3, rating:4.8, downloads:31200, free:true, tags:['solar system','planets','space','astronomy','science'] },
+  { id:'ws16', title:'World War II Timeline', description:'Create a timeline of major WWII events from 1939-1945. Includes map activity for major battles and theaters of war.', subject:'History', gradeLevel:'8th-10th', source:'teacherspayteachers.com', url:'https://www.teacherspayteachers.com/', pageCount:4, rating:4.6, downloads:8900, free:false, tags:['world war 2','WWII','timeline','history','battles'] },
+  { id:'ws17', title:'Coding Basics: Algorithms & Flowcharts', description:'Introduction to computational thinking with flowchart activities and pseudocode exercises for beginners.', subject:'Computer Science', gradeLevel:'5th-8th', source:'code.org', url:'https://code.org/curriculum', pageCount:3, rating:4.7, downloads:14500, free:true, tags:['coding','algorithms','flowcharts','computer science','programming'] },
+  { id:'ws18', title:'Decimal & Percent Conversions', description:'Convert between fractions, decimals, and percentages. Real-world application problems with money and measurements.', subject:'Math', gradeLevel:'5th-7th', source:'commoncoresheets.com', url:'https://www.commoncoresheets.com/', pageCount:4, rating:4.5, downloads:21400, free:true, tags:['decimals','percentages','fractions','math','conversions'] },
 ];
 
 const FLOW_SECTIONS = [
@@ -66,7 +72,7 @@ export default function LessonPlannerPage() {
 
   // Worksheet search
   const [worksheetQuery, setWorksheetQuery] = useState('');
-  const [worksheetResults, setWorksheetResults] = useState<any[]>([]);
+  const [worksheetResults, setWorksheetResults] = useState<any[]>(DEMO_WORKSHEETS);
   const [searchingWorksheets, setSearchingWorksheets] = useState(false);
   const [wsSubject, setWsSubject] = useState('');
   const [wsGrade, setWsGrade] = useState('');
@@ -150,34 +156,58 @@ export default function LessonPlannerPage() {
 
   function safeJSON(str: string, fb: any) { try { return JSON.parse(str); } catch { return fb; } }
 
+  function filterWorksheets() {
+    const q = worksheetQuery.toLowerCase().trim();
+    // Split query into individual words for better matching
+    const words = q ? q.split(/\s+/).filter(w => w.length > 1) : [];
+
+    return DEMO_WORKSHEETS.filter(w => {
+      // Text matching: each query word must appear in title, description, subject, source, or tags
+      const searchableText = [w.title, w.description, w.subject, w.source, ...(w.tags || [])].join(' ').toLowerCase();
+      const matchQ = words.length === 0 || words.every(word => searchableText.includes(word));
+
+      // Subject filter: exact match
+      const matchS = !wsSubject || w.subject === wsSubject;
+
+      // Grade filter: parse grade ranges properly
+      const matchG = !wsGrade || (() => {
+        if (wsGrade === 'K') return w.gradeLevel.toLowerCase().includes('k');
+        const num = parseInt(wsGrade.replace(/[^0-9]/g, ''));
+        if (isNaN(num)) return true;
+        // Parse the grade range (e.g., "5th-6th" → [5,6])
+        const nums = w.gradeLevel.match(/\d+/g)?.map(Number) || [];
+        if (nums.length >= 2) return num >= nums[0] && num <= nums[1];
+        if (nums.length === 1) return num === nums[0];
+        return true;
+      })();
+
+      return matchQ && matchS && matchG;
+    });
+  }
+
   async function searchWorksheets() {
-    // Allow searching with any combination of filters (query, subject, grade)
-    // or with no filters at all (show all worksheets)
     setSearchingWorksheets(true);
     setHasSearched(true);
-    try {
-      if (isDemo) {
-        await new Promise(r => setTimeout(r, 800));
-        const q = worksheetQuery.toLowerCase().trim();
-        const results = DEMO_WORKSHEETS.filter(w => {
-          const matchQ = !q || w.title.toLowerCase().includes(q) || w.description.toLowerCase().includes(q) || w.subject.toLowerCase().includes(q);
-          const matchS = !wsSubject || w.subject === wsSubject;
-          const matchG = !wsGrade || w.gradeLevel.includes(wsGrade.replace(/[a-z]/gi, '').trim());
-          return matchQ && matchS && matchG;
-        });
-        setWorksheetResults(results);
-        toast.success(`Found ${results.length} worksheet${results.length !== 1 ? 's' : ''}`);
-      } else {
-        const params = new URLSearchParams();
-        if (worksheetQuery) params.set('q', worksheetQuery);
-        if (wsSubject) params.set('subject', wsSubject);
-        if (wsGrade) params.set('grade', wsGrade);
-        const res = await fetch(`/api/lesson-plans?action=search-worksheets&${params}`);
-        if (res.ok) { const d = await res.json(); setWorksheetResults(d.worksheets || []); }
-      }
-    } catch { toast.error('Search failed'); }
-    finally { setSearchingWorksheets(false); }
+    await new Promise(r => setTimeout(r, 300));
+    const results = filterWorksheets();
+    setWorksheetResults(results);
+    setSearchingWorksheets(false);
+    if (results.length > 0) {
+      toast.success(`Found ${results.length} worksheet${results.length !== 1 ? 's' : ''}`);
+    } else {
+      toast(`No worksheets match — try different terms or clear filters`, { icon: '🔍' });
+    }
   }
+
+  // Live-filter worksheets as user types (no button click needed)
+  // Always use local data — works with or without demo mode
+  useEffect(() => {
+    if (activeTab === 'worksheets') {
+      const results = filterWorksheets();
+      setWorksheetResults(results);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [worksheetQuery, wsSubject, wsGrade, activeTab]);
 
   const filtered = filter === 'favorites' ? plans.filter(p => p.isFavorite) : plans;
 
@@ -217,13 +247,13 @@ export default function LessonPlannerPage() {
           <div className="space-y-6">
             <div className="card">
               <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <Search size={18} className="text-primary-500" /> Search Worksheets Online
+                <Search size={18} className="text-primary-500" /> Find Worksheets
               </h2>
-              <p className="text-sm text-gray-500 mb-4">Find free and premium worksheets from education.com, Teachers Pay Teachers, K5 Learning, Common Core Sheets, and more.</p>
+              <p className="text-sm text-gray-500 mb-4">Browse 18 worksheets from education.com, Teachers Pay Teachers, K5 Learning, Common Core Sheets, and more. Results filter instantly as you type — try searching by topic, subject, or keyword.</p>
               <div className="grid sm:grid-cols-4 gap-3">
                 <div className="sm:col-span-2">
-                  <input value={worksheetQuery} onChange={e => setWorksheetQuery(e.target.value)} onKeyDown={e => e.key==='Enter' && searchWorksheets()}
-                    className="input-field" placeholder="Search by topic, e.g. fractions, photosynthesis..." />
+                  <input value={worksheetQuery} onChange={e => setWorksheetQuery(e.target.value)}
+                    className="input-field" placeholder="Type to search... e.g. fractions, photosynthesis" autoFocus />
                 </div>
                 <select value={wsSubject} onChange={e => setWsSubject(e.target.value)} className="input-field">
                   <option value="">All Subjects</option>
@@ -234,20 +264,23 @@ export default function LessonPlannerPage() {
                   {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
-              <button onClick={searchWorksheets} disabled={searchingWorksheets} className="btn-primary mt-4 flex items-center gap-2">
-                {searchingWorksheets ? <><Loader2 size={14} className="animate-spin" /> Searching...</> : <><Search size={14} /> Search Worksheets</>}
-              </button>
+              {(worksheetQuery || wsSubject || wsGrade) && (
+                <button onClick={() => { setWorksheetQuery(''); setWsSubject(''); setWsGrade(''); }}
+                  className="text-xs text-primary-500 hover:underline mt-2 inline-flex items-center gap-1">
+                  <X size={10} /> Clear all filters
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500 font-medium">
+                {worksheetResults.length} worksheet{worksheetResults.length !== 1 ? 's' : ''}
+                {(worksheetQuery || wsSubject || wsGrade) ? ' matching filters' : ' available'}
+              </p>
             </div>
 
             {worksheetResults.length > 0 ? (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500 font-medium">{worksheetResults.length} worksheet{worksheetResults.length !== 1 ? 's' : ''} found</p>
-                  {(worksheetQuery || wsSubject || wsGrade) && (
-                    <button onClick={() => { setWorksheetQuery(''); setWsSubject(''); setWsGrade(''); setWorksheetResults([]); setHasSearched(false); }}
-                      className="text-xs text-gray-400 hover:text-gray-600 transition">Clear filters</button>
-                  )}
-                </div>
                 {worksheetResults.map((ws, i) => {
                   const subj = SUBJECTS.find(s => s.value === ws.subject);
                   return (
@@ -282,22 +315,13 @@ export default function LessonPlannerPage() {
                   );
                 })}
               </div>
-            ) : !searchingWorksheets && hasSearched ? (
+            ) : (
               <div className="empty-state">
                 <Search size={48} className="empty-state-icon" />
-                <p className="empty-state-title">No worksheets found</p>
-                <p className="empty-state-desc">Try different search terms, change the subject filter, or clear all filters to browse all worksheets</p>
-                <button onClick={() => { setWorksheetQuery(''); setWsSubject(''); setWsGrade(''); searchWorksheets(); }}
-                  className="btn-primary mt-4 text-sm">Browse All Worksheets</button>
-              </div>
-            ) : !searchingWorksheets && (
-              <div className="empty-state">
-                <Globe size={48} className="empty-state-icon" />
-                <p className="empty-state-title">Search for worksheets</p>
-                <p className="empty-state-desc">Find worksheets from education.com, Teachers Pay Teachers, K5 Learning, and more</p>
-                <button onClick={searchWorksheets} className="btn-primary mt-4 text-sm flex items-center gap-2 mx-auto">
-                  <Search size={14} /> Browse All Worksheets
-                </button>
+                <p className="empty-state-title">No worksheets match your filters</p>
+                <p className="empty-state-desc">Try different search terms, change the subject filter, or clear all filters</p>
+                <button onClick={() => { setWorksheetQuery(''); setWsSubject(''); setWsGrade(''); }}
+                  className="btn-primary mt-4 text-sm">Show All Worksheets</button>
               </div>
             )}
           </div>

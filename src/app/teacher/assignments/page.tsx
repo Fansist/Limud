@@ -10,8 +10,22 @@ import { DEMO_TEACHER_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import {
   BookOpen, Plus, X, Clock, Users, Paperclip, Link2, FileText, Upload, Star, Scale, Tag, Trash2, ExternalLink,
-  Save, RotateCcw, Wand2, Check, AlertTriangle,
+  Save, RotateCcw, Wand2, Check, AlertTriangle, Globe, Search, ArrowRight,
 } from 'lucide-react';
+import Link from 'next/link';
+
+const PLATFORM_ASSIGNMENTS = [
+  { id: 'pa-1', platform: 'Khan Academy', icon: '🎓', platformColor: 'bg-green-100 text-green-700', title: 'Fractions: Add & Subtract', description: 'Practice adding and subtracting fractions with unlike denominators', url: 'https://www.khanacademy.org/math/arithmetic/fraction-arithmetic', subject: 'Math', gradeLevel: '5th', type: 'Practice', estimatedTime: '30 min' },
+  { id: 'pa-2', platform: 'Khan Academy', icon: '🎓', platformColor: 'bg-green-100 text-green-700', title: 'Intro to Biology', description: 'Video lesson and quiz on cell biology fundamentals', url: 'https://www.khanacademy.org/science/biology', subject: 'Science', gradeLevel: '7th', type: 'Video + Quiz', estimatedTime: '45 min' },
+  { id: 'pa-3', platform: 'IXL Learning', icon: '📊', platformColor: 'bg-blue-100 text-blue-700', title: 'Algebra: Solve Equations', description: 'Adaptive practice for solving one-step and two-step equations', url: 'https://www.ixl.com/math/algebra-1', subject: 'Math', gradeLevel: '7th', type: 'Adaptive Practice', estimatedTime: '25 min' },
+  { id: 'pa-4', platform: 'Newsela', icon: '📰', platformColor: 'bg-orange-100 text-orange-700', title: 'Current Events: Climate Change', description: 'Leveled reading article with comprehension quiz about climate science', url: 'https://newsela.com/read/climate-change', subject: 'Science', gradeLevel: '6th-8th', type: 'Reading + Quiz', estimatedTime: '20 min' },
+  { id: 'pa-5', platform: 'Edpuzzle', icon: '🎬', platformColor: 'bg-red-100 text-red-700', title: 'American Revolution Video', description: 'Interactive video lesson with embedded questions about the causes of the American Revolution', url: 'https://edpuzzle.com/assignments', subject: 'History', gradeLevel: '8th', type: 'Interactive Video', estimatedTime: '35 min' },
+  { id: 'pa-6', platform: 'Quizlet', icon: '🃏', platformColor: 'bg-indigo-100 text-indigo-700', title: 'Spanish Vocabulary Set', description: 'Flashcard study set for Chapter 4 vocabulary with games and practice test', url: 'https://quizlet.com/study-sets', subject: 'Foreign Language', gradeLevel: '6th-9th', type: 'Study Set', estimatedTime: '20 min' },
+  { id: 'pa-7', platform: 'Desmos', icon: '📈', platformColor: 'bg-green-100 text-green-800', title: 'Graphing Linear Equations', description: 'Interactive graphing activity for slope-intercept form', url: 'https://teacher.desmos.com/activitybuilder', subject: 'Math', gradeLevel: '8th', type: 'Interactive Activity', estimatedTime: '40 min' },
+  { id: 'pa-8', platform: 'BrainPOP', icon: '🧠', platformColor: 'bg-yellow-100 text-yellow-700', title: 'Photosynthesis Animated Lesson', description: 'Animated video with quiz about how plants convert sunlight into energy', url: 'https://www.brainpop.com/science/cellularlifeandgenetics/photosynthesis/', subject: 'Science', gradeLevel: '5th-7th', type: 'Video + Quiz', estimatedTime: '20 min' },
+  { id: 'pa-9', platform: 'Google Classroom', icon: '📚', platformColor: 'bg-blue-100 text-blue-600', title: 'Essay: Compare & Contrast', description: 'Write a 5-paragraph compare/contrast essay using the provided rubric', url: 'https://classroom.google.com/assignments', subject: 'English', gradeLevel: '6th-8th', type: 'Essay', estimatedTime: '60 min' },
+  { id: 'pa-10', platform: 'Kahoot!', icon: '🎮', platformColor: 'bg-purple-100 text-purple-700', title: 'Civil War Review Game', description: 'Live quiz game reviewing key battles, figures, and events of the US Civil War', url: 'https://kahoot.com/quizzes', subject: 'History', gradeLevel: '8th', type: 'Game Quiz', estimatedTime: '15 min' },
+];
 
 const ASSIGNMENT_CATEGORIES = [
   { id: 'homework', label: 'Homework', weight: 20, color: 'bg-blue-100 text-blue-700' },
@@ -52,6 +66,9 @@ export default function TeacherAssignments() {
   const [courses, setCourses] = useState<any[]>([]);
   const [creating, setCreating] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
+  const [createMode, setCreateMode] = useState<'manual' | 'platform'>('manual');
+  const [platformSearch, setPlatformSearch] = useState('');
+  const [platformFilter, setPlatformFilter] = useState('');
 
   useEffect(() => {
     fetchAssignments();
@@ -211,7 +228,58 @@ export default function TeacherAssignments() {
 
   function resetForm() {
     setForm({ title: '', description: '', type: 'SHORT_ANSWER', courseId: '', dueDate: '', totalPoints: 100, isPublished: true, category: 'homework', isExtraCredit: false, attachments: [], linkUrl: '', linkTitle: '' });
+    setCreateMode('manual');
   }
+
+  async function assignFromPlatform(pa: typeof PLATFORM_ASSIGNMENTS[0]) {
+    if (!form.courseId) {
+      toast.error('Please select a course first');
+      return;
+    }
+    if (!form.dueDate) {
+      toast.error('Please set a due date first');
+      return;
+    }
+    setCreating(true);
+    try {
+      await new Promise(r => setTimeout(r, 600));
+      const newAssignment = {
+        id: `demo-pa-${Date.now()}`,
+        title: `[${pa.platform}] ${pa.title}`,
+        description: pa.description,
+        type: 'EXTERNAL',
+        courseId: form.courseId,
+        course: courses.find(c => c.id === form.courseId) || { name: 'Demo Course' },
+        dueDate: form.dueDate,
+        totalPoints: form.totalPoints,
+        isPublished: true,
+        category: 'homework',
+        isExtraCredit: false,
+        attachments: [
+          { id: `link-${Date.now()}`, name: `${pa.title} — ${pa.platform}`, type: 'link' as const, url: pa.url },
+        ],
+        submissions: [],
+        createdAt: new Date().toISOString(),
+        platformSource: pa.platform,
+      };
+      setAssignments(prev => [newAssignment, ...prev]);
+      toast.success(`Assigned "${pa.title}" from ${pa.platform}!`);
+      setShowCreate(false);
+      resetForm();
+    } catch {
+      toast.error('Failed to create assignment');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  const filteredPlatformAssignments = PLATFORM_ASSIGNMENTS.filter(pa => {
+    const q = platformSearch.toLowerCase().trim();
+    const matchQ = !q || pa.title.toLowerCase().includes(q) || pa.description.toLowerCase().includes(q) || pa.platform.toLowerCase().includes(q) || pa.subject.toLowerCase().includes(q);
+    const matchP = !platformFilter || pa.platform === platformFilter;
+    return matchQ && matchP;
+  });
+  const platformNames = [...new Set(PLATFORM_ASSIGNMENTS.map(pa => pa.platform))];
 
   function updateWeight(catId: string, newWeight: number) {
     setCategories(prev => {
@@ -487,15 +555,176 @@ export default function TeacherAssignments() {
       <AnimatePresence>
         {showCreate && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowCreate(false)}>
+            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => { setShowCreate(false); resetForm(); }}>
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
               className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Create Assignment</h2>
-                <button onClick={() => setShowCreate(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X size={20} /></button>
+                <button onClick={() => { setShowCreate(false); resetForm(); }} className="p-2 hover:bg-gray-100 rounded-lg"><X size={20} /></button>
               </div>
 
-              <div className="space-y-4">
+              {/* Mode Tabs */}
+              <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3">
+                <button onClick={() => setCreateMode('manual')}
+                  className={cn('px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2',
+                    createMode === 'manual' ? 'bg-primary-100 text-primary-700' : 'text-gray-500 hover:bg-gray-100')}>
+                  <Plus size={14} /> Manual
+                </button>
+                <button onClick={() => setCreateMode('platform')}
+                  className={cn('px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2',
+                    createMode === 'platform' ? 'bg-primary-100 text-primary-700' : 'text-gray-500 hover:bg-gray-100')}>
+                  <Globe size={14} /> From Platform
+                </button>
+              </div>
+
+              {/* Shared: Course & Due Date (needed for both modes) */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Course *</label>
+                  <select value={form.courseId} onChange={e => setForm(f => ({ ...f, courseId: e.target.value }))} className="input-field">
+                    <option value="">Select course</option>
+                    {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
+                  <input type="datetime-local" value={form.dueDate}
+                    onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className="input-field" />
+                </div>
+              </div>
+
+              {createMode === 'platform' ? (
+                /* ─── PLATFORM ASSIGNMENT MODE ─── */
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-2">
+                    <Globe size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">Assign from Connected Platforms</p>
+                      <p className="text-xs text-blue-600">Select an activity from Khan Academy, IXL, Newsela, and other platforms — or paste any URL. Students complete the work on the platform and progress syncs back.</p>
+                    </div>
+                  </div>
+
+                  {/* Custom URL Assignment */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                    <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1.5">
+                      <Link2 size={14} className="text-primary-500" /> Assign from Any Website
+                    </h4>
+                    <p className="text-xs text-gray-500 mb-3">Paste any URL to assign as homework — worksheets, articles, videos, practice problems, or interactive activities from any educational website.</p>
+                    <div className="flex gap-2">
+                      <input value={form.linkUrl} onChange={e => setForm(f => ({ ...f, linkUrl: e.target.value }))}
+                        className="input-field text-sm flex-1" placeholder="https://www.khanacademy.org/..." />
+                      <input value={form.linkTitle} onChange={e => setForm(f => ({ ...f, linkTitle: e.target.value }))}
+                        className="input-field text-sm w-48" placeholder="Assignment name" />
+                      <button onClick={() => {
+                        if (!form.linkUrl.trim()) { toast.error('Enter a URL'); return; }
+                        if (!form.courseId) { toast.error('Select a course first'); return; }
+                        if (!form.dueDate) { toast.error('Set a due date first'); return; }
+                        setCreating(true);
+                        setTimeout(() => {
+                          const title = form.linkTitle.trim() || new URL(form.linkUrl).hostname.replace('www.', '');
+                          const newAssignment = {
+                            id: `demo-url-${Date.now()}`,
+                            title: title,
+                            description: `Complete this activity: ${form.linkUrl}`,
+                            type: 'EXTERNAL',
+                            courseId: form.courseId,
+                            course: courses.find(c => c.id === form.courseId) || { name: 'Demo Course' },
+                            dueDate: form.dueDate,
+                            totalPoints: form.totalPoints,
+                            isPublished: true,
+                            category: 'homework',
+                            isExtraCredit: false,
+                            attachments: [
+                              { id: `link-${Date.now()}`, name: title, type: 'link' as const, url: form.linkUrl },
+                            ],
+                            submissions: [],
+                            createdAt: new Date().toISOString(),
+                            platformSource: 'Custom URL',
+                          };
+                          setAssignments(prev => [newAssignment, ...prev]);
+                          toast.success(`Assigned "${title}" from custom URL!`);
+                          setShowCreate(false);
+                          resetForm();
+                          setCreating(false);
+                        }, 500);
+                      }} disabled={creating || !form.linkUrl.trim() || !form.courseId || !form.dueDate}
+                        className="btn-primary text-sm whitespace-nowrap flex items-center gap-1.5">
+                        <Plus size={14} /> Assign
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
+                    <div className="relative flex justify-center text-xs"><span className="px-3 bg-white text-gray-400 font-medium">or choose from popular platforms</span></div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input value={platformSearch} onChange={e => setPlatformSearch(e.target.value)}
+                        className="input-field pl-9" placeholder="Search activities..." />
+                    </div>
+                    <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} className="input-field w-40">
+                      <option value="">All Platforms</option>
+                      {platformNames.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2 max-h-[35vh] overflow-y-auto pr-1">
+                    {filteredPlatformAssignments.map(pa => (
+                      <div key={pa.id} className="flex items-start gap-3 p-3 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50/30 transition group">
+                        <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0', pa.platformColor)}>{pa.icon}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-sm font-semibold text-gray-900">{pa.title}</h4>
+                            <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">{pa.type}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{pa.description}</p>
+                          <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-400">
+                            <span>{pa.platform}</span>
+                            <span>{pa.subject}</span>
+                            <span>Grade {pa.gradeLevel}</span>
+                            <span className="flex items-center gap-0.5"><Clock size={8} /> {pa.estimatedTime}</span>
+                          </div>
+                        </div>
+                        <button onClick={() => assignFromPlatform(pa)} disabled={creating || !form.courseId || !form.dueDate}
+                          className={cn('btn-primary text-xs px-3 py-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition',
+                            (!form.courseId || !form.dueDate) && 'opacity-50 cursor-not-allowed')}>
+                          Assign
+                        </button>
+                      </div>
+                    ))}
+                    {filteredPlatformAssignments.length === 0 && (
+                      <div className="text-center py-8 text-gray-400">
+                        <Search size={32} className="mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No matching activities found</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {(!form.courseId || !form.dueDate) && (
+                    <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-center gap-1">
+                      <AlertTriangle size={12} /> Select a course and due date above before assigning.
+                    </p>
+                  )}
+
+                  {/* Link to connect more platforms */}
+                  <Link href="/student/platforms?demo=true" className="flex items-center justify-between p-3 bg-primary-50 border border-primary-200 rounded-xl hover:bg-primary-100 transition group">
+                    <div className="flex items-center gap-2">
+                      <Globe size={16} className="text-primary-600" />
+                      <div>
+                        <p className="text-sm font-medium text-primary-800">Connect more platforms</p>
+                        <p className="text-[10px] text-primary-500">Link Khan Academy, IXL, Google Classroom, and 13+ more</p>
+                      </div>
+                    </div>
+                    <ArrowRight size={16} className="text-primary-400 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
+              ) : (
+                /* ─── MANUAL CREATE MODE ─── */
+                <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
                   <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
@@ -519,22 +748,8 @@ export default function TeacherAssignments() {
                       <option value="WORKSHEET">Worksheet</option>
                       <option value="PRESENTATION">Presentation</option>
                       <option value="LAB_REPORT">Lab Report</option>
+                      <option value="EXTERNAL">External Platform</option>
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Course *</label>
-                    <select value={form.courseId} onChange={e => setForm(f => ({ ...f, courseId: e.target.value }))} className="input-field">
-                      <option value="">Select course</option>
-                      {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
-                    <input type="datetime-local" value={form.dueDate}
-                      onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className="input-field" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Total Points</label>
@@ -632,6 +847,7 @@ export default function TeacherAssignments() {
                   </button>
                 </div>
               </div>
+              )}
             </motion.div>
           </motion.div>
         )}

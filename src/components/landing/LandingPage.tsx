@@ -244,13 +244,13 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <motion.div initial="hidden" animate="visible" variants={stagger}>
               <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 bg-primary-50 border border-primary-100 text-primary-700 px-4 py-1.5 rounded-full text-sm font-medium mb-6">
-                <Sparkles size={14} /> AI-Powered K-12 Learning Platform
+                <Sparkles size={14} /> v7.4 — AI-Powered K-12 Learning Platform
               </motion.div>
 
               <motion.h1 variants={fadeUp} custom={1} className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1]">
-                One platform.
+                Teach smarter.
                 <span className="relative inline-block">
-                  <span className="relative z-10 bg-gradient-to-r from-primary-600 via-accent-500 to-primary-600 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]"> Every learner.</span>
+                  <span className="relative z-10 bg-gradient-to-r from-primary-600 via-accent-500 to-primary-600 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]"> Learn better.</span>
                   <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none">
                     <path d="M2 8C50 2 100 2 150 6C200 10 250 4 298 8" stroke="url(#grad)" strokeWidth="3" strokeLinecap="round" />
                     <defs><linearGradient id="grad"><stop stopColor="#3b82f6" /><stop offset="1" stopColor="#d946ef" /></linearGradient></defs>
@@ -259,8 +259,8 @@ export default function LandingPage() {
               </motion.h1>
 
               <motion.p variants={fadeUp} custom={2} className="mt-6 text-lg sm:text-xl text-gray-500 leading-relaxed max-w-xl">
-                Replace app fatigue with joyful learning. AI tutoring, smart grading, gamified rewards, 
-                16+ platform integrations, and real-time parent visibility.
+                One platform for everything: AI tutoring, cross-platform assignments, worksheet finder, 
+                gamified rewards, smart grading, and real-time parent visibility across 16+ integrations.
               </motion.p>
 
               <motion.div variants={fadeUp} custom={3} className="mt-8 flex flex-col sm:flex-row gap-4">
@@ -279,6 +279,7 @@ export default function LandingPage() {
                   { icon: Lock, text: 'FERPA & COPPA compliant' },
                   { icon: Zap, text: 'Set up in 5 minutes' },
                   { icon: Link2, text: '16+ integrations' },
+                  { icon: Globe, text: 'Assign from any website' },
                 ].map(item => (
                   <div key={item.text} className="flex items-center gap-1.5">
                     <item.icon size={16} className="text-green-500" /> {item.text}
@@ -361,6 +362,31 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      {/* ─── WHAT'S NEW IN v7.4 ──────────────────────────────────────── */}
+      <RevealSection>
+        <section className="py-16 bg-gradient-to-r from-primary-50 via-accent-50/30 to-primary-50 border-y border-primary-100/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-700 px-4 py-1.5 rounded-full text-sm font-bold mb-3"><Rocket size={14} /> What&apos;s New in v7.4</div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Cross-Platform Assignments &amp; Smarter Search</h2>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {[
+                { icon: <Globe size={24} />, title: 'Assign From Any Platform', desc: 'Teachers can now assign activities from Khan Academy, IXL, Newsela, Edpuzzle, Quizlet, and more directly in the Assignment Manager. Students complete work on the platform.', color: 'bg-blue-100 text-blue-600' },
+                { icon: <Target size={24} />, title: 'Worksheet Finder Fixed', desc: 'Completely rebuilt search with fuzzy matching, keyword tags, and 18+ worksheets. Search by topic, subject, or grade and get instant results every time.', color: 'bg-green-100 text-green-600' },
+                { icon: <Eye size={24} />, title: 'Master Demo Account', desc: 'New unified test account with full access to all roles and features. Perfect for demos, training, and complete platform evaluation.', color: 'bg-amber-100 text-amber-600' },
+              ].map(item => (
+                <motion.div key={item.title} whileHover={{ y: -4 }} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all">
+                  <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center mb-4', item.color)}>{item.icon}</div>
+                  <h3 className="text-base font-bold text-gray-900 mb-2">{item.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </RevealSection>
+
       {/* ─── SOCIAL PROOF BAR ──────────────────────────────────────────── */}
       <RevealSection>
         <section className="py-16 bg-white border-y border-gray-100">
@@ -403,11 +429,13 @@ export default function LandingPage() {
               { icon: <Trophy size={24} />, title: 'Gamification Engine', desc: 'XP, levels, streaks, virtual coins, avatar shop, and achievement badges that make learning addictive.', color: 'bg-amber-100 text-amber-600', tag: 'Student' },
               { icon: <Gamepad2 size={24} />, title: 'Educational Games', desc: 'Math Blaster, Word Quest, Science Puzzles, History Trivia, and more playable games in the store.', color: 'bg-pink-100 text-pink-600', tag: 'Student' },
               { icon: <Link2 size={24} />, title: '16+ Platform Links', desc: 'Connect Khan Academy, i-Ready, Amplify, PLTW, Google Classroom, Canvas, IXL, Quizlet, and more.', color: 'bg-cyan-100 text-cyan-600', tag: 'All Roles' },
-              { icon: <FileText size={24} />, title: 'Assignment Manager', desc: 'Category weighting, extra credit support, file/link attachments, and multi-format submissions.', color: 'bg-blue-100 text-blue-600', tag: 'Teacher' },
+              { icon: <FileText size={24} />, title: 'Assignment Manager', desc: 'Category weighting, extra credit, file/link attachments, plus assign activities from Khan Academy, IXL, Edpuzzle, and more connected platforms.', color: 'bg-blue-100 text-blue-600', tag: 'Teacher' },
+              { icon: <PenTool size={24} />, title: 'Worksheet Finder', desc: 'Search 18+ worksheets from education.com, TPT, K5 Learning, and more with instant filtering by subject, grade, and topic.', color: 'bg-teal-100 text-teal-600', tag: 'Teacher' },
               { icon: <BarChart3 size={24} />, title: 'Knowledge Analytics', desc: 'Skill radar charts, study heatmaps, rank system, goal tracking, and learning DNA insights.', color: 'bg-emerald-100 text-emerald-600', tag: 'Student' },
               { icon: <Shield size={24} />, title: 'Game Access Control', desc: 'Teachers toggle game access per class with scheduling, stats tracking, and global controls.', color: 'bg-red-100 text-red-600', tag: 'Teacher' },
               { icon: <Eye size={24} />, title: 'Parent Portal', desc: 'View-only access to grades, feedback, progress, tutor conversations, and reward activity.', color: 'bg-rose-100 text-rose-600', tag: 'Parent' },
               { icon: <LayoutDashboard size={24} />, title: 'Admin Dashboard', desc: 'District management, CSV provisioning, subscription billing, usage analytics, and reporting.', color: 'bg-slate-100 text-slate-600', tag: 'Admin' },
+              { icon: <Globe size={24} />, title: 'Cross-Platform Assignments', desc: 'Teachers assign activities directly from Khan Academy, IXL, Newsela, Edpuzzle, Quizlet, and 10+ more platforms. Students complete work on the platform and progress syncs back.', color: 'bg-orange-100 text-orange-600', tag: 'Teacher' },
             ].map((feature, i) => (
               <RevealSection key={feature.title}>
                 <motion.div whileHover={{ y: -4 }} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all h-full">

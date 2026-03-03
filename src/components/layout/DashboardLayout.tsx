@@ -173,8 +173,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [isDemoParam, pathname]);
 
   const sessionRole = (session?.user as any)?.role || 'STUDENT';
+  const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
   const isHomeschoolParent = isDemo ? false : ((session?.user as any)?.isHomeschoolParent === true);
-  const role = isDemo ? demoRole : sessionRole;
+  
+  // Master Demo: detect role from pathname to allow cross-role navigation
+  const masterRole = isMasterDemo
+    ? (pathname.startsWith('/student') ? 'STUDENT'
+       : pathname.startsWith('/teacher') ? 'TEACHER'
+       : pathname.startsWith('/admin') ? 'ADMIN'
+       : pathname.startsWith('/parent') ? 'PARENT'
+       : sessionRole)
+    : null;
+  const role = isDemo ? demoRole : (masterRole || sessionRole);
   const navKey = isHomeschoolParent ? 'HOMESCHOOL_PARENT' : role;
 
   const demoUser = isDemo ? getDemoUser(role) : null;
@@ -292,6 +302,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="mx-4 mt-3 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 text-xs font-medium">
               <Home size={14} /> <span>Homeschool Mode</span>
+            </div>
+          </div>
+        )}
+
+        {/* Master Demo role switcher */}
+        {isMasterDemo && !isDemo && (
+          <div className="mx-4 mt-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mb-1.5 flex items-center gap-1"><Shield size={10} /> Master Demo — All Access</p>
+            <div className="grid grid-cols-4 gap-1">
+              {[
+                { r: 'STUDENT', icon: <GraduationCap size={12} />, path: '/student/dashboard', color: 'bg-blue-100 text-blue-700' },
+                { r: 'TEACHER', icon: <BookOpen size={12} />, path: '/teacher/dashboard', color: 'bg-green-100 text-green-700' },
+                { r: 'ADMIN', icon: <Shield size={12} />, path: '/admin/dashboard', color: 'bg-purple-100 text-purple-700' },
+                { r: 'PARENT', icon: <Eye size={12} />, path: '/parent/dashboard', color: 'bg-pink-100 text-pink-700' },
+              ].map(r => (
+                <Link key={r.r} href={r.path}
+                  className={cn('flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-[9px] font-medium transition',
+                    role === r.r ? r.color + ' ring-1 ring-amber-300' : 'hover:bg-gray-100 text-gray-500')}
+                  onClick={() => setSidebarOpen(false)}>
+                  {r.icon}
+                  <span>{r.r.charAt(0) + r.r.slice(1).toLowerCase()}</span>
+                </Link>
+              ))}
             </div>
           </div>
         )}

@@ -6,13 +6,13 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { BookOpen, ArrowRight, Sparkles, GraduationCap, Shield, Eye, Users } from 'lucide-react';
+import { BookOpen, ArrowRight, Sparkles, GraduationCap, Shield, Eye, Users, Crown } from 'lucide-react';
 
 const DEMO_ACCOUNTS = [
-  { role: 'Student', email: 'student@limud.edu', icon: <GraduationCap size={20} />, desc: 'AI tutor, assignments, rewards', color: 'from-blue-500 to-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200' },
-  { role: 'Teacher', email: 'teacher@limud.edu', icon: <Users size={20} />, desc: 'Grading, analytics, management', color: 'from-green-500 to-green-600', bg: 'hover:bg-green-50 hover:border-green-200' },
-  { role: 'Admin', email: 'admin@limud.edu', icon: <Shield size={20} />, desc: 'District admin, provisioning', color: 'from-purple-500 to-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200' },
-  { role: 'Parent', email: 'parent@limud.edu', icon: <Eye size={20} />, desc: 'View-only child progress', color: 'from-pink-500 to-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200' },
+  { role: 'Student', email: 'student@limud.edu', password: 'password123', icon: <GraduationCap size={20} />, desc: 'AI tutor, assignments, rewards', color: 'from-blue-500 to-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200' },
+  { role: 'Teacher', email: 'teacher@limud.edu', password: 'password123', icon: <Users size={20} />, desc: 'Grading, analytics, management', color: 'from-green-500 to-green-600', bg: 'hover:bg-green-50 hover:border-green-200' },
+  { role: 'Admin', email: 'admin@limud.edu', password: 'password123', icon: <Shield size={20} />, desc: 'District admin, provisioning', color: 'from-purple-500 to-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200' },
+  { role: 'Parent', email: 'parent@limud.edu', password: 'password123', icon: <Eye size={20} />, desc: 'View-only child progress', color: 'from-pink-500 to-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200' },
 ];
 
 export default function LoginPage() {
@@ -47,16 +47,16 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoLogin = async (demoEmail: string) => {
+  const handleDemoLogin = async (demoEmail: string, demoPassword: string = 'password123') => {
     setActiveDemo(demoEmail);
     setEmail(demoEmail);
-    setPassword('password123');
+    setPassword(demoPassword);
     setLoading(true);
 
     try {
       const result = await signIn('credentials', {
         email: demoEmail,
-        password: 'password123',
+        password: demoPassword,
         redirect: false,
       });
 
@@ -235,7 +235,7 @@ export default function LoginPage() {
                   key={account.role}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => handleDemoLogin(account.email)}
+                  onClick={() => handleDemoLogin(account.email, account.password)}
                   disabled={loading}
                   className={`flex flex-col items-center p-3.5 rounded-xl border-2 border-gray-100 transition-all text-center disabled:opacity-50 ${account.bg}`}
                   aria-label={`Sign in as demo ${account.role}`}
@@ -253,6 +253,29 @@ export default function LoginPage() {
                 </motion.button>
               ))}
             </div>
+
+            {/* Master Demo - Full Access */}
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              onClick={() => handleDemoLogin('master@limud.edu', 'LimudMaster2026!')}
+              disabled={loading}
+              className="w-full mt-3 flex items-center gap-3 p-3.5 rounded-xl border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 transition-all disabled:opacity-50"
+            >
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                {activeDemo === 'master@limud.edu' ? (
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : <Crown size={20} />}
+              </div>
+              <div className="text-left flex-1">
+                <span className="text-sm font-bold text-amber-900">Master Demo</span>
+                <span className="text-[10px] text-amber-600 block">Full access to all roles & features</span>
+              </div>
+              <ArrowRight size={16} className="text-amber-400" />
+            </motion.button>
 
             <div className="mt-6 text-center space-y-3">
               <Link

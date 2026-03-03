@@ -2,33 +2,48 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 7.3
+- **Version**: 7.4
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
 
-## What's New in v7.3 - Page Duplication Fix, Editable Grade Weights & Polish
+## What's New in v7.4 - Cross-Platform Assignments, Worksheet Finder Fix & Master Demo
 
-### Critical Bug Fixes
-- **Page Duplication Fix**: Fixed the bug where 7 pages (teacher/games, student/games, student/knowledge, student/focus, admin/classrooms, admin/payments, admin/schools) rendered as a complete duplicate copy of themselves. Root cause: both the route `layout.tsx` AND the page component wrapped content in `<DashboardLayout>`, causing double sidebar/header rendering. Fixed by removing `DashboardLayout` from the 7 affected layouts and replacing with `<Suspense>` only.
-- **Suspense Boundaries Added**: Added `<Suspense>` wrappers to 18 route layouts that were missing them. The `useIsDemo()` hook relies on `useSearchParams()` which requires a Suspense boundary in Next.js 13+. Missing Suspense caused hydration issues and flash-of-content on initial load for pages under teacher/, student/, admin/, and parent/ routes.
-- **useIsDemo Hook Fixed**: The hook now reads `?demo=true` synchronously from `useSearchParams()` on the first client render, eliminating the race condition where `isDemo` started as `false` and flipped to `true` after mount. Previously this caused pages to fetch with `isDemo=false`, fail/return empty, and then re-fetch correctly — producing a visible flash or empty state.
+### Worksheet Finder - Completely Fixed
+- **Root cause fixed**: Search now uses fuzzy word-splitting matching instead of exact substring matching. Searching "fractions" now correctly finds "Fraction Operations Practice" via tag matching.
+- **Tag-based search**: Every worksheet now has keyword tags (e.g., `['fractions', 'math', 'operations']`) for much better discoverability
+- **Multi-word search**: Query "math equations" matches worksheets containing BOTH words anywhere in title, description, subject, or tags
+- **Expanded library**: 18 worksheets (up from 12) covering Math, Science, English, History, and Computer Science across grades 3rd-10th
+- **Always works**: Search runs purely client-side against local data — no API dependency, works with or without demo mode
 
-### New Feature: Editable Category Weights
-- **Weight Editing Panel**: Teachers can now edit assignment category weights with an enhanced Grade Weights panel featuring:
-  - **Slider + Numeric Input**: Both a range slider and a direct number input per category for precise weight control
-  - **Visual Weight Bar**: Color-coded stacked progress bar showing the visual distribution of all categories
-  - **Auto-Balance**: One-click button to distribute weights equally across all graded categories
-  - **Save/Reset**: Explicit Save button (disabled until weights total 100%) and Reset button to revert to last saved values
-  - **Dirty State Tracking**: Unsaved changes indicator warns teachers before navigating away
-  - **Validation Feedback**: Real-time total percentage display with red warning when not at 100%, including helpful text showing how much to add/remove
-  - **Extra Credit Clarity**: Extra Credit category is visually separated with pink styling and explanation
+### Cross-Platform Assignments
+- **Assign from any website**: New "From Platform" tab in Create Assignment modal lets teachers paste any URL to assign as homework
+- **Pre-built platform activities**: 10 ready-to-assign activities from Khan Academy, IXL, Newsela, Edpuzzle, Quizlet, Desmos, BrainPOP, Google Classroom, and Kahoot!
+- **Custom URL support**: Teachers can paste any educational website URL (worksheets, articles, videos, practice problems) and assign it directly
+- **Platform link**: Direct link to Connections page from the assignment modal for connecting more platforms
+- **External assignment type**: New "EXTERNAL" assignment type for platform-sourced work
 
-### Polish & Consistency
-- All 40+ demo-mode pages now have proper Suspense boundaries for clean initial rendering
-- Eliminated all instances of double `DashboardLayout` wrapping across the app
-- Consistent loading spinner styling across all route layouts
+### Master Demo Account
+- **Email**: `master@limud.edu`
+- **Full access**: Single account with access to ALL roles (Student, Teacher, Admin, Parent)
+- **Role switcher**: Sidebar displays a 4-button role switcher when logged in as Master Demo — click to navigate to any role's dashboard
+- **Login page**: Master Demo button prominently displayed on login page with gold styling
+- **isMasterDemo flag**: Stored in JWT session, detected by DashboardLayout for cross-role navigation
+
+### Landing Page Updates (v7.4)
+- Updated hero text: "Teach smarter. Learn better."
+- New "What's New in v7.4" section highlighting cross-platform assignments, worksheet finder, and master demo
+- Added "Cross-Platform Assignments" feature card
+- Added "Worksheet Finder" feature card
+- Added "Assign from any website" trust badge
+- Updated feature descriptions to reflect v7.4 capabilities
+
+### Previous v7.3 Features (Retained)
+- Fixed 7 pages with double DashboardLayout rendering
+- Added Suspense wrappers to 18 route layouts
+- Fixed useIsDemo hook race condition
+- Teacher-editable category weights with slider, auto-balance, save/reset
 
 ### Previous v7.1.1 Features (Retained)
 - **Worksheet Search Fixed**: Correctly returns results with any filter combination
@@ -236,6 +251,17 @@ Each generated lesson plan includes these fully detailed sections:
 - **Dev Server**: `pm2 start ecosystem.config.cjs` on port 3000
 
 ## Version History
+
+### v7.4 (March 3, 2026) - Cross-Platform Assignments, Worksheet Finder & Master Demo
+- **Fixed**: Worksheet finder never finding results (exact substring matching replaced with fuzzy word+tag search)
+- **Added**: 18 worksheets with keyword tags (up from 12)
+- **Added**: Cross-platform assignments - assign from any website URL in Assignment Manager
+- **Added**: 10 pre-built platform activities (Khan Academy, IXL, Newsela, Edpuzzle, Quizlet, etc.)
+- **Added**: Master Demo account (master@limud.edu) with full access to all roles
+- **Added**: Role switcher in sidebar for Master Demo account
+- **Added**: Landing page "What's New in v7.4" section
+- **Updated**: Hero text, feature cards, trust badges on landing page
+- **Updated**: Assignment Manager with "External Platform" type and custom URL support
 
 ### v7.3 (March 3, 2026) - Page Duplication Fix & Editable Weights
 - **Fixed**: 7 pages rendering double DashboardLayout (complete page duplication)
