@@ -2,36 +2,50 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 7.5
-- **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
+- **Version**: 8.0
+- **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics — designed to beat every competitor in the market
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
 
-## What's New in v7.5 - Conversion-Optimized Landing Page & Bug Fixes
+## What's New in v8.0 — Competitor-Killer Landing Page (Based on 30-App Analysis)
 
-### Landing Page — Complete Conversion Rewrite
-- **Problem/Solution Hero**: "Stop juggling 6 apps. Run your school in one." with urgency badge ("127 schools joined this month")
-- **Before/After Pain Points**: Three pain → solution cards showing teacher time savings (Save 2 hrs/day, Save 8 hrs/week, Catch issues 3x faster)
-- **"Replaces Your Stack" Visual**: Shows 6 tools being replaced ($12,000+/yr savings), with Limud as the unified replacement
-- **Sticky Bottom CTA Bar**: Appears on scroll with "Start Free — No Credit Card" call-to-action
-- **Multiple CTAs**: Placed after features section, how-it-works, and pricing — not just at hero/footer
-- **Money-Back Guarantee Badge**: 30-day money-back guarantee in pricing section
-- **Enhanced Testimonials**: Each testimonial now shows quantified metrics (e.g., "Saved 8 hrs/week", "Saved $12,000/year")
-- **Pricing Ring Highlight**: Popular plan has ring-4 highlight for visual emphasis
-- **New FAQ Items**: "Can I try before buying?" and "What if I'm not satisfied?"
-- **Trust Badges**: FERPA, COPPA, WCAG AA, SOC 2 in footer
+### Competitive Intelligence Landing Page
+Analyzed 30 top education apps (Duolingo, Khan Academy, Udemy, Coursera, Quizlet, Google Classroom, ClassDojo, Nearpod, Prodigy, ChatGPT, etc.) and redesigned the landing page to systematically address every competitor's weakness.
 
-### Bug Fixes
-- **Prisma Foreign Key Error (P2003) FIXED**: Lesson plan save now gracefully returns AI-generated content even if DB save fails (handles demo users, homeschool parents without teacher records)
-- **AI Lesson Plan Reliability**: Using `response_format: json_object` and max_tokens: 4000 to prevent JSON truncation
-- **Worksheet Count Updated**: 87+ worksheets (was incorrectly showing 18+ in some places)
-- **Version Corrected**: Bumped from 8.0.0 to 7.5.0
+### NEW: Competitor Comparison Table
+- Full feature comparison grid: **Limud vs Khan Academy vs Google Classroom vs Quizlet vs ClassDojo vs Nearpod**
+- 14 feature rows with green checkmarks (Limud), amber partial marks, and red X marks (competitors)
+- Limud shows green checks for ALL 14 features — no other competitor comes close
 
-### AI Improvements
-- Concise prompt generates focused, topic-specific lesson plans
-- 55-second timeout with graceful fallback to specialized templates
-- Robust JSON extraction handles markdown fences and partial responses
+### NEW: "vs. Competitor" Weakness Callouts
+- **vs. Khan Academy**: Self-directed, no AI grading, no gamification, no parent dashboards
+- **vs. Google Classroom**: Basic grading, no AI features, no gamification, no analytics
+- **vs. Quizlet/ClassDojo/Nearpod**: Each solves one problem; Limud replaces all three
+
+### NEW: Competitor Pricing Comparison
+- Shows Coursera ($49-79/mo), Babbel ($299 lifetime), ABCmouse ($13/mo), Nearpod (custom) — vs Limud $0 free forever
+
+### ENHANCED: "Replaces X" Feature Tags
+Every feature card now explicitly states which competitor it replaces:
+- AI Tutor → "Replaces ChatGPT" (Socratic method, not answer-giving)
+- AI Quiz Generator → "Replaces Quizlet" (AI-verified, not user-generated)
+- Gamification → "Replaces ClassDojo" (works for all K-12, not just elementary)
+- Educational Games → "Replaces Prodigy" (covers ALL subjects, not just math)
+- Assignment Manager → "Replaces Google Classroom" (AI grading + categories)
+- Parent Portal → "Replaces Remind" (full dashboard, not just messaging)
+
+### ENHANCED: Conversion Elements
+- Hero: "Why pay for 6 apps when one does it all?" with explicit competitor name drops
+- Testimonials include "Switched from: Khan + IXL + ClassDojo" callouts
+- FAQ answers directly compare Limud vs specific competitors
+- 16 platform logos (up from 12) — added Clever, Desmos, Edpuzzle, Newsela
+- All demo links correctly point to /login (fixed /demo 404)
+
+### Bug Fixes (Retained from v7.5)
+- **Prisma Foreign Key Error (P2003)**: Gracefully returns AI content even if DB save fails
+- **AI Lesson Plan Reliability**: response_format: json_object, max_tokens: 4000
+- **Worksheet Count**: 87+ curated worksheets across 10 subjects
 
 ## What's New in v7.4 - Cross-Platform Assignments, Worksheet Finder Fix & Master Demo
 
@@ -271,11 +285,26 @@ Each generated lesson plan includes these fully detailed sections:
 - **Platform**: Vercel / Cloudflare Pages compatible
 - **Status**: Active
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
-- **Last Updated**: March 3, 2026
+- **Last Updated**: March 4, 2026
 - **Build**: `npx next build` (all pages compile successfully)
 - **Dev Server**: `pm2 start ecosystem.config.cjs` on port 3000
 
 ## Version History
+
+### v8.0 (March 4, 2026) - Competitor-Killer Landing Page
+- **NEW**: Full competitor comparison table (Limud vs Khan Academy, Google Classroom, Quizlet, ClassDojo, Nearpod)
+- **NEW**: "vs. Competitor" weakness callout cards for Khan, Google Classroom, and Quizlet/ClassDojo/Nearpod
+- **NEW**: Competitor pricing comparison (Coursera, Babbel, ABCmouse, Nearpod vs Limud free)
+- **ENHANCED**: Feature cards show "Replaces X" tags for each competitor replaced
+- **ENHANCED**: Hero, testimonials, FAQ, and CTAs all reference specific competitors
+- **ENHANCED**: 16 platform logos (added Clever, Desmos, Edpuzzle, Newsela)
+- **FIXED**: All demo links point to /login (no more /demo 404)
+- **VERSION**: Bumped to 8.0.0
+
+### v7.5 (March 3, 2026) - Conversion-Optimized Landing Page & Bug Fixes
+- Landing page rewrite with Problem/Solution hero, Before/After pain points, "Replaces Your Stack" visual
+- Sticky CTA bar, multiple CTAs, money-back guarantee badge
+- Fixed Prisma FK error P2003, AI lesson plan reliability, worksheet count
 
 ### v7.4 (March 3, 2026) - Cross-Platform Assignments, Worksheet Finder & Master Demo
 - **Fixed**: Worksheet finder never finding results (exact substring matching replaced with fuzzy word+tag search)
