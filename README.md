@@ -2,11 +2,36 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 7.4
+- **Version**: 7.5
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
+
+## What's New in v7.5 - Conversion-Optimized Landing Page & Bug Fixes
+
+### Landing Page — Complete Conversion Rewrite
+- **Problem/Solution Hero**: "Stop juggling 6 apps. Run your school in one." with urgency badge ("127 schools joined this month")
+- **Before/After Pain Points**: Three pain → solution cards showing teacher time savings (Save 2 hrs/day, Save 8 hrs/week, Catch issues 3x faster)
+- **"Replaces Your Stack" Visual**: Shows 6 tools being replaced ($12,000+/yr savings), with Limud as the unified replacement
+- **Sticky Bottom CTA Bar**: Appears on scroll with "Start Free — No Credit Card" call-to-action
+- **Multiple CTAs**: Placed after features section, how-it-works, and pricing — not just at hero/footer
+- **Money-Back Guarantee Badge**: 30-day money-back guarantee in pricing section
+- **Enhanced Testimonials**: Each testimonial now shows quantified metrics (e.g., "Saved 8 hrs/week", "Saved $12,000/year")
+- **Pricing Ring Highlight**: Popular plan has ring-4 highlight for visual emphasis
+- **New FAQ Items**: "Can I try before buying?" and "What if I'm not satisfied?"
+- **Trust Badges**: FERPA, COPPA, WCAG AA, SOC 2 in footer
+
+### Bug Fixes
+- **Prisma Foreign Key Error (P2003) FIXED**: Lesson plan save now gracefully returns AI-generated content even if DB save fails (handles demo users, homeschool parents without teacher records)
+- **AI Lesson Plan Reliability**: Using `response_format: json_object` and max_tokens: 4000 to prevent JSON truncation
+- **Worksheet Count Updated**: 87+ worksheets (was incorrectly showing 18+ in some places)
+- **Version Corrected**: Bumped from 8.0.0 to 7.5.0
+
+### AI Improvements
+- Concise prompt generates focused, topic-specific lesson plans
+- 55-second timeout with graceful fallback to specialized templates
+- Robust JSON extraction handles markdown fences and partial responses
 
 ## What's New in v7.4 - Cross-Platform Assignments, Worksheet Finder Fix & Master Demo
 
