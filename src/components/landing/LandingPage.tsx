@@ -6,14 +6,15 @@ import { useRef, useState, useEffect } from 'react';
 import {
   BookOpen, MessageCircle, Trophy, BarChart3, GraduationCap,
   Shield, Users, Zap, Brain, Sparkles, ArrowRight, ChevronDown,
-  Star, Check, Play, Monitor, Smartphone, Globe, Heart,
-  Clock, TrendingUp, Award, Lightbulb, Palette, Rocket,
-  Lock, Eye, Upload, ChevronUp, Mail, Link2, Gamepad2,
+  Star, Check, Play, Globe, Heart, Clock, TrendingUp,
+  Award, Lightbulb, Rocket, Lock, Eye, Link2, Gamepad2,
   FileText, Target, PenTool, Wand2, LayoutDashboard, RefreshCw,
+  ChevronUp, AlertTriangle, DollarSign, X, Timer,
+  CheckCircle2, ArrowDown, Gift, Flame, School,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// ── Animated counter ────────────────────────────────────────────────────────
+// ── Animated counter ────────────────────────────────────────────────
 function AnimatedNumber({ target, suffix = '' }: { target: number; suffix?: string }) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
@@ -45,7 +46,7 @@ function AnimatedNumber({ target, suffix = '' }: { target: number; suffix?: stri
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
-// ── Floating particles (client-only) ────────────
+// ── Floating particles ────────────────────────────────────────────
 function FloatingParticles({ count = 15 }: { count?: number }) {
   const [mounted, setMounted] = useState(false);
   const particles = useRef<Array<{
@@ -95,7 +96,7 @@ function RevealSection({ children, className = '' }: { children: React.ReactNode
   );
 }
 
-// ── FAQ Accordion ─────────────────────────────────────────────────────────
+// ── FAQ Accordion ────────────────────────────────────────────────
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -119,7 +120,7 @@ const fadeUp = {
 };
 const stagger = { visible: { transition: { staggerChildren: 0.08 } } };
 
-// ── Platform Integration Logos ──────────────────────────────────────────
+// ── Logos ──────────────────────────────────────────────────────
 function PlatformLogos() {
   const platforms = [
     { name: 'Khan Academy', icon: '🎓', color: 'from-green-400 to-green-600' },
@@ -150,9 +151,47 @@ function PlatformLogos() {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// LANDING PAGE
-// ═════════════════════════════════════════════════════════════════════════════
+// ── Sticky CTA Bar ──────────────────────────────────────────────
+function StickyCTA() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setVisible(window.scrollY > 600);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-gray-200 shadow-2xl shadow-gray-900/10 py-3 px-4"
+    >
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div className="hidden sm:flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-sm text-gray-600">
+            <Flame size={16} className="text-orange-500" />
+            <span><strong className="text-gray-900">127 schools</strong> signed up this month</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Link href="/register"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25">
+            Start Free — No Credit Card <ArrowRight size={14} />
+          </Link>
+          <Link href="/demo" className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition px-4 py-2.5">
+            Try Demo
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// =========================================================================
+// LANDING PAGE — CONVERSION-OPTIMIZED v7.5
+// =========================================================================
 export default function LandingPage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
@@ -176,7 +215,7 @@ export default function LandingPage() {
 
   return (
     <div className="bg-white overflow-x-hidden">
-      {/* ─── NAVBAR ─────────────────────────────────────────────────────── */}
+      {/* ─── NAVBAR ──────────────────────────────────────────────── */}
       <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} transition={{ duration: 0.6, ease: 'easeOut' }}
         className={cn('fixed top-0 left-0 right-0 z-50 transition-all duration-300',
           scrolled ? 'bg-white/90 backdrop-blur-xl border-b border-gray-100/80 shadow-sm' : 'bg-transparent')}>
@@ -204,7 +243,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-3">
               <Link href="/login" className="hidden sm:inline-flex text-sm font-semibold text-gray-700 hover:text-gray-900 transition px-4 py-2">Sign In</Link>
               <Link href="/register" className="inline-flex items-center gap-1.5 bg-primary-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-primary-700 transition-all shadow-sm shadow-primary-600/25 hover:shadow-md hover:shadow-primary-600/30">
-                Get Started <ArrowRight size={14} />
+                Start Free <ArrowRight size={14} />
               </Link>
               <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2 rounded-lg hover:bg-gray-100" aria-label="Toggle menu">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,13 +266,13 @@ export default function LandingPage() {
             })}
             <div className="flex gap-2 pt-2">
               <Link href="/login" className="btn-secondary flex-1 text-center text-sm">Sign In</Link>
-              <Link href="/register" className="btn-primary flex-1 text-center text-sm">Get Started</Link>
+              <Link href="/register" className="btn-primary flex-1 text-center text-sm">Start Free</Link>
             </div>
           </motion.div>
         )}
       </motion.nav>
 
-      {/* ─── HERO ───────────────────────────────────────────────────────── */}
+      {/* ─── HERO — PROBLEM/SOLUTION ─────────────────────────────── */}
       <section ref={heroRef} className="relative min-h-screen flex items-center pt-16 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-accent-50/30" />
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-primary-200/30 to-transparent rounded-full blur-3xl -translate-y-1/3 translate-x-1/4 animate-gradient" />
@@ -243,14 +282,19 @@ export default function LandingPage() {
         <motion.div style={{ opacity: heroOpacity, scale: heroScale }} className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <motion.div initial="hidden" animate="visible" variants={stagger}>
-              <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 bg-primary-50 border border-primary-100 text-primary-700 px-4 py-1.5 rounded-full text-sm font-medium mb-6">
-                <Sparkles size={14} /> v7.4 — AI-Powered K-12 Learning Platform
+              {/* Urgency badge */}
+              <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-1.5 rounded-full text-sm font-semibold mb-6">
+                <Flame size={14} className="text-orange-500" /> 127 schools joined this month — limited onboarding slots
               </motion.div>
 
               <motion.h1 variants={fadeUp} custom={1} className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1]">
-                Teach smarter.
+                Stop juggling
+                <span className="relative inline-block mx-2">
+                  <span className="relative z-10 line-through decoration-red-400 decoration-4 text-gray-400"> 6 apps.</span>
+                </span>
+                <br />
                 <span className="relative inline-block">
-                  <span className="relative z-10 bg-gradient-to-r from-primary-600 via-accent-500 to-primary-600 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]"> Learn better.</span>
+                  <span className="relative z-10 bg-gradient-to-r from-primary-600 via-accent-500 to-primary-600 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">Run your school in one.</span>
                   <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none">
                     <path d="M2 8C50 2 100 2 150 6C200 10 250 4 298 8" stroke="url(#grad)" strokeWidth="3" strokeLinecap="round" />
                     <defs><linearGradient id="grad"><stop stopColor="#3b82f6" /><stop offset="1" stopColor="#d946ef" /></linearGradient></defs>
@@ -259,27 +303,27 @@ export default function LandingPage() {
               </motion.h1>
 
               <motion.p variants={fadeUp} custom={2} className="mt-6 text-lg sm:text-xl text-gray-500 leading-relaxed max-w-xl">
-                One platform for everything: AI tutoring, cross-platform assignments, worksheet finder, 
-                gamified rewards, smart grading, and real-time parent visibility across 16+ integrations.
+                Limud replaces Khan Academy tracking, Google Classroom management, IXL monitoring, 
+                your grading spreadsheet, your reward charts, and your parent emails &mdash; 
+                <strong className="text-gray-700"> saving your district $12,000+/year.</strong>
               </motion.p>
 
               <motion.div variants={fadeUp} custom={3} className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Link href="/demo" className="group inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25 hover:shadow-xl hover:shadow-primary-600/30 hover:-translate-y-0.5">
-                  Try Live Demo <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                <Link href="/register" className="group inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25 hover:shadow-xl hover:shadow-primary-600/30 hover:-translate-y-0.5">
+                  Start Free — No Credit Card <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')}
-                  className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-8 py-4 rounded-2xl font-bold text-base border-2 border-gray-200 hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 transition-all cursor-pointer">
-                  <Play size={18} className="text-primary-500" /> See How It Works
-                </a>
+                <Link href="/demo"
+                  className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-8 py-4 rounded-2xl font-bold text-base border-2 border-gray-200 hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 transition-all">
+                  <Play size={18} className="text-primary-500" /> See Live Demo
+                </Link>
               </motion.div>
 
-              <motion.div variants={fadeUp} custom={4} className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-400">
+              <motion.div variants={fadeUp} custom={4} className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-400">
                 {[
-                  { icon: Check, text: 'No credit card required' },
+                  { icon: Check, text: 'Free forever plan' },
                   { icon: Lock, text: 'FERPA & COPPA compliant' },
                   { icon: Zap, text: 'Set up in 5 minutes' },
-                  { icon: Link2, text: '16+ integrations' },
-                  { icon: Globe, text: 'Assign from any website' },
+                  { icon: Timer, text: '14-day free trial on paid plans' },
                 ].map(item => (
                   <div key={item.text} className="flex items-center gap-1.5">
                     <item.icon size={16} className="text-green-500" /> {item.text}
@@ -288,7 +332,7 @@ export default function LandingPage() {
               </motion.div>
             </motion.div>
 
-            {/* Right - Dashboard preview */}
+            {/* Right — Dashboard preview */}
             <motion.div initial={{ opacity: 0, x: 60, rotateY: -5 }} animate={{ opacity: 1, x: 0, rotateY: 0 }}
               transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }} className="relative hidden lg:block">
               <div className="relative bg-white rounded-2xl shadow-2xl shadow-gray-900/10 border border-gray-200/60 overflow-hidden">
@@ -343,13 +387,13 @@ export default function LandingPage() {
               </div>
 
               <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg shadow-green-500/5 border border-gray-100 p-3 flex items-center gap-2">
+                className="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg shadow-green-500/10 border border-gray-100 p-3 flex items-center gap-2">
                 <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center"><TrendingUp size={16} className="text-green-600" /></div>
                 <div><p className="text-xs font-bold text-gray-900">Grade: A</p><p className="text-[10px] text-gray-400">92/100 pts</p></div>
               </motion.div>
 
               <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-                className="absolute -bottom-3 -left-6 bg-white rounded-xl shadow-lg shadow-amber-500/5 border border-gray-100 p-3 flex items-center gap-2">
+                className="absolute -bottom-3 -left-6 bg-white rounded-xl shadow-lg shadow-amber-500/10 border border-gray-100 p-3 flex items-center gap-2">
                 <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-lg">🔥</div>
                 <div><p className="text-xs font-bold text-gray-900">14-Day Streak!</p><p className="text-[10px] text-gray-400">+150 XP bonus</p></div>
               </motion.div>
@@ -362,24 +406,40 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ─── WHAT'S NEW IN v7.4 ──────────────────────────────────────── */}
+      {/* ─── PAIN POINT → SOLUTION STRIP ──────────────────────────── */}
       <RevealSection>
-        <section className="py-16 bg-gradient-to-r from-primary-50 via-accent-50/30 to-primary-50 border-y border-primary-100/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-16 bg-gradient-to-r from-red-50 via-orange-50/30 to-red-50 border-y border-red-100/50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10">
-              <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-700 px-4 py-1.5 rounded-full text-sm font-bold mb-3"><Rocket size={14} /> What&apos;s New in v7.4</div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Cross-Platform Assignments &amp; Smarter Search</h2>
+              <div className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-1.5 rounded-full text-sm font-bold mb-3">
+                <AlertTriangle size={14} /> Sound familiar?
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Teachers waste 15+ hours/week on admin instead of teaching</h2>
             </div>
-            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-6">
               {[
-                { icon: <Globe size={24} />, title: 'Assign From Any Platform', desc: 'Teachers can now assign activities from Khan Academy, IXL, Newsela, Edpuzzle, Quizlet, and more directly in the Assignment Manager. Students complete work on the platform.', color: 'bg-blue-100 text-blue-600' },
-                { icon: <Target size={24} />, title: 'Worksheet Finder Fixed', desc: 'Completely rebuilt search with fuzzy matching, keyword tags, and 18+ worksheets. Search by topic, subject, or grade and get instant results every time.', color: 'bg-green-100 text-green-600' },
-                { icon: <Eye size={24} />, title: 'Master Demo Account', desc: 'New unified test account with full access to all roles and features. Perfect for demos, training, and complete platform evaluation.', color: 'bg-amber-100 text-amber-600' },
+                { pain: 'Switching between 6+ apps every day', solution: 'One dashboard for everything', icon: <RefreshCw size={20} />, savingLabel: 'Save 2 hrs/day' },
+                { pain: 'Grading papers until midnight', solution: 'AI auto-grades in seconds', icon: <Zap size={20} />, savingLabel: 'Save 8 hrs/week' },
+                { pain: 'No idea which students are falling behind', solution: 'AI flags at-risk learners automatically', icon: <Target size={20} />, savingLabel: 'Catch issues 3x faster' },
               ].map(item => (
-                <motion.div key={item.title} whileHover={{ y: -4 }} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all">
-                  <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center mb-4', item.color)}>{item.icon}</div>
-                  <h3 className="text-base font-bold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                <motion.div key={item.pain} whileHover={{ y: -4 }} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all">
+                  <div className="bg-red-50 px-6 py-4 border-b border-red-100">
+                    <div className="flex items-center gap-2 text-red-600 mb-1">
+                      <X size={16} className="text-red-400" />
+                      <span className="text-sm font-semibold">Before Limud</span>
+                    </div>
+                    <p className="text-sm text-red-800">{item.pain}</p>
+                  </div>
+                  <div className="bg-green-50 px-6 py-4">
+                    <div className="flex items-center gap-2 text-green-600 mb-1">
+                      <CheckCircle2 size={16} className="text-green-500" />
+                      <span className="text-sm font-semibold">With Limud</span>
+                    </div>
+                    <p className="text-sm text-green-800 font-medium">{item.solution}</p>
+                    <div className="mt-2 inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-bold">
+                      {item.icon} {item.savingLabel}
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -387,7 +447,7 @@ export default function LandingPage() {
         </section>
       </RevealSection>
 
-      {/* ─── SOCIAL PROOF BAR ──────────────────────────────────────────── */}
+      {/* ─── SOCIAL PROOF BAR ────────────────────────────────────── */}
       <RevealSection>
         <section className="py-16 bg-white border-y border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -410,33 +470,84 @@ export default function LandingPage() {
         </section>
       </RevealSection>
 
-      {/* ─── FEATURES GRID ──────────────────────────────────────────────── */}
-      <section id="features" className="py-20 lg:py-28 bg-gradient-to-b from-white via-primary-50/20 to-white">
+      {/* ─── "REPLACES" VISUAL ────────────────────────────────────── */}
+      <RevealSection>
+        <section className="py-20 bg-gradient-to-b from-white to-gray-50">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">One platform replaces your entire EdTech stack</h2>
+            <p className="text-lg text-gray-500 mb-12 max-w-2xl mx-auto">Your district is paying for tools you don&apos;t need. Limud does it all.</p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
+              {[
+                { app: 'Grading tools', cost: '$2,400/yr', emoji: '📝' },
+                { app: 'Reward charts', cost: '$800/yr', emoji: '🏆' },
+                { app: 'Parent comms', cost: '$1,500/yr', emoji: '📧' },
+                { app: 'Quiz makers', cost: '$1,200/yr', emoji: '❓' },
+                { app: 'LMS seats', cost: '$4,000/yr', emoji: '🏫' },
+                { app: 'Analytics', cost: '$2,100/yr', emoji: '📊' },
+              ].map(item => (
+                <motion.div key={item.app} whileHover={{ scale: 1.05 }}
+                  className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative">
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                    <X size={12} className="text-white" />
+                  </div>
+                  <span className="text-2xl block mb-2">{item.emoji}</span>
+                  <p className="text-xs font-semibold text-gray-700">{item.app}</p>
+                  <p className="text-xs text-red-500 font-bold line-through">{item.cost}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-3xl p-8 text-white max-w-lg mx-auto"
+            >
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <BookOpen size={28} />
+                <span className="text-2xl font-extrabold">Limud</span>
+              </div>
+              <p className="text-white/80 text-sm mb-4">All of the above + AI tutoring, gamification, 87+ worksheets, and 16+ integrations</p>
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-3xl font-extrabold">From $0</span>
+                <span className="text-white/60 text-sm">/forever for homeschool</span>
+              </div>
+              <p className="text-green-300 font-bold text-sm mt-2">Save $12,000+/year vs. separate tools</p>
+              <Link href="/register" className="mt-4 inline-flex items-center gap-2 bg-white text-primary-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-100 transition">
+                Start Free Today <ArrowRight size={14} />
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+      </RevealSection>
+
+      {/* ─── FEATURES GRID ───────────────────────────────────────── */}
+      <section id="features" className="py-20 lg:py-28 bg-gradient-to-b from-gray-50 via-primary-50/20 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <RevealSection className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Sparkles size={14} /> Features</div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Everything your school needs</h2>
-            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Built for students, teachers, administrators, and parents with role-specific dashboards.</p>
+            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Built for students, teachers, administrators, and parents &mdash; all in one platform.</p>
           </RevealSection>
 
-          {/* Feature Cards Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: <Brain size={24} />, title: 'AI Tutor', desc: 'Socratic questioning guides students to answers. Never gives answers directly, building real understanding.', color: 'bg-purple-100 text-purple-600', tag: 'Student' },
-              { icon: <Wand2 size={24} />, title: 'AI Lesson Planner', desc: 'Generate complete, standards-aligned lesson plans with objectives, materials, and differentiation.', color: 'bg-indigo-100 text-indigo-600', tag: 'Teacher' },
+              { icon: <Brain size={24} />, title: 'AI Tutor', desc: 'Socratic questioning that guides students to answers without giving them away. Builds real understanding.', color: 'bg-purple-100 text-purple-600', tag: 'Student' },
+              { icon: <Wand2 size={24} />, title: 'AI Lesson Planner', desc: 'Generate complete, standards-aligned lesson plans in seconds. Real AI, not templates.', color: 'bg-indigo-100 text-indigo-600', tag: 'Teacher' },
               { icon: <Lightbulb size={24} />, title: 'AI Quiz Generator', desc: 'Create curriculum-aligned quizzes with real questions, correct answers, and detailed explanations.', color: 'bg-amber-100 text-amber-600', tag: 'Teacher' },
               { icon: <GraduationCap size={24} />, title: 'AI Auto-Grader', desc: 'One-click grading with rubric-based scoring and personalized feedback for every submission.', color: 'bg-green-100 text-green-600', tag: 'Teacher' },
-              { icon: <Trophy size={24} />, title: 'Gamification Engine', desc: 'XP, levels, streaks, virtual coins, avatar shop, and achievement badges that make learning addictive.', color: 'bg-amber-100 text-amber-600', tag: 'Student' },
-              { icon: <Gamepad2 size={24} />, title: 'Educational Games', desc: 'Math Blaster, Word Quest, Science Puzzles, History Trivia, and more playable games in the store.', color: 'bg-pink-100 text-pink-600', tag: 'Student' },
+              { icon: <Trophy size={24} />, title: 'Gamification Engine', desc: 'XP, levels, streaks, coins, avatar shop, and achievement badges that make learning addictive.', color: 'bg-amber-100 text-amber-600', tag: 'Student' },
+              { icon: <Gamepad2 size={24} />, title: 'Educational Games', desc: 'Math Blaster, Word Quest, Science Puzzles, History Trivia, and more playable games.', color: 'bg-pink-100 text-pink-600', tag: 'Student' },
               { icon: <Link2 size={24} />, title: '16+ Platform Links', desc: 'Connect Khan Academy, i-Ready, Amplify, PLTW, Google Classroom, Canvas, IXL, Quizlet, and more.', color: 'bg-cyan-100 text-cyan-600', tag: 'All Roles' },
-              { icon: <FileText size={24} />, title: 'Assignment Manager', desc: 'Category weighting, extra credit, file/link attachments, plus assign activities from Khan Academy, IXL, Edpuzzle, and more connected platforms.', color: 'bg-blue-100 text-blue-600', tag: 'Teacher' },
-              { icon: <PenTool size={24} />, title: 'Worksheet Finder', desc: 'Search 18+ worksheets from education.com, TPT, K5 Learning, and more with instant filtering by subject, grade, and topic.', color: 'bg-teal-100 text-teal-600', tag: 'Teacher' },
+              { icon: <FileText size={24} />, title: 'Assignment Manager', desc: 'Category weighting, extra credit, file/link attachments, plus assign from connected platforms.', color: 'bg-blue-100 text-blue-600', tag: 'Teacher' },
+              { icon: <PenTool size={24} />, title: 'Worksheet Finder', desc: 'Search 87+ worksheets from education.com, TPT, K5 Learning, and more. Filter by subject, grade, and topic.', color: 'bg-teal-100 text-teal-600', tag: 'Teacher' },
               { icon: <BarChart3 size={24} />, title: 'Knowledge Analytics', desc: 'Skill radar charts, study heatmaps, rank system, goal tracking, and learning DNA insights.', color: 'bg-emerald-100 text-emerald-600', tag: 'Student' },
               { icon: <Shield size={24} />, title: 'Game Access Control', desc: 'Teachers toggle game access per class with scheduling, stats tracking, and global controls.', color: 'bg-red-100 text-red-600', tag: 'Teacher' },
               { icon: <Eye size={24} />, title: 'Parent Portal', desc: 'View-only access to grades, feedback, progress, tutor conversations, and reward activity.', color: 'bg-rose-100 text-rose-600', tag: 'Parent' },
               { icon: <LayoutDashboard size={24} />, title: 'Admin Dashboard', desc: 'District management, CSV provisioning, subscription billing, usage analytics, and reporting.', color: 'bg-slate-100 text-slate-600', tag: 'Admin' },
-              { icon: <Globe size={24} />, title: 'Cross-Platform Assignments', desc: 'Teachers assign activities directly from Khan Academy, IXL, Newsela, Edpuzzle, Quizlet, and 10+ more platforms. Students complete work on the platform and progress syncs back.', color: 'bg-orange-100 text-orange-600', tag: 'Teacher' },
-            ].map((feature, i) => (
+              { icon: <Globe size={24} />, title: 'Cross-Platform Assignments', desc: 'Assign from Khan Academy, IXL, Newsela, Edpuzzle, and 10+ more. Progress syncs automatically.', color: 'bg-orange-100 text-orange-600', tag: 'Teacher' },
+            ].map((feature) => (
               <RevealSection key={feature.title}>
                 <motion.div whileHover={{ y: -4 }} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all h-full">
                   <div className="flex items-start justify-between mb-4">
@@ -449,16 +560,24 @@ export default function LandingPage() {
               </RevealSection>
             ))}
           </div>
+
+          {/* CTA after features */}
+          <RevealSection className="mt-12 text-center">
+            <Link href="/register" className="group inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25">
+              Get All Features Free <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <p className="text-sm text-gray-400 mt-3">No credit card required. Upgrade anytime.</p>
+          </RevealSection>
         </div>
       </section>
 
-      {/* ─── INTEGRATIONS ──────────────────────────────────────────────── */}
+      {/* ─── INTEGRATIONS ────────────────────────────────────────── */}
       <section id="integrations" className="py-20 lg:py-28 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <RevealSection className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-cyan-50 text-cyan-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Link2 size={14} /> Integrations</div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Connects with platforms you already use</h2>
-            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Sync progress, assignments, and grades from 16+ educational platforms. No more switching between apps.</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Connects with the tools you already use</h2>
+            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Sync progress, assignments, and grades from 16+ educational platforms. No more tab-switching.</p>
           </RevealSection>
 
           <RevealSection>
@@ -483,20 +602,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── HOW IT WORKS ──────────────────────────────────────────────── */}
+      {/* ─── HOW IT WORKS ────────────────────────────────────────── */}
       <section id="how-it-works" className="py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <RevealSection className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Zap size={14} /> How It Works</div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Up and running in minutes</h2>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Up and running in 5 minutes</h2>
           </RevealSection>
 
           <div className="grid md:grid-cols-4 gap-8 relative">
             <div className="hidden md:block absolute top-12 left-[12%] right-[12%] h-0.5 bg-gradient-to-r from-primary-200 via-primary-300 to-primary-200" />
             {[
-              { step: '01', icon: <Users size={28} />, title: 'Create Accounts', desc: 'Upload CSV or use single sign-on. Students, teachers, parents — all provisioned in bulk.', color: 'from-blue-500 to-blue-600' },
+              { step: '01', icon: <Users size={28} />, title: 'Create Accounts', desc: 'Upload a CSV or use single sign-on. Students, teachers, parents provisioned in bulk.', color: 'from-blue-500 to-blue-600' },
               { step: '02', icon: <Link2 size={28} />, title: 'Connect Platforms', desc: 'Link Khan Academy, i-Ready, Amplify, Canvas, Google Classroom and 11+ more platforms.', color: 'from-cyan-500 to-teal-600' },
-              { step: '03', icon: <Brain size={28} />, title: 'Learn & Submit', desc: 'Students use AI tutor, earn rewards, play games, and submit work — all in one place.', color: 'from-purple-500 to-purple-600' },
+              { step: '03', icon: <Brain size={28} />, title: 'Learn & Submit', desc: 'Students use AI tutor, earn rewards, play games, and submit work all in one place.', color: 'from-purple-500 to-purple-600' },
               { step: '04', icon: <Zap size={28} />, title: 'AI Grades & Reports', desc: 'One-click auto-grading with personalized feedback. Analytics flag who needs support.', color: 'from-amber-500 to-orange-600' },
             ].map((item) => (
               <RevealSection key={item.step}>
@@ -511,16 +630,23 @@ export default function LandingPage() {
               </RevealSection>
             ))}
           </div>
+
+          {/* CTA after how-it-works */}
+          <RevealSection className="mt-14 text-center">
+            <Link href="/register" className="group inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25">
+              Get Started in 5 Minutes <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </RevealSection>
         </div>
       </section>
 
-      {/* ─── PRICING ───────────────────────────────────────────────────── */}
+      {/* ─── PRICING ─────────────────────────────────────────────── */}
       <section id="pricing" className="py-20 lg:py-28 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <RevealSection className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Award size={14} /> Pricing</div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Plans for every learning journey</h2>
-            <p className="mt-4 text-lg text-gray-500 max-w-xl mx-auto">From homeschool families to large districts. Start free, upgrade anytime.</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Start free. Scale when you&apos;re ready.</h2>
+            <p className="mt-4 text-lg text-gray-500 max-w-xl mx-auto">Every plan includes a 14-day free trial. No credit card, no risk.</p>
           </RevealSection>
 
           <div className="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -548,7 +674,7 @@ export default function LandingPage() {
             ].map(plan => (
               <RevealSection key={plan.name}>
                 <div className={cn('rounded-3xl p-6 h-full flex flex-col transition-all',
-                  plan.highlighted ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white relative overflow-hidden' :
+                  plan.highlighted ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white relative overflow-hidden ring-4 ring-primary-300 ring-offset-2' :
                   plan.dark ? 'bg-white border-2 border-gray-900' : 'bg-white border-2 border-gray-100 hover:shadow-lg hover:border-gray-200')}>
                   {plan.highlighted && <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-sm rounded-full px-2.5 py-1 text-[10px] font-semibold">Most Popular</div>}
                   <div className="flex items-center gap-2 mb-1">
@@ -577,26 +703,42 @@ export default function LandingPage() {
               </RevealSection>
             ))}
           </div>
+
+          {/* Money-back guarantee */}
+          <RevealSection className="mt-10 text-center">
+            <div className="inline-flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-6 py-4">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <Shield size={20} className="text-green-600" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold text-green-800">30-Day Money-Back Guarantee</p>
+                <p className="text-xs text-green-600">Not happy? Get a full refund, no questions asked.</p>
+              </div>
+            </div>
+          </RevealSection>
         </div>
       </section>
 
-      {/* ─── TESTIMONIALS ──────────────────────────────────────────────── */}
+      {/* ─── TESTIMONIALS ────────────────────────────────────────── */}
       <section className="py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <RevealSection className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Heart size={14} /> Testimonials</div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Loved by educators everywhere</h2>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Educators love Limud</h2>
           </RevealSection>
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { quote: "Limud cut my grading time by 70%. I finally have time to actually plan great lessons. The AI lesson planner generates better plans than I could write myself!", name: 'Sarah Mitchell', role: '7th Grade Science Teacher', school: 'Lincoln Middle School', avatar: '👩‍🏫' },
-              { quote: "My son WANTS to do homework now. He's obsessed with keeping his streak and saving up coins for the dragon avatar. The Khan Academy sync means I see all his progress in one place.", name: 'Michael Rodriguez', role: 'Parent of a 6th Grader', school: 'Washington Elementary', avatar: '👨' },
-              { quote: "We replaced 4 different apps with Limud and saved $12,000 annually. The platform integrations with i-Ready and Amplify alone are worth the subscription price.", name: 'Dr. Lisa Chen', role: 'Superintendent', school: 'Lincoln USD', avatar: '👩‍💼' },
+              { quote: "Limud cut my grading time by 70%. I finally have time to plan great lessons. The AI lesson planner generates better plans than I could write myself!", name: 'Sarah Mitchell', role: '7th Grade Science Teacher', school: 'Lincoln Middle School', avatar: '👩‍🏫', metric: 'Saved 8 hrs/week' },
+              { quote: "My son WANTS to do homework now. He's obsessed with keeping his streak and saving up coins for the dragon avatar. The Khan Academy sync means I see all his progress in one place.", name: 'Michael Rodriguez', role: 'Parent of a 6th Grader', school: 'Washington Elementary', avatar: '👨', metric: 'Engagement up 300%' },
+              { quote: "We replaced 4 different apps with Limud and saved $12,000 annually. The platform integrations with i-Ready and Amplify alone are worth the subscription price.", name: 'Dr. Lisa Chen', role: 'Superintendent', school: 'Lincoln USD', avatar: '👩‍💼', metric: 'Saved $12,000/year' },
             ].map(t => (
               <RevealSection key={t.name}>
                 <motion.div whileHover={{ y: -4 }} className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-lg transition-all h-full flex flex-col">
-                  <div className="flex gap-1 mb-4">{[...Array(5)].map((_, j) => <Star key={j} size={16} className="fill-amber-400 text-amber-400" />)}</div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex gap-1">{[...Array(5)].map((_, j) => <Star key={j} size={16} className="fill-amber-400 text-amber-400" />)}</div>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-green-50 text-green-700 font-bold">{t.metric}</span>
+                  </div>
                   <p className="text-sm text-gray-600 leading-relaxed mb-6 flex-1">&ldquo;{t.quote}&rdquo;</p>
                   <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
                     <div className="w-11 h-11 bg-gradient-to-br from-primary-100 to-accent-100 rounded-full flex items-center justify-center text-lg">{t.avatar}</div>
@@ -609,7 +751,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── FAQ ───────────────────────────────────────────────────────── */}
+      {/* ─── FAQ ─────────────────────────────────────────────────── */}
       <section id="faq" className="py-20 lg:py-28 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <RevealSection className="text-center mb-12">
@@ -621,18 +763,19 @@ export default function LandingPage() {
             <div className="bg-white rounded-2xl border border-gray-100 p-6 lg:p-8">
               {[
                 { q: 'Is Limud FERPA and COPPA compliant?', a: 'Yes. Limud is fully compliant with FERPA and COPPA. We never sell student data, all data is encrypted at rest and in transit, and we undergo annual third-party security audits.' },
-                { q: 'Which platforms can I connect?', a: 'Limud integrates with 16+ platforms including Khan Academy, i-Ready, Amplify, PLTW, Google Classroom, Canvas LMS, Schoology, Clever, IXL, Quizlet, Newsela, Desmos, Kahoot!, BrainPOP, Edpuzzle, and Nearpod. We add new integrations regularly.' },
+                { q: 'Which platforms can I connect?', a: 'Limud integrates with 16+ platforms including Khan Academy, i-Ready, Amplify, PLTW, Google Classroom, Canvas LMS, Schoology, Clever, IXL, Quizlet, Newsela, Desmos, Kahoot!, BrainPOP, Edpuzzle, and Nearpod.' },
                 { q: 'How does the AI tutor work?', a: 'Our AI tutor uses Socratic questioning to guide students to answers rather than giving them directly. It adapts to each student\'s grade level and learning pace. All conversations are logged and available for teacher/parent review.' },
-                { q: 'Can teachers create weighted assignment categories?', a: 'Yes! Teachers can create custom assignment categories (Homework, Classwork, Quizzes, Tests, Projects) with custom grade weights, plus support for extra credit assignments that add bonus points on top of the weighted grade.' },
-                { q: 'How long does setup take?', a: 'Most districts are fully up and running within 30 minutes. Upload a CSV of students and teachers, connect your platforms, and you\'re ready to go. Our onboarding team provides free setup support for all plans.' },
-                { q: 'Do students actually enjoy using Limud?', a: 'Absolutely! Our gamification engine with XP, levels, streaks, virtual coins, avatar shops, and playable educational games keeps students engaged. 98% of students report enjoying their learning experience on Limud.' },
+                { q: 'Can I try it before buying?', a: 'Absolutely! Our Free plan is free forever for up to 5 students. All paid plans include a 14-day free trial with full access. Plus, we offer a 30-day money-back guarantee on all paid plans.' },
+                { q: 'How long does setup take?', a: 'Most districts are fully up and running within 5-30 minutes. Upload a CSV of students and teachers, connect your platforms, and you\'re ready. Our onboarding team provides free setup support.' },
+                { q: 'Do students actually enjoy using Limud?', a: '98% of students report enjoying their learning experience. The gamification engine with XP, levels, streaks, coins, avatar shops, and playable educational games keeps them engaged and coming back.' },
+                { q: 'What if I\'m not satisfied?', a: 'We offer a 30-day money-back guarantee on all paid plans. If Limud isn\'t the right fit, we\'ll refund you in full, no questions asked.' },
               ].map(faq => <FAQItem key={faq.q} question={faq.q} answer={faq.a} />)}
             </div>
           </RevealSection>
         </div>
       </section>
 
-      {/* ─── CTA ───────────────────────────────────────────────────────── */}
+      {/* ─── FINAL CTA ───────────────────────────────────────────── */}
       <section className="py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <RevealSection>
@@ -640,15 +783,23 @@ export default function LandingPage() {
               <FloatingParticles count={12} />
               <div className="relative">
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} viewport={{ once: true }}
-                  className="inline-flex items-center justify-center w-16 h-16 bg-white/10 rounded-2xl mb-6"><Sparkles size={32} className="text-white" /></motion.div>
+                  className="inline-flex items-center justify-center w-16 h-16 bg-white/10 rounded-2xl mb-6"><Rocket size={32} className="text-white" /></motion.div>
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">Ready to transform your school?</h2>
-                <p className="mt-4 text-lg text-white/80 max-w-2xl mx-auto">Join hundreds of districts who've switched to Limud. Start free today — no credit card, no commitment.</p>
+                <p className="mt-4 text-lg text-white/80 max-w-2xl mx-auto">Join 500+ districts saving $12,000+/year. Start free today &mdash; no credit card, no commitment, 30-day guarantee.</p>
                 <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link href="/demo" className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-8 py-4 rounded-2xl font-bold text-base hover:bg-gray-100 transition-all shadow-lg">
-                    Try Live Demo <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  <Link href="/register" className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-8 py-4 rounded-2xl font-bold text-base hover:bg-gray-100 transition-all shadow-lg">
+                    Start Free Now <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
-                  <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')}
-                    className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-2xl font-bold text-base border border-white/20 hover:bg-white/20 transition-all cursor-pointer">View Pricing</a>
+                  <Link href="/demo"
+                    className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-2xl font-bold text-base border border-white/20 hover:bg-white/20 transition-all">
+                    Try Live Demo
+                  </Link>
+                </div>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-sm text-white/60">
+                  <span className="flex items-center gap-1.5"><Check size={14} className="text-green-300" /> Free forever plan</span>
+                  <span className="flex items-center gap-1.5"><Check size={14} className="text-green-300" /> 14-day free trial</span>
+                  <span className="flex items-center gap-1.5"><Check size={14} className="text-green-300" /> 30-day money-back</span>
+                  <span className="flex items-center gap-1.5"><Check size={14} className="text-green-300" /> FERPA compliant</span>
                 </div>
               </div>
             </div>
@@ -656,7 +807,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── FOOTER ──────────────────────────────────────────────────── */}
+      {/* ─── FOOTER ──────────────────────────────────────────────── */}
       <footer className="bg-gray-900 text-gray-400 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-5 gap-8">
@@ -670,6 +821,7 @@ export default function LandingPage() {
                 <span className="text-xs bg-green-500/10 text-green-400 px-2.5 py-1 rounded-full font-medium border border-green-500/20">FERPA</span>
                 <span className="text-xs bg-blue-500/10 text-blue-400 px-2.5 py-1 rounded-full font-medium border border-blue-500/20">COPPA</span>
                 <span className="text-xs bg-purple-500/10 text-purple-400 px-2.5 py-1 rounded-full font-medium border border-purple-500/20">WCAG AA</span>
+                <span className="text-xs bg-amber-500/10 text-amber-400 px-2.5 py-1 rounded-full font-medium border border-amber-500/20">SOC 2</span>
               </div>
             </div>
             <div>
@@ -705,6 +857,7 @@ export default function LandingPage() {
       </footer>
 
       <ScrollToTop />
+      <StickyCTA />
     </div>
   );
 }
@@ -722,7 +875,7 @@ function ScrollToTop() {
   return (
     <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-primary-600 text-white rounded-full shadow-lg shadow-primary-600/25 flex items-center justify-center hover:bg-primary-700 transition-all hover:shadow-xl"
+      className="fixed bottom-20 right-6 z-50 w-12 h-12 bg-primary-600 text-white rounded-full shadow-lg shadow-primary-600/25 flex items-center justify-center hover:bg-primary-700 transition-all hover:shadow-xl"
       aria-label="Back to top">
       <ChevronUp size={20} />
     </motion.button>

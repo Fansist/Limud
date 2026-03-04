@@ -3,8 +3,13 @@ const nextConfig = {
   reactStrictMode: true,
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
+  // Extend API route timeout for AI-powered endpoints (lesson plans, worksheet search)
+  serverRuntimeConfig: {
+    // This helps with longer AI API calls
+    apiTimeout: 60000, // 60 seconds
+  },
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'openai'],
     optimizePackageImports: [
       'lucide-react',
       'framer-motion',
@@ -29,8 +34,6 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   swcMinify: true,
-  // Reduce build memory usage
-  output: 'standalone',
   // Aggressive caching headers
   async headers() {
     return [

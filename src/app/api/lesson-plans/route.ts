@@ -2,30 +2,14 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
-const LESSON_PLAN_SYSTEM_PROMPT = `You are an expert curriculum designer and lesson plan generator. Create detailed, standards-aligned lesson plans for K-12 educators. Your plans should be:
+// Allow up to 60 seconds for AI-powered lesson plan generation
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
-1. Engaging and student-centered
-2. Aligned with Common Core / NGSS / relevant standards
-3. Include differentiation strategies for diverse learners
-4. Incorporate formative assessment throughout
-5. Use evidence-based teaching strategies
-6. Be practical and ready to implement
+const LESSON_PLAN_SYSTEM_PROMPT = `You are an expert K-12 curriculum designer. Create a detailed, standards-aligned lesson plan. Include real examples and specific activities.
 
-Format your response as JSON with these fields:
-{
-  "title": "Lesson title",
-  "objectives": ["objective 1", "objective 2", "objective 3"],
-  "standards": "Relevant standards alignment",
-  "materials": ["material 1", "material 2"],
-  "warmUp": "5-10 minute opening activity",
-  "directInstruction": "Main teaching content",
-  "guidedPractice": "Guided practice activity",
-  "independentPractice": "Independent student work",
-  "assessment": "Assessment strategy",
-  "closure": "Closing activity",
-  "differentiation": "Accommodations for different learners",
-  "homework": "Homework assignment"
-}`;
+Return ONLY valid JSON. Keep each field concise (under 500 characters). Structure:
+{"title":"...","objectives":["obj1","obj2","obj3"],"standards":"...","materials":["item1","item2"],"warmUp":"...","directInstruction":"...","guidedPractice":"...","independentPractice":"...","assessment":"...","closure":"...","differentiation":"...","homework":"..."}`;
 
 function generateDemoLessonPlan(subject: string, gradeLevel: string, topic: string, duration: string) {
   return {
@@ -46,6 +30,71 @@ function generateDemoLessonPlan(subject: string, gradeLevel: string, topic: stri
     differentiation: `Accommodations for diverse learners:\n\n- **ELL Students**: Visual vocabulary cards, sentence frames, bilingual glossary\n- **Students with IEPs**: Modified worksheets, extended time, graphic organizers\n- **Advanced Learners**: Extension problems, research project, peer tutoring role\n- **Visual/Kinesthetic Learners**: Hands-on models, color-coded notes, movement activities`,
     homework: `Reinforcement activity (${duration === '30 min' ? '15' : '20'} minutes):\n\n1. Review notes from today's lesson\n2. Complete practice problems 1-10 in the textbook\n3. Write a brief reflection: "What was the most interesting thing I learned today?"\n4. Prepare one question for tomorrow's discussion`,
   };
+}
+
+/**
+ * Generate a lesson plan using OpenAI with timeout protection.
+ */
+async function generateAILessonPlan(
+  subject: string,
+  gradeLevel: string,
+  topic: string,
+  duration: string,
+  additionalNotes?: string
+): Promise<Record<string, any> | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const baseURL = process.env.OPENAI_BASE_URL;
+  if (!apiKey || apiKey === 'demo-mode') return null;
+
+  try {
+    const { default: OpenAI } = await import('openai');
+    const openai = new OpenAI({ apiKey, baseURL: baseURL || undefined });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 55000); // 55 sec timeout
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-5-mini',
+      messages: [
+        { role: 'system', content: LESSON_PLAN_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: `Create a ${duration || '50 minute'} lesson plan for ${gradeLevel} grade ${subject} on the topic: "${topic}".${additionalNotes ? `\n\nTeacher notes: ${additionalNotes}` : ''}\n\nMake it detailed, specific to the topic, and immediately usable. Include specific examples, questions, and activities.`,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 4000,
+      response_format: { type: 'json_object' },
+    }, { signal: controller.signal });
+
+    clearTimeout(timeout);
+
+    const content = response.choices[0]?.message?.content || '';
+    if (!content) return null;
+
+    // Robust JSON extraction — handle markdown fences, leading text, trailing text
+    let jsonStr = content;
+    jsonStr = jsonStr.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
+
+    try {
+      return JSON.parse(jsonStr);
+    } catch {
+      console.error('[AI LESSON] Failed to parse JSON, length:', content.length);
+      return null;
+    }
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.log('[AI LESSON] Timed out, falling back to template');
+    } else {
+      console.error('[AI LESSON] Error:', error.message);
+    }
+    return null;
+  }
 }
 
 // Allow TEACHER, ADMIN, and PARENT (homeschool) to access lesson plans
@@ -78,71 +127,64 @@ export const POST = apiHandler(async (req: Request) => {
     );
   }
 
-  let planData: any;
+  // Try AI generation first, fall back to template
+  const aiPlan = await generateAILessonPlan(subject, gradeLevel, topic, duration || '50 min', additionalNotes);
+  const planData = aiPlan || generateDemoLessonPlan(subject, gradeLevel, topic, duration || '50 min');
 
-  // Check if OpenAI is configured
-  const openAIConfigured = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'demo-mode';
+  // Build the lesson plan object
+  const planResult = {
+    id: `lp-${Date.now()}`,
+    teacherId: user.id,
+    title: planData.title || topic,
+    subject,
+    gradeLevel,
+    duration: duration || '50 min',
+    objectives: JSON.stringify(planData.objectives),
+    standards: planData.standards || null,
+    materials: JSON.stringify(planData.materials),
+    warmUp: planData.warmUp || null,
+    directInstruction: planData.directInstruction || null,
+    guidedPractice: planData.guidedPractice || null,
+    independentPractice: planData.independentPractice || null,
+    assessment: planData.assessment || null,
+    closure: planData.closure || null,
+    differentiation: planData.differentiation || null,
+    homework: planData.homework || null,
+    aiGenerated: !!aiPlan,
+    isFavorite: false,
+    createdAt: new Date().toISOString(),
+  };
 
-  if (openAIConfigured) {
-    try {
-      const { default: OpenAI } = await import('openai');
-      const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-        baseURL: process.env.OPENAI_BASE_URL || undefined,
-      });
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-5-mini',
-        messages: [
-          { role: 'system', content: LESSON_PLAN_SYSTEM_PROMPT },
-          {
-            role: 'user',
-            content: `Create a ${duration || '50 minute'} lesson plan for ${gradeLevel} grade ${subject} on the topic: "${topic}".${additionalNotes ? `\n\nAdditional notes: ${additionalNotes}` : ''}`,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-        response_format: { type: 'json_object' },
-      });
-
-      const content = response.choices[0]?.message?.content || '';
-      try {
-        planData = JSON.parse(content);
-      } catch {
-        planData = generateDemoLessonPlan(subject, gradeLevel, topic, duration || '50 min');
-      }
-    } catch (error) {
-      console.error('OpenAI lesson plan error:', error);
-      planData = generateDemoLessonPlan(subject, gradeLevel, topic, duration || '50 min');
-    }
-  } else {
-    planData = generateDemoLessonPlan(subject, gradeLevel, topic, duration || '50 min');
+  // Try to save to database, but don't fail if FK constraint fails
+  // (e.g., demo users not in DB, or homeschool parent without teacher record)
+  try {
+    const saved = await prisma.lessonPlan.create({
+      data: {
+        teacherId: user.id,
+        title: planResult.title,
+        subject,
+        gradeLevel,
+        duration: planResult.duration,
+        objectives: planResult.objectives,
+        standards: planResult.standards,
+        materials: planResult.materials,
+        warmUp: planResult.warmUp,
+        directInstruction: planResult.directInstruction,
+        guidedPractice: planResult.guidedPractice,
+        independentPractice: planResult.independentPractice,
+        assessment: planResult.assessment,
+        closure: planResult.closure,
+        differentiation: planResult.differentiation,
+        homework: planResult.homework,
+        aiGenerated: planResult.aiGenerated,
+      },
+    });
+    return NextResponse.json({ lessonPlan: saved }, { status: 201 });
+  } catch (dbError: any) {
+    // If DB save fails (foreign key, etc.), still return the generated plan
+    console.error('[LESSON PLAN] DB save failed:', dbError.code || dbError.message);
+    return NextResponse.json({ lessonPlan: planResult }, { status: 201 });
   }
-
-  // Save to database
-  const lessonPlan = await prisma.lessonPlan.create({
-    data: {
-      teacherId: user.id,
-      title: planData.title || topic,
-      subject,
-      gradeLevel,
-      duration: duration || '50 min',
-      objectives: JSON.stringify(planData.objectives),
-      standards: planData.standards || null,
-      materials: JSON.stringify(planData.materials),
-      warmUp: planData.warmUp || null,
-      directInstruction: planData.directInstruction || null,
-      guidedPractice: planData.guidedPractice || null,
-      independentPractice: planData.independentPractice || null,
-      assessment: planData.assessment || null,
-      closure: planData.closure || null,
-      differentiation: planData.differentiation || null,
-      homework: planData.homework || null,
-      aiGenerated: true,
-    },
-  });
-
-  return NextResponse.json({ lessonPlan }, { status: 201 });
 });
 
 export const PUT = apiHandler(async (req: Request) => {

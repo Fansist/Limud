@@ -7,6 +7,87 @@ import {
 } from '@/lib/demo-data';
 import { generateSpecializedLessonPlan, generateSpecializedQuiz } from '@/lib/ai-generators';
 
+// Allow up to 60 seconds for AI-powered lesson plan generation
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
+/**
+ * Generate a lesson plan using OpenAI with timeout protection.
+ * Returns null if AI fails or is not configured, so caller can fall back to templates.
+ */
+async function generateAILessonPlan(
+  subject: string,
+  gradeLevel: string,
+  topic: string,
+  duration: string,
+  additionalNotes?: string
+): Promise<Record<string, any> | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const baseURL = process.env.OPENAI_BASE_URL;
+  if (!apiKey || apiKey === 'demo-mode') return null;
+
+  try {
+    const { default: OpenAI } = await import('openai');
+    const openai = new OpenAI({ apiKey, baseURL: baseURL || undefined });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 55000); // 55 sec timeout
+
+    const systemPrompt = `You are an expert K-12 curriculum designer. Create a detailed, standards-aligned lesson plan that is specific to the requested topic — NOT a generic template. Include real examples, specific questions, concrete activities, and actual content the teacher can use immediately.
+
+Return ONLY valid JSON. Keep each field concise (under 500 characters). Structure:
+{"title":"...","objectives":["obj1","obj2","obj3"],"standards":"...","materials":["item1","item2"],"warmUp":"...","directInstruction":"...","guidedPractice":"...","independentPractice":"...","assessment":"...","closure":"...","differentiation":"...","homework":"..."}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-5-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: `Create a ${duration || '50 minute'} lesson plan for ${gradeLevel || '8th'} grade ${subject || 'General'} on the topic: "${topic || 'General'}".${additionalNotes ? `\n\nTeacher notes: ${additionalNotes}` : ''}\n\nMake it detailed, specific to the topic, and immediately usable by a teacher. Include specific examples, questions, and activities — NOT generic placeholders.`,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 4000,
+      response_format: { type: 'json_object' },
+    }, { signal: controller.signal });
+
+    clearTimeout(timeout);
+
+    const content = response.choices[0]?.message?.content || '';
+    if (!content) return null;
+
+    // Robust JSON extraction — handle markdown fences, leading text, trailing text
+    let jsonStr = content;
+    // Remove markdown code fences
+    jsonStr = jsonStr.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+    // If there's text before the opening brace, strip it
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
+    
+    try {
+      const parsed = JSON.parse(jsonStr);
+      console.log('[AI LESSON] Successfully parsed AI-generated lesson plan');
+      return parsed;
+    } catch (parseErr: any) {
+      console.error('[AI LESSON] Failed to parse JSON, length:', content.length, 'firstChar:', jsonStr.charCodeAt(0), 'lastChar:', jsonStr.charCodeAt(jsonStr.length - 1));
+      console.error('[AI LESSON] Parse error:', parseErr.message);
+      console.error('[AI LESSON] First 200 chars:', jsonStr.substring(0, 200));
+      return null;
+    }
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.log('[AI LESSON] Timed out after 50s, falling back to template');
+    } else {
+      console.error('[AI LESSON] Error:', error.message);
+    }
+    return null;
+  }
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
@@ -81,7 +162,18 @@ export async function POST(req: Request) {
 
     case 'generate-lesson-plan': {
       const { subject, gradeLevel, topic, duration, additionalNotes } = body;
-      const planData = generateSpecializedLessonPlan(
+
+      // Try real AI generation first
+      const aiPlan = await generateAILessonPlan(
+        subject || 'Math',
+        gradeLevel || '8th',
+        topic || 'General',
+        duration || '50 min',
+        additionalNotes
+      );
+
+      // Use AI result or fall back to specialized template
+      const planData = aiPlan || generateSpecializedLessonPlan(
         subject || 'Math', gradeLevel || '8th', topic || 'General',
         duration || '50 min', additionalNotes
       );
@@ -89,22 +181,22 @@ export async function POST(req: Request) {
       return NextResponse.json({
         lessonPlan: {
           id: `lp-demo-${Date.now()}`,
-          title: planData.title,
+          title: planData.title || `${topic} Lesson Plan`,
           subject: subject || 'General',
           gradeLevel: gradeLevel || '8th',
           duration: duration || '50 min',
-          objectives: JSON.stringify(planData.objectives),
-          standards: planData.standards,
-          materials: JSON.stringify(planData.materials),
-          warmUp: planData.warmUp,
-          directInstruction: planData.directInstruction,
-          guidedPractice: planData.guidedPractice,
-          independentPractice: planData.independentPractice,
-          assessment: planData.assessment,
-          closure: planData.closure,
-          differentiation: planData.differentiation,
-          homework: planData.homework,
-          aiGenerated: true,
+          objectives: JSON.stringify(planData.objectives || []),
+          standards: planData.standards || '',
+          materials: JSON.stringify(planData.materials || []),
+          warmUp: planData.warmUp || '',
+          directInstruction: planData.directInstruction || '',
+          guidedPractice: planData.guidedPractice || '',
+          independentPractice: planData.independentPractice || '',
+          assessment: planData.assessment || '',
+          closure: planData.closure || '',
+          differentiation: planData.differentiation || '',
+          homework: planData.homework || '',
+          aiGenerated: !!aiPlan, // Only true if AI actually generated it
           isFavorite: false,
           createdAt: new Date().toISOString(),
         },

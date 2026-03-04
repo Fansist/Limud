@@ -2,6 +2,7 @@
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,7 +11,7 @@ import { DEMO_TEACHER_ASSIGNMENTS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import {
   BookOpen, Plus, X, Clock, Users, Paperclip, Link2, FileText, Upload, Star, Scale, Tag, Trash2, ExternalLink,
-  Save, RotateCcw, Wand2, Check, AlertTriangle, Globe, Search, ArrowRight,
+  Save, RotateCcw, Wand2, Check, CheckCircle, AlertTriangle, Globe, Search, ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -47,6 +48,7 @@ type Attachment = {
 export default function TeacherAssignments() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
+  const searchParams = useSearchParams();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -69,6 +71,30 @@ export default function TeacherAssignments() {
   const [createMode, setCreateMode] = useState<'manual' | 'platform'>('manual');
   const [platformSearch, setPlatformSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
+  const [worksheetPrefilled, setWorksheetPrefilled] = useState(false);
+
+  // Handle URL params from worksheet finder (assign worksheet flow)
+  useEffect(() => {
+    const action = searchParams.get('action');
+    const mode = searchParams.get('mode');
+    const wsTitle = searchParams.get('title');
+    const wsUrl = searchParams.get('url');
+    const wsSource = searchParams.get('source');
+
+    if (action === 'create' && mode === 'platform' && wsUrl) {
+      // Pre-fill the form with worksheet data and open the create modal
+      setCreateMode('platform');
+      setForm(f => ({
+        ...f,
+        linkUrl: wsUrl,
+        linkTitle: wsTitle || '',
+      }));
+      setShowCreate(true);
+      setWorksheetPrefilled(true);
+      // Clean the URL params without reloading
+      window.history.replaceState({}, '', window.location.pathname + (isDemo ? '?demo=true' : ''));
+    }
+  }, [searchParams, isDemo]);
 
   useEffect(() => {
     fetchAssignments();
@@ -229,6 +255,7 @@ export default function TeacherAssignments() {
   function resetForm() {
     setForm({ title: '', description: '', type: 'SHORT_ANSWER', courseId: '', dueDate: '', totalPoints: 100, isPublished: true, category: 'homework', isExtraCredit: false, attachments: [], linkUrl: '', linkTitle: '' });
     setCreateMode('manual');
+    setWorksheetPrefilled(false);
   }
 
   async function assignFromPlatform(pa: typeof PLATFORM_ASSIGNMENTS[0]) {
@@ -606,6 +633,12 @@ export default function TeacherAssignments() {
 
                   {/* Custom URL Assignment */}
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                    {worksheetPrefilled && form.linkUrl && (
+                      <div className="bg-blue-100 border border-blue-300 rounded-lg p-2.5 mb-3 flex items-center gap-2">
+                        <CheckCircle size={14} className="text-blue-600 flex-shrink-0" />
+                        <p className="text-xs text-blue-800 font-medium">Worksheet pre-filled from Worksheet Finder. Select a course and due date, then click Assign.</p>
+                      </div>
+                    )}
                     <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1.5">
                       <Link2 size={14} className="text-primary-500" /> Assign from Any Website
                     </h4>
