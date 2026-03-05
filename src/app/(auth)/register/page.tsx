@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   GraduationCap, BookOpen, Shield, Users, Home, ArrowRight, ArrowLeft,
-  Eye, EyeOff, CheckCircle2, Sparkles, UserPlus,
+  Eye, EyeOff, CheckCircle2, UserPlus,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -124,11 +124,11 @@ export default function RegisterPage() {
         </div>
 
         <div className="relative z-10">
-          <Link href="/" className="flex items-center gap-3 text-white mb-12">
-            <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-              <Sparkles className="text-white" size={22} />
+          <Link href="/" className="flex items-center gap-2.5 text-white mb-12">
+            <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
+              <BookOpen className="text-white" size={20} />
             </div>
-            <span className="text-2xl font-bold">Limud</span>
+            <span className="text-xl font-extrabold">Limud</span>
           </Link>
 
           <h2 className="text-4xl font-bold text-white leading-tight mb-4">

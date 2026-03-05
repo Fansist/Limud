@@ -1,11 +1,13 @@
 {
-  "name": "Limud - Learn Together",
+  "name": "Limud - AI-Powered K-12 Learning Platform",
   "short_name": "Limud",
-  "description": "AI-powered adaptive learning platform",
+  "description": "The all-in-one EdTech platform with AI tutoring, auto-grading, gamification, and analytics for K-12 schools.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f9fafb",
-  "theme_color": "#3b82f6",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "categories": ["education", "productivity"],
   "icons": [
     { "src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon" }
   ]

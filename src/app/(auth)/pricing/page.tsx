@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, ArrowRight, Zap, Star, Crown, Shield, Home, SlidersHorizontal } from 'lucide-react';
+import { Check, ArrowRight, Zap, Star, Crown, Shield, Home, SlidersHorizontal, BookOpen, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const PLANS = [
@@ -59,23 +59,27 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <nav className="bg-white/90 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-50 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Sparkles className="text-primary-600" size={24} />
-            <span className="text-xl font-bold text-gray-900">Limud</span>
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+              <BookOpen size={18} className="text-white" />
+            </div>
+            <span className="text-xl font-extrabold text-gray-900 tracking-tight">Limud</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm text-gray-500 hover:text-gray-700">Sign In</Link>
-            <Link href="/register" className="text-sm bg-primary-600 text-white px-4 py-2 rounded-xl hover:bg-primary-700 transition font-semibold">Get Started</Link>
+            <Link href="/" className="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition"><ArrowLeft size={14} /> Home</Link>
+            <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-gray-900 transition px-4 py-2">Sign In</Link>
+            <Link href="/register" className="text-sm bg-primary-600 text-white px-5 py-2.5 rounded-xl hover:bg-primary-700 transition font-semibold shadow-sm">Start Free</Link>
           </div>
         </div>
-      </div>
+      </nav>
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Zap size={14} /> Pricing</div>
           <h1 className="text-4xl font-extrabold text-gray-900">Plans for every learning journey</h1>
-          <p className="text-lg text-gray-500 mt-3 max-w-xl mx-auto">From homeschool families to large districts. Start free, upgrade anytime.</p>
+          <p className="text-lg text-gray-500 mt-3 max-w-xl mx-auto">From homeschool families to large districts. Start free, upgrade anytime. Every paid plan includes a <strong>14-day free trial</strong>.</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -206,6 +210,11 @@ export default function PricingPage() {
           </Link>
         </motion.div>
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200/50 py-8 text-center">
+        <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Limud Education Inc. &middot; <Link href="/privacy" className="hover:text-gray-600 transition">Privacy</Link> &middot; <Link href="/terms" className="hover:text-gray-600 transition">Terms</Link> &middot; <Link href="/contact" className="hover:text-gray-600 transition">Contact</Link></p>
+      </footer>
     </div>
   );
 }

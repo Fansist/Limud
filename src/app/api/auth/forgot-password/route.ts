@@ -9,6 +9,10 @@ import crypto from 'crypto';
 export async function POST(req: Request) {
   try {
     const { email } = await req.json();
+    
+    // Derive base URL from the incoming request (avoids hardcoded localhost)
+    const url = new URL(req.url);
+    const origin = `${url.protocol}//${url.host}`;
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -42,9 +46,8 @@ export async function POST(req: Request) {
       },
     });
 
-    // In production, send email here using SendGrid/Resend/etc.
-    // For now, we'll return the token in the response for demo purposes
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // Use origin from incoming request, then env vars as fallback
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || origin;
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
     // Log the reset URL for development

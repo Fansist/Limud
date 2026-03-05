@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import {
   Building2, CreditCard, Users, ArrowRight, ArrowLeft, CheckCircle2,
-  Sparkles, Shield, Zap, Crown, Star, Eye, EyeOff, Home, GraduationCap,
+  BookOpen, Shield, Zap, Crown, Star, Eye, EyeOff, Home, GraduationCap,
   Plus, Trash2, Lock, SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -263,18 +263,20 @@ export default function OnboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <nav className="bg-white/90 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-50 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Sparkles className="text-primary-600" size={24} />
-            <span className="text-xl font-bold text-gray-900">Limud</span>
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+              <BookOpen size={18} className="text-white" />
+            </div>
+            <span className="text-xl font-extrabold text-gray-900 tracking-tight">Limud</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/pricing" className="text-sm text-gray-500 hover:text-gray-700">View Plans</Link>
-            <Link href="/login" className="text-sm text-gray-500 hover:text-gray-700">Sign in</Link>
+            <Link href="/pricing" className="text-sm text-gray-500 hover:text-gray-700 transition">View Plans</Link>
+            <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-gray-900 transition">Sign In</Link>
           </div>
         </div>
-      </div>
+      </nav>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Step Indicator */}

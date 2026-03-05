@@ -2,11 +2,40 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 8.0
+- **Version**: 8.1
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics — designed to beat every competitor in the market
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
+
+## What's New in v8.1 — Professional Polish & Brand Consistency
+
+### Brand Consistency Across All Pages
+- **Unified navbar pattern**: Every auth page (Login, Register, Demo, Pricing, Onboard) now uses the same Limud brand header — `BookOpen` icon in a gradient rounded square, `font-extrabold` title, sticky `backdrop-blur-xl` navbar
+- **Removed Sparkles icon** from brand headers (was inconsistent with landing page's `BookOpen` icon)
+- **Pricing page header**: Upgraded from plain text header to full branded sticky navbar with Home back-link
+- **Demo page header**: Matched to landing page brand pattern
+- **Onboard page header**: Matched to landing page brand pattern
+- **Register page sidebar**: Brand icon standardized to `BookOpen`
+
+### SEO & Meta Tags
+- **Root layout enhanced**: Title template `%s | Limud`, comprehensive OG tags, Twitter cards, keywords, robots directive
+- **Page-level metadata**: Every auth layout now exports proper `Metadata` — `Sign In | Limud`, `Create Account | Limud`, `Pricing Plans | Limud`, `Interactive Demo | Limud`, `Get Started | Limud`, `Reset Password | Limud`, `Help Center | Limud`
+- **manifest.json upgraded**: Updated name, description, theme color (`#4f46e5` indigo to match brand), categories, orientation
+
+### Footer & Link Cleanup
+- **Removed placeholder links**: "Blog" (→ /about) and "Careers" (→ /contact) removed from landing page footer — replaced with real links: `Help Center`, `Pricing`
+- **Removed duplicate "FERPA Compliance"** link (was just another link to /privacy) from Legal footer section
+- **Pricing page footer added**: New footer with Privacy, Terms, Contact links
+
+### Bug Fixes
+- **Forgot-password localhost fix**: Reset URL now derives from `req.url` origin instead of hardcoded `localhost:3000` — works correctly in any environment
+- **Unused import cleanup**: Removed orphaned `Sparkles` imports from Demo, Register, and Onboard pages
+
+### Version Bump
+- `package.json` → 8.1.0
+- Landing page navbar badge → v8.1
+- Landing page footer badge → v8.1
 
 ## What's New in v8.0 — Competitor-Killer Landing Page (Based on 30-App Analysis)
 
@@ -285,11 +314,20 @@ Each generated lesson plan includes these fully detailed sections:
 - **Platform**: Vercel / Cloudflare Pages compatible
 - **Status**: Active
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
-- **Last Updated**: March 4, 2026
-- **Build**: `npx next build` (all pages compile successfully)
+- **Last Updated**: March 5, 2026
+- **Build**: `npx next build` (all pages compile successfully, zero errors)
 - **Dev Server**: `pm2 start ecosystem.config.cjs` on port 3000
+- **Test Results**: 41+ routes return HTTP 200, zero console errors, zero PM2 error logs
 
 ## Version History
+
+### v8.1 (March 5, 2026) - Professional Polish & Brand Consistency
+- **POLISHED**: Unified brand header across all auth pages (BookOpen icon, backdrop-blur navbar)
+- **ADDED**: Full SEO meta tags — OG, Twitter cards, page-level titles for all routes
+- **FIXED**: Forgot-password hardcoded localhost URL — now uses request origin
+- **FIXED**: Footer placeholder links (Blog/Careers) replaced with real links (Help Center/Pricing)
+- **CLEANED**: Removed unused imports and duplicate footer links
+- **UPGRADED**: manifest.json with proper brand color, categories, and orientation
 
 ### v8.0 (March 4, 2026) - Competitor-Killer Landing Page
 - **NEW**: Full competitor comparison table (Limud vs Khan Academy, Google Classroom, Quizlet, ClassDojo, Nearpod)
