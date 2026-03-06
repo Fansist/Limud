@@ -1,4 +1,5 @@
 'use client';
+import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -69,6 +70,7 @@ const DREAM_JOBS = [
 
 export default function StudentSurveyPage() {
   const { data: session, status } = useSession();
+  const isDemo = useIsDemo();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isFirstTime = searchParams.get('first') === 'true';
@@ -92,10 +94,10 @@ export default function StudentSurveyPage() {
   const totalSteps = 4;
 
   useEffect(() => {
-    if (status === 'authenticated' && (session?.user as any)?.role !== 'STUDENT') {
+    if (!isDemo && status === 'authenticated' && (session?.user as any)?.role !== 'STUDENT') {
       router.push('/');
     }
-  }, [status]);
+  }, [status, isDemo]);
 
   function toggleItem(arr: string[], setArr: (v: string[]) => void, item: string) {
     setArr(arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item]);
@@ -104,6 +106,12 @@ export default function StudentSurveyPage() {
   async function handleSubmit() {
     setSaving(true);
     try {
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 1000));
+        toast.success('Survey saved! Your AI tutor is now personalized! (Demo)');
+        router.push('/student/dashboard?demo=true');
+        return;
+      }
       const res = await fetch('/api/survey', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

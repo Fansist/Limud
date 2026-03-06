@@ -383,6 +383,7 @@ model User {
   questionPosts      QuestionPost[]
   questionVotes      QuestionVote[]
   marketplaceListings MarketplaceListing[]
+  teacherSettings    TeacherSettings?
 
   // v4 Game store & district
   gamePurchases      GamePurchase[]
@@ -1502,4 +1503,16 @@ model MarketplaceListing {
   @@index([subject, type])
   @@index([teacherId])
   @@map("marketplace_listings")
+}
+
+model TeacherSettings {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  categoryWeights String?  @db.Text // JSON: assignment category weights
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("teacher_settings")
 }

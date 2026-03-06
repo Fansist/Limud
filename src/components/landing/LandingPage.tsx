@@ -207,7 +207,7 @@ function CompCell({ value }: { value: 'yes' | 'no' | 'partial' | string }) {
 }
 
 // =========================================================================
-// LANDING PAGE — CONVERSION-OPTIMIZED v8.1
+// LANDING PAGE — CONVERSION-OPTIMIZED v8.2
 // Designed to beat every competitor listed in the competitive analysis
 // =========================================================================
 export default function LandingPage() {
@@ -244,7 +244,7 @@ export default function LandingPage() {
                 <BookOpen size={18} className="text-white" />
               </div>
               <span className="text-xl font-extrabold text-gray-900 tracking-tight">Limud</span>
-              <span className="hidden sm:inline-flex items-center text-[10px] font-bold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-md">v8.1</span>
+              <span className="hidden sm:inline-flex items-center text-[10px] font-bold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-md">v8.2</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
@@ -762,7 +762,7 @@ export default function LandingPage() {
           <RevealSection className="text-center mb-6">
             <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Award size={14} /> Pricing</div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Start free. Scale when you&apos;re ready.</h2>
-            <p className="mt-4 text-lg text-gray-500 max-w-xl mx-auto">Every plan includes a 14-day free trial. No credit card, no risk.</p>
+            <p className="mt-4 text-lg text-gray-500 max-w-xl mx-auto">Every paid plan includes a 14-day free trial. No credit card required.</p>
           </RevealSection>
 
           {/* Competitor price comparison callout */}
@@ -792,52 +792,73 @@ export default function LandingPage() {
             </div>
           </RevealSection>
 
-          <div className="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="max-w-7xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             {[
               {
-                emoji: '\uD83C\uDFE0', name: 'Free', desc: 'For homeschool families', price: '$0', period: '/forever', perStudent: '',
-                features: ['Up to 5 students', 'AI Tutor (50 sessions/mo)', 'Basic gamification', 'Parent dashboard', 'AI Lesson Planner (5/mo)', '3 platform links', 'Worksheet Finder'],
+                emoji: '\uD83C\uDFE0', name: 'Free', desc: 'Homeschool families', price: '$0', period: '/forever', perStudent: '',
+                features: ['Up to 5 students', 'AI Tutor (50/mo)', 'AI Lesson Planner (5/mo)', 'AI Quiz Gen (3/mo)', 'Basic gamification', 'Parent dashboard', '3 platform links'],
+                limits: ['No AI Auto-Grader', 'No Teacher Exchange', 'Community support only'],
                 cta: 'Get Started Free', ctaLink: '/register', highlighted: false, dark: false,
               },
               {
-                emoji: '\uD83C\uDF31', name: 'Starter', desc: 'For small schools', price: '$1,200', period: '/year', perStudent: '~$12/student/year',
-                features: ['Up to 100 students', 'AI Tutor (unlimited)', 'AI Auto-Grader', 'Full gamification & games', 'AI Lesson Planner (unlimited)', '10 platform links', 'AI Quiz Generator', 'Email support'],
-                cta: 'Start Free Trial', ctaLink: '/onboard?plan=STARTER', highlighted: false, dark: false,
+                emoji: '\u26A1', name: 'Starter', desc: 'Small schools', price: '$2', period: '/student/mo', perStudent: 'billed annually',
+                features: ['Up to 50 students', 'AI Tutor (200/mo)', 'AI Grader (100/mo)', 'Lesson Planner (25/mo)', 'Full gamification', '6 platform links', 'Email support'],
+                limits: ['No LMS sync', 'No cross-platform assignments', 'Basic admin dashboard'],
+                cta: 'Free Trial', ctaLink: '/onboard?plan=STARTER', highlighted: false, dark: false,
               },
               {
-                emoji: '\u2B50', name: 'Standard', desc: 'Most popular', price: '$5,500', period: '/year', perStudent: '~$11/student/year',
-                features: ['Up to 500 students', 'Everything in Starter', 'All 16+ platform links', 'Cross-platform assignments', 'Assignment categories & weights', 'Knowledge analytics & insights', 'WCAG accessibility suite', 'Admin dashboard + reporting', 'Priority support'],
-                cta: 'Start Free Trial', ctaLink: '/onboard?plan=STANDARD', highlighted: true, dark: false,
+                emoji: '\uD83C\uDF31', name: 'Growth', desc: 'Growing schools', price: '$4', period: '/student/mo', perStudent: 'billed annually',
+                features: ['Up to 200 students', 'AI Tutor (1,000/mo)', 'AI Grader (500/mo)', 'Writing Coach (50/mo)', 'All games & Exchange', 'Google Classroom sync', 'CSV bulk import'],
+                limits: ['No Canvas/Schoology sync', 'No district-wide reporting', 'No custom branding'],
+                cta: 'Free Trial', ctaLink: '/onboard?plan=GROWTH', highlighted: false, dark: false,
               },
               {
-                emoji: '\uD83C\uDFE2', name: 'Enterprise', desc: 'For large districts', price: 'Custom', period: '', perStudent: 'Volume discounts',
-                features: ['Unlimited students', 'Everything in Standard', 'Custom AI model training', 'SSO / SAML integration', 'Dedicated account manager', 'SLA & 99.9% uptime', 'Custom LMS connectors', 'On-site training & PD'],
-                cta: 'Contact Sales', ctaLink: '/onboard?plan=ENTERPRISE', highlighted: false, dark: true,
+                emoji: '\u2B50', name: 'Standard', desc: 'Most popular', price: '$6', period: '/student/mo', perStudent: 'billed annually',
+                features: ['Up to 500 students', 'Unlimited AI features', 'All 16+ integrations', 'Cross-platform assignments', 'District analytics', 'Export reports', 'Priority support'],
+                limits: ['No SSO/SAML', 'No custom branding', 'No predictive analytics'],
+                cta: 'Free Trial', ctaLink: '/onboard?plan=STANDARD', highlighted: true, dark: false,
+              },
+              {
+                emoji: '\uD83D\uDC8E', name: 'Premium', desc: 'Large districts', price: '$9', period: '/student/mo', perStudent: 'billed annually',
+                features: ['Up to 2,000 students', 'Everything in Standard', 'SSO / SAML', 'Predictive AI analytics', 'Custom branding', 'SOC 2 certified', 'Dedicated manager'],
+                limits: ['No custom AI training', 'No on-site PD'],
+                cta: 'Free Trial', ctaLink: '/onboard?plan=PREMIUM', highlighted: false, dark: false,
+              },
+              {
+                emoji: '\uD83C\uDFE2', name: 'Enterprise', desc: 'States & mega-districts', price: 'Custom', period: '', perStudent: 'Volume discounts',
+                features: ['Unlimited everything', 'Custom AI training', 'Custom LMS connectors', 'Data residency options', '99.9% uptime SLA', '24/7 dedicated support', 'On-site training & PD'],
+                limits: [],
+                cta: 'Contact Sales', ctaLink: '/contact', highlighted: false, dark: true,
               },
             ].map(plan => (
               <RevealSection key={plan.name}>
-                <div className={cn('rounded-3xl p-6 h-full flex flex-col transition-all',
+                <div className={cn('rounded-3xl p-5 h-full flex flex-col transition-all',
                   plan.highlighted ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white relative overflow-hidden ring-4 ring-primary-300 ring-offset-2' :
                   plan.dark ? 'bg-white border-2 border-gray-900' : 'bg-white border-2 border-gray-100 hover:shadow-lg hover:border-gray-200')}>
                   {plan.highlighted && <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-sm rounded-full px-2.5 py-1 text-[10px] font-semibold">Most Popular</div>}
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">{plan.emoji}</span>
-                    <h3 className={cn('text-lg font-bold', plan.highlighted ? 'text-white' : 'text-gray-900')}>{plan.name}</h3>
+                    <h3 className={cn('text-base font-bold', plan.highlighted ? 'text-white' : 'text-gray-900')}>{plan.name}</h3>
                   </div>
-                  <p className={cn('text-xs', plan.highlighted ? 'text-white/70' : 'text-gray-500')}>{plan.desc}</p>
-                  <div className="mt-4">
-                    <span className={cn('text-4xl font-extrabold', plan.highlighted ? '' : 'text-gray-900')}>{plan.price}</span>
-                    {plan.period && <span className={cn('ml-1 text-sm', plan.highlighted ? 'text-white/70' : 'text-gray-500')}>{plan.period}</span>}
+                  <p className={cn('text-[11px]', plan.highlighted ? 'text-white/70' : 'text-gray-500')}>{plan.desc}</p>
+                  <div className="mt-3">
+                    <span className={cn('text-3xl font-extrabold', plan.highlighted ? '' : 'text-gray-900')}>{plan.price}</span>
+                    {plan.period && <span className={cn('ml-1 text-xs', plan.highlighted ? 'text-white/70' : 'text-gray-500')}>{plan.period}</span>}
                   </div>
                   {plan.perStudent && <p className={cn('text-[10px] mt-0.5', plan.highlighted ? 'text-white/50' : 'text-gray-400')}>{plan.perStudent}</p>}
-                  <ul className="mt-6 space-y-2.5 flex-1">
+                  <ul className="mt-4 space-y-1.5 flex-1">
                     {plan.features.map(item => (
-                      <li key={item} className={cn('flex items-center gap-2 text-xs', plan.highlighted ? 'text-white/90' : 'text-gray-600')}>
-                        <Check size={14} className={cn('flex-shrink-0', plan.highlighted ? 'text-green-300' : 'text-green-500')} /> {item}
+                      <li key={item} className={cn('flex items-center gap-1.5 text-[11px]', plan.highlighted ? 'text-white/90' : 'text-gray-600')}>
+                        <Check size={12} className={cn('flex-shrink-0', plan.highlighted ? 'text-green-300' : 'text-green-500')} /> {item}
+                      </li>
+                    ))}
+                    {plan.limits.map(item => (
+                      <li key={item} className={cn('flex items-center gap-1.5 text-[10px]', plan.highlighted ? 'text-white/40' : 'text-gray-400')}>
+                        <Minus size={10} className="flex-shrink-0" /> {item}
                       </li>
                     ))}
                   </ul>
-                  <Link href={plan.ctaLink} className={cn('mt-6 block text-center py-3 rounded-xl font-bold text-sm transition',
+                  <Link href={plan.ctaLink} className={cn('mt-4 block text-center py-2.5 rounded-xl font-bold text-xs transition',
                     plan.highlighted ? 'bg-white text-primary-700 hover:bg-gray-100' :
                     plan.dark ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-gray-100 text-gray-900 hover:bg-gray-200')}>
                     {plan.cta}
@@ -847,16 +868,19 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <RevealSection className="mt-10 text-center">
+          <RevealSection className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <div className="inline-flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-6 py-4">
               <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                 <Shield size={20} className="text-green-600" />
               </div>
               <div className="text-left">
                 <p className="text-sm font-bold text-green-800">30-Day Money-Back Guarantee</p>
-                <p className="text-xs text-green-600">Not happy? Full refund, no questions asked. Unlike Coursera&apos;s time-limited access.</p>
+                <p className="text-xs text-green-600">Not happy? Full refund, no questions asked.</p>
               </div>
             </div>
+            <Link href="/pricing" className="text-sm font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1">
+              Compare all features in detail <ArrowRight size={14} />
+            </Link>
           </RevealSection>
         </div>
       </section>
@@ -962,7 +986,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20"><BookOpen size={18} className="text-white" /></div>
                 <span className="text-lg font-bold text-white">Limud</span>
-                <span className="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded font-medium">v8.1</span>
+                <span className="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded font-medium">v8.2</span>
               </div>
               <p className="text-sm leading-relaxed max-w-sm mb-6">The all-in-one EdTech platform that replaces Khan Academy, Google Classroom, IXL, Quizlet, ClassDojo, and more with AI-powered learning for K-12.</p>
               <div className="flex items-center gap-3 flex-wrap">

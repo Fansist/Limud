@@ -13,18 +13,18 @@ import {
 import { cn } from '@/lib/utils';
 
 const PLANS = [
-  { tier: 'FREE', price: 0, students: 5, teachers: 2, schools: 0, color: 'from-gray-400 to-gray-500', icon: <Home size={20} />,
-    features: ['Up to 5 students', 'AI Tutor (50/mo)', 'Basic gamification', 'Parent dashboard'] },
-  { tier: 'STARTER', price: 5, students: 100, teachers: 10, schools: 1, color: 'from-blue-500 to-cyan-500', icon: <Zap size={20} />,
-    features: ['AI Tutor (unlimited)', 'AI Auto-Grader', 'Full gamification', 'Game Store', 'Up to 100 students'] },
-  { tier: 'CUSTOM', price: 0, students: 0, teachers: 0, schools: 0, color: 'from-teal-500 to-emerald-500', icon: <SlidersHorizontal size={20} />,
-    features: ['101-499 students', 'Volume pricing ($5.50-$7)', 'Up to 3 schools', 'AI Auto-Grader', 'Priority Support'], isCustom: true },
-  { tier: 'STANDARD', price: 8, students: 500, teachers: 50, schools: 5, color: 'from-emerald-500 to-teal-500', icon: <Star size={20} />, popular: true,
-    features: ['Everything in Starter', 'Up to 500 students', '5 schools', 'Advanced Analytics', 'LMS Integration'] },
-  { tier: 'PREMIUM', price: 12, students: 2000, teachers: 200, schools: 20, color: 'from-purple-500 to-pink-500', icon: <Crown size={20} />,
-    features: ['Everything in Standard', 'Up to 2000 students', '20 schools', 'Premium Support', 'Custom Branding'] },
-  { tier: 'ENTERPRISE', price: 15, students: 10000, teachers: 1000, schools: 100, color: 'from-amber-500 to-red-500', icon: <Shield size={20} />,
-    features: ['Everything in Premium', 'Unlimited students', '100 schools', '24/7 Support', 'SLA & Custom Dev'] },
+  { tier: 'FREE', price: 0, priceLabel: 'Free forever', students: 5, teachers: 2, schools: 1, color: 'from-gray-400 to-gray-500', icon: <Home size={20} />,
+    features: ['Up to 5 students, 2 teachers', 'AI Tutor (50 sessions/mo)', 'AI Lesson Planner (5/mo)', 'Basic gamification (2 games)', 'Parent dashboard', '3 platform links'] },
+  { tier: 'STARTER', price: 2, priceLabel: '$2/student/mo (annual)', students: 50, teachers: 5, schools: 1, color: 'from-blue-500 to-cyan-500', icon: <Zap size={20} />,
+    features: ['Up to 50 students, 5 teachers', 'AI Tutor (200/mo)', 'AI Auto-Grader (100/mo)', 'Lesson Planner (25/mo)', 'Full gamification & 4 games', '6 platform links', 'Email support'] },
+  { tier: 'GROWTH', price: 4, priceLabel: '$4/student/mo (annual)', students: 200, teachers: 20, schools: 3, color: 'from-teal-500 to-emerald-500', icon: <SlidersHorizontal size={20} />,
+    features: ['Up to 200 students, 20 teachers', 'AI Tutor (1,000/mo)', 'AI Grader (500/mo)', 'Writing Coach (50/mo)', 'All games + Teacher Exchange', 'Google Classroom sync', 'CSV bulk import'] },
+  { tier: 'STANDARD', price: 6, priceLabel: '$6/student/mo (annual)', students: 500, teachers: 50, schools: 5, color: 'from-primary-500 to-primary-700', icon: <Star size={20} />, popular: true,
+    features: ['Up to 500 students, 50 teachers', 'Unlimited AI features', 'All 16+ integrations', 'Cross-platform assignments', 'District analytics & reporting', 'Priority support'] },
+  { tier: 'PREMIUM', price: 9, priceLabel: '$9/student/mo (annual)', students: 2000, teachers: 200, schools: 20, color: 'from-purple-500 to-pink-500', icon: <Crown size={20} />,
+    features: ['Up to 2,000 students', 'Everything in Standard', 'SSO / SAML', 'Predictive AI analytics', 'Custom branding', 'SOC 2 certified', 'Dedicated account manager'] },
+  { tier: 'ENTERPRISE', price: 0, priceLabel: 'Custom pricing', students: 100000, teachers: 10000, schools: 1000, color: 'from-amber-500 to-red-500', icon: <Shield size={20} />,
+    features: ['Unlimited everything', 'Custom AI model training', 'Custom LMS connectors', '99.9% uptime SLA', '24/7 dedicated support', 'On-site training & PD'] },
 ];
 
 const GRADE_LEVELS = [
@@ -46,7 +46,7 @@ export default function OnboardPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [customerType, setCustomerType] = useState<CustomerType>(preselectedType || 'district');
   const [selectedPlan, setSelectedPlan] = useState(preselectedPlan);
-  const [studentCount, setStudentCount] = useState(preselectedPlan === 'CUSTOM' ? 200 : 100);
+  const [studentCount, setStudentCount] = useState(100);
   const [customPrice, setCustomPrice] = useState<{ pricePerStudent: number; total: number } | null>(null);
 
   // Shared fields
@@ -66,18 +66,10 @@ export default function OnboardPage() {
   const plan = PLANS.find(p => p.tier === selectedPlan)!;
   const isHomeschool = customerType === 'homeschool';
   const isFree = selectedPlan === 'FREE';
-  const isCustom = selectedPlan === 'CUSTOM';
+  const isEnterprise = selectedPlan === 'ENTERPRISE';
 
-  // Calculate price based on plan type
-  const getCustomPricePerStudent = (count: number) => {
-    if (count <= 200) return 7;
-    if (count <= 300) return 6.5;
-    if (count <= 400) return 6;
-    return 5.5;
-  };
-
-  const effectivePrice = isCustom ? getCustomPricePerStudent(studentCount) : plan.price;
-  const totalCost = isFree ? 0 : Math.round(effectivePrice * studentCount * 100) / 100;
+  const effectivePrice = plan.price;
+  const totalCost = isFree || isEnterprise ? 0 : Math.round(effectivePrice * studentCount * 12 * 100) / 100;
 
   // Determine total steps based on customer type & plan
   const totalSteps = isFree ? 3 : 4; // type -> plan -> details -> payment (skip payment for free)
@@ -378,23 +370,22 @@ export default function OnboardPage() {
               </div>
 
               <div className={cn('grid gap-4', isHomeschool ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto' : 'sm:grid-cols-2 lg:grid-cols-3')}>
-                {PLANS.filter(p => isHomeschool ? !p.isCustom : p.tier !== 'FREE').map(p => (
+                {PLANS.filter(p => isHomeschool ? p.tier === 'FREE' || p.tier === 'STARTER' || p.tier === 'GROWTH' : p.tier !== 'FREE').map(p => (
                   <button key={p.tier} onClick={() => {
                     setSelectedPlan(p.tier);
-                    if (p.isCustom) setStudentCount(200);
-                    else if (p.students > 0) setStudentCount(p.students);
+                    if (p.students > 0 && p.students < 100000) setStudentCount(Math.min(p.students, studentCount || p.students));
                   }}
                     className={cn('card text-left relative transition-all rounded-2xl p-5',
                       selectedPlan === p.tier ? 'border-2 border-primary-500 ring-2 ring-primary-200 shadow-lg' : 'border-2 border-transparent hover:border-gray-200'
                     )}>
                     {p.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-xs px-3 py-0.5 rounded-full font-medium">Most Popular</div>}
-                    {p.isCustom && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-teal-600 text-white text-xs px-3 py-0.5 rounded-full font-medium">Flexible</div>}
                     <div className={cn('w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-white mb-3', p.color)}>{p.icon}</div>
                     <p className="font-bold text-gray-900">{p.tier}</p>
                     <p className="text-2xl font-bold mt-1">
-                      {p.price === 0 && !p.isCustom ? 'Free' : p.isCustom ? '$5.50-$7' : `$${p.price}`}
-                      {(p.price > 0 || p.isCustom) && <span className="text-sm text-gray-400 font-normal">/student/yr</span>}
+                      {p.price === 0 && p.tier === 'FREE' ? 'Free' : p.tier === 'ENTERPRISE' ? 'Custom' : `$${p.price}`}
+                      {p.price > 0 && p.tier !== 'ENTERPRISE' && <span className="text-sm text-gray-400 font-normal">/student/mo</span>}
                     </p>
+                    {p.priceLabel && <p className="text-[10px] text-gray-400 mt-0.5">{p.priceLabel}</p>}
                     <ul className="mt-3 space-y-1">
                       {p.features.map(f => (
                         <li key={f} className="text-xs text-gray-500 flex items-start gap-1">
@@ -406,60 +397,12 @@ export default function OnboardPage() {
                 ))}
               </div>
 
-              {/* Custom plan slider */}
-              {isCustom && !isHomeschool && (
-                <div className="card max-w-lg mx-auto p-6 space-y-4">
-                  <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                    <SlidersHorizontal size={18} className="text-teal-600" /> Customize Your Plan
-                  </h3>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of Students: <span className="text-teal-600 font-bold">{studentCount}</span></label>
-                    <input
-                      type="range"
-                      min={101}
-                      max={499}
-                      value={studentCount}
-                      onChange={e => setStudentCount(parseInt(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-                    />
-                    <div className="flex justify-between text-xs text-gray-400 mt-1">
-                      <span>101</span>
-                      <span>200</span>
-                      <span>300</span>
-                      <span>400</span>
-                      <span>499</span>
-                    </div>
-                  </div>
-                  <div className="bg-teal-50 rounded-xl p-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Price per student</span>
-                      <span className="font-bold text-teal-700">${getCustomPricePerStudent(studentCount).toFixed(2)}/yr</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Teachers included</span>
-                      <span className="font-medium">{Math.max(10, Math.ceil(studentCount / 10))}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Schools</span>
-                      <span className="font-medium">{studentCount <= 200 ? 1 : studentCount <= 300 ? 2 : 3}</span>
-                    </div>
-                    <hr className="border-teal-200" />
-                    <div className="flex justify-between text-lg">
-                      <span className="font-bold text-gray-900">Annual Total</span>
-                      <span className="font-bold text-teal-700">${totalCost.toLocaleString()}</span>
-                    </div>
-                    <p className="text-xs text-teal-600">
-                      You save ${((8 * studentCount) - totalCost).toLocaleString()} vs Standard pricing!
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {!isFree && !isHomeschool && !isCustom && (
+              {!isFree && !isHomeschool && !isEnterprise && (
                 <div className="card max-w-md mx-auto p-5">
                   <label className="block text-sm font-medium text-gray-700 mb-2">How many students?</label>
                   <input type="number" value={studentCount} onChange={e => setStudentCount(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="input-field text-center text-2xl font-bold" min={1} />
+                    className="input-field text-center text-2xl font-bold" min={1} max={plan.students} />
+                  <p className="text-xs text-gray-400 text-center mt-1">Max {plan.students.toLocaleString()} students on {plan.tier} plan</p>
                   <p className="text-center text-lg font-bold text-primary-600 mt-2">
                     Total: ${totalCost.toLocaleString()}/year
                   </p>

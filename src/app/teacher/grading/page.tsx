@@ -121,7 +121,7 @@ export default function GradingPage() {
       .map(s => s.id);
 
     if (pendingIds.length === 0) {
-      toast('No submissions to grade');
+      toast.error('No submissions to grade');
       return;
     }
 

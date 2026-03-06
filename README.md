@@ -2,40 +2,51 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 8.1
+- **Version**: 8.2
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics — designed to beat every competitor in the market
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
 
-## What's New in v8.1 — Professional Polish & Brand Consistency
+## What's New in v8.2 — Pricing Overhaul, Custom Plan Builder & Bug Fixes
 
-### Brand Consistency Across All Pages
-- **Unified navbar pattern**: Every auth page (Login, Register, Demo, Pricing, Onboard) now uses the same Limud brand header — `BookOpen` icon in a gradient rounded square, `font-extrabold` title, sticky `backdrop-blur-xl` navbar
-- **Removed Sparkles icon** from brand headers (was inconsistent with landing page's `BookOpen` icon)
-- **Pricing page header**: Upgraded from plain text header to full branded sticky navbar with Home back-link
-- **Demo page header**: Matched to landing page brand pattern
-- **Onboard page header**: Matched to landing page brand pattern
-- **Register page sidebar**: Brand icon standardized to `BookOpen`
+### Pricing Overhaul (6 Tiers with Detailed Limitations)
+- **Expanded from 4 to 6 pricing tiers**: Free, Starter, Growth, Standard, Premium, Enterprise
+- **Every tier now has explicit limitations**: Student/teacher/school caps, AI usage limits, storage limits, integration counts, analytics access, support level
+- **Monthly + Annual billing toggle** with 25% annual discount clearly shown
+- **Full feature comparison table**: 50+ features across 9 categories (Capacity, AI Features, Gamification, Teaching Tools, Integrations, Analytics, Administration, Compliance, Support) — expandable/collapsible by category
+- **Consistent pricing across all pages**: Pricing page, landing page, onboard page, and help/FAQ page all show the same 6-tier structure
 
-### SEO & Meta Tags
-- **Root layout enhanced**: Title template `%s | Limud`, comprehensive OG tags, Twitter cards, keywords, robots directive
-- **Page-level metadata**: Every auth layout now exports proper `Metadata` — `Sign In | Limud`, `Create Account | Limud`, `Pricing Plans | Limud`, `Interactive Demo | Limud`, `Get Started | Limud`, `Reset Password | Limud`, `Help Center | Limud`
-- **manifest.json upgraded**: Updated name, description, theme color (`#4f46e5` indigo to match brand), categories, orientation
+### NEW: Interactive Custom Plan Builder
+- **Mix-and-match pricing calculator** with real-time cost estimation
+- **9 customizable sliders** for granular control:
+  - **Capacity**: Students (10-5,000), Teachers (2-500), Schools (1-50), Storage (500MB-500GB)
+  - **AI Features**: AI Tutor sessions (50-10,000/mo), AI Auto-Grader (0-5,000/mo), AI Lesson Plans (5-2,000/mo), AI Quiz Generator (3-1,000/mo), AI Writing Coach (0-1,000/mo)
+- **8 analytics toggles**: Student Progress, Parent Dashboard (free), Advanced Teacher Analytics (+$15/mo), Knowledge Heatmaps (+$20/mo), District Reporting (+$30/mo), Export Reports (+$10/mo), Predictive Analytics (+$50/mo), AI Reports & Insights (+$25/mo)
+- **8 add-on features**: Google Classroom Sync (+$20/mo), Canvas/Schoology (+$30/mo), SSO/SAML (+$50/mo), Custom Branding (+$40/mo), Bulk CSV (+$15/mo), Priority Support (+$25/mo), Phone Support (+$50/mo), SOC 2 Type II (+$75/mo)
+- **Donut chart** visualizing cost breakdown (Capacity vs AI Features vs Analytics vs Add-ons)
+- **Sticky summary panel** showing monthly/annual pricing, cost per student, and closest standard plan
+- **4 quick presets**: Small School, Growing District, Large District, Max Everything
+- **Tier markers on sliders** showing where each standard plan falls
 
-### Footer & Link Cleanup
-- **Removed placeholder links**: "Blog" (→ /about) and "Careers" (→ /contact) removed from landing page footer — replaced with real links: `Help Center`, `Pricing`
-- **Removed duplicate "FERPA Compliance"** link (was just another link to /privacy) from Legal footer section
-- **Pricing page footer added**: New footer with Privacy, Terms, Contact links
+### Updated Onboard Page
+- **Removed deprecated CUSTOM tier** — onboard now uses the 6 standard tiers (Free, Starter, Growth, Standard, Premium, Enterprise)
+- **Clean plan selection grid** without legacy custom slider logic
 
-### Bug Fixes
-- **Forgot-password localhost fix**: Reset URL now derives from `req.url` origin instead of hardcoded `localhost:3000` — works correctly in any environment
-- **Unused import cleanup**: Removed orphaned `Sparkles` imports from Demo, Register, and Onboard pages
+### Updated Help/FAQ
+- **Pricing answer updated** to reflect all 6 tiers with correct pricing
 
-### Version Bump
-- `package.json` → 8.1.0
-- Landing page navbar badge → v8.1
-- Landing page footer badge → v8.1
+### Bug Fixes & Feature Implementations
+- **NEW**: `/api/settings/weights` API route for teacher assignment category weights
+- **FIXED**: Student survey page now works in demo mode with built-in questions
+- **FIXED**: Teacher grading page demo mode improvements
+- **FIXED**: Student games page edge cases
+
+### Previous v8.1 Changes (Retained)
+- Unified brand header across all auth pages
+- Full SEO meta tags (OG, Twitter cards, page-level titles)
+- Forgot-password URL fix, footer link cleanup
+- manifest.json brand color and metadata updates
 
 ## What's New in v8.0 — Competitor-Killer Landing Page (Based on 30-App Analysis)
 
@@ -314,12 +325,23 @@ Each generated lesson plan includes these fully detailed sections:
 - **Platform**: Vercel / Cloudflare Pages compatible
 - **Status**: Active
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
-- **Last Updated**: March 5, 2026
+- **Last Updated**: March 6, 2026
 - **Build**: `npx next build` (all pages compile successfully, zero errors)
 - **Dev Server**: `pm2 start ecosystem.config.cjs` on port 3000
 - **Test Results**: 41+ routes return HTTP 200, zero console errors, zero PM2 error logs
 
 ## Version History
+
+### v8.2 (March 6, 2026) - Pricing Overhaul, Custom Plan Builder & Bug Fixes
+- **NEW**: 6-tier pricing structure (Free, Starter, Growth, Standard, Premium, Enterprise) with detailed limitations
+- **NEW**: Interactive Custom Plan Builder with 9 sliders (students, teachers, schools, storage, AI tutor, AI grader, lesson plans, quiz gen, writing coach)
+- **NEW**: 8 analytics toggles and 8 add-on features for custom plan customization
+- **NEW**: Donut chart cost breakdown, sticky summary panel, 4 quick presets, tier markers
+- **NEW**: `/api/settings/weights` route for teacher assignment weights
+- **FIXED**: Student survey demo mode, teacher grading demo improvements, game page edge cases
+- **UPDATED**: Consistent pricing across pricing page, landing page, onboard page, and help/FAQ
+- **REMOVED**: Deprecated CUSTOM tier from onboard page
+- **VERSION**: Bumped to 8.2.0
 
 ### v8.1 (March 5, 2026) - Professional Polish & Brand Consistency
 - **POLISHED**: Unified brand header across all auth pages (BookOpen icon, backdrop-blur navbar)

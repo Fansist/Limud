@@ -618,17 +618,9 @@ export default function GameStorePage() {
                 <SciencePuzzleGame onClose={() => setActiveGame(null)} />
               ) : activeGame.id === 'g5' || activeGame.category === 'typing' ? (
                 <TypingGame onClose={() => setActiveGame(null)} />
-              ) : activeGame.category === 'trivia' ? (
-                <TriviaGame subject={activeGame.subject || 'Science'} onClose={() => setActiveGame(null)} />
               ) : (
-                /* Fallback for other games */
-                <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-8 text-center">
-                  <span className="text-6xl">{CATEGORY_ICONS[activeGame.category] || '🎮'}</span>
-                  <p className="text-lg font-bold text-gray-700 mt-4">{activeGame.title}</p>
-                  <p className="text-sm text-gray-500 mt-2">{activeGame.description}</p>
-                  <p className="text-xs text-gray-400 mt-4">This game mode is coming soon! Check back for updates.</p>
-                  <button onClick={() => setActiveGame(null)} className="btn-primary mt-4">Close</button>
-                </div>
+                /* Default to trivia game for any category including 'trivia' */
+                <TriviaGame subject={activeGame.subject || activeGame.title || 'General Knowledge'} onClose={() => setActiveGame(null)} />
               )}
             </motion.div>
           </motion.div>

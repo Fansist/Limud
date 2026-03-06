@@ -52,10 +52,10 @@ const FAQ_DATA: FAQCategory[] = [
     name: 'Admin & Billing',
     icon: <Shield size={20} />,
     items: [
-      { question: 'What subscription plans are available?', answer: 'Free (up to 5 students), Starter ($5/student/year, up to 100), Standard ($8/student/year, up to 500), Premium ($12/student/year, up to 2000), Enterprise ($15/student/year, up to 10,000), and Custom (variable pricing for 101-499 students).' },
+      { question: 'What subscription plans are available?', answer: 'We offer 6 tiers: Free (up to 5 students, limited AI), Starter ($2/student/mo billed annually, up to 50 students), Growth ($4/student/mo, up to 200 students), Standard ($6/student/mo, up to 500 students, unlimited AI), Premium ($9/student/mo, up to 2,000 students, SSO & predictive AI), and Enterprise (custom pricing, unlimited). Every paid plan includes a 14-day free trial.' },
       { question: 'How do I add students?', answer: 'Admins can add students individually from the Students page (which auto-creates parent accounts) or use Bulk Import with CSV files. Teachers with proper permissions can also add students to their classes.' },
       { question: 'What are district access levels?', answer: 'Limud supports 7 access levels: Superintendent (full access), Assistant Superintendent, Curriculum Director, Principal, Vice Principal, District Employee (view-only), and IT Admin. Each level has configurable permissions.' },
-      { question: 'How does billing work?', answer: 'Plans are billed annually per student. Upgrades are prorated. Payment methods include credit card, bank transfer, and purchase orders. Invoices are available in the Billing section.' },
+      { question: 'How does billing work?', answer: 'Plans are billed monthly or annually (save 25% with annual billing). Upgrades are prorated. Payment methods include credit card, ACH bank transfer, and purchase orders (Enterprise). Invoices are available in the Billing section.' },
     ],
   },
   {
