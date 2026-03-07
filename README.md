@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 8.3.1
+- **Version**: 8.3.2
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics — designed to beat every competitor in the market
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
@@ -349,6 +349,17 @@ Each generated lesson plan includes these fully detailed sections:
 - **Test Results**: 41+ routes return HTTP 200, zero console errors, zero PM2 error logs
 
 ## Version History
+
+### v8.3.BUG.2 (March 7, 2026) - SEO Titles, Demo Link Consistency & Suspense Fix
+- **FIXED**: Legal pages (About, Contact, Privacy, Terms, Accessibility) all showed the default site title instead of page-specific titles — root cause was `'use client'` directive on the `(legal)/layout.tsx` which blocked Next.js metadata export
+- **FIXED**: Removed `'use client'` from `(legal)/layout.tsx` (it only uses server-compatible components) and added individual layout files with proper `<Metadata>` for each legal page
+- **FIXED**: `/reset-password` page had no layout file — missing page title and missing `<Suspense>` boundary around `useSearchParams()` which could cause hydration warnings
+- **FIXED**: Student Dashboard had hard-coded `<Link href="/student/assignments">` without `?demo=true` — demo users clicking internal links lost the demo URL parameter
+- **FIXED**: Admin Dashboard had 5 hard-coded links (`/admin/students`, `/admin/schools`, `/admin/classrooms`, `/admin/provision`, `/admin/payments`) without demo suffix
+- **FIXED**: Parent Dashboard had 2 hard-coded links to `/parent/children` without demo suffix
+- **ADDED**: `demoSuffix` pattern to Student, Admin, and Parent dashboards (matching the existing Teacher Dashboard pattern)
+- **ADDED**: Layout files with metadata for: About Us, Contact Us, Privacy Policy, Terms of Service, Accessibility Statement, Reset Password
+- **VERSION**: Bumped to 8.3.2
 
 ### v8.3.BUG.1 (March 7, 2026) - Master Demo Role-Switching Fix
 - **FIXED**: Master Demo account (`master@limud.edu`) could not switch between roles — Student, Teacher, Admin, and Parent dashboard role guards rejected the master user because its JWT role is `TEACHER` but `isMasterDemo` was not checked

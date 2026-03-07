@@ -67,6 +67,8 @@ export default function ParentDashboard() {
     );
   }
 
+  const demoSuffix = isDemo ? '?demo=true' : '';
+
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6">
@@ -96,7 +98,7 @@ export default function ParentDashboard() {
             </div>
             {isHomeschoolParent && (
               <Link
-                href="/parent/children"
+                href={`/parent/children${demoSuffix}`}
                 className="btn-primary flex items-center gap-2 text-sm"
               >
                 <Users size={16} />
@@ -148,7 +150,7 @@ export default function ParentDashboard() {
                 : 'Contact your school administrator to link your student account to this parent portal.'}
             </p>
             {isHomeschoolParent && (
-              <Link href="/parent/children" className="btn-primary inline-flex items-center gap-2">
+              <Link href={`/parent/children${demoSuffix}`} className="btn-primary inline-flex items-center gap-2">
                 <Plus size={16} />
                 Add Your First Child
               </Link>

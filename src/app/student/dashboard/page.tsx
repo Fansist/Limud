@@ -102,6 +102,7 @@ export default function StudentDashboard() {
   const avatarId = isDemo ? DEMO_STUDENT.selectedAvatar : ((session?.user as any)?.selectedAvatar || 'default');
   const avatarEmoji = AVATAR_OPTIONS.find(a => a.id === avatarId)?.emoji || '👤';
   const firstName = isDemo ? DEMO_STUDENT.name.split(' ')[0] : (session?.user?.name?.split(' ')[0] || 'Student');
+  const demoSuffix = isDemo ? '?demo=true' : '';
   const upcomingAssignments = assignments
     .filter(a => !a.submissions?.length || a.submissions[0]?.status === 'PENDING')
     .slice(0, 5);
@@ -199,7 +200,7 @@ export default function StudentDashboard() {
                 {dueToday.map(a => a.title).join(', ')}
               </p>
             </div>
-            <Link href="/student/assignments" className="btn-warning text-xs whitespace-nowrap">
+            <Link href={`/student/assignments${demoSuffix}`} className="btn-warning text-xs whitespace-nowrap">
               View Now
             </Link>
           </motion.div>
@@ -309,7 +310,7 @@ export default function StudentDashboard() {
                 </div>
                 Upcoming Assignments
               </h2>
-              <Link href="/student/assignments" className="text-xs text-primary-600 font-semibold hover:underline flex items-center gap-1">
+              <Link href={`/student/assignments${demoSuffix}`} className="text-xs text-primary-600 font-semibold hover:underline flex items-center gap-1">
                 View all <ArrowRight size={12} />
               </Link>
             </div>

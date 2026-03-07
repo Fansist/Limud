@@ -67,6 +67,7 @@ export default function AdminDashboard() {
 
   const district = districts[0];
   const districtName = (session?.user as any)?.districtName || 'District';
+  const demoSuffix = isDemo ? '?demo=true' : '';
 
   return (
     <DashboardLayout>
@@ -146,7 +147,7 @@ export default function AdminDashboard() {
                 transition={{ delay: 0.2 }}
               >
                 <Link
-                  href="/admin/students"
+                  href={`/admin/students${demoSuffix}`}
                   className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
                 >
                   <div className="p-3 bg-blue-100 rounded-xl group-hover:bg-blue-200 transition">
@@ -166,7 +167,7 @@ export default function AdminDashboard() {
                 transition={{ delay: 0.22 }}
               >
                 <Link
-                  href="/admin/schools"
+                  href={`/admin/schools${demoSuffix}`}
                   className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
                 >
                   <div className="p-3 bg-emerald-100 rounded-xl group-hover:bg-emerald-200 transition">
@@ -186,7 +187,7 @@ export default function AdminDashboard() {
                 transition={{ delay: 0.24 }}
               >
                 <Link
-                  href="/admin/classrooms"
+                  href={`/admin/classrooms${demoSuffix}`}
                   className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
                 >
                   <div className="p-3 bg-violet-100 rounded-xl group-hover:bg-violet-200 transition">
@@ -206,7 +207,7 @@ export default function AdminDashboard() {
                 transition={{ delay: 0.26 }}
               >
                 <Link
-                  href="/admin/provision"
+                  href={`/admin/provision${demoSuffix}`}
                   className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
                 >
                   <div className="p-3 bg-green-100 rounded-xl group-hover:bg-green-200 transition">
@@ -226,7 +227,7 @@ export default function AdminDashboard() {
                 transition={{ delay: 0.28 }}
               >
                 <Link
-                  href="/admin/payments"
+                  href={`/admin/payments${demoSuffix}`}
                   className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
                 >
                   <div className="p-3 bg-amber-100 rounded-xl group-hover:bg-amber-200 transition">
