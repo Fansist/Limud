@@ -27,7 +27,15 @@ export default function TeacherDashboard() {
       return;
     }
     if (status === 'authenticated') {
-      if ((session?.user as any)?.role !== 'TEACHER') redirect('/');
+      const user = session?.user as any;
+      if (user?.role !== 'TEACHER' && !user?.isMasterDemo) redirect('/');
+      if (user?.isMasterDemo && user?.role !== 'TEACHER') {
+        // Master demo visiting teacher view — show demo data
+        setAnalytics(DEMO_ANALYTICS);
+        setAssignments(DEMO_TEACHER_ASSIGNMENTS);
+        setLoading(false);
+        return;
+      }
       fetchData();
     }
   }, [status, isDemo]);

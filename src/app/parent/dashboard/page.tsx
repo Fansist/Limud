@@ -28,7 +28,14 @@ export default function ParentDashboard() {
       return;
     }
     if (status === 'authenticated') {
-      if ((session?.user as any)?.role !== 'PARENT') redirect('/');
+      const user = session?.user as any;
+      if (user?.role !== 'PARENT' && !user?.isMasterDemo) redirect('/');
+      if (user?.isMasterDemo && user?.role !== 'PARENT') {
+        // Master demo visiting parent view — show demo data
+        setChildren(DEMO_PARENT_CHILDREN);
+        setLoading(false);
+        return;
+      }
       fetchChildData();
     }
   }, [status, isDemo]);

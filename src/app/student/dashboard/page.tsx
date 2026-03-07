@@ -30,8 +30,16 @@ export default function StudentDashboard() {
       return;
     }
     if (status === 'authenticated') {
-      if ((session?.user as any)?.role !== 'STUDENT') {
+      const user = session?.user as any;
+      if (user?.role !== 'STUDENT' && !user?.isMasterDemo) {
         redirect('/');
+      }
+      if (user?.isMasterDemo && user?.role !== 'STUDENT') {
+        // Master demo visiting student view — show demo data
+        setAssignments(DEMO_ASSIGNMENTS);
+        setRewards(DEMO_REWARD_STATS);
+        setLoading(false);
+        return;
       }
       fetchData();
     }

@@ -94,7 +94,7 @@ export default function StudentSurveyPage() {
   const totalSteps = 4;
 
   useEffect(() => {
-    if (!isDemo && status === 'authenticated' && (session?.user as any)?.role !== 'STUDENT') {
+    if (!isDemo && status === 'authenticated' && (session?.user as any)?.role !== 'STUDENT' && !(session?.user as any)?.isMasterDemo) {
       router.push('/');
     }
   }, [status, isDemo]);

@@ -26,7 +26,14 @@ export default function AdminDashboard() {
       return;
     }
     if (status === 'authenticated') {
-      if ((session?.user as any)?.role !== 'ADMIN') redirect('/');
+      const user = session?.user as any;
+      if (user?.role !== 'ADMIN' && !user?.isMasterDemo) redirect('/');
+      if (user?.isMasterDemo && user?.role !== 'ADMIN') {
+        // Master demo visiting admin view — show demo data
+        setDistricts([DEMO_DISTRICT]);
+        setLoading(false);
+        return;
+      }
       fetchDistricts();
     }
   }, [status, isDemo]);

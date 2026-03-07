@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 8.3
+- **Version**: 8.3.1
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics — designed to beat every competitor in the market
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
@@ -349,6 +349,12 @@ Each generated lesson plan includes these fully detailed sections:
 - **Test Results**: 41+ routes return HTTP 200, zero console errors, zero PM2 error logs
 
 ## Version History
+
+### v8.3.BUG.1 (March 7, 2026) - Master Demo Role-Switching Fix
+- **FIXED**: Master Demo account (`master@limud.edu`) could not switch between roles — Student, Teacher, Admin, and Parent dashboard role guards rejected the master user because its JWT role is `TEACHER` but `isMasterDemo` was not checked
+- **FIXED**: All 5 role-guarded pages now allow `isMasterDemo` session users through: Student Dashboard, Teacher Dashboard, Admin Dashboard, Parent Dashboard, Student Survey
+- **FIXED**: Cross-role navigation now loads demo data (assignments, rewards, analytics, districts, children) when master user visits a dashboard that doesn't match their JWT role, preventing empty states and failed API calls
+- **VERSION**: Bumped to 8.3.1
 
 ### v8.3 (March 7, 2026) - Product Roadmap Page
 - **NEW**: /roadmap page with 4 tabs (Planned Updates, In Progress, Recently Shipped, Future Vision)
