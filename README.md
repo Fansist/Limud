@@ -2,11 +2,29 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 8.2
+- **Version**: 8.3
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics — designed to beat every competitor in the market
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
+
+## What's New in v8.3 — Product Roadmap Page
+
+### NEW: /roadmap Page
+- **Comprehensive product roadmap** with 4 tabs: Planned Updates, In Progress, Recently Shipped, Future Vision
+- **23 roadmap items** across 10 categories covering near-term and long-term features
+- **Interactive features**: Search, category filtering, expandable detail cards with implementation specifics
+- **Visual timeline**: Q1 2026 through 2028+ with item counts per quarter
+- **Stats dashboard**: At-a-glance counts for In Progress, Planned, Shipped, and Exploring items
+- **Status badges**: Each feature shows status (Shipped/In Progress/Planned/Exploring) and impact level (High/Medium/Low)
+- **Mission statement**: Addressing the mental health crisis — "No generation has been lonelier, more anxious, and more unhappy than the teenagers who have grown up with social media"
+- **Roadmap link added** to landing page footer navigation
+
+### Planned Features Highlights (from the roadmap):
+- **Near-term (Q2-Q3 2026)**: AI Differentiated Instruction, Peer Tutoring Marketplace, Adaptive Quiz Engine, Classroom Observation AI, Multi-Language Support (12+ languages), Native Mobile Apps (iOS/Android), Advanced District Analytics
+- **Mid-term (Q4 2026)**: Teacher PD Hub, Student Mental Health & SEL Check-Ins, Curriculum Standards Auditor, Multiplayer Educational Games
+- **Long-term (2027+)**: AI Teaching Assistant (Autonomous Agent), AR/VR Learning Experiences, AI-Generated Video Content, Blockchain Credentials, AI Emotional Intelligence Tutor, Music & Arts Integration
+- **Far future (2028+)**: Community Knowledge Graph, Physical-Digital Bridge (OCR), Cross-District Student Mobility, Open Curriculum Marketplace
 
 ## What's New in v8.2 — Pricing Overhaul, Custom Plan Builder & Bug Fixes
 
@@ -325,12 +343,20 @@ Each generated lesson plan includes these fully detailed sections:
 - **Platform**: Vercel / Cloudflare Pages compatible
 - **Status**: Active
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
-- **Last Updated**: March 6, 2026
+- **Last Updated**: March 7, 2026
 - **Build**: `npx next build` (all pages compile successfully, zero errors)
 - **Dev Server**: `pm2 start ecosystem.config.cjs` on port 3000
 - **Test Results**: 41+ routes return HTTP 200, zero console errors, zero PM2 error logs
 
 ## Version History
+
+### v8.3 (March 7, 2026) - Product Roadmap Page
+- **NEW**: /roadmap page with 4 tabs (Planned Updates, In Progress, Recently Shipped, Future Vision)
+- **NEW**: 23 roadmap items across 10 categories with search, filtering, and expandable details
+- **NEW**: Visual timeline (Q1 2026-2028+), stats dashboard, status/impact badges
+- **NEW**: Mission statement addressing teen mental health crisis and social media
+- **UPDATED**: Landing page footer with Roadmap link
+- **VERSION**: Bumped to 8.3.0
 
 ### v8.2 (March 6, 2026) - Pricing Overhaul, Custom Plan Builder & Bug Fixes
 - **NEW**: 6-tier pricing structure (Free, Starter, Growth, Standard, Premium, Enterprise) with detailed limitations

@@ -207,7 +207,7 @@ function CompCell({ value }: { value: 'yes' | 'no' | 'partial' | string }) {
 }
 
 // =========================================================================
-// LANDING PAGE — CONVERSION-OPTIMIZED v8.2
+// LANDING PAGE — CONVERSION-OPTIMIZED v8.3
 // Designed to beat every competitor listed in the competitive analysis
 // =========================================================================
 export default function LandingPage() {
@@ -244,7 +244,7 @@ export default function LandingPage() {
                 <BookOpen size={18} className="text-white" />
               </div>
               <span className="text-xl font-extrabold text-gray-900 tracking-tight">Limud</span>
-              <span className="hidden sm:inline-flex items-center text-[10px] font-bold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-md">v8.2</span>
+              <span className="hidden sm:inline-flex items-center text-[10px] font-bold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-md">v8.3</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
@@ -986,7 +986,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20"><BookOpen size={18} className="text-white" /></div>
                 <span className="text-lg font-bold text-white">Limud</span>
-                <span className="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded font-medium">v8.2</span>
+                <span className="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded font-medium">v8.3</span>
               </div>
               <p className="text-sm leading-relaxed max-w-sm mb-6">The all-in-one EdTech platform that replaces Khan Academy, Google Classroom, IXL, Quizlet, ClassDojo, and more with AI-powered learning for K-12.</p>
               <div className="flex items-center gap-3 flex-wrap">
@@ -1007,7 +1007,7 @@ export default function LandingPage() {
             <div>
               <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
               <ul className="space-y-2.5">
-                {[{ label: 'About', href: '/about' }, { label: 'Help Center', href: '/help' }, { label: 'Contact', href: '/contact' }, { label: 'Pricing', href: '/pricing' }].map(l => (
+                {[{ label: 'About', href: '/about' }, { label: 'Help Center', href: '/help' }, { label: 'Roadmap', href: '/roadmap' }, { label: 'Contact', href: '/contact' }, { label: 'Pricing', href: '/pricing' }].map(l => (
                   <li key={l.label}><Link href={l.href} className="text-sm hover:text-white transition">{l.label}</Link></li>
                 ))}
               </ul>
