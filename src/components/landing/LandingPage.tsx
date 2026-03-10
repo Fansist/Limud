@@ -6,11 +6,11 @@ import { useRef, useState, useEffect } from 'react';
 import {
   BookOpen, MessageCircle, Trophy, BarChart3, GraduationCap,
   Shield, Users, Zap, Brain, Sparkles, ArrowRight, ChevronDown,
-  Star, Check, Play, Globe, Heart, Clock, TrendingUp,
+  Check, Play, Globe, Heart, Clock, TrendingUp,
   Award, Lightbulb, Rocket, Lock, Eye, Link2, Gamepad2,
   FileText, Target, PenTool, Wand2, LayoutDashboard, RefreshCw,
   ChevronUp, AlertTriangle, DollarSign, X, Timer,
-  CheckCircle2, ArrowDown, Gift, Flame, School,
+  CheckCircle2, ArrowDown, Gift, School,
   Minus, CircleDot, XCircle, Crown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -176,12 +176,12 @@ function StickyCTA() {
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         <div className="hidden sm:flex items-center gap-3">
           <div className="flex items-center gap-1.5 text-sm text-gray-600">
-            <Flame size={16} className="text-orange-500" />
-            <span><strong className="text-gray-900">127 schools</strong> signed up this month</span>
+            <Sparkles size={16} className="text-primary-500" />
+            <span><strong className="text-gray-900">Free forever</strong> for homeschool families</span>
           </div>
           <div className="hidden lg:flex items-center gap-1.5 text-sm text-gray-500">
             <Shield size={14} className="text-green-500" />
-            <span>30-day money-back guarantee</span>
+            <span>FERPA & COPPA compliant</span>
           </div>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -244,7 +244,7 @@ export default function LandingPage() {
                 <BookOpen size={18} className="text-white" />
               </div>
               <span className="text-xl font-extrabold text-gray-900 tracking-tight">Limud</span>
-              <span className="hidden sm:inline-flex items-center text-[10px] font-bold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-md">v8.3</span>
+              <span className="hidden sm:inline-flex items-center text-[10px] font-bold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-md">v8.4</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
@@ -301,9 +301,9 @@ export default function LandingPage() {
         <motion.div style={{ opacity: heroOpacity, scale: heroScale }} className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <motion.div initial="hidden" animate="visible" variants={stagger}>
-              {/* Urgency badge */}
-              <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-1.5 rounded-full text-sm font-semibold mb-6">
-                <Flame size={14} className="text-orange-500" /> 127 schools joined this month &mdash; limited onboarding slots
+              {/* Badge */}
+              <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 bg-primary-50 border border-primary-200 text-primary-800 px-4 py-1.5 rounded-full text-sm font-semibold mb-6">
+                <Sparkles size={14} className="text-primary-500" /> AI-Powered K-12 Learning Platform
               </motion.div>
 
               <motion.h1 variants={fadeUp} custom={1} className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1]">
@@ -323,8 +323,8 @@ export default function LandingPage() {
               </motion.h1>
 
               <motion.p variants={fadeUp} custom={2} className="mt-6 text-lg sm:text-xl text-gray-500 leading-relaxed max-w-xl">
-                Limud replaces Khan Academy + Google Classroom + IXL + Quizlet + ClassDojo + your grading spreadsheet &mdash;
-                <strong className="text-gray-700"> saving districts $12,000+/year</strong> with AI tutoring, auto-grading, gamification, and 16+ platform integrations in one place.
+                Limud brings AI tutoring, auto-grading, gamification, and 16+ platform integrations together in one place &mdash;
+                <strong className="text-gray-700"> designed for homeschool families and school districts alike.</strong>
               </motion.p>
 
               <motion.div variants={fadeUp} custom={3} className="mt-8 flex flex-col sm:flex-row gap-4">
@@ -466,22 +466,21 @@ export default function LandingPage() {
         </section>
       </RevealSection>
 
-      {/* ─── SOCIAL PROOF BAR ────────────────────────────────────── */}
+      {/* ─── PLATFORM HIGHLIGHTS BAR ────────────────────────────────── */}
       <RevealSection>
         <section className="py-16 bg-white border-y border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <p className="text-center text-sm font-medium text-gray-400 mb-10 uppercase tracking-wider">Trusted by schools across the country</p>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-8 items-center justify-items-center">
+            <p className="text-center text-sm font-medium text-gray-400 mb-10 uppercase tracking-wider">Built for modern education</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center justify-items-center">
               {[
-                { value: 500, suffix: '+', label: 'School Districts' },
-                { value: 125000, suffix: '+', label: 'Students' },
-                { value: 98, suffix: '%', label: 'Satisfaction Rate' },
-                { value: 16, suffix: '+', label: 'Integrations' },
-                { value: 2, suffix: 'M+', label: 'Assignments Graded' },
-              ].map(stat => (
-                <div key={stat.label} className="text-center">
-                  <p className="text-3xl lg:text-4xl font-extrabold text-gray-900"><AnimatedNumber target={stat.value} suffix={stat.suffix} /></p>
-                  <p className="text-sm text-gray-500 mt-2">{stat.label}</p>
+                { icon: '🤖', label: 'AI-Powered Tutoring' },
+                { icon: '🔗', label: '16+ Integrations' },
+                { icon: '🏠', label: 'Homeschool-Friendly' },
+                { icon: '🔒', label: 'FERPA & COPPA Compliant' },
+              ].map(item => (
+                <div key={item.label} className="text-center">
+                  <p className="text-3xl lg:text-4xl mb-2">{item.icon}</p>
+                  <p className="text-sm font-semibold text-gray-700">{item.label}</p>
                 </div>
               ))}
             </div>
@@ -532,7 +531,7 @@ export default function LandingPage() {
                 <span className="text-3xl font-extrabold">From $0</span>
                 <span className="text-white/60 text-sm">/forever for homeschool</span>
               </div>
-              <p className="text-green-300 font-bold text-sm mt-2">Save $12,000+/year vs. separate tools</p>
+              <p className="text-green-300 font-bold text-sm mt-2">Everything your school needs in one platform</p>
               <Link href="/register" className="mt-4 inline-flex items-center gap-2 bg-white text-primary-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-100 transition">
                 Start Free Today <ArrowRight size={14} />
               </Link>
@@ -636,7 +635,7 @@ export default function LandingPage() {
             <Link href="/register" className="group inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25">
               Switch to Limud &mdash; Free to Start <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <p className="text-sm text-gray-400 mt-3">Join 500+ districts that already switched.</p>
+            <p className="text-sm text-gray-400 mt-3">See how Limud compares to the competition.</p>
           </RevealSection>
         </div>
       </section>
@@ -885,37 +884,54 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── TESTIMONIALS ────────────────────────────────────────── */}
+      {/* ─── WHO IS LIMUD FOR ────────────────────────────────────── */}
       <section className="py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <RevealSection className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Heart size={14} /> Testimonials</div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Why educators choose Limud over the alternatives</h2>
+            <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Heart size={14} /> Built For</div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Who is Limud for?</h2>
           </RevealSection>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { quote: "We tried Khan Academy, IXL, and ClassDojo separately. Each solved one problem but created three more. Limud replaced all of them and my grading time dropped by 70%. The AI lesson planner alone saves me 5 hours a week.", name: 'Sarah Mitchell', role: '7th Grade Science Teacher', school: 'Lincoln Middle School', avatar: '\uD83D\uDC69\u200D\uD83C\uDFEB', metric: 'Saved 8 hrs/week', switchedFrom: 'Khan + IXL + ClassDojo' },
-              { quote: "My son hated Duolingo's repetitive drills and ABCmouse felt too young. With Limud, he's obsessed with his streak and saving coins for avatars. The Khan Academy sync means I see all his progress in one dashboard. His grades went from C's to A's.", name: 'Michael Rodriguez', role: 'Parent of a 6th Grader', school: 'Washington Elementary', avatar: '\uD83D\uDC68', metric: 'Grades: C to A', switchedFrom: 'Duolingo + ABCmouse' },
-              { quote: "We were spending $18,000/year on separate tools — Nearpod, Remind, Google Classroom premium, grading software, and analytics. Limud replaced everything for $5,500. The AI auto-grading and parent portal are features no other single platform offers.", name: 'Dr. Lisa Chen', role: 'Superintendent', school: 'Lincoln USD', avatar: '\uD83D\uDC69\u200D\uD83D\uDCBC', metric: 'Saved $12,500/yr', switchedFrom: 'Nearpod + Remind + 3 others' },
-            ].map(t => (
-              <RevealSection key={t.name}>
-                <motion.div whileHover={{ y: -4 }} className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-lg transition-all h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex gap-1">{[...Array(5)].map((_, j) => <Star key={j} size={16} className="fill-amber-400 text-amber-400" />)}</div>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-green-50 text-green-700 font-bold">{t.metric}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 leading-relaxed mb-4 flex-1">&ldquo;{t.quote}&rdquo;</p>
-                  <div className="text-[10px] text-gray-400 mb-4 px-2 py-1 bg-gray-50 rounded-lg">
-                    Switched from: <strong className="text-gray-600">{t.switchedFrom}</strong>
-                  </div>
-                  <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                    <div className="w-11 h-11 bg-gradient-to-br from-primary-100 to-accent-100 rounded-full flex items-center justify-center text-lg">{t.avatar}</div>
-                    <div><p className="text-sm font-bold text-gray-900">{t.name}</p><p className="text-xs text-gray-400">{t.role} &middot; {t.school}</p></div>
-                  </div>
-                </motion.div>
-              </RevealSection>
-            ))}
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <RevealSection>
+              <motion.div whileHover={{ y: -4 }} className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-lg transition-all h-full">
+                <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white text-2xl mb-5">🏠</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">Homeschool Families</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                  Create a free parent account, add your children as students, and use AI-powered lesson planning, tutoring, and progress tracking. Limud makes homeschooling organized and engaging.
+                </p>
+                <ul className="space-y-2">
+                  {['Free forever plan', 'AI lesson planner & tutor', 'Gamification to keep kids motivated', 'Parent dashboard for progress tracking'].map(f => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                      <Check size={14} className="text-green-500 flex-shrink-0" /> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/register" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700">
+                  Start Free <ArrowRight size={14} />
+                </Link>
+              </motion.div>
+            </RevealSection>
+
+            <RevealSection>
+              <motion.div whileHover={{ y: -4 }} className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-lg transition-all h-full">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl mb-5">🏫</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">School Districts</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                  District administrators can create an account, choose a plan, and provision teachers and students at scale. Centralized management with powerful AI tools.
+                </p>
+                <ul className="space-y-2">
+                  {['Plans from $2/student/month', 'Bulk CSV provisioning', 'AI auto-grading & analytics', 'Multi-school management'].map(f => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                      <Check size={14} className="text-green-500 flex-shrink-0" /> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/register" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700">
+                  Create Admin Account <ArrowRight size={14} />
+                </Link>
+              </motion.div>
+            </RevealSection>
           </div>
         </div>
       </section>
@@ -938,8 +954,8 @@ export default function LandingPage() {
                 { q: 'Can I try it before buying?', a: 'Absolutely! Our Free plan is free forever for up to 5 students with no credit card required. All paid plans include a 14-day free trial with full access. Plus, we offer a 30-day money-back guarantee on all paid plans. Unlike Coursera\'s time-limited access or ABCmouse\'s auto-renewal, we keep it simple and transparent.' },
                 { q: 'How long does setup take?', a: 'Most districts are fully up and running within 5-30 minutes. Upload a CSV of students and teachers, connect your platforms, and you\'re ready. Unlike Classcraft\'s complex setup or Nearpod\'s learning curve, Limud is designed to be intuitive from the first click. Our onboarding team provides free setup support.' },
                 { q: 'What about the AI — is it safe for students?', a: 'Unlike ChatGPT which can give direct answers and raise academic integrity concerns, Limud\'s AI tutor uses Socratic questioning to GUIDE students to answers without giving them away. All AI conversations are logged and available for teacher/parent review. The AI is grade-level appropriate and designed to build critical thinking, not shortcuts.' },
-                { q: 'Do students actually enjoy using Limud?', a: '98% of students report enjoying their learning experience. The gamification engine — XP, levels, streaks, coins, avatar shop, playable educational games, leaderboards, and badges — is more engaging than ClassDojo for older students and more educational than Prodigy. Students WANT to log in.' },
-                { q: 'What if I\'m not satisfied?', a: 'We offer a 30-day money-back guarantee on all paid plans. If Limud isn\'t the right fit, we\'ll refund you in full, no questions asked. We\'re confident you\'ll love it — 98% satisfaction rate across 500+ districts.' },
+                { q: 'Do students actually enjoy using Limud?', a: 'The gamification engine — XP, levels, streaks, coins, avatar shop, playable educational games, leaderboards, and badges — is designed to be more engaging than ClassDojo for older students and more educational than Prodigy. Students look forward to logging in.' },
+                { q: 'What if I\'m not satisfied?', a: 'We offer a 30-day money-back guarantee on all paid plans. If Limud isn\'t the right fit, we\'ll refund you in full, no questions asked.' },
               ].map(faq => <FAQItem key={faq.q} question={faq.q} answer={faq.a} />)}
             </div>
           </RevealSection>
@@ -956,7 +972,7 @@ export default function LandingPage() {
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} viewport={{ once: true }}
                   className="inline-flex items-center justify-center w-16 h-16 bg-white/10 rounded-2xl mb-6"><Rocket size={32} className="text-white" /></motion.div>
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">Stop juggling apps. Start teaching.</h2>
-                <p className="mt-4 text-lg text-white/80 max-w-2xl mx-auto">Join 500+ districts that replaced Khan Academy + Google Classroom + IXL + Quizlet + ClassDojo with one platform. Save $12,000+/year.</p>
+                <p className="mt-4 text-lg text-white/80 max-w-2xl mx-auto">Limud brings together AI tutoring, auto-grading, gamification, and 16+ platform integrations — built for homeschool families and school districts.</p>
                 <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                   <Link href="/register" className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-8 py-4 rounded-2xl font-bold text-base hover:bg-gray-100 transition-all shadow-lg">
                     Start Free Now <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -986,7 +1002,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20"><BookOpen size={18} className="text-white" /></div>
                 <span className="text-lg font-bold text-white">Limud</span>
-                <span className="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded font-medium">v8.3</span>
+              <span className="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded font-medium">v8.4</span>
               </div>
               <p className="text-sm leading-relaxed max-w-sm mb-6">The all-in-one EdTech platform that replaces Khan Academy, Google Classroom, IXL, Quizlet, ClassDojo, and more with AI-powered learning for K-12.</p>
               <div className="flex items-center gap-3 flex-wrap">
@@ -1023,7 +1039,7 @@ export default function LandingPage() {
           </div>
           <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm">&copy; {new Date().getFullYear()} Limud Education Inc. All rights reserved.</p>
-            <p className="text-xs text-gray-500">Built with care for educators, students, and families. Rated 4.9/5 by 500+ districts.</p>
+            <p className="text-xs text-gray-500">Built with care for educators, students, and families.</p>
           </div>
         </div>
       </footer>

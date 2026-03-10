@@ -2,13 +2,50 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 8.3.2
+- **Version**: 8.4.0
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics — designed to beat every competitor in the market
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
 
-## What's New in v8.3 — Product Roadmap Page
+## What's New in v8.4 — Account Model Overhaul & Content Cleanup
+
+### Account System Redesign
+- **Removed individual Student, Teacher, and Parent account creation** — these roles are no longer available as standalone registration options
+- **Two account types only**:
+  - **Homeschool Family** (free): Parent account that can create student sub-accounts for their children. Includes AI lesson planning, tutoring, gamification, and progress tracking
+  - **District Administrator** (paid plans): Admin account that must purchase a plan to create and manage teacher/student accounts, provision schools, and access district analytics
+- **Registration page completely redesigned**: Clear two-option flow with detailed descriptions and tags for each account type
+- **District admins redirected to /pricing** after registration to choose a plan before creating sub-accounts
+
+### Master Demo Access Restricted
+- **Removed Master Demo button from login page** — no longer publicly accessible via one-click button
+- **Master Demo still works** via direct email/password login (`master@limud.edu`) for internal use
+- **Role switcher in DashboardLayout preserved** — authenticated master users can still switch between all roles
+
+### Landing Page Content Cleanup
+- **Removed all fabricated statistics**: "127 schools joined this month", "500+ districts", "125,000+ students", "98% satisfaction rate", "2M+ assignments graded", "$12,000+/year savings"
+- **Removed fake testimonials**: Sarah Mitchell, Michael Rodriguez, Dr. Lisa Chen (all fictional)
+- **Removed "Rated 4.9/5 by 500+ districts"** from footer
+- **Removed fake urgency badge** ("127 schools joined this month — limited onboarding slots")
+- **Replaced social proof bar** with honest "Built for modern education" highlights (AI-Powered Tutoring, 16+ Integrations, Homeschool-Friendly, FERPA & COPPA Compliant)
+- **Replaced testimonials section** with "Who is Limud for?" section showing the two account types (Homeschool Families and School Districts) with feature lists
+- **Updated sticky CTA bar** to show "Free forever for homeschool families" instead of fake school count
+- **Updated FAQ answers** to remove fabricated statistics
+- **Version badges updated** to v8.4
+
+### Demo Page Updates
+- **"Create Account" button** changed to "Get Started" for clarity
+- **Homeschool CTA** updated to emphasize free access
+
+### Files Changed
+- `src/app/(auth)/login/page.tsx` — Removed Master Demo button and Crown icon import
+- `src/app/(auth)/register/page.tsx` — Complete rewrite: Homeschool Parent + District Admin only
+- `src/app/(auth)/demo/page.tsx` — Updated CTA text
+- `src/components/landing/LandingPage.tsx` — Removed fake stats, testimonials, urgency badges; added honest content
+- `package.json` — Version bump to 8.4.0
+
+
 
 ### NEW: /roadmap Page
 - **Comprehensive product roadmap** with 4 tabs: Planned Updates, In Progress, Recently Shipped, Future Vision
@@ -121,12 +158,7 @@ Every feature card now explicitly states which competitor it replaces:
 - **Platform link**: Direct link to Connections page from the assignment modal for connecting more platforms
 - **External assignment type**: New "EXTERNAL" assignment type for platform-sourced work
 
-### Master Demo Account
-- **Email**: `master@limud.edu`
-- **Full access**: Single account with access to ALL roles (Student, Teacher, Admin, Parent)
-- **Role switcher**: Sidebar displays a 4-button role switcher when logged in as Master Demo — click to navigate to any role's dashboard
-- **Login page**: Master Demo button prominently displayed on login page with gold styling
-- **isMasterDemo flag**: Stored in JWT session, detected by DashboardLayout for cross-role navigation
+### Master Demo Account (Internal Only)\n- **Email**: `master@limud.edu`\n- **Access**: Restricted to direct email/password login only (no public button)\n- **Full access**: Single account with access to ALL roles (Student, Teacher, Admin, Parent)\n- **Role switcher**: Sidebar displays a 4-button role switcher when logged in as Master Demo
 
 ### Landing Page Updates (v7.4)
 - Updated hero text: "Teach smarter. Learn better."

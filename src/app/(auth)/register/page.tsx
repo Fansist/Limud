@@ -6,19 +6,34 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
-  GraduationCap, BookOpen, Shield, Users, Home, ArrowRight, ArrowLeft,
-  Eye, EyeOff, CheckCircle2, UserPlus,
+  Home, Shield, ArrowRight, ArrowLeft,
+  Eye, EyeOff, CheckCircle2, UserPlus, GraduationCap, Plus, Trash2,
+  BookOpen, Building2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-type AccountTypeOption = 'district' | 'homeschool' | 'individual';
-type RoleOption = 'STUDENT' | 'TEACHER' | 'PARENT';
+type AccountType = 'homeschool' | 'admin';
 
-const ROLE_OPTIONS = [
-  { value: 'STUDENT' as const, label: 'Student', icon: GraduationCap, color: 'from-blue-500 to-cyan-500', desc: 'I\'m a learner ready to grow' },
-  { value: 'TEACHER' as const, label: 'Teacher', icon: BookOpen, color: 'from-emerald-500 to-teal-500', desc: 'I educate and inspire' },
-  { value: 'PARENT' as const, label: 'Parent', icon: Users, color: 'from-purple-500 to-pink-500', desc: 'I support my child\'s learning' },
+const ACCOUNT_OPTIONS = [
+  {
+    value: 'homeschool' as const,
+    label: 'Homeschool Family',
+    icon: Home,
+    color: 'from-amber-500 to-orange-500',
+    desc: 'I educate my children at home',
+    detail: 'Create a parent account and add your children as student accounts. Use AI lesson planning, tutoring, and track their progress — all free.',
+    tags: ['Free forever', 'AI Tutor', 'Parent dashboard', 'Add students'],
+  },
+  {
+    value: 'admin' as const,
+    label: 'District Administrator',
+    icon: Building2,
+    color: 'from-blue-500 to-indigo-600',
+    desc: 'I manage a school or district',
+    detail: 'Create an admin account to manage schools, teachers, and students. Choose a plan to unlock features for your district.',
+    tags: ['Multi-school', 'Bulk provisioning', 'Plans from $2/student/mo'],
+  },
 ];
 
 const GRADE_LEVELS = [
@@ -33,16 +48,17 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   // Form state
-  const [accountType, setAccountType] = useState<AccountTypeOption>('individual');
-  const [role, setRole] = useState<RoleOption | ''>('');
+  const [accountType, setAccountType] = useState<AccountType | ''>('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [gradeLevel, setGradeLevel] = useState('');
 
   // Homeschool fields - multiple children support
   const [childrenList, setChildrenList] = useState<{name: string; grade: string}[]>([{ name: '', grade: '' }]);
+
+  // District admin fields
+  const [districtName, setDistrictName] = useState('');
 
   const passwordStrength = (pw: string) => {
     let score = 0;
@@ -70,37 +86,62 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name, email, password, role,
-          accountType: accountType === 'homeschool' ? 'HOMESCHOOL' : accountType === 'district' ? 'DISTRICT' : 'INDIVIDUAL',
-          gradeLevel: role === 'STUDENT' ? gradeLevel : undefined,
-          children: accountType === 'homeschool' ? childrenList.filter(c => c.name.trim()) : undefined,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        toast.success('Account created! Signing you in...');
-
-        // Auto sign in
-        const signInResult = await signIn('credentials', {
-          email, password, redirect: false,
+      if (accountType === 'homeschool') {
+        // Homeschool flow: register as PARENT with HOMESCHOOL type
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, email, password,
+            role: 'PARENT',
+            accountType: 'HOMESCHOOL',
+            children: childrenList.filter(c => c.name.trim()),
+          }),
         });
 
-        if (signInResult?.ok) {
-          const redirectPath = role === 'STUDENT' ? '/student/dashboard' :
-            role === 'TEACHER' ? '/teacher/dashboard' :
-            role === 'PARENT' ? '/parent/dashboard' : '/';
-          router.push(redirectPath);
+        const data = await res.json();
+
+        if (res.ok) {
+          toast.success('Account created! Signing you in...');
+          const signInResult = await signIn('credentials', {
+            email, password, redirect: false,
+          });
+          if (signInResult?.ok) {
+            router.push('/parent/dashboard');
+          } else {
+            router.push('/login');
+          }
         } else {
-          router.push('/login');
+          toast.error(data.error || 'Registration failed');
         }
       } else {
-        toast.error(data.error || 'Registration failed');
+        // District admin flow: register as ADMIN
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, email, password,
+            role: 'ADMIN',
+            accountType: 'DISTRICT',
+            districtName: districtName || undefined,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          toast.success('Admin account created! Choose a plan to get started.');
+          const signInResult = await signIn('credentials', {
+            email, password, redirect: false,
+          });
+          if (signInResult?.ok) {
+            router.push('/pricing');
+          } else {
+            router.push('/login');
+          }
+        } else {
+          toast.error(data.error || 'Registration failed');
+        }
       }
     } catch {
       toast.error('Something went wrong. Please try again.');
@@ -109,8 +150,9 @@ export default function RegisterPage() {
     }
   }
 
-  const canProceedStep1 = role !== '';
-  const canProceedStep2 = name.trim() !== '' && email.trim() !== '';
+  const canProceedStep1 = accountType !== '';
+  const canProceedStep2 = name.trim() !== '' && email.trim() !== '' &&
+    (accountType === 'homeschool' ? childrenList.filter(c => c.name.trim()).length > 0 : true);
   const canProceedStep3 = password.length >= 8 && password === confirmPassword;
 
   return (
@@ -132,19 +174,19 @@ export default function RegisterPage() {
           </Link>
 
           <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-            Join thousands of<br />learners today
+            Start your learning<br />journey today
           </h2>
           <p className="text-white/70 text-lg">
-            Create your free account and start your personalized learning journey.
+            Create your free account and unlock AI-powered learning for your family or school.
           </p>
         </div>
 
         <div className="relative z-10 space-y-4">
           {[
-            { icon: '🎓', text: 'AI-powered tutoring that adapts to you' },
-            { icon: '🏆', text: 'Earn rewards and track your progress' },
-            { icon: '🏠', text: 'Perfect for homeschool families' },
-            { icon: '📊', text: 'Real-time analytics for parents & teachers' },
+            { icon: '🏠', text: 'Homeschool families start free forever' },
+            { icon: '🎓', text: 'AI-powered tutoring that adapts to each student' },
+            { icon: '🏆', text: 'Gamification that makes learning engaging' },
+            { icon: '📊', text: 'Real-time analytics for parents & administrators' },
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -184,7 +226,7 @@ export default function RegisterPage() {
           </div>
 
           <AnimatePresence mode="wait">
-            {/* Step 1: Choose Role */}
+            {/* Step 1: Choose Account Type */}
             {step === 1 && (
               <motion.div
                 key="step1"
@@ -195,85 +237,48 @@ export default function RegisterPage() {
               >
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">Create your account</h1>
-                  <p className="text-gray-500 mt-2">First, tell us who you are</p>
+                  <p className="text-gray-500 mt-2">Choose your account type to get started</p>
                 </div>
 
                 <div className="space-y-3">
-                  {ROLE_OPTIONS.map(opt => (
+                  {ACCOUNT_OPTIONS.map(opt => (
                     <motion.button
                       key={opt.value}
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
-                      onClick={() => setRole(opt.value)}
+                      onClick={() => setAccountType(opt.value)}
                       className={cn(
-                        'w-full p-4 rounded-2xl border-2 flex items-center gap-4 transition-all text-left',
-                        role === opt.value
+                        'w-full p-5 rounded-2xl border-2 flex items-start gap-4 transition-all text-left',
+                        accountType === opt.value
                           ? 'border-primary-500 bg-primary-50 shadow-md shadow-primary-100'
                           : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
                       )}
                     >
                       <div className={cn(
-                        'w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-white',
+                        'w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-white flex-shrink-0',
                         opt.color
                       )}>
                         <opt.icon size={22} />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900">{opt.label}</p>
                         <p className="text-sm text-gray-500">{opt.desc}</p>
+                        <p className="text-xs text-gray-400 mt-1">{opt.detail}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {opt.tags.map(tag => (
+                            <span key={tag} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{tag}</span>
+                          ))}
+                        </div>
                       </div>
                       <div className={cn(
-                        'w-5 h-5 rounded-full border-2 flex items-center justify-center transition',
-                        role === opt.value ? 'border-primary-500 bg-primary-500' : 'border-gray-300'
+                        'w-5 h-5 rounded-full border-2 flex items-center justify-center transition flex-shrink-0 mt-1',
+                        accountType === opt.value ? 'border-primary-500 bg-primary-500' : 'border-gray-300'
                       )}>
-                        {role === opt.value && <div className="w-2 h-2 bg-white rounded-full" />}
+                        {accountType === opt.value && <div className="w-2 h-2 bg-white rounded-full" />}
                       </div>
                     </motion.button>
                   ))}
                 </div>
-
-                {/* Account type for parents */}
-                {role === 'PARENT' && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-3"
-                  >
-                    <p className="text-sm font-medium text-gray-700">Are you a homeschool family?</p>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setAccountType('homeschool')}
-                        className={cn(
-                          'flex-1 p-3 rounded-xl border-2 flex items-center gap-3 transition',
-                          accountType === 'homeschool'
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
-                        )}
-                      >
-                        <Home size={18} className="text-primary-500" />
-                        <div className="text-left">
-                          <p className="text-sm font-medium">Yes, homeschool</p>
-                          <p className="text-xs text-gray-400">I teach my children at home</p>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => setAccountType('district')}
-                        className={cn(
-                          'flex-1 p-3 rounded-xl border-2 flex items-center gap-3 transition',
-                          accountType !== 'homeschool'
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
-                        )}
-                      >
-                        <Shield size={18} className="text-emerald-500" />
-                        <div className="text-left">
-                          <p className="text-sm font-medium">School district</p>
-                          <p className="text-xs text-gray-400">My child attends a school</p>
-                        </div>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
 
                 <div className="flex justify-between items-center pt-2">
                   <Link href="/login" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
@@ -293,7 +298,7 @@ export default function RegisterPage() {
               </motion.div>
             )}
 
-            {/* Step 2: Personal Details */}
+            {/* Step 2: Details */}
             {step === 2 && (
               <motion.div
                 key="step2"
@@ -303,8 +308,14 @@ export default function RegisterPage() {
                 className="space-y-5"
               >
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Your details</h1>
-                  <p className="text-gray-500 mt-2">Tell us a little about yourself</p>
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    {accountType === 'homeschool' ? 'Your Homeschool Account' : 'District Admin Account'}
+                  </h1>
+                  <p className="text-gray-500 mt-2">
+                    {accountType === 'homeschool'
+                      ? 'Set up your parent account and add your children'
+                      : 'Create your administrator account'}
+                  </p>
                 </div>
 
                 <div>
@@ -330,24 +341,23 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {role === 'STUDENT' && (
+                {/* District Name for admins */}
+                {accountType === 'admin' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Grade Level</label>
-                    <select
-                      value={gradeLevel}
-                      onChange={e => setGradeLevel(e.target.value)}
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">District / School Name</label>
+                    <input
+                      type="text"
+                      value={districtName}
+                      onChange={e => setDistrictName(e.target.value)}
                       className="input-field"
-                    >
-                      <option value="">Select your grade</option>
-                      {GRADE_LEVELS.map(g => (
-                        <option key={g} value={g}>{g}</option>
-                      ))}
-                    </select>
+                      placeholder="e.g., Springfield School District"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">You can add this later if you prefer.</p>
                   </div>
                 )}
 
-                {/* Homeschool child fields - multiple children */}
-                {accountType === 'homeschool' && role === 'PARENT' && (
+                {/* Homeschool children fields */}
+                {accountType === 'homeschool' && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -355,15 +365,15 @@ export default function RegisterPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-amber-700">
-                        <Home size={16} />
+                        <GraduationCap size={16} />
                         <p className="text-sm font-medium">Your Children</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => setChildrenList(prev => [...prev, { name: '', grade: '' }])}
-                        className="text-xs text-amber-700 font-medium hover:underline"
+                        className="text-xs text-amber-700 font-medium hover:underline flex items-center gap-1"
                       >
-                        + Add another child
+                        <Plus size={12} /> Add another child
                       </button>
                     </div>
                     {childrenList.map((child, idx) => (
@@ -374,9 +384,9 @@ export default function RegisterPage() {
                             <button
                               type="button"
                               onClick={() => setChildrenList(prev => prev.filter((_, i) => i !== idx))}
-                              className="text-xs text-red-500 hover:underline"
+                              className="text-xs text-red-500 hover:underline flex items-center gap-1"
                             >
-                              Remove
+                              <Trash2 size={10} /> Remove
                             </button>
                           )}
                         </div>
@@ -411,6 +421,22 @@ export default function RegisterPage() {
                       Student accounts will be created automatically for each child. You can add more children later.
                     </p>
                   </motion.div>
+                )}
+
+                {/* Admin info callout */}
+                {accountType === 'admin' && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl">
+                    <div className="flex items-start gap-3">
+                      <Shield size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">District Admin Account</p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          After creating your account, you&apos;ll be directed to choose a plan. Once subscribed,
+                          you can create and manage teacher and student accounts, provision schools, and access district analytics.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 <div className="flex justify-between items-center pt-2">
@@ -506,11 +532,10 @@ export default function RegisterPage() {
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200">
                   <p className="text-sm font-medium text-gray-700 mb-2">Account Summary</p>
                   <div className="space-y-1 text-sm text-gray-500">
-                    <p><span className="text-gray-400">Role:</span> {role}</p>
+                    <p><span className="text-gray-400">Type:</span> {accountType === 'homeschool' ? 'Homeschool Parent' : 'District Administrator'}</p>
                     <p><span className="text-gray-400">Name:</span> {name}</p>
                     <p><span className="text-gray-400">Email:</span> {email}</p>
-                    {accountType === 'homeschool' && <p><span className="text-gray-400">Type:</span> Homeschool</p>}
-                    {gradeLevel && <p><span className="text-gray-400">Grade:</span> {gradeLevel}</p>}
+                    {accountType === 'admin' && districtName && <p><span className="text-gray-400">District:</span> {districtName}</p>}
                     {accountType === 'homeschool' && childrenList.filter(c => c.name.trim()).length > 0 && (
                       <p><span className="text-gray-400">Children:</span> {childrenList.filter(c => c.name.trim()).map(c => `${c.name}${c.grade ? ` (${c.grade})` : ''}`).join(', ')}</p>
                     )}

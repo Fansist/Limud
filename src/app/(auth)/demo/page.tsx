@@ -80,7 +80,7 @@ export default function DemoPage() {
               Sign In
             </Link>
             <Link href="/register" className="btn-primary text-sm">
-              Create Account
+              Get Started
             </Link>
           </div>
         </div>
@@ -171,7 +171,7 @@ export default function DemoPage() {
               <h3 className="text-xl font-bold text-gray-900">Homeschool Families</h3>
               <p className="text-sm text-gray-600 mt-1">
                 Limud is perfect for homeschool parents! Create a free account, add your children,
-                use AI lesson planning, track progress, and enjoy the full platform.
+                use AI lesson planning, track progress, and enjoy the full platform — completely free.
               </p>
             </div>
             <Link
