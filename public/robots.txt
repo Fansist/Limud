@@ -1,0 +1,14 @@
+# Limud — robots.txt
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://your-domain.com/sitemap.xml
+
+# Block internal/API routes from crawlers
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+Disallow: /student/dashboard
+Disallow: /teacher/dashboard
+Disallow: /parent/dashboard

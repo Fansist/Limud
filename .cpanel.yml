@@ -1,0 +1,33 @@
+---
+# ─────────────────────────────────────────────────────────────
+# Limud v8.4.1 — .cpanel.yml
+# Automated deployment via cPanel Git Version Control
+# ─────────────────────────────────────────────────────────────
+# This file tells cPanel what to do when you push to the
+# repository configured in cPanel > Git Version Control.
+#
+# Prerequisites:
+#   1. Set up a Git repository in cPanel > Git Version Control
+#   2. Point it at your GitHub repo (or push directly)
+#   3. Node.js app must be configured in cPanel > Setup Node.js App
+# ─────────────────────────────────────────────────────────────
+deployment:
+  tasks:
+    # Step 1: Navigate to application directory
+    - export DEPLOYPATH=/home/$USER/limud
+    # Step 2: Copy updated files to app directory
+    - /bin/cp -R * $DEPLOYPATH/
+    - /bin/cp .htaccess $DEPLOYPATH/ 2>/dev/null || true
+    - /bin/cp .env $DEPLOYPATH/ 2>/dev/null || true
+    # Step 3: Install/update dependencies
+    - cd $DEPLOYPATH && source /home/$USER/nodevenv/limud/20/bin/activate
+    - cd $DEPLOYPATH && npm ci --production=false
+    # Step 4: Generate Prisma client
+    - cd $DEPLOYPATH && npx prisma generate
+    # Step 5: Build the application
+    - cd $DEPLOYPATH && npm run build
+    # Step 6: Copy static assets to standalone
+    - cd $DEPLOYPATH && cp -r .next/static .next/standalone/.next/static 2>/dev/null || true
+    - cd $DEPLOYPATH && cp -r public .next/standalone/public 2>/dev/null || true
+    # Step 7: Restart the Node.js application
+    - cd $DEPLOYPATH && touch tmp/restart.txt

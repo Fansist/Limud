@@ -3,6 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
+  // ─── STANDALONE OUTPUT for cPanel / GoDaddy Node.js hosting ───
+  // Creates a self-contained build in .next/standalone that includes
+  // only the files needed to run — no node_modules required on server.
+  output: 'standalone',
   // Extend API route timeout for AI-powered endpoints (lesson plans, worksheet search)
   serverRuntimeConfig: {
     // This helps with longer AI API calls

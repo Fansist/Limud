@@ -47,3 +47,7 @@ npm-debug.log*
 *.bak
 *.tar.gz
 *.zip
+
+# cPanel deployment artifacts
+limud-cpanel-deploy-*.tar.gz
+tmp/restart.txt

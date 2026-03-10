@@ -2,11 +2,45 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 8.4.0
+- **Version**: 8.4.1
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics — designed to beat every competitor in the market
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **GitHub**: https://github.com/Fansist/Limud
+- **Hosting**: GoDaddy cPanel (Node.js via Phusion Passenger) or Cloudflare Pages
 - **Development URL**: https://3000-ifjkeor7fvbg89k4c63pq-cc2fbc16.sandbox.novita.ai
+
+## What's New in v8.4.1 — cPanel / GoDaddy Deployment Support
+
+### GoDaddy cPanel Hosting
+- **Added `output: 'standalone'`** to `next.config.js` — builds a self-contained server that doesn't need `node_modules` on the host
+- **Created `server.js`** — Phusion Passenger entry point that serves the standalone Next.js build; auto-detects standalone vs fallback mode
+- **Created `.htaccess`** — Apache config for GoDaddy with Passenger directives, GZIP compression, browser caching, security headers, and HTTPS enforcement
+- **Created `.cpanel.yml`** — Automated deployment pipeline for cPanel Git Version Control (copies files, installs deps, builds, restarts)
+- **Created `deploy-cpanel.sh`** — One-command local build script that assembles a deployment-ready tarball for upload to cPanel
+- **Created `.env.example`** — Template for production environment variables with documentation for each setting
+- **Created `DEPLOY-CPANEL.md`** — Comprehensive step-by-step deployment guide covering manual upload, Git auto-deploy, database setup (Neon/Supabase/Railway), SSL, troubleshooting, and updates
+- **Created `public/robots.txt`** — SEO-ready robots file blocking internal routes from crawlers
+- **Added npm scripts**: `build:standalone`, `start:cpanel`, `deploy:cpanel`
+- **Version badges updated** to v8.4.1 across landing page and footer
+
+### New Files
+- `server.js` — cPanel/Passenger Node.js entry point
+- `.htaccess` — Apache reverse proxy + caching + security
+- `.cpanel.yml` — Git auto-deploy config
+- `deploy-cpanel.sh` — Build + package script
+- `.env.example` — Production env template
+- `DEPLOY-CPANEL.md` — Full deployment guide
+- `public/robots.txt` — Search engine directives
+
+### Deployment Options
+| Method | Command | Use Case |
+|---|---|---|
+| cPanel Manual | `./deploy-cpanel.sh` → upload tarball | First deploy, GoDaddy shared hosting |
+| cPanel Git | Push to repo → auto-deploys via `.cpanel.yml` | Ongoing updates |
+| Cloudflare Pages | `npm run deploy` | Edge deployment (existing) |
+| Local Dev | `npm run dev` | Development |
+
+---
 
 ## What's New in v8.4 — Account Model Overhaul & Content Cleanup
 
