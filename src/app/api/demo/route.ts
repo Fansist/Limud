@@ -225,6 +225,30 @@ export async function POST(req: Request) {
       });
     }
 
+    case 'navigator': {
+      // AI Navigator demo responses
+      const msg = body.message?.toLowerCase() || '';
+      let navResponse = '';
+
+      if (msg.includes('assignment') || msg.includes('homework') || msg.includes('due')) {
+        navResponse = `Here's a quick look at your assignments! 📚\n\n**Upcoming:**\n1. "Algebra: Quadratic Equations" (Math) — due in 2 days — 100 pts\n2. "Photosynthesis Lab Report" (Science) — due in 5 days — 80 pts\n3. "Essay: To Kill a Mockingbird" (English) — due in 7 days — 120 pts\n\nHead to **[Assignments](/student/assignments)** to view all your work and submit!\n\n💡 *Tip: The "Algebra" assignment is due soon — want me to connect you with the **[AI Tutor](/student/tutor)** for help?*`;
+      } else if (msg.includes('grade') || msg.includes('score') || msg.includes('mark') || msg.includes('how did i do')) {
+        navResponse = `Here are your recent grades! 📊\n\n1. "Civil War Essay" — **92/100 (A-)** ✨\n2. "Fraction Operations Quiz" — **85/100 (B+)**\n3. "Weather Patterns Lab" — **78/80 (97.5% = A+)** 🌟\n4. "Vocabulary Test Ch. 5" — **88/100 (B+)**\n\nYour average is looking great! Check **[Growth Analytics](/student/growth)** to see your progress over time.`;
+      } else if (msg.includes('reward') || msg.includes('xp') || msg.includes('level') || msg.includes('streak')) {
+        navResponse = `Here's your reward summary! 🏆\n\n- **Level:** 12\n- **Total XP:** 4,850\n- **Current Streak:** 7 days 🔥\n- **Coins:** 320\n- **Perfect Scores:** 5 ⭐\n\nVisit **[Rewards](/student/rewards)** to spend coins or **[Badges](/student/badges)** to see your achievements!`;
+      } else if (msg.includes('message') || msg.includes('email') || msg.includes('teacher') || msg.includes('contact')) {
+        navResponse = `Want to send a message? ✉️\n\nHead to **[Messages](/student/messages)** to:\n- Send messages to your teachers\n- Read messages from teachers and parents\n- Keep track of all your conversations`;
+      } else if (msg.includes('help') || msg.includes('tutor') || msg.includes('stuck')) {
+        navResponse = `Need help? 🤓\n\n- **[AI Tutor](/student/tutor)** — Ask any question and get step-by-step help\n- **[Focus Mode](/student/focus)** — Study without distractions\n- **[Exam Simulator](/student/exam-sim)** — Practice for tests\n\nWhat subject are you working on?`;
+      } else if (msg.includes('game') || msg.includes('play') || msg.includes('fun')) {
+        navResponse = `Ready for some fun? 🎮\n\nCheck out the **[Game Store](/student/games)** — spend your XP on educational games!\n\nAlso try the **[Daily Challenge](/student/daily-challenge)** or check the **[Leaderboard](/student/leaderboard)**!`;
+      } else {
+        navResponse = `Hi there! 🧭 Here's what I can help with:\n\n📚 **[Assignments](/student/assignments)** — 3 upcoming\n📊 **[Growth Analytics](/student/growth)** — Track progress\n🤖 **[AI Tutor](/student/tutor)** — Homework help\n🎮 **[Game Store](/student/games)** — Earn and play!\n✉️ **[Messages](/student/messages)** — Talk to teachers\n🏆 **[Rewards](/student/rewards)** — Level 12, 7-day streak 🔥\n\nJust ask about your assignments, grades, rewards, or anything else!`;
+      }
+
+      return NextResponse.json({ message: navResponse });
+    }
+
     case 'grade-submission':
       const score = Math.round(70 + Math.random() * 30);
       return NextResponse.json({

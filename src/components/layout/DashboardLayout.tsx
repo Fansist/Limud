@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useMemo } from 'react';
 import { cn, AVATAR_OPTIONS } from '@/lib/utils';
 import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
+import AINavigator from '@/components/ai/AINavigator';
 import { usePerf } from '@/lib/performance';
 import {
   DEMO_STUDENT, DEMO_TEACHER, DEMO_ADMIN, DEMO_PARENT, DEMO_HOMESCHOOL_PARENT, DEMO_NOTIFICATIONS,
@@ -39,6 +40,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/student/leaderboard', label: 'Leaderboard', icon: <Swords size={20} /> },
     { href: '/student/badges', label: 'Badges', icon: <Award size={20} /> },
     { href: '/student/certificates', label: 'Certificates', icon: <Award size={20} /> },
+    { href: '/student/messages', label: 'Messages', icon: <Mail size={20} /> },
     { href: '/student/platforms', label: 'My Platforms', icon: <Link2 size={20} /> },
   ],
   TEACHER: [
@@ -55,6 +57,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/teacher/reports', label: 'AI Reports', icon: <FileText size={20} /> },
     { href: '/teacher/students', label: 'My Students', icon: <Users size={20} /> },
     { href: '/teacher/games', label: 'Game Control', icon: <Gamepad2 size={20} /> },
+    { href: '/teacher/messages', label: 'Messages', icon: <Mail size={20} /> },
   ],
   ADMIN: [
     { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
@@ -245,8 +248,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const buildHref = (href: string) => isDemo ? `${href}?demo=true` : href;
 
-  // Show floating AI button for students
-  const showFAB = role === 'STUDENT';
+  // Show floating AI button for students (replaced by AI Navigator)
+  const showFAB = false; // Disabled — replaced by AI Navigator
+  const showNavigator = role === 'STUDENT';
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
@@ -569,6 +573,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <MessageCircle size={24} />
           </Link>
         )}
+
+        {/* ─── AI Navigator (Students only) ─── */}
+        {showNavigator && <AINavigator />}
       </div>
     </div>
   );

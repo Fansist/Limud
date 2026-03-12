@@ -14,32 +14,37 @@ import {
 
 // ─── Demo Data ───────────────────────────────────────────────────
 const DEMO_CONTACTS = [
-  { id: 't1', name: 'Dr. Sarah Chen', role: 'TEACHER', email: 'sarah.chen@school.edu' },
-  { id: 't2', name: 'Mr. James Wright', role: 'TEACHER', email: 'james.wright@school.edu' },
-  { id: 't3', name: 'Ms. Emily Rodriguez', role: 'TEACHER', email: 'emily.rodriguez@school.edu' },
   { id: 's1', name: 'Alex Martinez', role: 'STUDENT', email: 'alex.m@school.edu' },
+  { id: 's2', name: 'Emma Wilson', role: 'STUDENT', email: 'emma.w@school.edu' },
+  { id: 's3', name: 'Liam Johnson', role: 'STUDENT', email: 'liam.j@school.edu' },
+  { id: 'p1', name: 'Jessica Martinez', role: 'PARENT', email: 'jessica.m@email.com' },
+  { id: 'p2', name: 'David Wilson', role: 'PARENT', email: 'david.w@email.com' },
+  { id: 't2', name: 'Mr. James Wright', role: 'TEACHER', email: 'james.wright@school.edu' },
   { id: 'a1', name: 'Michael Torres', role: 'ADMIN', email: 'michael.t@school.edu' },
 ];
 
 const DEMO_CONVERSATIONS = [
-  { id: 'c1', otherUser: { id: 't1', name: 'Dr. Sarah Chen', role: 'TEACHER' }, lastMessage: 'Alex is doing great in math this week! His algebra scores improved significantly.', lastDate: '2026-03-11T10:30:00', unread: 2, subject: 'Math Progress Update' },
-  { id: 'c2', otherUser: { id: 't2', name: 'Mr. James Wright', role: 'TEACHER' }, lastMessage: 'The science fair project is due next Friday. Alex chose volcanoes.', lastDate: '2026-03-10T14:15:00', unread: 0, subject: 'Science Fair Project' },
-  { id: 'c3', otherUser: { id: 's1', name: 'Alex Martinez', role: 'STUDENT' }, lastMessage: 'Mom, I finished my homework! Can I play games now?', lastDate: '2026-03-09T17:30:00', unread: 1, subject: 'Homework' },
-  { id: 'c4', otherUser: { id: 'a1', name: 'Michael Torres', role: 'ADMIN' }, lastMessage: 'Welcome to our district! Let us know if you need anything.', lastDate: '2026-03-07T09:00:00', unread: 0, subject: 'Welcome' },
+  { id: 'c1', otherUser: { id: 'p1', name: 'Jessica Martinez', role: 'PARENT' }, lastMessage: 'Thank you for the update on Alex\'s progress! We\'ll make sure he practices more at home.', lastDate: '2026-03-11T15:30:00', unread: 1, subject: 'Alex\'s Math Progress' },
+  { id: 'c2', otherUser: { id: 's1', name: 'Alex Martinez', role: 'STUDENT' }, lastMessage: 'Dr. Chen, I finished the extra practice problems you recommended!', lastDate: '2026-03-11T14:00:00', unread: 1, subject: 'Extra Practice' },
+  { id: 'c3', otherUser: { id: 'p2', name: 'David Wilson', role: 'PARENT' }, lastMessage: 'Could we schedule a meeting to discuss Emma\'s performance?', lastDate: '2026-03-10T09:30:00', unread: 0, subject: 'Parent Conference Request' },
+  { id: 'c4', otherUser: { id: 't2', name: 'Mr. James Wright', role: 'TEACHER' }, lastMessage: 'The cross-department project proposal looks great!', lastDate: '2026-03-09T16:00:00', unread: 0, subject: 'Science-Math Collaboration' },
+  { id: 'c5', otherUser: { id: 's2', name: 'Emma Wilson', role: 'STUDENT' }, lastMessage: 'Thank you for the extra help during office hours!', lastDate: '2026-03-08T12:00:00', unread: 0, subject: 'Office Hours Follow-up' },
 ];
 
 const DEMO_THREAD: Record<string, any[]> = {
-  't1': [
-    { id: 'm1', senderId: 't1', senderName: 'Dr. Sarah Chen', content: 'Hi Jessica! I wanted to update you on Alex\'s progress in math. He scored 92% on the latest algebra test!', createdAt: '2026-03-11T09:00:00', isRead: true, subject: 'Math Progress Update' },
-    { id: 'm2', senderId: 'parent', senderName: 'You', content: 'That\'s wonderful! He\'s been talking about how the AI tutor helps him.', createdAt: '2026-03-11T09:15:00', isRead: true, subject: 'Math Progress Update' },
-    { id: 'm3', senderId: 't1', senderName: 'Dr. Sarah Chen', content: 'Alex is doing great in math this week! His algebra scores improved significantly. I\'d recommend he spends a bit more time on geometry.', createdAt: '2026-03-11T10:30:00', isRead: false, subject: 'Math Progress Update' },
-  ],
-  't2': [
-    { id: 'm4', senderId: 't2', senderName: 'Mr. James Wright', content: 'Hi Jessica! Quick update — the science fair project is due next Friday. Alex chose volcanoes and is doing a great job with the research.', createdAt: '2026-03-10T14:15:00', isRead: true, subject: 'Science Fair Project' },
+  'p1': [
+    { id: 'm1', senderId: 'teacher', senderName: 'You', content: 'Hi Jessica! I wanted to update you on Alex\'s progress in algebra. He scored 92% on the latest test — a big improvement!', createdAt: '2026-03-11T10:00:00', isRead: true, subject: "Alex's Math Progress" },
+    { id: 'm2', senderId: 'p1', senderName: 'Jessica Martinez', content: 'That\'s wonderful news! He\'s been talking about how the AI tutor helps him.', createdAt: '2026-03-11T14:00:00', isRead: true, subject: "Alex's Math Progress" },
+    { id: 'm3', senderId: 'p1', senderName: 'Jessica Martinez', content: 'Thank you for the update on Alex\'s progress! We\'ll make sure he practices more at home.', createdAt: '2026-03-11T15:30:00', isRead: false, subject: "Alex's Math Progress" },
   ],
   's1': [
-    { id: 'm5', senderId: 'parent', senderName: 'You', content: 'Hey sweetheart! How was school today?', createdAt: '2026-03-09T17:00:00', isRead: true, subject: 'Homework' },
-    { id: 'm6', senderId: 's1', senderName: 'Alex Martinez', content: 'It was good! We had a fun science experiment. Also, I finished my homework! Can I play games now?', createdAt: '2026-03-09T17:30:00', isRead: false, subject: 'Homework' },
+    { id: 'm4', senderId: 's1', senderName: 'Alex Martinez', content: 'Dr. Chen, can you recommend some extra practice for quadratics?', createdAt: '2026-03-11T12:00:00', isRead: true, subject: 'Extra Practice' },
+    { id: 'm5', senderId: 'teacher', senderName: 'You', content: 'Of course! Try problems 15-25 in the textbook, and use the AI Tutor for step-by-step help. Focus on factoring.', createdAt: '2026-03-11T12:30:00', isRead: true, subject: 'Extra Practice' },
+    { id: 'm6', senderId: 's1', senderName: 'Alex Martinez', content: 'Dr. Chen, I finished the extra practice problems you recommended!', createdAt: '2026-03-11T14:00:00', isRead: false, subject: 'Extra Practice' },
+  ],
+  'p2': [
+    { id: 'm7', senderId: 'p2', senderName: 'David Wilson', content: 'Hello Dr. Chen. Could we schedule a meeting to discuss Emma\'s performance? She seems to be struggling with some concepts.', createdAt: '2026-03-10T09:30:00', isRead: true, subject: 'Parent Conference Request' },
+    { id: 'm8', senderId: 'teacher', senderName: 'You', content: 'Absolutely, Mr. Wilson. I have availability this Thursday at 3pm or Friday at 2pm. Which works better for you?', createdAt: '2026-03-10T10:00:00', isRead: true, subject: 'Parent Conference Request' },
   ],
 };
 
@@ -57,7 +62,7 @@ const ROLE_AVATAR_COLOR: Record<string, string> = {
   ADMIN: 'from-purple-400 to-violet-500',
 };
 
-export default function ParentMessagesPage() {
+export default function TeacherMessagesPage() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
   const [conversations, setConversations] = useState<any[]>([]);
@@ -73,7 +78,7 @@ export default function ParentMessagesPage() {
   const [contactSearch, setContactSearch] = useState('');
   const [showContactDropdown, setShowContactDropdown] = useState(false);
 
-  const currentUserId = isDemo ? 'parent' : (session?.user as any)?.id;
+  const currentUserId = isDemo ? 'teacher' : (session?.user as any)?.id;
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [threadMessages]);
@@ -102,7 +107,8 @@ export default function ParentMessagesPage() {
     if (!newMessage.trim() || !selectedConvo) return;
     setSending(true);
     if (isDemo) {
-      setThreadMessages(p => [...p, { id: 'new-' + Date.now(), senderId: currentUserId, senderName: 'You', content: newMessage, createdAt: new Date().toISOString(), isRead: false, subject: selectedConvo.subject }]);
+      const msg = { id: 'new-' + Date.now(), senderId: currentUserId, senderName: 'You', content: newMessage, createdAt: new Date().toISOString(), isRead: false, subject: selectedConvo.subject };
+      setThreadMessages(p => [...p, msg]);
       setConversations(p => p.map(c => c.id === selectedConvo.id ? { ...c, lastMessage: newMessage, lastDate: new Date().toISOString() } : c));
       setNewMessage(''); setSending(false); toast.success('Message sent (Demo)'); return;
     }
@@ -157,7 +163,7 @@ export default function ParentMessagesPage() {
               return (
                 <motion.div key={msg.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
                   {!isMe && <div className={cn('w-8 h-8 bg-gradient-to-br rounded-full flex items-center justify-center text-white flex-shrink-0 mr-2 mt-1', ROLE_AVATAR_COLOR[selectedConvo.otherUser.role] || 'from-gray-400 to-gray-500')}><User size={14} /></div>}
-                  <div className={cn('max-w-[80%] px-4 py-3 rounded-2xl', isMe ? 'bg-pink-500 text-white rounded-br-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-md')}>
+                  <div className={cn('max-w-[80%] px-4 py-3 rounded-2xl', isMe ? 'bg-emerald-500 text-white rounded-br-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-md')}>
                     {!isMe && <p className="text-[10px] font-semibold mb-1 opacity-70">{msg.senderName || selectedConvo.otherUser.name}</p>}
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                     <div className={cn('flex items-center gap-1 mt-1.5', isMe ? 'justify-end' : 'justify-start')}>
@@ -190,10 +196,10 @@ export default function ParentMessagesPage() {
             <div className="flex items-center gap-3 mb-6">
               <button onClick={() => setShowCompose(false)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition"><ArrowLeft size={20} /></button>
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-rose-500 rounded-xl flex items-center justify-center text-white"><PenSquare size={20} /></div>
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center text-white"><PenSquare size={20} /></div>
                 <div>
                   <h1 className="text-xl font-bold text-gray-900 dark:text-white">New Message</h1>
-                  <p className="text-xs text-gray-400">Send a message to teachers or your child</p>
+                  <p className="text-xs text-gray-400">Send a message to students, parents, or colleagues</p>
                 </div>
               </div>
             </div>
@@ -262,11 +268,11 @@ export default function ParentMessagesPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center text-white"><Mail size={22} /></div>
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center text-white"><Mail size={22} /></div>
               Messages
               {totalUnread > 0 && <span className="px-2.5 py-0.5 bg-red-500 text-white text-xs rounded-full font-bold animate-pulse">{totalUnread}</span>}
             </h1>
-            <p className="text-gray-500 mt-1 text-sm">Communicate with teachers and your children</p>
+            <p className="text-gray-500 mt-1 text-sm">Communicate with students, parents, and colleagues</p>
           </div>
           <button onClick={() => { setShowCompose(true); setSelectedConvo(null); }} className="btn-primary flex items-center gap-2"><PenSquare size={16} /> New Message</button>
         </motion.div>
@@ -277,12 +283,12 @@ export default function ParentMessagesPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-pink-500 border-t-transparent rounded-full" /></div>
+          <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full" /></div>
         ) : filteredConvos.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4"><Inbox size={32} className="text-gray-300" /></div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No messages yet</h3>
-            <p className="text-gray-400 text-sm mb-4">Reach out to your child&#39;s teachers!</p>
+            <p className="text-gray-400 text-sm mb-4">Start a conversation with students, parents, or colleagues!</p>
             <button onClick={() => setShowCompose(true)} className="btn-primary inline-flex items-center gap-2"><PenSquare size={16} /> Compose Message</button>
           </motion.div>
         ) : (
@@ -290,8 +296,8 @@ export default function ParentMessagesPage() {
             {filteredConvos.map((convo, i) => (
               <motion.div key={convo.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                 onClick={() => selectConversation(convo)}
-                className={cn('card cursor-pointer hover:shadow-md hover:border-pink-200 dark:hover:border-pink-800 transition-all flex items-center gap-4',
-                  convo.unread > 0 && 'bg-pink-50/50 dark:bg-pink-900/10 border-pink-100 dark:border-pink-800')}>
+                className={cn('card cursor-pointer hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800 transition-all flex items-center gap-4',
+                  convo.unread > 0 && 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800')}>
                 <div className={cn('w-12 h-12 bg-gradient-to-br rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm', ROLE_AVATAR_COLOR[convo.otherUser.role] || 'from-gray-400 to-gray-500')}><User size={20} /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
@@ -301,10 +307,10 @@ export default function ParentMessagesPage() {
                     </div>
                     <span className="text-[11px] text-gray-400 flex-shrink-0">{new Date(convo.lastDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
                   </div>
-                  <p className="text-xs text-pink-500 font-medium mt-0.5">{convo.subject}</p>
+                  <p className="text-xs text-emerald-500 font-medium mt-0.5">{convo.subject}</p>
                   <p className={cn('text-sm truncate mt-0.5', convo.unread > 0 ? 'text-gray-700 dark:text-gray-300 font-medium' : 'text-gray-500')}>{convo.lastMessage}</p>
                 </div>
-                {convo.unread > 0 && <span className="w-6 h-6 bg-pink-500 text-white text-xs rounded-full flex items-center justify-center font-bold flex-shrink-0 shadow-sm">{convo.unread}</span>}
+                {convo.unread > 0 && <span className="w-6 h-6 bg-emerald-500 text-white text-xs rounded-full flex items-center justify-center font-bold flex-shrink-0 shadow-sm">{convo.unread}</span>}
               </motion.div>
             ))}
           </div>
