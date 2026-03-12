@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import {
   Building2, Users, GraduationCap, DollarSign, Upload, ArrowRight, Shield, TrendingUp, Calendar, CreditCard,
+  UserCog, Megaphone, Settings, ClipboardList, BookOpen, BarChart3,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -141,115 +142,33 @@ export default function AdminDashboard() {
 
             {/* Quick Actions */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Link
-                  href={`/admin/students${demoSuffix}`}
-                  className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
-                >
-                  <div className="p-3 bg-blue-100 rounded-xl group-hover:bg-blue-200 transition">
-                    <Users className="text-blue-600" size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">Student Accounts</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Create students with auto parent accounts</p>
-                  </div>
-                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
-                </Link>
-              </motion.div>
+              {[
+                { href: `/admin/employees${demoSuffix}`, icon: <UserCog className="text-indigo-600" size={24} />, bg: 'bg-indigo-100 group-hover:bg-indigo-200', title: 'Employee Directory', desc: 'View & manage all teachers, staff, admins' },
+                { href: `/admin/students${demoSuffix}`, icon: <Users className="text-blue-600" size={24} />, bg: 'bg-blue-100 group-hover:bg-blue-200', title: 'Student Accounts', desc: 'Create students with auto parent accounts' },
+                { href: `/admin/schools${demoSuffix}`, icon: <Building2 className="text-emerald-600" size={24} />, bg: 'bg-emerald-100 group-hover:bg-emerald-200', title: 'Schools', desc: 'Manage schools & transfer users' },
+                { href: `/admin/classrooms${demoSuffix}`, icon: <BookOpen className="text-violet-600" size={24} />, bg: 'bg-violet-100 group-hover:bg-violet-200', title: 'Classrooms', desc: 'Configure classes, schedules & curriculum' },
+                { href: `/admin/announcements${demoSuffix}`, icon: <Megaphone className="text-pink-600" size={24} />, bg: 'bg-pink-100 group-hover:bg-pink-200', title: 'Announcements', desc: 'District-wide communications' },
+                { href: `/admin/provision${demoSuffix}`, icon: <Upload className="text-green-600" size={24} />, bg: 'bg-green-100 group-hover:bg-green-200', title: 'Bulk Provisioning', desc: 'CSV upload for student & teacher accounts' },
+                { href: `/admin/analytics${demoSuffix}`, icon: <BarChart3 className="text-cyan-600" size={24} />, bg: 'bg-cyan-100 group-hover:bg-cyan-200', title: 'District Analytics', desc: 'Performance metrics & engagement data' },
+                { href: `/admin/payments${demoSuffix}`, icon: <CreditCard className="text-amber-600" size={24} />, bg: 'bg-amber-100 group-hover:bg-amber-200', title: 'Billing & Payments', desc: 'Manage subscription & payment history' },
+                { href: `/admin/settings${demoSuffix}`, icon: <Settings className="text-gray-600" size={24} />, bg: 'bg-gray-100 group-hover:bg-gray-200', title: 'District Settings', desc: 'Policies, features, branding & security' },
+                { href: `/admin/audit${demoSuffix}`, icon: <ClipboardList className="text-orange-600" size={24} />, bg: 'bg-orange-100 group-hover:bg-orange-200', title: 'Audit Log', desc: 'Track admin actions & system events' },
+              ].map((item, i) => (
+                <motion.div key={item.href} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.03 }}>
+                  <Link href={item.href} className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full">
+                    <div className={cn('p-3 rounded-xl transition', item.bg)}>{item.icon}</div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">{item.title}</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
+                    </div>
+                    <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
+                  </Link>
+                </motion.div>
+              ))}
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.22 }}
-              >
-                <Link
-                  href={`/admin/schools${demoSuffix}`}
-                  className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
-                >
-                  <div className="p-3 bg-emerald-100 rounded-xl group-hover:bg-emerald-200 transition">
-                    <Building2 className="text-emerald-600" size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">Schools</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Manage schools & transfer users</p>
-                  </div>
-                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
-                </Link>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.24 }}
-              >
-                <Link
-                  href={`/admin/classrooms${demoSuffix}`}
-                  className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
-                >
-                  <div className="p-3 bg-violet-100 rounded-xl group-hover:bg-violet-200 transition">
-                    <GraduationCap className="text-violet-600" size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">Classrooms</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Create classes & control game access</p>
-                  </div>
-                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
-                </Link>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.26 }}
-              >
-                <Link
-                  href={`/admin/provision${demoSuffix}`}
-                  className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
-                >
-                  <div className="p-3 bg-green-100 rounded-xl group-hover:bg-green-200 transition">
-                    <Upload className="text-green-600" size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">Bulk Provisioning</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">CSV upload for student & teacher accounts</p>
-                  </div>
-                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
-                </Link>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.28 }}
-              >
-                <Link
-                  href={`/admin/payments${demoSuffix}`}
-                  className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full"
-                >
-                  <div className="p-3 bg-amber-100 rounded-xl group-hover:bg-amber-200 transition">
-                    <CreditCard className="text-amber-600" size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">Billing & Payments</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Manage subscription & payment history</p>
-                  </div>
-                  <ArrowRight size={16} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
-                </Link>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
                 <div className="card flex items-center gap-4 h-full">
-                  <div className="p-3 bg-blue-100 rounded-xl">
-                    <Shield className="text-blue-600" size={24} />
-                  </div>
+                  <div className="p-3 bg-blue-100 rounded-xl"><Shield className="text-blue-600" size={24} /></div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">Security & Compliance</h3>
                     <p className="text-xs text-gray-400 mt-0.5">FERPA, COPPA, WCAG AA</p>

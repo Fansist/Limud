@@ -19,7 +19,7 @@ import {
   Home, Brain, FileText, Calendar, TrendingUp, Swords, Sun, Moon,
   Lightbulb, Focus, Zap, Target, ChevronDown, Settings, Gamepad2,
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
-  Link2, PenTool, Globe2,
+  Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList,
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?: React.ReactNode; };
@@ -61,12 +61,16 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
   ADMIN: [
     { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+    { href: '/admin/employees', label: 'Employees', icon: <UserCog size={20} /> },
     { href: '/admin/students', label: 'Students', icon: <Users size={20} /> },
     { href: '/admin/schools', label: 'Schools', icon: <Building2 size={20} /> },
     { href: '/admin/classrooms', label: 'Classrooms', icon: <BookOpen size={20} /> },
+    { href: '/admin/announcements', label: 'Announcements', icon: <Megaphone size={20} /> },
     { href: '/admin/provision', label: 'Bulk Import', icon: <Upload size={20} /> },
     { href: '/admin/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { href: '/admin/payments', label: 'Billing', icon: <CreditCard size={20} /> },
+    { href: '/admin/settings', label: 'Settings', icon: <Settings size={20} /> },
+    { href: '/admin/audit', label: 'Audit Log', icon: <ClipboardList size={20} /> },
   ],
   PARENT: [
     { href: '/parent/dashboard', label: 'Dashboard', icon: <Eye size={20} /> },
@@ -101,10 +105,10 @@ const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.Reac
   ],
   ADMIN: [
     { href: '/admin/dashboard', label: 'Home', icon: <LayoutDashboard size={20} /> },
-    { href: '/admin/students', label: 'Students', icon: <Users size={20} /> },
-    { href: '/admin/schools', label: 'Schools', icon: <Building2 size={20} /> },
+    { href: '/admin/employees', label: 'Staff', icon: <UserCog size={20} /> },
     { href: '/admin/classrooms', label: 'Classes', icon: <BookOpen size={20} /> },
-    { href: '/admin/payments', label: 'Billing', icon: <CreditCard size={20} /> },
+    { href: '/admin/analytics', label: 'Stats', icon: <BarChart3 size={20} /> },
+    { href: '/admin/settings', label: 'Settings', icon: <Settings size={20} /> },
   ],
   PARENT: [
     { href: '/parent/dashboard', label: 'Home', icon: <Eye size={20} /> },
