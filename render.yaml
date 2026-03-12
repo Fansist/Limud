@@ -1,0 +1,62 @@
+# ─────────────────────────────────────────────────────────────
+# Limud v8.7 — Render Blueprint (render.yaml)
+# Defines the Render Web Service for automatic deployment.
+# Docs: https://render.com/docs/blueprint-spec
+# ─────────────────────────────────────────────────────────────
+
+services:
+  - type: web
+    name: limud
+    runtime: node
+    region: oregon  # us-west-2 — change if you prefer another region
+    plan: starter   # starter ($7/mo) or standard ($25/mo) for production
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true  # Auto-deploy on push to main branch
+
+    # ─── Custom Domain ───────────────────────────────────────
+    # After deploying, add limud.co as a custom domain in the
+    # Render dashboard: Settings → Custom Domains → Add limud.co
+    # Then configure DNS:
+    #   - CNAME record:  www.limud.co  → limud.onrender.com
+    #   - A record:      limud.co      → (Render's IP, shown in dashboard)
+    # Render provides free TLS/SSL for custom domains.
+    customDomains:
+      - limud.co
+      - www.limud.co
+
+    # ─── Environment Variables ────────────────────────────────
+    # Sensitive values should be set in the Render Dashboard
+    # under Environment → Environment Variables (not here).
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: NEXT_PUBLIC_APP_NAME
+        value: Limud
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://limud.co
+      - key: NEXTAUTH_URL
+        value: https://limud.co
+      # ─── SET THESE IN RENDER DASHBOARD (Secrets) ────────────
+      # - key: DATABASE_URL
+      #   value: postgresql://user:pass@host:5432/limud?sslmode=require
+      # - key: NEXTAUTH_SECRET
+      #   value: <generate with: openssl rand -base64 32>
+      # - key: OPENAI_API_KEY
+      #   value: <your OpenAI API key>
+      # - key: OPENAI_BASE_URL
+      #   value: https://api.openai.com/v1
+
+# ─── Optional: Render PostgreSQL Database ─────────────────────
+# Uncomment below to provision a managed Render PostgreSQL DB.
+# After creation, DATABASE_URL is automatically injected.
+#
+# databases:
+#   - name: limud-db
+#     plan: starter  # starter ($7/mo) or standard ($20/mo)
+#     databaseName: limud
+#     user: limud_user
+#     region: oregon

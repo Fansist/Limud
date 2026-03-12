@@ -10,6 +10,7 @@ out/
 .env
 .env.local
 .env.production
+.env.*.local
 
 # Runtime data
 *.pid
@@ -51,3 +52,6 @@ npm-debug.log*
 # cPanel deployment artifacts
 limud-cpanel-deploy-*.tar.gz
 tmp/restart.txt
+
+# Render
+.render/
