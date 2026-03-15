@@ -86,7 +86,9 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Only students can purchase and play games' }, { status: 403 });
   }
 
-  const { action, gameId, score, timeSpentSec } = await req.json();
+  // BUG FIX: Parse body once - req.json() can only be called once (stream is consumed)
+  const body = await req.json();
+  const { action, gameId, score, timeSpentSec, rating } = body;
 
   if (!gameId) {
     return NextResponse.json({ error: 'gameId is required' }, { status: 400 });
@@ -181,7 +183,7 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   if (action === 'rate') {
-    const { rating } = await req.json();
+    // BUG FIX: rating is already destructured from the single body parse above
     if (!rating || rating < 1 || rating > 5) {
       return NextResponse.json({ error: 'Rating must be 1-5' }, { status: 400 });
     }

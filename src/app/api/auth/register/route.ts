@@ -5,7 +5,11 @@ import prisma from '@/lib/prisma';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, password, role, accountType, gradeLevel, childName, childGrade, children: childrenList } = body;
+    const {
+      name, email, password, role, accountType,
+      gradeLevel, childName, childGrade,
+      children: childrenList, districtName,
+    } = body;
 
     // Validate required fields
     if (!name || !email || !password || !role) {
@@ -29,8 +33,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate role
-    const validRoles = ['STUDENT', 'TEACHER', 'PARENT'];
+    // BUG FIX: Allow ADMIN role for district administrators
+    const validRoles = ['STUDENT', 'TEACHER', 'PARENT', 'ADMIN'];
     if (!validRoles.includes(role.toUpperCase())) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
@@ -43,12 +47,31 @@ export async function POST(req: Request) {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
-    const userRole = role.toUpperCase() as 'STUDENT' | 'TEACHER' | 'PARENT';
-    const userAccountType = accountType || (userRole === 'PARENT' && childName ? 'HOMESCHOOL' : 'INDIVIDUAL');
+    const userRole = role.toUpperCase() as 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN';
+    const userAccountType = accountType || (userRole === 'PARENT' && childName ? 'HOMESCHOOL' : userRole === 'ADMIN' ? 'DISTRICT' : 'INDIVIDUAL');
 
-    // For homeschool parents, create a district for them
     let districtId: string | undefined;
 
+    // BUG FIX: Create district for ADMIN accounts (District Administrator flow)
+    if (userRole === 'ADMIN') {
+      const district = await prisma.schoolDistrict.create({
+        data: {
+          name: districtName || `${name}'s District`,
+          subdomain: `district-${Date.now()}`,
+          contactEmail: email,
+          subscriptionStatus: 'TRIAL',
+          subscriptionTier: 'FREE',
+          pricePerYear: 0,
+          maxStudents: 50,
+          maxTeachers: 10,
+          maxSchools: 3,
+          isHomeschool: false,
+        },
+      });
+      districtId = district.id;
+    }
+
+    // Create district for homeschool parents
     if (userAccountType === 'HOMESCHOOL') {
       const district = await prisma.schoolDistrict.create({
         data: {
@@ -81,6 +104,22 @@ export async function POST(req: Request) {
       },
     });
 
+    // BUG FIX: Create DistrictAdmin record for ADMIN users so they have proper permissions
+    if (userRole === 'ADMIN' && districtId) {
+      await prisma.districtAdmin.create({
+        data: {
+          userId: user.id,
+          districtId,
+          accessLevel: 'SUPERINTENDENT',
+          canCreateAccounts: true,
+          canManageSchools: true,
+          canManageBilling: true,
+          canViewAllData: true,
+          canManageClasses: true,
+        },
+      });
+    }
+
     // If student, create reward stats
     if (userRole === 'STUDENT') {
       await prisma.rewardStats.create({ data: { userId: user.id } });
@@ -102,7 +141,7 @@ export async function POST(req: Request) {
         const existingChild = await prisma.user.findUnique({ where: { email: childEmail } });
         if (existingChild) continue;
 
-        const childPassword = await bcrypt.hash(password, 12); // Same password for simplicity
+        const childPassword = await bcrypt.hash(password, 12);
         const childUser = await prisma.user.create({
           data: {
             email: childEmail,
@@ -130,7 +169,7 @@ export async function POST(req: Request) {
             },
           });
 
-          // Enroll all children (including this one) in the course
+          // Enroll the child in the course
           await prisma.enrollment.create({
             data: {
               courseId: course.id,
@@ -153,18 +192,37 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Account created successfully!',
+      message: userRole === 'ADMIN'
+        ? 'Admin account created! Choose a plan to get started.'
+        : 'Account created successfully!',
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
         accountType: user.accountType,
+        districtId: districtId || null,
       },
     }, { status: 201 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
-    return NextResponse.json({ error: 'Failed to create account' }, { status: 500 });
+
+    // Provide more specific error messages for common Prisma errors
+    if (error?.code === 'P2002') {
+      return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
+    }
+    if (error?.code === 'P2003') {
+      return NextResponse.json({ error: 'Invalid reference. Please try again.' }, { status: 400 });
+    }
+
+    // Handle database connection errors gracefully
+    if (error?.message?.includes('connect') || error?.message?.includes('ECONNREFUSED') || error?.code === 'P1001') {
+      return NextResponse.json({
+        error: 'Unable to connect to the database. Please try again later or contact support.',
+      }, { status: 503 });
+    }
+
+    return NextResponse.json({ error: 'Failed to create account. Please try again.' }, { status: 500 });
   }
 }

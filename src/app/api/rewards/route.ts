@@ -5,22 +5,78 @@ import prisma from '@/lib/prisma';
 
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
+  const { searchParams } = new URL(req.url);
+  const childId = searchParams.get('childId'); // BUG FIX: Allow parents to specify which child
 
-  // Allow students and parents (to preview)
-  if (user.role !== 'STUDENT' && user.role !== 'PARENT') {
+  // Allow students, parents, and teachers (teacher can view student stats)
+  if (!['STUDENT', 'PARENT', 'TEACHER', 'ADMIN'].includes(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const userId = user.role === 'STUDENT' ? user.id : user.id;
+  let targetUserId = user.id;
 
+  // BUG FIX: Parents should be able to view their children's stats
+  if (user.role === 'PARENT') {
+    if (childId) {
+      // Verify the child belongs to this parent
+      const child = await prisma.user.findFirst({
+        where: { id: childId, parentId: user.id },
+      });
+      if (!child) {
+        return NextResponse.json({ error: 'Child not found or not authorized' }, { status: 403 });
+      }
+      targetUserId = childId;
+    } else {
+      // If no childId specified, get first child's stats
+      const firstChild = await prisma.user.findFirst({
+        where: { parentId: user.id, role: 'STUDENT' },
+        select: { id: true },
+      });
+      if (firstChild) {
+        targetUserId = firstChild.id;
+      } else {
+        // Parent has no children - return empty stats
+        return NextResponse.json({
+          stats: null,
+          message: 'No children linked to this account yet.',
+        });
+      }
+    }
+
+    // Also return list of children so parent can switch between them
+    const children = await prisma.user.findMany({
+      where: { parentId: user.id, role: 'STUDENT' },
+      select: { id: true, name: true, gradeLevel: true },
+    });
+
+    const stats = await prisma.rewardStats.findUnique({
+      where: { userId: targetUserId },
+    });
+
+    if (!stats) {
+      return NextResponse.json({ stats: null, children });
+    }
+
+    return NextResponse.json({
+      stats: {
+        ...stats,
+        unlockedAvatars: JSON.parse(stats.unlockedAvatars),
+        unlockedBadges: JSON.parse(stats.unlockedBadges),
+      },
+      children,
+      viewingChildId: targetUserId,
+    });
+  }
+
+  // Student or teacher viewing their own stats
   const stats = await prisma.rewardStats.findUnique({
-    where: { userId },
+    where: { userId: targetUserId },
   });
 
   if (!stats) {
     if (user.role === 'STUDENT') {
       const created = await prisma.rewardStats.create({
-        data: { userId },
+        data: { userId: targetUserId },
       });
       return NextResponse.json({ stats: created });
     }

@@ -244,7 +244,7 @@ export default function LandingPage() {
                 <BookOpen size={18} className="text-white" />
               </div>
               <span className="text-xl font-extrabold text-gray-900 tracking-tight">Limud</span>
-              <span className="hidden sm:inline-flex items-center text-[10px] font-bold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-md">v8.6</span>
+              <span className="hidden sm:inline-flex items-center text-[10px] font-bold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-md">v8.8</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
@@ -545,8 +545,8 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <RevealSection className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Crown size={14} /> Compare</div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">How Limud stacks up against the competition</h2>
-            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">We analyzed 30 top education apps. Here&apos;s why schools are switching to Limud.</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">How Limud compares to other platforms</h2>
+            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Every platform has strengths. Here&apos;s an honest look at how Limud fits alongside the tools you already know and love.</p>
           </RevealSection>
 
           <RevealSection>
@@ -599,33 +599,48 @@ export default function LandingPage() {
             </div>
           </RevealSection>
 
-          {/* Competitor weakness callouts */}
+          {/* Balanced competitor comparison callouts */}
           <RevealSection className="mt-14">
             <div className="grid md:grid-cols-3 gap-6">
               {[
                 {
-                  competitor: 'vs. Khan Academy',
-                  weakness: 'Self-directed learning requires strong motivation. No live interaction, limited teacher tools.',
-                  limudWin: 'Limud adds AI tutoring that guides (not gives answers), gamification to keep students engaged, plus full teacher/admin dashboards.',
+                  competitor: 'Khan Academy',
+                  icon: '\uD83C\uDF93',
+                  theirStrength: 'World-class free educational content library with thousands of videos and exercises covering math, science, computing, and more. A beloved nonprofit.',
+                  whereWeAdd: 'Limud integrates with Khan Academy and adds teacher dashboards, AI auto-grading, gamification with XP/coins, and parent visibility that Khan doesn\'t offer.',
                   color: 'border-green-200 bg-green-50',
+                  tagColor: 'bg-green-100 text-green-700',
                 },
                 {
-                  competitor: 'vs. Google Classroom',
-                  weakness: 'Basic grading tools, no AI features, no gamification, no analytics.',
-                  limudWin: 'Limud has AI auto-grading, lesson planning, quiz generation, plus full gamification that Google Classroom lacks entirely.',
+                  competitor: 'Google Classroom',
+                  icon: '\uD83D\uDCDA',
+                  theirStrength: 'Seamless integration with Google Workspace, free for all schools, massive adoption worldwide. Perfect for basic assignment distribution and communication.',
+                  whereWeAdd: 'Limud syncs with Google Classroom and adds AI tutoring, auto-grading, lesson planning, gamification, and deep analytics that Google Classroom doesn\'t include.',
                   color: 'border-blue-200 bg-blue-50',
+                  tagColor: 'bg-blue-100 text-blue-700',
                 },
                 {
-                  competitor: 'vs. Quizlet / ClassDojo / Nearpod',
-                  weakness: 'Each solves one problem. Quizlet = flashcards. ClassDojo = behavior. Nearpod = presentations.',
-                  limudWin: 'Limud combines ALL of these into one platform: quizzes, behavior tracking, interactive lessons, AI, and more. One login, one price.',
+                  competitor: 'Quizlet + ClassDojo + Nearpod',
+                  icon: '\u2728',
+                  theirStrength: 'Each excels in its niche: Quizlet\'s flashcards are the gold standard, ClassDojo\'s parent communication is excellent, and Nearpod\'s interactive lessons are engaging.',
+                  whereWeAdd: 'Limud combines quizzes, behavior/rewards, interactive AI lessons, and more into one platform. One login, one price, one place for everything.',
                   color: 'border-purple-200 bg-purple-50',
+                  tagColor: 'bg-purple-100 text-purple-700',
                 },
               ].map(item => (
                 <motion.div key={item.competitor} whileHover={{ y: -4 }} className={cn('rounded-2xl p-6 border', item.color)}>
-                  <h4 className="font-bold text-gray-900 mb-2">{item.competitor}</h4>
-                  <p className="text-xs text-red-600 mb-3 leading-relaxed"><strong>Their weakness:</strong> {item.weakness}</p>
-                  <p className="text-xs text-green-700 leading-relaxed"><strong>Limud&apos;s advantage:</strong> {item.limudWin}</p>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">{item.icon}</span>
+                    <h4 className="font-bold text-gray-900">{item.competitor}</h4>
+                  </div>
+                  <div className="mb-3">
+                    <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', item.tagColor)}>What they do well</span>
+                    <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{item.theirStrength}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-100 text-primary-700">Where Limud adds value</span>
+                    <p className="text-xs text-gray-700 mt-1.5 leading-relaxed">{item.whereWeAdd}</p>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -635,7 +650,7 @@ export default function LandingPage() {
             <Link href="/register" className="group inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25">
               Switch to Limud &mdash; Free to Start <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <p className="text-sm text-gray-400 mt-3">See how Limud compares to the competition.</p>
+            <p className="text-sm text-gray-400 mt-3">Join the platforms you already love &mdash; Limud works alongside them.</p>
           </RevealSection>
         </div>
       </section>
@@ -651,17 +666,17 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: <Brain size={24} />, title: 'AI Tutor', desc: 'Socratic questioning that guides students to answers without giving them away. Unlike ChatGPT, it teaches critical thinking instead of enabling shortcuts.', color: 'bg-purple-100 text-purple-600', tag: 'Replaces ChatGPT', tagColor: 'bg-purple-50 text-purple-600' },
+              { icon: <Brain size={24} />, title: 'AI Tutor', desc: 'Socratic questioning that guides students to answers without giving them away. Built specifically for education, it teaches critical thinking through guided discovery.', color: 'bg-purple-100 text-purple-600', tag: 'AI-Powered', tagColor: 'bg-purple-50 text-purple-600' },
               { icon: <Wand2 size={24} />, title: 'AI Lesson Planner', desc: 'Generate complete, standards-aligned lesson plans in seconds. Real GPT-5 powered AI that creates specific activities, not generic templates.', color: 'bg-indigo-100 text-indigo-600', tag: 'Replaces manual planning', tagColor: 'bg-indigo-50 text-indigo-600' },
-              { icon: <Lightbulb size={24} />, title: 'AI Quiz Generator', desc: 'Curriculum-aligned quizzes with multiple choice and short answer. Better than Quizlet because content is AI-verified, not user-generated.', color: 'bg-amber-100 text-amber-600', tag: 'Replaces Quizlet', tagColor: 'bg-amber-50 text-amber-600' },
+              { icon: <Lightbulb size={24} />, title: 'AI Quiz Generator', desc: 'Curriculum-aligned quizzes with multiple choice and short answer. Pairs well with tools like Quizlet, adding AI-generated and verified content on top of user-created flashcards.', color: 'bg-amber-100 text-amber-600', tag: 'AI-Verified', tagColor: 'bg-amber-50 text-amber-600' },
               { icon: <GraduationCap size={24} />, title: 'AI Auto-Grader', desc: 'One-click grading with rubric-based scoring. Handles essays, short answers, and projects. No more midnight grading sessions.', color: 'bg-green-100 text-green-600', tag: 'Replaces manual grading', tagColor: 'bg-green-50 text-green-600' },
-              { icon: <Trophy size={24} />, title: 'Gamification Engine', desc: 'XP, levels, streaks, coins, avatar shop, and badges. More engaging than ClassDojo for older students, and it actually drives learning.', color: 'bg-amber-100 text-amber-600', tag: 'Replaces ClassDojo', tagColor: 'bg-amber-50 text-amber-600' },
-              { icon: <Gamepad2 size={24} />, title: 'Educational Games', desc: 'Math Blaster, Word Quest, Science Puzzles, History Trivia and more. Like Prodigy Math but covers ALL subjects, not just math.', color: 'bg-pink-100 text-pink-600', tag: 'Replaces Prodigy', tagColor: 'bg-pink-50 text-pink-600' },
+              { icon: <Trophy size={24} />, title: 'Gamification Engine', desc: 'XP, levels, streaks, coins, avatar shop, and badges. Designed for K-12 students of all ages, making learning feel like play while tracking real progress.', color: 'bg-amber-100 text-amber-600', tag: 'Engagement', tagColor: 'bg-amber-50 text-amber-600' },
+              { icon: <Gamepad2 size={24} />, title: 'Educational Games', desc: 'Math Blaster, Word Quest, Science Puzzles, History Trivia and more. Covers all subjects in one place, complementing specialized tools like Prodigy and Kahoot!.', color: 'bg-pink-100 text-pink-600', tag: 'Multi-Subject', tagColor: 'bg-pink-50 text-pink-600' },
               { icon: <Link2 size={24} />, title: '16+ Platform Integrations', desc: 'Connect Khan Academy, i-Ready, Amplify, PLTW, Google Classroom, Canvas, IXL, Quizlet, Clever, and more. Auto-sync everything.', color: 'bg-cyan-100 text-cyan-600', tag: 'Replaces Clever SSO', tagColor: 'bg-cyan-50 text-cyan-600' },
-              { icon: <FileText size={24} />, title: 'Assignment Manager', desc: 'Category weighting, extra credit, file/link attachments, cross-platform assignments. More powerful than Google Classroom.', color: 'bg-blue-100 text-blue-600', tag: 'Replaces Google Classroom', tagColor: 'bg-blue-50 text-blue-600' },
+              { icon: <FileText size={24} />, title: 'Assignment Manager', desc: 'Category weighting, extra credit, file/link attachments, cross-platform assignments. Works alongside Google Classroom with added AI grading.', color: 'bg-blue-100 text-blue-600', tag: 'Advanced', tagColor: 'bg-blue-50 text-blue-600' },
               { icon: <PenTool size={24} />, title: 'Worksheet Finder', desc: 'Search 87+ curated worksheets from education.com, Khan Academy, K5 Learning, and more. Filter by subject, grade, and topic.', color: 'bg-teal-100 text-teal-600', tag: 'Replaces TPT browsing', tagColor: 'bg-teal-50 text-teal-600' },
               { icon: <BarChart3 size={24} />, title: 'Knowledge Analytics', desc: 'Skill radar charts, study heatmaps, rank system, and learning DNA insights. AI flags at-risk students before they fall behind.', color: 'bg-emerald-100 text-emerald-600', tag: 'Replaces analytics tools', tagColor: 'bg-emerald-50 text-emerald-600' },
-              { icon: <Eye size={24} />, title: 'Parent Portal', desc: 'Real-time view of grades, feedback, progress, and tutor conversations. Better than Remind because parents see everything, not just messages.', color: 'bg-rose-100 text-rose-600', tag: 'Replaces Remind', tagColor: 'bg-rose-50 text-rose-600' },
+              { icon: <Eye size={24} />, title: 'Parent Portal', desc: 'Real-time view of grades, feedback, progress, and tutor conversations. Goes beyond messaging to give parents full visibility into their child\'s learning journey.', color: 'bg-rose-100 text-rose-600', tag: 'Transparency', tagColor: 'bg-rose-50 text-rose-600' },
               { icon: <LayoutDashboard size={24} />, title: 'Admin Dashboard', desc: 'District management, CSV provisioning, subscription billing, usage analytics. Complete school management from one panel.', color: 'bg-slate-100 text-slate-600', tag: 'Replaces separate admin tools', tagColor: 'bg-slate-50 text-slate-600' },
             ].map((feature) => (
               <RevealSection key={feature.title}>
@@ -769,24 +784,25 @@ export default function LandingPage() {
             <div className="max-w-3xl mx-auto bg-amber-50 border border-amber-200 rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign size={20} className="text-amber-600" />
-                <h4 className="font-bold text-gray-900">How competitors charge</h4>
+                <h4 className="font-bold text-gray-900">What similar platforms cost</h4>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                 {[
-                  { name: 'Coursera', price: '$49-79/mo', note: 'per certificate' },
-                  { name: 'Babbel', price: '$299', note: 'lifetime or $7/mo' },
-                  { name: 'ABCmouse', price: '$13/mo', note: 'ages 2-8 only' },
-                  { name: 'Nearpod', price: 'Custom', note: 'school license' },
+                  { name: 'IXL', price: '$20/mo', note: 'per subject', strength: 'Great math drills' },
+                  { name: 'ABCmouse', price: '$13/mo', note: 'ages 2-8 only', strength: 'Excellent for early learners' },
+                  { name: 'Prodigy', price: '$9/mo', note: 'math only', strength: 'Fun math games' },
+                  { name: 'Nearpod', price: 'Custom', note: 'school license', strength: 'Interactive lessons' },
                 ].map(c => (
                   <div key={c.name} className="bg-white rounded-xl p-3 border border-amber-100">
                     <p className="text-xs font-bold text-gray-700">{c.name}</p>
-                    <p className="text-sm font-extrabold text-red-500">{c.price}</p>
+                    <p className="text-sm font-extrabold text-gray-800">{c.price}</p>
                     <p className="text-[10px] text-gray-400">{c.note}</p>
+                    <p className="text-[9px] text-green-600 mt-1 font-medium">{c.strength}</p>
                   </div>
                 ))}
               </div>
               <p className="mt-3 text-center text-sm text-amber-800">
-                <strong>Limud starts at $0/forever</strong> and replaces <em>all</em> of these.
+                <strong>Limud starts at $0/forever</strong> and bundles AI tutoring, grading, games, and management in one place.
               </p>
             </div>
           </RevealSection>
@@ -947,9 +963,9 @@ export default function LandingPage() {
           <RevealSection>
             <div className="bg-white rounded-2xl border border-gray-100 p-6 lg:p-8">
               {[
-                { q: 'How is Limud different from Khan Academy?', a: 'Khan Academy is amazing for self-study, but it lacks teacher tools, AI grading, gamification, and parent dashboards. Limud integrates WITH Khan Academy (auto-syncs progress) while adding AI tutoring that uses Socratic questioning, auto-grading, lesson planning, educational games, and complete school management. Think of Limud as Khan Academy + Google Classroom + ClassDojo + IXL all in one.' },
-                { q: 'Why switch from Google Classroom?', a: 'Google Classroom is a basic LMS with limited grading tools and no AI features. Limud adds AI auto-grading (saves 8+ hrs/week), AI lesson planning, AI quiz generation, gamification, educational games, 16+ platform integrations, and detailed analytics. Plus, Limud connects WITH Google Classroom so you don\'t lose anything.' },
-                { q: 'Is this better than Quizlet or Duolingo?', a: 'Quizlet and Duolingo each solve one problem well. Quizlet = flashcards (but user-generated content can be wrong). Duolingo = language learning (but can be repetitive). Limud covers ALL subjects with AI-verified content, plus adds tutoring, grading, games, and complete school management. It\'s the all-in-one solution.' },
+                { q: 'How does Limud work with Khan Academy?', a: 'Khan Academy is an incredible free resource with thousands of high-quality videos and exercises — we\'re big fans. Limud integrates directly with Khan Academy, auto-syncing student progress. Where Limud adds value is in the tools Khan wasn\'t designed for: AI-powered Socratic tutoring, automatic grading, gamification with XP and coins, lesson planning, parent dashboards, and complete school/district management. Think of Limud as the management layer on top of great content platforms like Khan.' },
+                { q: 'Do I need to leave Google Classroom?', a: 'Not at all! Google Classroom is fantastic for basic assignment distribution and works beautifully with Google Workspace. Limud connects with Google Classroom so you keep everything you love. Where Limud adds value is AI auto-grading (saves 8+ hrs/week), AI lesson planning, quiz generation, gamification, educational games, and in-depth analytics — features Google Classroom wasn\'t built for.' },
+                { q: 'How does Limud compare to Quizlet, ClassDojo, or Nearpod?', a: 'These are all great tools in their own right — Quizlet\'s flashcards are the gold standard, ClassDojo\'s parent communication is beloved by elementary teachers, and Nearpod\'s interactive lessons are engaging. Limud brings quiz generation, behavior/reward tracking, AI tutoring, and interactive features together in one platform. If you want to simplify your toolbox while keeping (or improving on) those capabilities, Limud is worth a look.' },
                 { q: 'Is Limud FERPA and COPPA compliant?', a: 'Yes. Limud is fully compliant with FERPA and COPPA. We never sell student data, all data is encrypted at rest and in transit, and we undergo annual third-party security audits. Unlike some competitors (Quizlet has partial compliance), our compliance is comprehensive and built-in from day one.' },
                 { q: 'Can I try it before buying?', a: 'Absolutely! Our Free plan is free forever for up to 5 students with no credit card required. All paid plans include a 14-day free trial with full access. Plus, we offer a 30-day money-back guarantee on all paid plans. Unlike Coursera\'s time-limited access or ABCmouse\'s auto-renewal, we keep it simple and transparent.' },
                 { q: 'How long does setup take?', a: 'Most districts are fully up and running within 5-30 minutes. Upload a CSV of students and teachers, connect your platforms, and you\'re ready. Unlike Classcraft\'s complex setup or Nearpod\'s learning curve, Limud is designed to be intuitive from the first click. Our onboarding team provides free setup support.' },
@@ -1002,7 +1018,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20"><BookOpen size={18} className="text-white" /></div>
                 <span className="text-lg font-bold text-white">Limud</span>
-              <span className="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded font-medium">v8.6</span>
+              <span className="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded font-medium">v8.8</span>
               </div>
               <p className="text-sm leading-relaxed max-w-sm mb-6">The all-in-one EdTech platform that replaces Khan Academy, Google Classroom, IXL, Quizlet, ClassDojo, and more with AI-powered learning for K-12.</p>
               <div className="flex items-center gap-3 flex-wrap">
