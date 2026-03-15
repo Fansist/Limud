@@ -1,9 +1,13 @@
 // ─────────────────────────────────────────────────────────────
-// Limud v8.7.1 — server.js
+// Limud v8.7.2 — server.js
 // Universal entry point for Node.js hosting platforms:
-//   • Render.com  (primary — auto-detected via RENDER env var)
+//   • Render.com  (primary — PORT=10000, auto-detected via RENDER env)
 //   • cPanel / GoDaddy (Phusion Passenger)
 //   • Any Node.js host that runs `node server.js`
+//
+// IMPORTANT: Render runs `npm run start` which calls `node server.js`.
+// Render sets PORT=10000. This file reads PORT from env and binds there.
+// With output:'standalone', we load .next/standalone/server.js directly.
 // ─────────────────────────────────────────────────────────────
 
 const { createServer } = require('http');
@@ -35,9 +39,9 @@ if (fs.existsSync(envPath)) {
 const isRender = !!process.env.RENDER;
 const platform = isRender ? 'Render' : (process.env.PASSENGER_APP_ENV ? 'cPanel/Passenger' : 'Generic');
 
-// Render injects PORT; Passenger sets it too; fallback to 3000
+// Render sets PORT=10000; Passenger sets it too; fallback to 3000
 const port = parseInt(process.env.PORT || '3000', 10);
-const hostname = process.env.HOSTNAME || '0.0.0.0';
+const hostname = '0.0.0.0'; // Always bind to all interfaces
 
 // ─── Determine standalone server path ─────────────────────────
 const standaloneServerPath = path.join(__dirname, '.next', 'standalone', 'server.js');
@@ -47,14 +51,13 @@ console.log(`[Limud] Platform: ${platform}`);
 console.log(`[Limud] Node.js ${process.version}`);
 console.log(`[Limud] Environment: ${process.env.NODE_ENV || 'production'}`);
 console.log(`[Limud] Standalone build: ${isStandalone ? 'YES' : 'NO'}`);
+console.log(`[Limud] PORT: ${port} (from ${process.env.PORT ? 'env' : 'default'})`);
 
 if (isStandalone) {
   // ─── PRODUCTION: Run standalone Next.js server ──────────────
+  // The standalone server.js reads PORT and HOSTNAME from env
   process.env.PORT = String(port);
   process.env.HOSTNAME = hostname;
-  process.env.__NEXT_PRIVATE_STANDALONE_CONFIG = path.join(
-    __dirname, '.next', 'standalone', '.next', 'required-server-files.json'
-  );
 
   console.log(`[Limud] Starting standalone server on ${hostname}:${port}`);
 
@@ -62,8 +65,8 @@ if (isStandalone) {
   require(standaloneServerPath);
 
 } else {
-  // ─── FALLBACK: Use next start (if standalone not built) ─────
-  console.log('[Limud] Standalone build not found — falling back to next start mode.');
+  // ─── FALLBACK: Use next() programmatically (if standalone not built) ─────
+  console.log('[Limud] Standalone build not found — falling back to next() mode.');
   console.log('[Limud] Tip: Run `npm run build` to create the standalone build.');
 
   try {
@@ -86,7 +89,7 @@ if (isStandalone) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               status: 'ok',
-              version: '8.7.1',
+              version: '8.7.2',
               platform,
               uptime: process.uptime(),
               timestamp: new Date().toISOString(),

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# Limud v8.7.1 — Render Blueprint (render.yaml)
+# Limud v8.7.2 — Render Blueprint (render.yaml)
 # Defines the Render Web Service for automatic deployment.
 # Docs: https://render.com/docs/blueprint-spec
 # ─────────────────────────────────────────────────────────────
@@ -27,8 +27,6 @@ services:
       - www.limud.co
 
     # ─── Environment Variables ────────────────────────────────
-    # Sensitive values should be set in the Render Dashboard
-    # under Environment → Environment Variables (not here).
     envVars:
       - key: NODE_ENV
         value: production
@@ -40,11 +38,12 @@ services:
         value: https://limud.co
       - key: NEXTAUTH_URL
         value: https://limud.co
+      # Auto-generate a random secret for NextAuth.js JWT signing
+      - key: NEXTAUTH_SECRET
+        generateValue: true
       # ─── SET THESE IN RENDER DASHBOARD (Secrets) ────────────
       # - key: DATABASE_URL
       #   value: postgresql://user:pass@host:5432/limud?sslmode=require
-      # - key: NEXTAUTH_SECRET
-      #   value: <generate with: openssl rand -base64 32>
       # - key: OPENAI_API_KEY
       #   value: <your OpenAI API key>
       # - key: OPENAI_BASE_URL

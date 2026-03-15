@@ -179,5 +179,13 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  // NEXTAUTH_SECRET is required in production.
+  // Set it in Render Dashboard → Environment → NEXTAUTH_SECRET
+  // Generate with: openssl rand -base64 32
+  secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production'
+    ? (() => {
+        console.warn('[Limud] WARNING: NEXTAUTH_SECRET is not set! Using auto-generated fallback. Set NEXTAUTH_SECRET in your Render environment variables for persistent sessions.');
+        return require('crypto').randomBytes(32).toString('base64');
+      })()
+    : 'dev-secret-not-for-production'),
 };
