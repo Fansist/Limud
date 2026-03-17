@@ -41,7 +41,7 @@ export const GET = apiHandler(async (req: Request) => {
     take: 10,
     select: { score: true, maxScore: true },
   });
-  const recentScores = recentSubs.map(s => (s.score! / s.maxScore!) * 100);
+  const recentScores = recentSubs.map(s => (s.score! / (s.maxScore || 1)) * 100);
   const stats = await prisma.rewardStats.findUnique({ where: { userId: studentId } });
   const avg = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : 0;
   const prediction = predictGrade(recentScores, avg, stats?.currentStreak || 0, stats?.totalStudyMinutes || 0);

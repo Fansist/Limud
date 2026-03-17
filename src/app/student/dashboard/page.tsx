@@ -7,7 +7,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { XPBar } from '@/components/gamification/RewardComponents';
 import { motion } from 'framer-motion';
 import { cn, daysUntil, getLetterGrade, AVATAR_OPTIONS } from '@/lib/utils';
-import { DEMO_STUDENT, DEMO_ASSIGNMENTS, DEMO_REWARD_STATS } from '@/lib/demo-data';
+import { DEMO_STUDENT, DEMO_ASSIGNMENTS, DEMO_REWARD_STATS_DEFAULT as DEMO_REWARD_STATS } from '@/lib/demo-data';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {

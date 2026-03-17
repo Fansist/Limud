@@ -19,31 +19,20 @@ export default function ParentReportsPage() {
     if (isDemo) {
       setReports([
         {
-          child: { id: 'dc1', name: 'Alex Rivera', gradeLevel: '8th', email: 'alex@demo.com' },
-          overview: { averageScore: 86, totalAssignments: 12, courses: [{ name: 'Biology', subject: 'Science' }, { name: 'Algebra II', subject: 'Math' }, { name: 'English Lit', subject: 'English' }] },
-          rewards: { level: 12, totalXP: 2750, currentStreak: 14, longestStreak: 21, coins: 485, assignmentsCompleted: 47, perfectScores: 5 },
-          weeklyStats: { assignmentsCompleted: 4, averageScore: 88, studyMinutes: 210, completedStudySessions: 8, totalStudySessions: 10, tutorSessions: 5 },
-          skills: { improving: ['Linear Equations', 'Photosynthesis'], struggling: ['Fractions', 'Vocabulary'], totalSkills: 8, masteredCount: 3 },
-          prediction: { predictedGrade: 'B+', predictedScore: 86.5, confidence: 72 },
+          child: { id: 'demo-student-lior', name: 'Lior Betzalel', gradeLevel: '10th', email: 'lior@ofer-academy.edu' },
+          overview: { averageScore: 89.2, totalAssignments: 14, courses: [{ name: 'Biology 101', subject: 'Science' }, { name: 'Algebra II', subject: 'Math' }, { name: 'English Literature', subject: 'English' }] },
+          rewards: { level: 14, totalXP: 3200, currentStreak: 18, longestStreak: 24, coins: 620, assignmentsCompleted: 52, perfectScores: 5 },
+          weeklyStats: { assignmentsCompleted: 5, averageScore: 89, studyMinutes: 280, completedStudySessions: 9, totalStudySessions: 10, tutorSessions: 7 },
+          skills: { improving: ['Quadratic Equations', 'Essay Writing'], struggling: ['Chemical Bonding'], totalSkills: 10, masteredCount: 6 },
+          prediction: { predictedGrade: 'B+', predictedScore: 89.2, confidence: 78 },
           struggle: { riskLevel: 'low', isStruggling: false, isBurnedOut: false, indicators: [], recommendations: [] },
-          subjectAverages: [{ subject: 'Science', average: 89, count: 5 }, { subject: 'Math', average: 82, count: 4 }, { subject: 'English', average: 85, count: 3 }],
-          examAttempts: [{ subject: 'Math', score: 78, predictedScore: 76, createdAt: new Date(Date.now() - 3 * 86400000).toISOString() }],
+          subjectAverages: [{ subject: 'Science', average: 91, count: 6 }, { subject: 'Math', average: 85, count: 5 }, { subject: 'English', average: 91, count: 3 }],
+          examAttempts: [{ subject: 'Math', score: 82, predictedScore: 84, createdAt: new Date(Date.now() - 3 * 86400000).toISOString() }],
           recentActivity: [
-            { title: 'Gatsby Analysis', course: 'English Lit', subject: 'English', score: 88, maxScore: 100, percentage: 88, date: new Date(Date.now() - 86400000).toISOString() },
-            { title: 'WWII Timeline', course: 'History', subject: 'History', score: 142, maxScore: 150, percentage: 95, date: new Date(Date.now() - 3 * 86400000).toISOString() },
+            { title: 'Great Gatsby Analysis', course: 'English Literature', subject: 'English', score: 91, maxScore: 100, percentage: 91, date: new Date(Date.now() - 86400000).toISOString() },
+            { title: 'WWII Timeline', course: 'World History', subject: 'History', score: 142, maxScore: 150, percentage: 95, date: new Date(Date.now() - 3 * 86400000).toISOString() },
+            { title: 'Quadratic Equations Test', course: 'Algebra II', subject: 'Math', score: 74, maxScore: 80, percentage: 92.5, date: new Date(Date.now() - 2 * 86400000).toISOString() },
           ],
-        },
-        {
-          child: { id: 'dc2', name: 'Maya Rivera', gradeLevel: '5th', email: 'maya@demo.com' },
-          overview: { averageScore: 93, totalAssignments: 8, courses: [{ name: 'General Science', subject: 'Science' }, { name: 'Math 5', subject: 'Math' }] },
-          rewards: { level: 8, totalXP: 1850, currentStreak: 9, longestStreak: 14, coins: 320, assignmentsCompleted: 32, perfectScores: 3 },
-          weeklyStats: { assignmentsCompleted: 3, averageScore: 94, studyMinutes: 180, completedStudySessions: 6, totalStudySessions: 7, tutorSessions: 3 },
-          skills: { improving: ['Fractions', 'Reading'], struggling: [], totalSkills: 5, masteredCount: 3 },
-          prediction: { predictedGrade: 'A-', predictedScore: 92, confidence: 68 },
-          struggle: { riskLevel: 'low', isStruggling: false, isBurnedOut: false, indicators: [], recommendations: [] },
-          subjectAverages: [{ subject: 'Science', average: 95, count: 4 }, { subject: 'Math', average: 90, count: 4 }],
-          examAttempts: [],
-          recentActivity: [{ title: 'Solar System Poster', course: 'Science', subject: 'Science', score: 95, maxScore: 100, percentage: 95, date: new Date(Date.now() - 2 * 86400000).toISOString() }],
         },
       ]);
       setLoading(false);

@@ -95,7 +95,7 @@ export const POST = apiHandler(async (req: Request) => {
       skills: data.skills.slice(0, 5),
     }));
 
-    const recentScores = recentSubs.map(s => Math.round((s.score! / s.maxScore!) * 100));
+    const recentScores = recentSubs.map(s => Math.round((s.score! / (s.maxScore || 1)) * 100));
 
     const report = await generateStudentReport({
       name: student.name,

@@ -1,47 +1,160 @@
 /**
- * Demo Data for Limud
- * Provides realistic mock data for all portal demos (no auth required)
+ * Demo Data for Limud v8.9
+ * Fully connected semi-master demo system
+ * 
+ * District: Ofer Academy (admin: Erez Ofer)
+ * Teacher: Gregory Strachen (teaches Biology, Algebra II, English Lit)
+ * Students: Lior Betzalel (10th), Eitan Balan (9th), Noam Elgarisi (10th)
+ * All students are in the teacher's classes, all in the same district
  */
 
+// ═══════════════════════════════════════════════════════════════════════════
+// DISTRICT
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const DEMO_DISTRICT = {
+  id: 'demo-district',
+  name: 'Ofer Academy',
+  subdomain: 'ofer-academy',
+  contactEmail: 'admin@ofer-academy.edu',
+  subscriptionStatus: 'ACTIVE',
+  subscriptionTier: 'PREMIUM',
+  subscriptionStart: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
+  subscriptionEnd: new Date(Date.now() + 185 * 24 * 60 * 60 * 1000).toISOString(),
+  pricePerYear: 12000,
+  maxStudents: 500,
+  maxTeachers: 50,
+  isHomeschool: false,
+  studentCount: 247,
+  teacherCount: 18,
+  costPerStudent: 48.58,
+  schools: [
+    { id: 'demo-school-1', name: 'Ofer Academy Main Campus', studentCount: 247, teacherCount: 18 },
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COURSES (teacher teaches all three)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const DEMO_COURSES = [
+  { id: 'demo-c1', name: 'Biology 101', subject: 'Science', gradeLevel: '10th', teacherId: 'demo-teacher' },
+  { id: 'demo-c2', name: 'Algebra II', subject: 'Math', gradeLevel: '9th-10th', teacherId: 'demo-teacher' },
+  { id: 'demo-c3', name: 'English Literature', subject: 'English', gradeLevel: '10th', teacherId: 'demo-teacher' },
+  { id: 'demo-c4', name: 'World History', subject: 'History', gradeLevel: '9th-10th', teacherId: 'demo-teacher' },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CLASSROOMS (linking teacher and students)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const DEMO_CLASSROOMS = [
+  {
+    id: 'demo-class-1',
+    name: 'Biology 101 — Period 2',
+    subject: 'Science',
+    gradeLevel: '10th',
+    teacherId: 'demo-teacher',
+    teacherName: 'Gregory Strachen',
+    courseId: 'demo-c1',
+    period: 'Period 2',
+    studentCount: 3,
+    students: ['demo-student-lior', 'demo-student-eitan', 'demo-student-noam'],
+  },
+  {
+    id: 'demo-class-2',
+    name: 'Algebra II — Period 3',
+    subject: 'Math',
+    gradeLevel: '9th-10th',
+    teacherId: 'demo-teacher',
+    teacherName: 'Gregory Strachen',
+    courseId: 'demo-c2',
+    period: 'Period 3',
+    studentCount: 3,
+    students: ['demo-student-lior', 'demo-student-eitan', 'demo-student-noam'],
+  },
+  {
+    id: 'demo-class-3',
+    name: 'English Literature — Period 5',
+    subject: 'English',
+    gradeLevel: '10th',
+    teacherId: 'demo-teacher',
+    teacherName: 'Gregory Strachen',
+    courseId: 'demo-c3',
+    period: 'Period 5',
+    studentCount: 3,
+    students: ['demo-student-lior', 'demo-student-eitan', 'demo-student-noam'],
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// USERS
+// ═══════════════════════════════════════════════════════════════════════════
+
 export const DEMO_STUDENT = {
-  id: 'demo-student',
-  name: 'Alex Rivera',
-  email: 'alex@demo.limud.com',
+  id: 'demo-student-lior',
+  name: 'Lior Betzalel',
+  email: 'lior@ofer-academy.edu',
   role: 'STUDENT' as const,
-  gradeLevel: '8th',
+  gradeLevel: '10th',
   accountType: 'DISTRICT' as const,
   selectedAvatar: 'astronaut',
   districtId: 'demo-district',
-  districtName: 'Demo School District',
+  districtName: 'Ofer Academy',
+};
+
+export const DEMO_STUDENT_EITAN = {
+  id: 'demo-student-eitan',
+  name: 'Eitan Balan',
+  email: 'eitan@ofer-academy.edu',
+  role: 'STUDENT' as const,
+  gradeLevel: '9th',
+  accountType: 'DISTRICT' as const,
+  selectedAvatar: 'robot',
+  districtId: 'demo-district',
+  districtName: 'Ofer Academy',
+};
+
+export const DEMO_STUDENT_NOAM = {
+  id: 'demo-student-noam',
+  name: 'Noam Elgarisi',
+  email: 'noam@ofer-academy.edu',
+  role: 'STUDENT' as const,
+  gradeLevel: '10th',
+  accountType: 'DISTRICT' as const,
+  selectedAvatar: 'wizard',
+  districtId: 'demo-district',
+  districtName: 'Ofer Academy',
 };
 
 export const DEMO_TEACHER = {
   id: 'demo-teacher',
-  name: 'Dr. Sarah Chen',
-  email: 'sarah@demo.limud.com',
+  name: 'Gregory Strachen',
+  email: 'strachen@ofer-academy.edu',
   role: 'TEACHER' as const,
   districtId: 'demo-district',
-  districtName: 'Demo School District',
+  districtName: 'Ofer Academy',
   selectedAvatar: 'owl',
 };
 
 export const DEMO_ADMIN = {
   id: 'demo-admin',
-  name: 'Michael Torres',
-  email: 'michael@demo.limud.com',
+  name: 'Erez Ofer',
+  email: 'erez@ofer-academy.edu',
   role: 'ADMIN' as const,
   districtId: 'demo-district',
-  districtName: 'Demo School District',
+  districtName: 'Ofer Academy',
   selectedAvatar: 'shield',
+  accessLevel: 'SUPERINTENDENT',
 };
 
 export const DEMO_PARENT = {
   id: 'demo-parent',
-  name: 'Jessica Rivera',
-  email: 'jessica@demo.limud.com',
+  name: 'David Betzalel',
+  email: 'david@ofer-academy.edu',
   role: 'PARENT' as const,
   districtId: 'demo-district',
-  districtName: 'Demo School District',
+  districtName: 'Ofer Academy',
   selectedAvatar: 'heart',
 };
 
@@ -56,17 +169,55 @@ export const DEMO_HOMESCHOOL_PARENT = {
   selectedAvatar: 'sunflower',
 };
 
-export const DEMO_REWARD_STATS = {
-  totalXP: 2750,
-  level: 12,
-  currentStreak: 14,
-  longestStreak: 21,
-  virtualCoins: 485,
-  assignmentsCompleted: 47,
-  tutorSessionsCount: 23,
-  unlockedAvatars: ['default', 'astronaut', 'robot', 'wizard'],
-  unlockedBadges: ['first-login', 'streak-7', 'perfect-score', 'tutor-5'],
+// All demo students for iteration
+export const DEMO_ALL_STUDENTS = [DEMO_STUDENT, DEMO_STUDENT_EITAN, DEMO_STUDENT_NOAM];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REWARD STATS (per student)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const DEMO_REWARD_STATS: Record<string, any> = {
+  'demo-student-lior': {
+    totalXP: 3200,
+    level: 14,
+    currentStreak: 18,
+    longestStreak: 24,
+    virtualCoins: 620,
+    assignmentsCompleted: 52,
+    tutorSessionsCount: 31,
+    unlockedAvatars: ['default', 'astronaut', 'robot', 'wizard', 'ninja'],
+    unlockedBadges: ['first-login', 'streak-7', 'streak-14', 'perfect-score', 'tutor-5', 'tutor-20', 'level-10'],
+  },
+  'demo-student-eitan': {
+    totalXP: 2100,
+    level: 9,
+    currentStreak: 7,
+    longestStreak: 15,
+    virtualCoins: 340,
+    assignmentsCompleted: 38,
+    tutorSessionsCount: 18,
+    unlockedAvatars: ['default', 'robot', 'dragon'],
+    unlockedBadges: ['first-login', 'streak-7', 'tutor-5', 'fast-learner'],
+  },
+  'demo-student-noam': {
+    totalXP: 4100,
+    level: 17,
+    currentStreak: 26,
+    longestStreak: 26,
+    virtualCoins: 890,
+    assignmentsCompleted: 61,
+    tutorSessionsCount: 42,
+    unlockedAvatars: ['default', 'wizard', 'phoenix', 'astronaut', 'robot', 'ninja'],
+    unlockedBadges: ['first-login', 'streak-7', 'streak-14', 'streak-21', 'perfect-score', 'tutor-5', 'tutor-20', 'tutor-40', 'level-10', 'level-15', 'top-scorer'],
+  },
 };
+
+// Default reward stats for generic student demo
+export const DEMO_REWARD_STATS_DEFAULT = DEMO_REWARD_STATS['demo-student-lior'];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ASSIGNMENTS (created by Gregory Strachen)
+// ═══════════════════════════════════════════════════════════════════════════
 
 export const DEMO_ASSIGNMENTS = [
   {
@@ -76,6 +227,7 @@ export const DEMO_ASSIGNMENTS = [
     type: 'ESSAY',
     courseId: 'demo-c1',
     course: { name: 'Biology 101', subject: 'Science' },
+    createdById: 'demo-teacher',
     dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
     totalPoints: 100,
     isPublished: true,
@@ -89,6 +241,7 @@ export const DEMO_ASSIGNMENTS = [
     type: 'SHORT_ANSWER',
     courseId: 'demo-c2',
     course: { name: 'Algebra II', subject: 'Math' },
+    createdById: 'demo-teacher',
     dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
     totalPoints: 50,
     isPublished: true,
@@ -102,20 +255,23 @@ export const DEMO_ASSIGNMENTS = [
     type: 'ESSAY',
     courseId: 'demo-c3',
     course: { name: 'English Literature', subject: 'English' },
+    createdById: 'demo-teacher',
     dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     totalPoints: 100,
     isPublished: true,
     submissions: [{
       id: 'demo-s3',
       status: 'GRADED',
-      score: 88,
+      score: 91,
       maxScore: 100,
+      studentId: 'demo-student-lior',
+      studentName: 'Lior Betzalel',
       submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       aiFeedback: JSON.stringify({
         feedback: 'Excellent analysis of Gatsby\'s character! Your use of quotes from the text was particularly effective. The connection you drew between Gatsby\'s past and his present motivations showed deep understanding.',
         strengths: ['Strong thesis statement', 'Effective use of textual evidence', 'Clear paragraph organization'],
         improvements: ['Consider exploring Gatsby\'s relationship with Daisy more deeply', 'Include analysis from Nick\'s perspective'],
-        encouragement: 'Your writing skills are really developing! Keep up this level of thoughtful analysis. 🌟',
+        encouragement: 'Your writing skills are really developing! Keep up this level of thoughtful analysis.',
       }),
     }],
     createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
@@ -127,6 +283,7 @@ export const DEMO_ASSIGNMENTS = [
     type: 'PROJECT',
     courseId: 'demo-c4',
     course: { name: 'World History', subject: 'History' },
+    createdById: 'demo-teacher',
     dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     totalPoints: 150,
     isPublished: true,
@@ -135,12 +292,14 @@ export const DEMO_ASSIGNMENTS = [
       status: 'GRADED',
       score: 142,
       maxScore: 150,
+      studentId: 'demo-student-lior',
+      studentName: 'Lior Betzalel',
       submittedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
       aiFeedback: JSON.stringify({
-        feedback: 'Outstanding timeline project! You covered all the major events with impressive detail. The descriptions were accurate and well-written.',
+        feedback: 'Outstanding timeline project! You covered all the major events with impressive detail.',
         strengths: ['Comprehensive coverage of events', 'Accurate dates', 'Excellent descriptions'],
         improvements: ['Could include more about the Pacific theater', 'Add some primary source references'],
-        encouragement: 'This is A+ work! Your passion for history really shines through! 🏆',
+        encouragement: 'This is A+ work! Your passion for history really shines through!',
       }),
     }],
     createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
@@ -152,6 +311,7 @@ export const DEMO_ASSIGNMENTS = [
     type: 'QUIZ',
     courseId: 'demo-c1',
     course: { name: 'Biology 101', subject: 'Science' },
+    createdById: 'demo-teacher',
     dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
     totalPoints: 40,
     isPublished: true,
@@ -160,12 +320,32 @@ export const DEMO_ASSIGNMENTS = [
       status: 'SUBMITTED',
       score: null,
       maxScore: 40,
+      studentId: 'demo-student-lior',
+      studentName: 'Lior Betzalel',
       submittedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
       aiFeedback: null,
     }],
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
   },
+  {
+    id: 'demo-a6',
+    title: 'DNA Replication Essay',
+    description: 'Explain the process of DNA replication including the roles of helicase, primase, and DNA polymerase.',
+    type: 'ESSAY',
+    courseId: 'demo-c1',
+    course: { name: 'Biology 101', subject: 'Science' },
+    createdById: 'demo-teacher',
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 100,
+    isPublished: true,
+    submissions: [],
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEACHER ASSIGNMENTS (teacher view — shows all student submissions)
+// ═══════════════════════════════════════════════════════════════════════════
 
 export const DEMO_TEACHER_ASSIGNMENTS = [
   {
@@ -179,11 +359,9 @@ export const DEMO_TEACHER_ASSIGNMENTS = [
     totalPoints: 100,
     isPublished: true,
     submissions: [
-      { id: 'ts1', status: 'SUBMITTED', score: null, studentId: 's1' },
-      { id: 'ts2', status: 'SUBMITTED', score: null, studentId: 's2' },
-      { id: 'ts3', status: 'GRADED', score: 87, studentId: 's3' },
-      { id: 'ts4', status: 'GRADED', score: 92, studentId: 's4' },
-      { id: 'ts5', status: 'GRADED', score: 78, studentId: 's5' },
+      { id: 'ts1', status: 'SUBMITTED', score: null, studentId: 'demo-student-lior', studentName: 'Lior Betzalel' },
+      { id: 'ts2', status: 'SUBMITTED', score: null, studentId: 'demo-student-eitan', studentName: 'Eitan Balan' },
+      { id: 'ts3', status: 'GRADED', score: 87, studentId: 'demo-student-noam', studentName: 'Noam Elgarisi' },
     ],
   },
   {
@@ -197,9 +375,9 @@ export const DEMO_TEACHER_ASSIGNMENTS = [
     totalPoints: 50,
     isPublished: true,
     submissions: [
-      { id: 'ts6', status: 'SUBMITTED', score: null, studentId: 's1' },
-      { id: 'ts7', status: 'SUBMITTED', score: null, studentId: 's2' },
-      { id: 'ts8', status: 'SUBMITTED', score: null, studentId: 's3' },
+      { id: 'ts6', status: 'SUBMITTED', score: null, studentId: 'demo-student-lior', studentName: 'Lior Betzalel' },
+      { id: 'ts7', status: 'SUBMITTED', score: null, studentId: 'demo-student-eitan', studentName: 'Eitan Balan' },
+      { id: 'ts8', status: 'SUBMITTED', score: null, studentId: 'demo-student-noam', studentName: 'Noam Elgarisi' },
     ],
   },
   {
@@ -213,57 +391,120 @@ export const DEMO_TEACHER_ASSIGNMENTS = [
     totalPoints: 200,
     isPublished: true,
     submissions: [
-      { id: 'ts9', status: 'GRADED', score: 185, studentId: 's1' },
-      { id: 'ts10', status: 'GRADED', score: 172, studentId: 's2' },
-      { id: 'ts11', status: 'GRADED', score: 190, studentId: 's3' },
-      { id: 'ts12', status: 'GRADED', score: 165, studentId: 's4' },
-      { id: 'ts13', status: 'GRADED', score: 178, studentId: 's5' },
+      { id: 'ts9', status: 'GRADED', score: 188, studentId: 'demo-student-lior', studentName: 'Lior Betzalel' },
+      { id: 'ts10', status: 'GRADED', score: 165, studentId: 'demo-student-eitan', studentName: 'Eitan Balan' },
+      { id: 'ts11', status: 'GRADED', score: 195, studentId: 'demo-student-noam', studentName: 'Noam Elgarisi' },
+    ],
+  },
+  {
+    id: 'demo-ta4',
+    title: 'Quadratic Equations Test',
+    description: 'Solve quadratic equations using factoring, completing the square, and the quadratic formula.',
+    type: 'QUIZ',
+    courseId: 'demo-c2',
+    course: { name: 'Algebra II', subject: 'Math' },
+    dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 80,
+    isPublished: true,
+    submissions: [
+      { id: 'ts12', status: 'GRADED', score: 74, studentId: 'demo-student-lior', studentName: 'Lior Betzalel' },
+      { id: 'ts13', status: 'GRADED', score: 62, studentId: 'demo-student-eitan', studentName: 'Eitan Balan' },
+      { id: 'ts14', status: 'GRADED', score: 79, studentId: 'demo-student-noam', studentName: 'Noam Elgarisi' },
+    ],
+  },
+  {
+    id: 'demo-ta5',
+    title: 'Great Gatsby Character Analysis',
+    description: 'Analyze the character development of Jay Gatsby using textual evidence.',
+    type: 'ESSAY',
+    courseId: 'demo-c3',
+    course: { name: 'English Literature', subject: 'English' },
+    dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    totalPoints: 100,
+    isPublished: true,
+    submissions: [
+      { id: 'ts15', status: 'GRADED', score: 91, studentId: 'demo-student-lior', studentName: 'Lior Betzalel' },
+      { id: 'ts16', status: 'GRADED', score: 78, studentId: 'demo-student-eitan', studentName: 'Eitan Balan' },
+      { id: 'ts17', status: 'GRADED', score: 96, studentId: 'demo-student-noam', studentName: 'Noam Elgarisi' },
     ],
   },
 ];
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ANALYTICS (teacher/admin view)
+// ═══════════════════════════════════════════════════════════════════════════
+
 export const DEMO_ANALYTICS = {
   students: [
-    { id: 's1', name: 'Alex Rivera', email: 'alex@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 91.3, totalSubmissions: 12, currentStreak: 14, totalXP: 2750, level: 12, riskLevel: 'low' },
-    { id: 's2', name: 'Emma Johnson', email: 'emma@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 85.7, totalSubmissions: 11, currentStreak: 7, totalXP: 1900, level: 8, riskLevel: 'low' },
-    { id: 's3', name: 'Liam Williams', email: 'liam@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 72.4, totalSubmissions: 10, currentStreak: 3, totalXP: 1200, level: 5, riskLevel: 'medium' },
-    { id: 's4', name: 'Sophia Brown', email: 'sophia@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 95.1, totalSubmissions: 12, currentStreak: 21, totalXP: 3400, level: 14, riskLevel: 'low' },
-    { id: 's5', name: 'Noah Davis', email: 'noah@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 58.2, totalSubmissions: 8, currentStreak: 0, totalXP: 600, level: 3, riskLevel: 'high' },
-    { id: 's6', name: 'Olivia Miller', email: 'olivia@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 88.9, totalSubmissions: 11, currentStreak: 10, totalXP: 2100, level: 9, riskLevel: 'low' },
-    { id: 's7', name: 'Mason Wilson', email: 'mason@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: 67.5, totalSubmissions: 9, currentStreak: 1, totalXP: 800, level: 4, riskLevel: 'medium' },
-    { id: 's8', name: 'Isabella Moore', email: 'isabella@demo.limud.com', courses: [{ name: 'Biology 101', subject: 'Science' }], averageScore: null, totalSubmissions: 0, currentStreak: 0, totalXP: 50, level: 1, riskLevel: 'unknown' },
+    {
+      id: 'demo-student-lior',
+      name: 'Lior Betzalel',
+      email: 'lior@ofer-academy.edu',
+      gradeLevel: '10th',
+      courses: [
+        { name: 'Biology 101', subject: 'Science' },
+        { name: 'Algebra II', subject: 'Math' },
+        { name: 'English Literature', subject: 'English' },
+      ],
+      averageScore: 89.2,
+      totalSubmissions: 14,
+      currentStreak: 18,
+      totalXP: 3200,
+      level: 14,
+      riskLevel: 'low',
+    },
+    {
+      id: 'demo-student-eitan',
+      name: 'Eitan Balan',
+      email: 'eitan@ofer-academy.edu',
+      gradeLevel: '9th',
+      courses: [
+        { name: 'Biology 101', subject: 'Science' },
+        { name: 'Algebra II', subject: 'Math' },
+        { name: 'English Literature', subject: 'English' },
+      ],
+      averageScore: 72.8,
+      totalSubmissions: 11,
+      currentStreak: 7,
+      totalXP: 2100,
+      level: 9,
+      riskLevel: 'medium',
+    },
+    {
+      id: 'demo-student-noam',
+      name: 'Noam Elgarisi',
+      email: 'noam@ofer-academy.edu',
+      gradeLevel: '10th',
+      courses: [
+        { name: 'Biology 101', subject: 'Science' },
+        { name: 'Algebra II', subject: 'Math' },
+        { name: 'English Literature', subject: 'English' },
+      ],
+      averageScore: 95.4,
+      totalSubmissions: 16,
+      currentStreak: 26,
+      totalXP: 4100,
+      level: 17,
+      riskLevel: 'low',
+    },
   ],
   summary: {
-    totalStudents: 8,
-    atRisk: 1,
-    averageScore: 79.9,
+    totalStudents: 3,
+    atRisk: 0,
+    averageScore: 85.8,
     pendingSubmissions: 5,
   },
 };
 
-export const DEMO_DISTRICT = {
-  id: 'demo-district',
-  name: 'Meadowbrook School District',
-  subdomain: 'meadowbrook',
-  contactEmail: 'admin@meadowbrook.edu',
-  subscriptionStatus: 'ACTIVE',
-  subscriptionTier: 'STANDARD',
-  subscriptionStart: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
-  subscriptionEnd: new Date(Date.now() + 185 * 24 * 60 * 60 * 1000).toISOString(),
-  pricePerYear: 5500,
-  maxStudents: 500,
-  maxTeachers: 50,
-  isHomeschool: false,
-  studentCount: 342,
-  teacherCount: 28,
-  costPerStudent: 16.08,
-};
+// ═══════════════════════════════════════════════════════════════════════════
+// PARENT DATA (David Betzalel sees Lior's data)
+// ═══════════════════════════════════════════════════════════════════════════
 
 export const DEMO_PARENT_CHILDREN = [
   {
-    id: 'demo-child-1',
-    name: 'Alex Rivera',
-    gradeLevel: '8th',
+    id: 'demo-student-lior',
+    name: 'Lior Betzalel',
+    gradeLevel: '10th',
     courses: [
       { name: 'Biology 101', subject: 'Science' },
       { name: 'Algebra II', subject: 'Math' },
@@ -271,72 +512,94 @@ export const DEMO_PARENT_CHILDREN = [
       { name: 'World History', subject: 'History' },
     ],
     recentSubmissions: [
-      { assignmentTitle: 'The Great Gatsby Character Analysis', courseName: 'English Literature', status: 'GRADED', score: 88, maxScore: 100, feedback: JSON.stringify({ feedback: 'Excellent analysis!', encouragement: 'Keep it up!' }), dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-      { assignmentTitle: 'WWII Timeline Project', courseName: 'World History', status: 'GRADED', score: 142, maxScore: 150, feedback: JSON.stringify({ feedback: 'Outstanding work!' }), dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), submittedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString() },
-      { assignmentTitle: 'Chemical Bonding Quiz', courseName: 'Biology 101', status: 'SUBMITTED', score: null, maxScore: 40, feedback: null, dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), submittedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() },
+      {
+        assignmentTitle: 'The Great Gatsby Character Analysis',
+        courseName: 'English Literature',
+        status: 'GRADED',
+        score: 91,
+        maxScore: 100,
+        feedback: JSON.stringify({ feedback: 'Excellent analysis!', strengths: ['Strong thesis', 'Great textual evidence'], improvements: ['Explore Daisy more'], encouragement: 'Keep it up!' }),
+        dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        assignmentTitle: 'WWII Timeline Project',
+        courseName: 'World History',
+        status: 'GRADED',
+        score: 142,
+        maxScore: 150,
+        feedback: JSON.stringify({ feedback: 'Outstanding work!', strengths: ['Thorough research', 'Accurate dates'], improvements: ['Pacific theater coverage'], encouragement: 'Impressive!' }),
+        dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        submittedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        assignmentTitle: 'Chemical Bonding Quiz',
+        courseName: 'Biology 101',
+        status: 'SUBMITTED',
+        score: null,
+        maxScore: 40,
+        feedback: null,
+        dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+        submittedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        assignmentTitle: 'Quadratic Equations Test',
+        courseName: 'Algebra II',
+        status: 'GRADED',
+        score: 74,
+        maxScore: 80,
+        feedback: JSON.stringify({ feedback: 'Good work on factoring. Focus on completing the square method.', strengths: ['Factoring mastery'], improvements: ['Completing the square'], encouragement: 'Almost there!' }),
+        dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      },
     ],
-    averageScore: 89.5,
+    averageScore: 89.2,
     rewards: {
-      level: 12,
-      totalXP: 2750,
-      currentStreak: 14,
-      longestStreak: 21,
-      tutorSessionsCount: 23,
-      assignmentsCompleted: 47,
-      badges: ['first-login', 'streak-7', 'perfect-score', 'tutor-5'],
-    },
-  },
-  {
-    id: 'demo-child-2',
-    name: 'Maya Rivera',
-    gradeLevel: '5th',
-    courses: [
-      { name: 'General Science', subject: 'Science' },
-      { name: 'Math 5', subject: 'Math' },
-      { name: 'Reading & Writing', subject: 'English' },
-    ],
-    recentSubmissions: [
-      { assignmentTitle: 'Solar System Poster', courseName: 'General Science', status: 'GRADED', score: 95, maxScore: 100, feedback: JSON.stringify({ feedback: 'Beautiful poster with great detail!' }), dueDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), submittedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() },
-      { assignmentTitle: 'Fraction Practice', courseName: 'Math 5', status: 'GRADED', score: 18, maxScore: 20, feedback: JSON.stringify({ feedback: 'Great work with fractions!' }), dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-    ],
-    averageScore: 93.2,
-    rewards: {
-      level: 8,
-      totalXP: 1850,
-      currentStreak: 9,
-      longestStreak: 14,
-      tutorSessionsCount: 12,
-      assignmentsCompleted: 32,
-      badges: ['first-login', 'streak-7'],
+      level: 14,
+      totalXP: 3200,
+      currentStreak: 18,
+      longestStreak: 24,
+      tutorSessionsCount: 31,
+      assignmentsCompleted: 52,
+      badges: ['first-login', 'streak-7', 'streak-14', 'perfect-score', 'tutor-5', 'tutor-20', 'level-10'],
     },
   },
 ];
 
+// ═══════════════════════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
 export const DEMO_NOTIFICATIONS = [
-  { id: 'n1', title: '🎉 Assignment Graded!', message: 'Your "The Great Gatsby Character Analysis" has been graded. Score: 88/100', type: 'grade', isRead: false, createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-  { id: 'n2', title: '🔥 Streak Bonus!', message: 'Amazing! You reached a 14-day streak! +150 XP', type: 'achievement', isRead: false, createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
-  { id: 'n3', title: '📝 New Assignment', message: 'Photosynthesis Lab Report has been posted in Biology 101', type: 'assignment', isRead: true, createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'n4', title: '⭐ Level Up!', message: "Congratulations! You're now Level 12!", type: 'achievement', isRead: true, createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() },
+  { id: 'n1', title: 'Assignment Graded!', message: 'Your "The Great Gatsby Character Analysis" has been graded by Mr. Strachen. Score: 91/100', type: 'grade', isRead: false, createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+  { id: 'n2', title: 'Streak Bonus!', message: 'Amazing! You reached an 18-day streak! +200 XP', type: 'achievement', isRead: false, createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+  { id: 'n3', title: 'New Assignment', message: 'DNA Replication Essay has been posted in Biology 101 by Mr. Strachen', type: 'assignment', isRead: true, createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'n4', title: 'Level Up!', message: "Congratulations! You're now Level 14!", type: 'achievement', isRead: true, createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() },
+  { id: 'n5', title: 'AI Tutor Session', message: 'Great session on photosynthesis! You earned 50 XP.', type: 'achievement', isRead: true, createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString() },
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LESSON PLANS (created by Gregory Strachen)
+// ═══════════════════════════════════════════════════════════════════════════
 
 export const DEMO_LESSON_PLANS = [
   {
     id: 'lp1',
     title: 'Introduction to Photosynthesis',
     subject: 'Science',
-    gradeLevel: '8th',
+    gradeLevel: '10th',
     duration: '50 min',
     objectives: JSON.stringify(['Students will explain the process of photosynthesis', 'Students will identify the reactants and products', 'Students will connect photosynthesis to real-world applications']),
     standards: 'NGSS MS-LS1-6: Construct a scientific explanation based on evidence for the role of photosynthesis in the cycling of matter and flow of energy.',
     materials: JSON.stringify(['Textbook Chapter 4', 'Virtual lab simulation', 'Leaf specimens', 'Microscopes', 'Worksheets']),
     warmUp: 'Ask students: "What did you eat for breakfast? Where did that energy come from originally?" Trace the energy back to sunlight.',
-    directInstruction: 'Present the photosynthesis equation: 6CO2 + 6H2O + light energy → C6H12O6 + 6O2. Use animated diagrams to show the light-dependent and light-independent reactions. Discuss the role of chloroplasts and chlorophyll.',
-    guidedPractice: 'Students work in pairs to label a diagram of the photosynthesis process. Teacher circulates and provides feedback. Class reviews answers together.',
-    independentPractice: 'Students complete the virtual lab simulation, observing how changing light intensity and CO2 concentration affects the rate of photosynthesis. Record observations in lab journal.',
+    directInstruction: 'Present the photosynthesis equation: 6CO2 + 6H2O + light energy -> C6H12O6 + 6O2. Use animated diagrams to show the light-dependent and light-independent reactions.',
+    guidedPractice: 'Students work in pairs to label a diagram of the photosynthesis process. Teacher circulates and provides feedback.',
+    independentPractice: 'Students complete the virtual lab simulation, observing how changing light intensity and CO2 concentration affects the rate of photosynthesis.',
     assessment: 'Exit ticket: Students write 3 things they learned, 2 things they found interesting, and 1 question they still have.',
-    closure: 'Quick review game: "Photosynthesis Pop Quiz" using a Kahoot-style activity. Preview tomorrow\'s lesson on cellular respiration.',
-    differentiation: 'ELL students: Provide vocabulary list with translations. Advanced students: Research the Calvin Cycle in depth. Visual learners: Additional diagrams and videos.',
-    homework: 'Read textbook pages 84-89. Complete the photosynthesis worksheet. Prepare for the lab report assignment.',
+    closure: 'Quick review game: "Photosynthesis Pop Quiz" using a Kahoot-style activity.',
+    differentiation: 'ELL students: Provide vocabulary list with translations. Advanced students: Research the Calvin Cycle.',
+    homework: 'Read textbook pages 84-89. Complete the photosynthesis worksheet.',
     aiGenerated: true,
     isFavorite: true,
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
@@ -345,48 +608,140 @@ export const DEMO_LESSON_PLANS = [
     id: 'lp2',
     title: 'Cell Division: Mitosis vs Meiosis',
     subject: 'Science',
-    gradeLevel: '8th',
+    gradeLevel: '10th',
     duration: '55 min',
-    objectives: JSON.stringify(['Compare and contrast mitosis and meiosis', 'Identify the stages of each process', 'Explain the importance of cell division in growth and reproduction']),
-    standards: 'NGSS MS-LS3-2: Develop and use a model to describe why asexual reproduction results in offspring with identical genetic information and sexual reproduction results in offspring with genetic variation.',
-    materials: JSON.stringify(['Cell division models', 'Pipe cleaners (for chromosomes)', 'Colored beads', 'Flip chart paper']),
-    warmUp: 'Show a time-lapse video of cell division under a microscope. Ask: "What did you notice happening?"',
-    directInstruction: 'Compare mitosis (growth/repair) and meiosis (reproduction). Walk through each stage using physical models. Highlight key differences: chromosome number, genetic variation.',
-    guidedPractice: 'Students use pipe cleaners and beads to model both processes at their desks, with teacher guidance.',
-    independentPractice: 'Create a Venn diagram comparing mitosis and meiosis. Include at least 5 characteristics in each section.',
-    assessment: 'Partner quiz: Students take turns asking each other questions about the stages and purposes of each type of cell division.',
-    closure: 'Class discussion: "Why do organisms need both mitosis AND meiosis?" Connect to real-world examples.',
-    differentiation: 'Struggling students: Simplified comparison chart. Gifted students: Research genetic disorders caused by errors in meiosis.',
-    homework: 'Complete the cell division worksheet. Study for the upcoming quiz on chapters 3-4.',
+    objectives: JSON.stringify(['Compare and contrast mitosis and meiosis', 'Identify the stages of each process', 'Explain the importance of cell division']),
+    standards: 'NGSS MS-LS3-2',
+    materials: JSON.stringify(['Cell division models', 'Pipe cleaners', 'Colored beads', 'Flip chart paper']),
+    warmUp: 'Show a time-lapse video of cell division under a microscope.',
+    directInstruction: 'Compare mitosis (growth/repair) and meiosis (reproduction). Walk through each stage using physical models.',
+    guidedPractice: 'Students use pipe cleaners and beads to model both processes at their desks.',
+    independentPractice: 'Create a Venn diagram comparing mitosis and meiosis.',
+    assessment: 'Partner quiz: Students take turns asking each other questions.',
+    closure: 'Class discussion: "Why do organisms need both mitosis AND meiosis?"',
+    differentiation: 'Struggling students: Simplified comparison chart. Gifted students: Research genetic disorders.',
+    homework: 'Complete the cell division worksheet.',
     aiGenerated: true,
     isFavorite: false,
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
   },
+  {
+    id: 'lp3',
+    title: 'Introduction to Quadratic Functions',
+    subject: 'Math',
+    gradeLevel: '9th-10th',
+    duration: '50 min',
+    objectives: JSON.stringify(['Graph quadratic functions', 'Identify vertex, axis of symmetry, and direction', 'Solve using the quadratic formula']),
+    standards: 'CCSS.MATH.CONTENT.HSA.REI.B.4',
+    materials: JSON.stringify(['Graphing calculators', 'Graph paper', 'Desmos access']),
+    warmUp: 'Graph y = x^2 and y = -x^2. What do you notice?',
+    directInstruction: 'Introduce standard form ax^2 + bx + c. Demonstrate vertex formula and factoring.',
+    guidedPractice: 'Work through 3 examples together using different methods.',
+    independentPractice: 'Complete worksheet problems 1-15.',
+    assessment: 'Exit ticket: Solve 2x^2 + 5x - 3 = 0.',
+    closure: 'Quick poll: Which method did you find easiest?',
+    differentiation: 'Visual learners: Desmos exploration. Advanced: Complete the square.',
+    homework: 'Textbook p.142 problems 1-20 odd.',
+    aiGenerated: true,
+    isFavorite: true,
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MESSAGES (Parent-Teacher communication)
+// ═══════════════════════════════════════════════════════════════════════════
 
 export const DEMO_MESSAGES = [
   {
     id: 'msg1',
     senderId: 'demo-parent',
     receiverId: 'demo-teacher',
-    senderName: 'Jessica Rivera',
-    receiverName: 'Dr. Sarah Chen',
-    subject: 'Question about Alex\'s progress',
-    content: 'Hi Dr. Chen, I wanted to check in on Alex\'s progress in Biology. He mentioned he\'s been working really hard on the lab reports. Is there anything I can do at home to support his learning?',
+    senderName: 'David Betzalel',
+    receiverName: 'Gregory Strachen',
+    subject: "Question about Lior's progress in Biology",
+    content: "Hi Mr. Strachen, I wanted to check in on Lior's progress in Biology. He mentioned the photosynthesis lab was challenging. Is there anything we can do at home to support his learning?",
     isRead: true,
-    parentOf: 'demo-child-1',
+    parentOf: 'demo-student-lior',
     createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: 'msg2',
     senderId: 'demo-teacher',
     receiverId: 'demo-parent',
-    senderName: 'Dr. Sarah Chen',
-    receiverName: 'Jessica Rivera',
-    subject: 'Re: Question about Alex\'s progress',
-    content: 'Hi Jessica! Alex is doing wonderfully in class. His lab reports show great attention to detail. I\'d suggest encouraging him to watch science documentaries - he really lights up during discussions about real-world applications. His recent scores have been excellent!',
+    senderName: 'Gregory Strachen',
+    receiverName: 'David Betzalel',
+    subject: "Re: Question about Lior's progress in Biology",
+    content: "Hi David! Lior is doing wonderfully in class. His lab reports show great attention to detail. I'd suggest encouraging him to watch science documentaries - he really lights up during discussions about real-world applications. His Gatsby essay was particularly impressive, scored a 91!",
     isRead: false,
-    parentOf: 'demo-child-1',
+    parentOf: 'demo-student-lior',
     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
+  {
+    id: 'msg3',
+    senderId: 'demo-admin',
+    receiverId: 'demo-teacher',
+    senderName: 'Erez Ofer',
+    receiverName: 'Gregory Strachen',
+    subject: 'Curriculum Review Meeting',
+    content: "Hi Gregory, I'd like to schedule a meeting to discuss the upcoming curriculum review for Q2. Your Biology and English courses have shown excellent student outcomes. Let me know your availability this week.",
+    isRead: true,
+    parentOf: null,
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ADMIN DATA (district-wide)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const DEMO_ADMIN_EMPLOYEES = [
+  { id: 'demo-teacher', name: 'Gregory Strachen', email: 'strachen@ofer-academy.edu', role: 'TEACHER', status: 'Active', courses: 3, students: 3 },
+  { id: 'demo-teacher-2', name: 'Rachel Kim', email: 'kim@ofer-academy.edu', role: 'TEACHER', status: 'Active', courses: 2, students: 24 },
+  { id: 'demo-teacher-3', name: 'James Miller', email: 'miller@ofer-academy.edu', role: 'TEACHER', status: 'Active', courses: 4, students: 31 },
+  { id: 'demo-admin', name: 'Erez Ofer', email: 'erez@ofer-academy.edu', role: 'ADMIN', status: 'Active', courses: 0, students: 0 },
+];
+
+export const DEMO_ADMIN_STUDENTS_LIST = [
+  { id: 'demo-student-lior', name: 'Lior Betzalel', email: 'lior@ofer-academy.edu', gradeLevel: '10th', status: 'Active', coursesEnrolled: 4, averageScore: 89.2 },
+  { id: 'demo-student-eitan', name: 'Eitan Balan', email: 'eitan@ofer-academy.edu', gradeLevel: '9th', status: 'Active', coursesEnrolled: 3, averageScore: 72.8 },
+  { id: 'demo-student-noam', name: 'Noam Elgarisi', email: 'noam@ofer-academy.edu', gradeLevel: '10th', status: 'Active', coursesEnrolled: 3, averageScore: 95.4 },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEACHER INSIGHTS (AI-powered)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const DEMO_TEACHER_INSIGHTS = {
+  classPerformance: {
+    averageScore: 85.8,
+    trend: 'up', // up, down, stable
+    trendChange: 3.2,
+    topPerformer: { name: 'Noam Elgarisi', score: 95.4 },
+    needsAttention: { name: 'Eitan Balan', score: 72.8, reason: 'Below average in Math' },
+  },
+  aiRecommendations: [
+    { type: 'intervention', student: 'Eitan Balan', subject: 'Math', message: 'Eitan is struggling with quadratic equations. Consider pairing him with Noam for peer tutoring sessions.' },
+    { type: 'enrichment', student: 'Noam Elgarisi', subject: 'Science', message: 'Noam is excelling beyond grade level in Biology. Consider providing advanced research opportunities.' },
+    { type: 'praise', student: 'Lior Betzalel', subject: 'English', message: 'Lior\'s writing has improved significantly. His Gatsby analysis showed critical thinking growth.' },
+  ],
+  engagementMetrics: {
+    averageTutorSessions: 30.3,
+    averageStudyMinutes: 245,
+    submissionRate: 94,
+    onTimeRate: 88,
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEMO ACCOUNT CREDENTIALS (for login page display)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const DEMO_CREDENTIALS = [
+  { role: 'Student', name: 'Lior Betzalel', email: 'lior@ofer-academy.edu', password: 'password123', grade: '10th' },
+  { role: 'Student', name: 'Eitan Balan', email: 'eitan@ofer-academy.edu', password: 'password123', grade: '9th' },
+  { role: 'Student', name: 'Noam Elgarisi', email: 'noam@ofer-academy.edu', password: 'password123', grade: '10th' },
+  { role: 'Teacher', name: 'Gregory Strachen', email: 'strachen@ofer-academy.edu', password: 'password123' },
+  { role: 'Admin', name: 'Erez Ofer', email: 'erez@ofer-academy.edu', password: 'password123', access: 'Superintendent' },
+  { role: 'Parent', name: 'David Betzalel', email: 'david@ofer-academy.edu', password: 'password123', child: "Lior's parent" },
 ];

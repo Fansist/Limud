@@ -3,6 +3,11 @@ import { requireAuth, apiHandler } from '@/lib/middleware';
 import { purchaseAvatar } from '@/lib/gamification';
 import prisma from '@/lib/prisma';
 
+function safeJsonParse(value: string | null | undefined, fallback: any): any {
+  if (!value) return fallback;
+  try { return JSON.parse(value); } catch { return fallback; }
+}
+
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
   const { searchParams } = new URL(req.url);
@@ -60,8 +65,8 @@ export const GET = apiHandler(async (req: Request) => {
     return NextResponse.json({
       stats: {
         ...stats,
-        unlockedAvatars: JSON.parse(stats.unlockedAvatars),
-        unlockedBadges: JSON.parse(stats.unlockedBadges),
+        unlockedAvatars: safeJsonParse(stats.unlockedAvatars, []),
+        unlockedBadges: safeJsonParse(stats.unlockedBadges, []),
       },
       children,
       viewingChildId: targetUserId,
@@ -86,8 +91,8 @@ export const GET = apiHandler(async (req: Request) => {
   return NextResponse.json({
     stats: {
       ...stats,
-      unlockedAvatars: JSON.parse(stats.unlockedAvatars),
-      unlockedBadges: JSON.parse(stats.unlockedBadges),
+      unlockedAvatars: safeJsonParse(stats.unlockedAvatars, []),
+      unlockedBadges: safeJsonParse(stats.unlockedBadges, []),
     },
   });
 });
@@ -116,7 +121,7 @@ export const POST = apiHandler(async (req: Request) => {
     const stats = await prisma.rewardStats.findUnique({ where: { userId: user.id } });
     if (!stats) return NextResponse.json({ error: 'Stats not found' }, { status: 404 });
 
-    const unlocked: string[] = JSON.parse(stats.unlockedAvatars);
+    const unlocked: string[] = safeJsonParse(stats.unlockedAvatars, []);
     if (!unlocked.includes(avatarId)) {
       return NextResponse.json({ error: 'Avatar not unlocked' }, { status: 400 });
     }

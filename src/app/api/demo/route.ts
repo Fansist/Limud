@@ -3,7 +3,10 @@ import {
   DEMO_STUDENT, DEMO_TEACHER, DEMO_ADMIN, DEMO_PARENT,
   DEMO_ASSIGNMENTS, DEMO_TEACHER_ASSIGNMENTS, DEMO_ANALYTICS,
   DEMO_DISTRICT, DEMO_PARENT_CHILDREN, DEMO_NOTIFICATIONS,
-  DEMO_REWARD_STATS, DEMO_LESSON_PLANS, DEMO_MESSAGES,
+  DEMO_REWARD_STATS_DEFAULT as DEMO_REWARD_STATS, DEMO_LESSON_PLANS, DEMO_MESSAGES,
+  DEMO_STUDENT_EITAN, DEMO_STUDENT_NOAM, DEMO_REWARD_STATS as DEMO_REWARD_STATS_MAP,
+  DEMO_CLASSROOMS, DEMO_COURSES, DEMO_ADMIN_EMPLOYEES, DEMO_ADMIN_STUDENTS_LIST,
+  DEMO_TEACHER_INSIGHTS, DEMO_CREDENTIALS,
 } from '@/lib/demo-data';
 import { generateSpecializedLessonPlan, generateSpecializedQuiz } from '@/lib/ai-generators';
 
@@ -122,6 +125,30 @@ export async function GET(req: Request) {
 
     case 'messages':
       return NextResponse.json({ messages: DEMO_MESSAGES });
+
+    case 'classrooms':
+      return NextResponse.json({ classrooms: DEMO_CLASSROOMS });
+
+    case 'courses':
+      return NextResponse.json({ courses: DEMO_COURSES });
+
+    case 'admin-employees':
+      return NextResponse.json({ employees: DEMO_ADMIN_EMPLOYEES });
+
+    case 'admin-students':
+      return NextResponse.json({ students: DEMO_ADMIN_STUDENTS_LIST });
+
+    case 'teacher-insights':
+      return NextResponse.json(DEMO_TEACHER_INSIGHTS);
+
+    case 'credentials':
+      return NextResponse.json({ credentials: DEMO_CREDENTIALS });
+
+    case 'all-students':
+      return NextResponse.json({
+        students: [DEMO_STUDENT, DEMO_STUDENT_EITAN, DEMO_STUDENT_NOAM],
+        rewards: DEMO_REWARD_STATS_MAP,
+      });
 
     case 'user':
       const role = searchParams.get('role');

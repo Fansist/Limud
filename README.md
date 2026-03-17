@@ -11,44 +11,50 @@
 
 ---
 
-## What's New in v8.9 — Simplified Landing Page, AI Parent Check-ins, Expanded Services & Bug Audit
+## What's New in v8.9 — Named Demo System, AI Integration, Connected District
 
-### Landing Page Simplification
+### Fully Connected Demo System (Ofer Academy)
+- **District**: Ofer Academy — Premium subscription, AI enabled
+- **Admin**: Erez Ofer (`erez@ofer-academy.edu`) — Superintendent access, full district control
+- **Teacher**: Gregory Strachen (`strachen@ofer-academy.edu`) — Teaches Biology 101, Algebra II, English Literature
+- **Students**: 
+  - Lior Betzalel (`lior@ofer-academy.edu`) — 10th grade, top performer, 18-day streak
+  - Eitan Balan (`eitan@ofer-academy.edu`) — 9th grade, medium risk, needs Math support
+  - Noam Elgarisi (`noam@ofer-academy.edu`) — 10th grade, highest XP, 26-day streak
+- **Parent**: David Betzalel (`david@ofer-academy.edu`) — Lior's parent, with AI check-in
+- **All linked**: Students enrolled in teacher's courses, all in same district, parent sees child's data
+- **Password for all**: `password123`
+- Legacy accounts (`student@limud.edu`, etc.) still work — they redirect to the new demo identities
+
+### AI Integration (GenSpark Proxy)
+- OpenAI API key works through GenSpark's LLM proxy (`gpt-5-mini`)
+- AI Tutor, AI Grading, AI Lesson Planner, AI Quiz Generator — all functional
+- AI Parent Check-in generates real reports when API key is configured
+- Graceful fallback to structured templates when AI is unavailable
+
+### Landing Page Simplification (v8.9.0)
 - **Completely rewritten** landing page — removed heavy animations (floating particles, parallax hero, scroll-triggered counters), condensed from 1087 lines to ~400 lines
-- **Removed**: Sticky CTA bar, animated number counters, floating particle effects, platform logo grid, comparison table, "replaces" visual, integrations section, "How It Works" section
-- **Kept/Simplified**: Clean hero with dashboard preview, quick value props, feature grid (12 features), balanced competitor comparison cards, "Who it's for" cards, pricing (3 plans instead of 6), FAQ (6 questions), final CTA, clean footer
 - **Faster load time**, less JavaScript, simpler DOM structure
 - **Added AI features prominently**: "Parent Portal + AI", "AI Safety Monitor" highlighted in features
 
-### AI Parent Check-in Feature (NEW)
-- **New API**: `POST /api/parent/ai-checkin` — Generates an AI-powered report on a child's academic wellbeing
-- **Data analyzed**: Last 14 days of grades, tutor usage, study sessions, skills, streaks, XP
-- **Report covers**: Academic summary, engagement level, strengths, areas needing attention, emotional indicators, actionable recommendations
-- **Fallback mode**: Generates structured reports even without OpenAI API key
-- **GET endpoint**: Returns children with quick stats for the check-in UI
-- **Frontend**: Beautiful modal with stats bar, markdown rendering, and data source attribution
+### New Demo Page
+- Complete redesign of `/demo` page with role-grouped account cards
+- One-click login via NextAuth (no manual email/password entry)
+- Shows district context banner, credentials with copy buttons
+- Direct login as any of the 6+ demo accounts
 
-### Expanded Parent Services
-- **AI Check-in button** on each child card in parent dashboard — one click to generate a comprehensive AI report
-- **More quick actions**: Growth Reports, Messages, and Analytics links added alongside existing assignment/grading tools
-- **Works for both** homeschool parents and regular parents (homeschool parents see teacher tools + parent tools)
-- **Demo mode** generates sample check-in reports for testing
-
-### Expanded Admin Services
-- **System Health status cards**: System Status, Compliance, AI Features — all showing real-time operational status
-- **New quick actions**: Compliance Reports, AI Usage Monitor added alongside existing admin tools
-- **12 admin actions** total (up from 10): Employee Directory, Students, Schools, Classrooms, Announcements, Bulk Provisioning, Analytics, Billing, Settings, Audit Log, Compliance Reports, AI Usage Monitor
-- **Division by zero fix** in capacity overview when maxStudents/maxTeachers is 0
-
-### Comprehensive Bug Fixes
-1. **Notification ownership check** — `PUT /api/notifications` now verifies the notification belongs to the authenticated user before marking as read (previously any user could mark any notification as read by ID)
-2. **Grade route ADMIN authorization** — `POST /api/grade` now checks that ADMIN users can only grade submissions within their own district (previously ADMIN could grade any submission in any district)
-3. **Batch grade authorization** — `PUT /api/grade` now checks per-submission authorization in batch grading (previously skipped all auth checks)
-4. **Analytics empty courseIds** — `GET /api/analytics` now returns empty results early when no courseIds are found (previously queried with `{ in: [] }` which could cause unexpected results)
-5. **Submissions ADMIN access** — `GET /api/submissions` now handles ADMIN role properly (previously fell through to 403 Forbidden because ADMIN was not in `hasTeacherAccess()`)
-6. **Parent goals PUT role check** — `PUT /api/parent/goals` now verifies the user is a PARENT (previously any authenticated user could update parent goals)
-7. **Division by zero protection** — Fixed unsafe `s.maxScore!` divisions in parent reports API (4 instances); now uses `(s.maxScore || 100)` to prevent NaN
-8. **JSON.parse crash protection** — Fixed `JSON.parse(unlockedBadges)` in parent route that could crash if the field was null or malformed; now wrapped in try/catch with `[]` fallback
+### Comprehensive Bug Fixes (11 total)
+1. **Notification ownership check** — `PUT /api/notifications` now verifies notification belongs to user
+2. **Grade route ADMIN authorization** — `POST /api/grade` checks district membership
+3. **Batch grade authorization** — `PUT /api/grade` now validates per-submission
+4. **Analytics empty courseIds** — Returns early when no courseIds found
+5. **Submissions ADMIN access** — Handles ADMIN role properly
+6. **Parent goals PUT role check** — Verifies PARENT role
+7. **Division by zero protection** — Fixed `s.maxScore!` divisions (parent reports, skills, teacher insights, teacher reports — 8+ instances)
+8. **JSON.parse crash protection** — Rewards API `unlockedAvatars` / `unlockedBadges` (5 instances) wrapped in safeJsonParse with `[]` fallback
+9. **Parent route JSON.parse** — Already had try/catch but verified safe
+10. **Skills route division safety** — `s.maxScore || 1` protection
+11. **Teacher reports division safety** — `s.maxScore || 1` protection
 
 ---
 
@@ -136,24 +142,29 @@ Dashboard with AI Check-in, Children Management, Growth Reports, Messages, Goal 
 
 ---
 
-## Demo Accounts
-| Email | Password | Role |
-|-------|----------|------|
-| `student@limud.edu` | `password123` | Student |
-| `teacher@limud.edu` | `password123` | Teacher |
-| `admin@limud.edu` | `password123` | Admin |
-| `parent@limud.edu` | `password123` | Parent |
-| `master@limud.edu` | `LimudMaster2026!` | Master |
+## Demo Accounts (Ofer Academy)
+| Name | Email | Password | Role | Notes |
+|------|-------|----------|------|-------|
+| Lior Betzalel | `lior@ofer-academy.edu` | `password123` | Student | 10th grade, top performer |
+| Eitan Balan | `eitan@ofer-academy.edu` | `password123` | Student | 9th grade, needs Math help |
+| Noam Elgarisi | `noam@ofer-academy.edu` | `password123` | Student | 10th grade, highest XP |
+| Gregory Strachen | `strachen@ofer-academy.edu` | `password123` | Teacher | Bio, Algebra, English |
+| Erez Ofer | `erez@ofer-academy.edu` | `password123` | Admin | Superintendent access |
+| David Betzalel | `david@ofer-academy.edu` | `password123` | Parent | Lior's parent |
+| Master Demo | `master@limud.edu` | `LimudMaster2026!` | All roles | Full cross-role access |
+
+Legacy accounts (`student@limud.edu`, `teacher@limud.edu`, etc.) still work with `password123`.
 
 ---
 
 ## Version History
 
-### v8.9 (March 17, 2026) - Simplified Landing, AI Check-ins, Bug Audit
-- Simplified landing page (removed particles, counters, heavy animations)
-- AI parent check-in feature (API + frontend modal)
-- Expanded parent/admin dashboards with more services
-- 8 bug fixes across notifications, grading, analytics, submissions, goals
+### v8.9 (March 17, 2026) - Named Demo System, AI Integration, 11 Bug Fixes
+- Fully connected demo: Ofer Academy (Erez Ofer, Gregory Strachen, Lior/Eitan/Noam, David Betzalel)
+- AI working via GenSpark proxy (gpt-5-mini) — Tutor, Grading, Lessons, Check-ins
+- Simplified landing page (1087 -> 400 lines)
+- Redesigned /demo page with one-click login
+- 11 bug fixes across auth, grading, analytics, rewards, reports
 
 ### v8.8 (March 15, 2026) - Bug Fixes & Landing Page Refresh
 - Fixed ADMIN registration, parent rewards, games rate action

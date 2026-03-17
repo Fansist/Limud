@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { XPBar, StreakDisplay, CoinDisplay, StatsGrid, BadgeGrid, AvatarShop } from '@/components/gamification/RewardComponents';
-import { DEMO_REWARD_STATS } from '@/lib/demo-data';
+import { DEMO_REWARD_STATS_DEFAULT as DEMO_REWARD_STATS } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import { Trophy, ShoppingBag, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';

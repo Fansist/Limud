@@ -97,7 +97,7 @@ export const GET = apiHandler(async (req: Request) => {
       take: 10,
       select: { score: true, maxScore: true },
     });
-    const scores = subs.map(s => (s.score! / s.maxScore!) * 100);
+    const scores = subs.map(s => (s.score! / (s.maxScore || 1)) * 100);
     const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
     const stats = student.rewardStats;
     const prediction = predictGrade(scores, avg, stats?.currentStreak || 0, stats?.totalStudyMinutes || 0);

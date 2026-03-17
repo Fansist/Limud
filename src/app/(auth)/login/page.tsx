@@ -9,10 +9,10 @@ import Link from 'next/link';
 import { BookOpen, ArrowRight, Sparkles, GraduationCap, Shield, Eye, Users } from 'lucide-react';
 
 const DEMO_ACCOUNTS = [
-  { role: 'Student', email: 'student@limud.edu', password: 'password123', icon: <GraduationCap size={20} />, desc: 'AI tutor, assignments, rewards', color: 'from-blue-500 to-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200' },
-  { role: 'Teacher', email: 'teacher@limud.edu', password: 'password123', icon: <Users size={20} />, desc: 'Grading, analytics, management', color: 'from-green-500 to-green-600', bg: 'hover:bg-green-50 hover:border-green-200' },
-  { role: 'Admin', email: 'admin@limud.edu', password: 'password123', icon: <Shield size={20} />, desc: 'District admin, provisioning', color: 'from-purple-500 to-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200' },
-  { role: 'Parent', email: 'parent@limud.edu', password: 'password123', icon: <Eye size={20} />, desc: 'View-only child progress', color: 'from-pink-500 to-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200' },
+  { role: 'Student', email: 'lior@ofer-academy.edu', password: 'password123', icon: <GraduationCap size={20} />, desc: 'Lior Betzalel — AI tutor, assignments, rewards', color: 'from-blue-500 to-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200' },
+  { role: 'Teacher', email: 'strachen@ofer-academy.edu', password: 'password123', icon: <Users size={20} />, desc: 'Gregory Strachen — Grading, analytics', color: 'from-green-500 to-green-600', bg: 'hover:bg-green-50 hover:border-green-200' },
+  { role: 'Admin', email: 'erez@ofer-academy.edu', password: 'password123', icon: <Shield size={20} />, desc: 'Erez Ofer — Superintendent access', color: 'from-purple-500 to-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200' },
+  { role: 'Parent', email: 'david@ofer-academy.edu', password: 'password123', icon: <Eye size={20} />, desc: "David Betzalel — Lior's parent", color: 'from-pink-500 to-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200' },
 ];
 
 export default function LoginPage() {
