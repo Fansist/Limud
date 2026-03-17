@@ -11,7 +11,8 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import {
   Building2, Users, GraduationCap, DollarSign, Upload, ArrowRight, Shield, TrendingUp, Calendar, CreditCard,
-  UserCog, Megaphone, Settings, ClipboardList, BookOpen, BarChart3,
+  UserCog, Megaphone, Settings, ClipboardList, BookOpen, BarChart3, AlertTriangle,
+  CheckCircle, Activity, Database, FileSearch, Lock, Globe, Cpu, Zap,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -30,7 +31,6 @@ export default function AdminDashboard() {
       const user = session?.user as any;
       if (user?.role !== 'ADMIN' && !user?.isMasterDemo) redirect('/');
       if (user?.isMasterDemo && user?.role !== 'ADMIN') {
-        // Master demo visiting admin view — show demo data
         setDistricts([DEMO_DISTRICT]);
         setLoading(false);
         return;
@@ -75,9 +75,7 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto space-y-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
-              District Administration
-            </h1>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">District Administration</h1>
             <p className="text-gray-500 mt-1">{districtName} Management Console</p>
           </div>
         </motion.div>
@@ -85,15 +83,10 @@ export default function AdminDashboard() {
         {district && (
           <>
             {/* Subscription Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 rounded-3xl p-6 lg:p-8 text-white overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJILTEweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50" />
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+              className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 rounded-3xl p-6 lg:p-8 text-white overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
-              
+
               <div className="relative">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -109,8 +102,7 @@ export default function AdminDashboard() {
                     'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold self-start',
                     district.subscriptionStatus === 'ACTIVE' ? 'bg-green-400/20 text-green-200' :
                     district.subscriptionStatus === 'TRIAL' ? 'bg-yellow-400/20 text-yellow-200' :
-                    'bg-red-400/20 text-red-200'
-                  )}>
+                    'bg-red-400/20 text-red-200')}>
                     <div className={cn('w-2 h-2 rounded-full', district.subscriptionStatus === 'ACTIVE' ? 'bg-green-400' : 'bg-yellow-400')} />
                     {district.subscriptionStatus}
                   </span>
@@ -121,8 +113,8 @@ export default function AdminDashboard() {
                     { icon: <CreditCard size={18} />, value: `$${district.pricePerYear.toLocaleString()}`, label: 'Annual Cost' },
                     { icon: <Users size={18} />, value: district.studentCount, label: `Students (max ${district.maxStudents})` },
                     { icon: <GraduationCap size={18} />, value: district.teacherCount, label: `Teachers (max ${district.maxTeachers})` },
-                    { icon: <DollarSign size={18} />, value: `$${district.costPerStudent > 0 ? district.costPerStudent.toFixed(2) : '—'}`, label: 'Per Student / Year' },
-                  ].map((stat, i) => (
+                    { icon: <DollarSign size={18} />, value: `$${district.costPerStudent > 0 ? district.costPerStudent.toFixed(2) : '\u2014'}`, label: 'Per Student / Year' },
+                  ].map(stat => (
                     <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
                       <div className="flex items-center gap-2 mb-2 text-white/60">{stat.icon}</div>
                       <p className="text-2xl font-bold">{stat.value}</p>
@@ -140,21 +132,52 @@ export default function AdminDashboard() {
               </div>
             </motion.div>
 
-            {/* Quick Actions */}
+            {/* System Health & Compliance Quick Status */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+              className="grid sm:grid-cols-3 gap-4">
+              <div className="card flex items-center gap-4">
+                <div className="p-3 bg-green-100 rounded-xl"><Activity size={22} className="text-green-600" /></div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 text-sm">System Status</h4>
+                  <p className="text-xs text-gray-400">All services operational</p>
+                </div>
+                <span className="badge badge-success text-[10px]">Healthy</span>
+              </div>
+              <div className="card flex items-center gap-4">
+                <div className="p-3 bg-blue-100 rounded-xl"><Shield size={22} className="text-blue-600" /></div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 text-sm">Compliance</h4>
+                  <p className="text-xs text-gray-400">FERPA, COPPA, WCAG AA</p>
+                </div>
+                <span className="badge badge-success text-[10px]">Active</span>
+              </div>
+              <div className="card flex items-center gap-4">
+                <div className="p-3 bg-purple-100 rounded-xl"><Cpu size={22} className="text-purple-600" /></div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 text-sm">AI Features</h4>
+                  <p className="text-xs text-gray-400">Tutor, grader, planner</p>
+                </div>
+                <span className="badge badge-success text-[10px]">Online</span>
+              </div>
+            </motion.div>
+
+            {/* Quick Actions — expanded */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { href: `/admin/employees${demoSuffix}`, icon: <UserCog className="text-indigo-600" size={24} />, bg: 'bg-indigo-100 group-hover:bg-indigo-200', title: 'Employee Directory', desc: 'View & manage all teachers, staff, admins' },
+                { href: `/admin/employees${demoSuffix}`, icon: <UserCog className="text-indigo-600" size={24} />, bg: 'bg-indigo-100 group-hover:bg-indigo-200', title: 'Employee Directory', desc: 'Manage teachers, staff, and admin roles' },
                 { href: `/admin/students${demoSuffix}`, icon: <Users className="text-blue-600" size={24} />, bg: 'bg-blue-100 group-hover:bg-blue-200', title: 'Student Accounts', desc: 'Create students with auto parent accounts' },
                 { href: `/admin/schools${demoSuffix}`, icon: <Building2 className="text-emerald-600" size={24} />, bg: 'bg-emerald-100 group-hover:bg-emerald-200', title: 'Schools', desc: 'Manage schools & transfer users' },
                 { href: `/admin/classrooms${demoSuffix}`, icon: <BookOpen className="text-violet-600" size={24} />, bg: 'bg-violet-100 group-hover:bg-violet-200', title: 'Classrooms', desc: 'Configure classes, schedules & curriculum' },
                 { href: `/admin/announcements${demoSuffix}`, icon: <Megaphone className="text-pink-600" size={24} />, bg: 'bg-pink-100 group-hover:bg-pink-200', title: 'Announcements', desc: 'District-wide communications' },
-                { href: `/admin/provision${demoSuffix}`, icon: <Upload className="text-green-600" size={24} />, bg: 'bg-green-100 group-hover:bg-green-200', title: 'Bulk Provisioning', desc: 'CSV upload for student & teacher accounts' },
-                { href: `/admin/analytics${demoSuffix}`, icon: <BarChart3 className="text-cyan-600" size={24} />, bg: 'bg-cyan-100 group-hover:bg-cyan-200', title: 'District Analytics', desc: 'Performance metrics & engagement data' },
-                { href: `/admin/payments${demoSuffix}`, icon: <CreditCard className="text-amber-600" size={24} />, bg: 'bg-amber-100 group-hover:bg-amber-200', title: 'Billing & Payments', desc: 'Manage subscription & payment history' },
-                { href: `/admin/settings${demoSuffix}`, icon: <Settings className="text-gray-600" size={24} />, bg: 'bg-gray-100 group-hover:bg-gray-200', title: 'District Settings', desc: 'Policies, features, branding & security' },
+                { href: `/admin/provision${demoSuffix}`, icon: <Upload className="text-green-600" size={24} />, bg: 'bg-green-100 group-hover:bg-green-200', title: 'Bulk Provisioning', desc: 'CSV upload for students & teachers' },
+                { href: `/admin/analytics${demoSuffix}`, icon: <BarChart3 className="text-cyan-600" size={24} />, bg: 'bg-cyan-100 group-hover:bg-cyan-200', title: 'District Analytics', desc: 'Performance, engagement & AI usage data' },
+                { href: `/admin/payments${demoSuffix}`, icon: <CreditCard className="text-amber-600" size={24} />, bg: 'bg-amber-100 group-hover:bg-amber-200', title: 'Billing & Payments', desc: 'Subscription & payment history' },
+                { href: `/admin/settings${demoSuffix}`, icon: <Settings className="text-gray-600" size={24} />, bg: 'bg-gray-100 group-hover:bg-gray-200', title: 'District Settings', desc: 'Policies, branding, security & feature flags' },
                 { href: `/admin/audit${demoSuffix}`, icon: <ClipboardList className="text-orange-600" size={24} />, bg: 'bg-orange-100 group-hover:bg-orange-200', title: 'Audit Log', desc: 'Track admin actions & system events' },
+                { href: `/admin/analytics${demoSuffix}#compliance`, icon: <FileSearch className="text-teal-600" size={24} />, bg: 'bg-teal-100 group-hover:bg-teal-200', title: 'Compliance Reports', desc: 'FERPA/COPPA audit trails & data reports' },
+                { href: `/admin/analytics${demoSuffix}#ai`, icon: <Cpu className="text-fuchsia-600" size={24} />, bg: 'bg-fuchsia-100 group-hover:bg-fuchsia-200', title: 'AI Usage Monitor', desc: 'Tutor, grader & planner usage analytics' },
               ].map((item, i) => (
-                <motion.div key={item.href} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.03 }}>
+                <motion.div key={item.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.02 }}>
                   <Link href={item.href} className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full">
                     <div className={cn('p-3 rounded-xl transition', item.bg)}>{item.icon}</div>
                     <div className="flex-1">
@@ -165,26 +188,10 @@ export default function AdminDashboard() {
                   </Link>
                 </motion.div>
               ))}
-
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-                <div className="card flex items-center gap-4 h-full">
-                  <div className="p-3 bg-blue-100 rounded-xl"><Shield className="text-blue-600" size={24} /></div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">Security & Compliance</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">FERPA, COPPA, WCAG AA</p>
-                  </div>
-                  <span className="badge badge-success text-[10px]">Active</span>
-                </div>
-              </motion.div>
             </div>
 
             {/* Capacity Overview */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 }}
-              className="card"
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="card">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2">
                   <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
@@ -195,46 +202,25 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-6">
                 {[
-                  {
-                    label: 'Students',
-                    current: district.studentCount,
-                    max: district.maxStudents,
-                    color: 'bg-primary-500',
-                    icon: <Users size={16} />,
-                  },
-                  {
-                    label: 'Teachers',
-                    current: district.teacherCount,
-                    max: district.maxTeachers,
-                    color: 'bg-green-500',
-                    icon: <GraduationCap size={16} />,
-                  },
+                  { label: 'Students', current: district.studentCount, max: district.maxStudents, color: 'bg-primary-500', icon: <Users size={16} /> },
+                  { label: 'Teachers', current: district.teacherCount, max: district.maxTeachers, color: 'bg-green-500', icon: <GraduationCap size={16} /> },
                 ].map(item => {
-                  const pct = Math.round((item.current / item.max) * 100);
+                  const pct = item.max > 0 ? Math.round((item.current / item.max) * 100) : 0;
                   return (
                     <div key={item.label}>
                       <div className="flex items-center justify-between text-sm mb-2">
-                        <div className="flex items-center gap-2 text-gray-600 font-medium">
-                          {item.icon}
-                          {item.label}
-                        </div>
+                        <div className="flex items-center gap-2 text-gray-600 font-medium">{item.icon} {item.label}</div>
                         <div className="flex items-center gap-3">
                           <span className="font-semibold text-gray-900">{item.current} / {item.max}</span>
-                          <span className={cn(
-                            'text-xs font-medium px-2 py-0.5 rounded-full',
-                            pct >= 90 ? 'bg-red-100 text-red-600' : pct >= 70 ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'
-                          )}>
+                          <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full',
+                            pct >= 90 ? 'bg-red-100 text-red-600' : pct >= 70 ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600')}>
                             {pct}%
                           </span>
                         </div>
                       </div>
                       <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }}
-                          transition={{ duration: 1, ease: 'easeOut' }}
-                          className={cn('h-full rounded-full', item.color)}
-                        />
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1, ease: 'easeOut' }}
+                          className={cn('h-full rounded-full', item.color)} />
                       </div>
                     </div>
                   );

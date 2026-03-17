@@ -60,7 +60,7 @@ export const GET = apiHandler(async (req: Request) => {
             longestStreak: child.rewardStats.longestStreak,
             tutorSessionsCount: child.rewardStats.tutorSessionsCount,
             assignmentsCompleted: child.rewardStats.assignmentsCompleted,
-            badges: JSON.parse(child.rewardStats.unlockedBadges),
+            badges: (() => { try { return JSON.parse(child.rewardStats.unlockedBadges || '[]'); } catch { return []; } })(),
           }
         : null,
     };

@@ -5,12 +5,15 @@ import { redirect } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
 import { DEMO_PARENT_CHILDREN } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
 import {
-  Eye, BookOpen, Trophy, TrendingUp, Flame, Zap, GraduationCap, MessageCircle, Star, Home, Plus, Wand2, BarChart3, Users,
+  Eye, BookOpen, Trophy, TrendingUp, Flame, Zap, GraduationCap, MessageCircle,
+  Star, Home, Plus, Wand2, BarChart3, Users, Brain, Shield, Target,
+  Sparkles, RefreshCw, ChevronDown, ChevronRight, Cpu, X,
 } from 'lucide-react';
 
 export default function ParentDashboard() {
@@ -18,6 +21,11 @@ export default function ParentDashboard() {
   const isDemo = useIsDemo();
   const [children, setChildren] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // AI Check-in state
+  const [checkinLoading, setCheckinLoading] = useState<string | null>(null);
+  const [checkinReport, setCheckinReport] = useState<any>(null);
+  const [showCheckin, setShowCheckin] = useState(false);
 
   const isHomeschoolParent = !isDemo && (session?.user as any)?.isHomeschoolParent === true;
 
@@ -31,7 +39,6 @@ export default function ParentDashboard() {
       const user = session?.user as any;
       if (user?.role !== 'PARENT' && !user?.isMasterDemo) redirect('/');
       if (user?.isMasterDemo && user?.role !== 'PARENT') {
-        // Master demo visiting parent view — show demo data
         setChildren(DEMO_PARENT_CHILDREN);
         setLoading(false);
         return;
@@ -54,6 +61,41 @@ export default function ParentDashboard() {
     }
   }
 
+  async function runAICheckin(childId: string, childName: string) {
+    if (isDemo) {
+      // Generate a demo report
+      setCheckinReport({
+        report: `## Check-In Report for ${childName}\n\n### Academic Summary\n${childName} has completed 4 graded assignments over the past two weeks with an average score of **88%**. This is excellent work! They are performing well academically.\n\n### Engagement\n${childName} is currently at **Level 12** with a **14-day streak**. They've been actively using the AI tutor (5 sessions recently), which shows great initiative. Total study time logged: 210 minutes.\n\n### Areas of Strength\n${childName} is showing improvement in: Linear Equations, Photosynthesis. Keep encouraging these areas!\n\n### Recommendations\n1. Great streak! Keep the momentum going.\n2. The AI tutor usage is great. Check the conversation logs to see what topics they're exploring.\n3. Celebrate their achievements and set a new learning goal together.`,
+        childName,
+        generatedAt: new Date().toISOString(),
+        summary: { averageScore: 88, recentSubmissions: 4, tutorSessions: 5, currentStreak: 14, studyMinutes: 210, level: 12 },
+      });
+      setShowCheckin(true);
+      return;
+    }
+
+    setCheckinLoading(childId);
+    try {
+      const res = await fetch('/api/parent/ai-checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ childId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCheckinReport(data);
+        setShowCheckin(true);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Failed to generate check-in');
+      }
+    } catch {
+      toast.error('Failed to connect');
+    } finally {
+      setCheckinLoading(null);
+    }
+  }
+
   if (status === 'loading' || loading) {
     return (
       <DashboardLayout>
@@ -72,105 +114,76 @@ export default function ParentDashboard() {
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                'w-10 h-10 rounded-xl flex items-center justify-center',
-                isHomeschoolParent ? 'bg-amber-50' : 'bg-primary-50'
-              )}>
-                {isHomeschoolParent ? (
-                  <Home size={20} className="text-amber-500" />
-                ) : (
-                  <Eye size={20} className="text-primary-500" />
-                )}
+              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center',
+                isHomeschoolParent ? 'bg-amber-50' : 'bg-primary-50')}>
+                {isHomeschoolParent ? <Home size={20} className="text-amber-500" /> : <Eye size={20} className="text-primary-500" />}
               </div>
               <div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
                   {isHomeschoolParent ? 'Homeschool Dashboard' : 'Parent Portal'}
                 </h1>
                 <p className="text-gray-500 text-sm">
-                  {isHomeschoolParent
-                    ? 'Manage your homeschool and track your children\'s progress'
-                    : 'View your child\'s academic progress'}
+                  {isHomeschoolParent ? 'Manage your homeschool and track progress' : 'View your child\'s academic progress'}
                 </p>
               </div>
             </div>
             {isHomeschoolParent && (
-              <Link
-                href={`/parent/children${demoSuffix}`}
-                className="btn-primary flex items-center gap-2 text-sm"
-              >
-                <Users size={16} />
-                Manage Children
+              <Link href={`/parent/children${demoSuffix}`} className="btn-primary flex items-center gap-2 text-sm">
+                <Users size={16} /> Manage Children
               </Link>
             )}
           </div>
         </motion.div>
 
-        {/* Homeschool Quick Actions */}
-        {isHomeschoolParent && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3"
-          >
-            {[
+        {/* Parent Quick Actions — expanded for both homeschool and regular parents */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+          {[
+            ...(isHomeschoolParent ? [
               { href: '/teacher/assignments', label: 'Create Assignment', icon: <Plus size={18} />, color: 'bg-blue-50 text-blue-600 hover:bg-blue-100' },
               { href: '/teacher/grading', label: 'AI Auto-Grade', icon: <GraduationCap size={18} />, color: 'bg-green-50 text-green-600 hover:bg-green-100' },
               { href: '/teacher/lesson-planner', label: 'Lesson Planner', icon: <Wand2 size={18} />, color: 'bg-purple-50 text-purple-600 hover:bg-purple-100' },
-              { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={18} />, color: 'bg-amber-50 text-amber-600 hover:bg-amber-100' },
-            ].map(action => (
-              <Link
-                key={action.href}
-                href={action.href}
-                className={cn('rounded-2xl p-4 flex flex-col items-center gap-2 transition-all text-center', action.color)}
-              >
-                {action.icon}
-                <span className="text-xs font-medium">{action.label}</span>
-              </Link>
-            ))}
-          </motion.div>
-        )}
+            ] : []),
+            { href: `/parent/reports${demoSuffix}`, label: 'Growth Reports', icon: <TrendingUp size={18} />, color: 'bg-pink-50 text-pink-600 hover:bg-pink-100' },
+            { href: `/parent/messages${demoSuffix}`, label: 'Messages', icon: <MessageCircle size={18} />, color: 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' },
+            { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={18} />, color: 'bg-amber-50 text-amber-600 hover:bg-amber-100' },
+          ].map(action => (
+            <Link key={action.href + action.label} href={action.href}
+              className={cn('rounded-2xl p-4 flex flex-col items-center gap-2 transition-all text-center', action.color)}>
+              {action.icon}
+              <span className="text-xs font-medium">{action.label}</span>
+            </Link>
+          ))}
+        </motion.div>
 
         {children.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="card text-center py-16"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card text-center py-16">
             <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Eye size={28} className="text-gray-400" />
             </div>
             <p className="text-gray-400 text-lg mb-2 font-medium">No linked students found</p>
             <p className="text-gray-300 text-sm max-w-sm mx-auto mb-4">
-              {isHomeschoolParent
-                ? 'Add your children to get started with your homeschool.'
-                : 'Contact your school administrator to link your student account to this parent portal.'}
+              {isHomeschoolParent ? 'Add your children to get started.' : 'Contact your school administrator to link your student account.'}
             </p>
             {isHomeschoolParent && (
               <Link href={`/parent/children${demoSuffix}`} className="btn-primary inline-flex items-center gap-2">
-                <Plus size={16} />
-                Add Your First Child
+                <Plus size={16} /> Add Your First Child
               </Link>
             )}
           </motion.div>
         ) : (
           children.map((child, ci) => (
-            <motion.div
-              key={child.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: ci * 0.1 }}
-              className="space-y-4"
-            >
-              {/* Child Header */}
+            <motion.div key={child.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: ci * 0.1 }} className="space-y-4">
+
+              {/* Child Header Card */}
               <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 rounded-3xl p-6 lg:p-8 text-white overflow-hidden">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJILTEweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50" />
-                
                 <div className="relative">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center">
                         <GraduationCap size={28} />
@@ -180,28 +193,38 @@ export default function ParentDashboard() {
                         <p className="text-white/60 text-sm">Grade: {child.gradeLevel || 'N/A'}</p>
                       </div>
                     </div>
-                    {child.rewards && (
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
-                          <p className="text-xl font-bold flex items-center gap-1">
-                            <Zap size={14} className="text-purple-300" />
-                            Lv.{child.rewards.level}
-                          </p>
-                          <p className="text-[10px] text-white/50">Level</p>
+
+                    <div className="flex items-center gap-3">
+                      {child.rewards && (
+                        <div className="flex items-center gap-3">
+                          <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
+                            <p className="text-xl font-bold flex items-center gap-1">
+                              <Zap size={14} className="text-purple-300" />Lv.{child.rewards.level}
+                            </p>
+                            <p className="text-[10px] text-white/50">Level</p>
+                          </div>
+                          <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
+                            <p className="text-xl font-bold flex items-center gap-1">
+                              <Flame size={14} className="text-orange-300" />{child.rewards.currentStreak}
+                            </p>
+                            <p className="text-[10px] text-white/50">Streak</p>
+                          </div>
                         </div>
-                        <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
-                          <p className="text-xl font-bold flex items-center gap-1">
-                            <Flame size={14} className="text-orange-300" />
-                            {child.rewards.currentStreak}
-                          </p>
-                          <p className="text-[10px] text-white/50">Streak</p>
-                        </div>
-                        <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
-                          <p className="text-xl font-bold">{child.rewards.assignmentsCompleted}</p>
-                          <p className="text-[10px] text-white/50">Done</p>
-                        </div>
-                      </div>
-                    )}
+                      )}
+
+                      {/* AI Check-in Button */}
+                      <button
+                        onClick={() => runAICheckin(child.id, child.name)}
+                        disabled={checkinLoading === child.id}
+                        className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition border border-white/20"
+                      >
+                        {checkinLoading === child.id ? (
+                          <><div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> Analyzing...</>
+                        ) : (
+                          <><Sparkles size={16} /> AI Check-in</>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {child.averageScore !== null && (
@@ -211,17 +234,10 @@ export default function ParentDashboard() {
                         <span className="font-bold text-lg">{child.averageScore}%</span>
                       </div>
                       <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${child.averageScore}%` }}
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${child.averageScore}%` }}
                           transition={{ duration: 1 }}
-                          className={cn(
-                            'h-full rounded-full',
-                            child.averageScore >= 90 ? 'bg-green-400' :
-                            child.averageScore >= 70 ? 'bg-yellow-400' :
-                            'bg-red-400'
-                          )}
-                        />
+                          className={cn('h-full rounded-full',
+                            child.averageScore >= 90 ? 'bg-green-400' : child.averageScore >= 70 ? 'bg-yellow-400' : 'bg-red-400')} />
                       </div>
                     </div>
                   )}
@@ -281,7 +297,7 @@ export default function ParentDashboard() {
                   <div className="flex flex-wrap gap-2">
                     {child.rewards.badges.map((b: string) => (
                       <span key={b} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium border border-amber-100">
-                        🏆 {b}
+                        {b}
                       </span>
                     ))}
                   </div>
@@ -299,7 +315,6 @@ export default function ParentDashboard() {
                 <div className="space-y-3">
                   {(!child.recentSubmissions || child.recentSubmissions.length === 0) ? (
                     <div className="text-center py-8">
-                      <div className="text-3xl mb-2">📝</div>
                       <p className="text-sm text-gray-400">No submissions yet</p>
                     </div>
                   ) : (
@@ -314,44 +329,28 @@ export default function ParentDashboard() {
                         <div key={i} className="p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
                           <div className="flex items-center justify-between mb-2">
                             <div>
-                              <p className="text-sm font-semibold text-gray-900">
-                                {sub.assignmentTitle}
-                              </p>
+                              <p className="text-sm font-semibold text-gray-900">{sub.assignmentTitle}</p>
                               <p className="text-xs text-gray-400">{sub.courseName}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className={cn(
-                                'badge text-[10px]',
-                                sub.status === 'GRADED' ? 'badge-success' :
-                                sub.status === 'SUBMITTED' ? 'badge-info' :
-                                'badge-warning'
-                              )}>
+                              <span className={cn('badge text-[10px]',
+                                sub.status === 'GRADED' ? 'badge-success' : sub.status === 'SUBMITTED' ? 'badge-info' : 'badge-warning')}>
                                 {sub.status}
                               </span>
                               {pct !== null && (
-                                <div className="flex items-center gap-2">
-                                  <span className={cn(
-                                    'font-bold text-sm',
-                                    pct >= 90 ? 'text-green-600' :
-                                    pct >= 70 ? 'text-amber-600' :
-                                    'text-red-600'
-                                  )}>
-                                    {sub.score}/{sub.maxScore}
-                                  </span>
-                                </div>
+                                <span className={cn('font-bold text-sm',
+                                  pct >= 90 ? 'text-green-600' : pct >= 70 ? 'text-amber-600' : 'text-red-600')}>
+                                  {sub.score}/{sub.maxScore}
+                                </span>
                               )}
                             </div>
                           </div>
-
                           {pct !== null && (
                             <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mb-2">
-                              <div
-                                className={cn('h-full rounded-full', pct >= 90 ? 'bg-green-500' : pct >= 70 ? 'bg-amber-500' : 'bg-red-500')}
-                                style={{ width: `${pct}%` }}
-                              />
+                              <div className={cn('h-full rounded-full', pct >= 90 ? 'bg-green-500' : pct >= 70 ? 'bg-amber-500' : 'bg-red-500')}
+                                style={{ width: `${pct}%` }} />
                             </div>
                           )}
-
                           {feedback && (
                             <div className="mt-2 text-xs text-gray-600 bg-white p-3 rounded-lg border border-gray-100">
                               <div className="flex items-center gap-1.5 mb-1">
@@ -371,6 +370,67 @@ export default function ParentDashboard() {
           ))
         )}
       </div>
+
+      {/* AI Check-in Modal */}
+      <AnimatePresence>
+        {showCheckin && checkinReport && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowCheckin(false)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+              <div className="bg-gradient-to-r from-primary-600 to-accent-600 p-5 text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold">AI Check-in: {checkinReport.childName}</h3>
+                    <p className="text-white/60 text-xs">{new Date(checkinReport.generatedAt).toLocaleDateString()} at {new Date(checkinReport.generatedAt).toLocaleTimeString()}</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowCheckin(false)} className="p-2 hover:bg-white/10 rounded-lg transition">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Quick Stats Bar */}
+              {checkinReport.summary && (
+                <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-4">
+                  {[
+                    { label: 'Avg Score', value: checkinReport.summary.averageScore !== null ? `${checkinReport.summary.averageScore}%` : 'N/A' },
+                    { label: 'Submissions', value: checkinReport.summary.recentSubmissions },
+                    { label: 'Tutor Chats', value: checkinReport.summary.tutorSessions },
+                    { label: 'Streak', value: `${checkinReport.summary.currentStreak}d` },
+                    { label: 'Study Time', value: `${checkinReport.summary.studyMinutes}m` },
+                  ].map(s => (
+                    <div key={s.label} className="text-center">
+                      <p className="text-sm font-bold text-gray-900">{s.value}</p>
+                      <p className="text-[10px] text-gray-400">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex-1 overflow-y-auto p-5">
+                <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-600 prose-strong:text-gray-800 prose-li:text-gray-600">
+                  <ReactMarkdown>{checkinReport.report}</ReactMarkdown>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+                <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                  <Cpu size={10} /> AI-generated based on the last 14 days of data
+                </p>
+                <button onClick={() => setShowCheckin(false)} className="btn-primary text-sm px-4 py-2">
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }

@@ -33,7 +33,7 @@ export const GET = apiHandler(async (req: Request) => {
       },
     });
 
-    const recentScores = recentSubs.map(s => (s.score! / s.maxScore!) * 100);
+    const recentScores = recentSubs.map(s => (s.score! / (s.maxScore || 100)) * 100);
     const avgScore = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : null;
 
     // Get skill data
@@ -60,7 +60,7 @@ export const GET = apiHandler(async (req: Request) => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekSubs = recentSubs.filter(s => s.gradedAt && new Date(s.gradedAt) > weekAgo);
-    const weekScores = weekSubs.map(s => (s.score! / s.maxScore!) * 100);
+    const weekScores = weekSubs.map(s => (s.score! / (s.maxScore || 100)) * 100);
     const weekAvg = weekScores.length > 0 ? weekScores.reduce((a, b) => a + b, 0) / weekScores.length : null;
 
     // Study plan sessions this week
@@ -88,7 +88,7 @@ export const GET = apiHandler(async (req: Request) => {
     recentSubs.forEach(s => {
       const subj = s.assignment.course.subject;
       if (!subjectScores[subj]) subjectScores[subj] = [];
-      subjectScores[subj].push((s.score! / s.maxScore!) * 100);
+      subjectScores[subj].push((s.score! / (s.maxScore || 100)) * 100);
     });
     const subjectAverages = Object.entries(subjectScores).map(([subject, scores]) => ({
       subject,
@@ -151,7 +151,7 @@ export const GET = apiHandler(async (req: Request) => {
         subject: s.assignment.course.subject,
         score: s.score,
         maxScore: s.maxScore,
-        percentage: Math.round((s.score! / s.maxScore!) * 100),
+        percentage: Math.round((s.score! / (s.maxScore || 100)) * 100),
         date: s.gradedAt,
       })),
     });

@@ -150,18 +150,27 @@ export const GET = apiHandler(async (req: Request) => {
     return NextResponse.json({ submissions: enriched });
   }
 
-  if (hasTeacherAccess(user)) {
+  // BUG FIX: Handle ADMIN role for viewing submissions (was falling through to 403)
+  if (hasTeacherAccess(user) || user.role === 'ADMIN') {
     if (!assignmentId) {
-      return NextResponse.json({ error: 'assignmentId required for teachers' }, { status: 400 });
+      return NextResponse.json({ error: 'assignmentId required for teachers/admins' }, { status: 400 });
     }
 
-    // Verify access - teacher owns this assignment or homeschool parent's district
+    // Verify access based on role
     if (user.role === 'TEACHER') {
       const assignment = await prisma.assignment.findFirst({
         where: { id: assignmentId, createdById: user.id },
       });
       if (!assignment) {
         return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+      }
+    } else if (user.role === 'ADMIN') {
+      // ADMIN can view submissions for assignments in their district
+      const assignment = await prisma.assignment.findFirst({
+        where: { id: assignmentId, course: { districtId: user.districtId } },
+      });
+      if (!assignment) {
+        return NextResponse.json({ error: 'Not authorized — assignment not in your district' }, { status: 403 });
       }
     } else if (user.role === 'PARENT' && user.isHomeschoolParent) {
       const assignment = await prisma.assignment.findFirst({

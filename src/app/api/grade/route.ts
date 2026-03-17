@@ -26,9 +26,12 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
   }
 
-  // Verify access: teacher must own the assignment, or homeschool parent must own the district
+  // Verify access: teacher must own the assignment, admin must be in same district, homeschool parent must own the district
   if (user.role === 'TEACHER' && submission.assignment.createdById !== user.id) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+  }
+  if (user.role === 'ADMIN' && submission.assignment.course.districtId !== user.districtId) {
+    return NextResponse.json({ error: 'Not authorized — assignment is not in your district' }, { status: 403 });
   }
   if (user.role === 'PARENT' && user.isHomeschoolParent && submission.assignment.course.districtId !== user.districtId) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
@@ -107,10 +110,15 @@ export const PUT = apiHandler(async (req: Request) => {
     try {
       const submission = await prisma.submission.findUnique({
         where: { id },
-        include: { assignment: true },
+        include: { assignment: { include: { course: true } } },
       });
 
       if (!submission || submission.status === 'GRADED') continue;
+
+      // BUG FIX: Verify authorization for batch grading — same rules as single grade
+      if (user.role === 'TEACHER' && submission.assignment.createdById !== user.id) continue;
+      if (user.role === 'ADMIN' && submission.assignment.course.districtId !== user.districtId) continue;
+      if (user.role === 'PARENT' && user.isHomeschoolParent && submission.assignment.course.districtId !== user.districtId) continue;
 
       await prisma.submission.update({
         where: { id },

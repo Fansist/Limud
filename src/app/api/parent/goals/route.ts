@@ -46,6 +46,10 @@ export const POST = apiHandler(async (req: Request) => {
 // PUT /api/parent/goals - Update goal
 export const PUT = apiHandler(async (req: Request) => {
   const user = await requireAuth();
+  // BUG FIX: Verify user is a PARENT before allowing goal updates
+  if (user.role !== 'PARENT') {
+    return NextResponse.json({ error: 'Parents only' }, { status: 403 });
+  }
   const { goalId, currentValue, status, milestoneTitle } = await req.json();
 
   const goal = await prisma.parentGoal.findFirst({

@@ -30,6 +30,13 @@ export const GET = apiHandler(async (req: Request) => {
     courseIds = courses.map(c => c.id);
   }
 
+  if (courseIds.length === 0) {
+    return NextResponse.json({
+      students: [],
+      summary: { totalStudents: 0, atRisk: 0, averageScore: 0, pendingSubmissions: 0 },
+    });
+  }
+
   // Get students with their performance data
   const enrollments = await prisma.enrollment.findMany({
     where: { courseId: { in: courseIds } },

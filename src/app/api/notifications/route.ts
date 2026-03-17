@@ -31,6 +31,13 @@ export const PUT = apiHandler(async (req: Request) => {
   }
 
   if (notificationId) {
+    // BUG FIX: Verify the notification belongs to the user before updating
+    const notification = await prisma.notification.findFirst({
+      where: { id: notificationId, userId: user.id },
+    });
+    if (!notification) {
+      return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
+    }
     await prisma.notification.update({
       where: { id: notificationId },
       data: { isRead: true },
