@@ -9,11 +9,42 @@ import Link from 'next/link';
 import { BookOpen, ArrowRight, Sparkles, GraduationCap, Shield, Eye, Users } from 'lucide-react';
 
 const DEMO_ACCOUNTS = [
-  { role: 'Student', email: 'lior@ofer-academy.edu', password: 'password123', icon: <GraduationCap size={20} />, desc: 'Lior Betzalel — AI tutor, assignments, rewards', color: 'from-blue-500 to-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200' },
-  { role: 'Teacher', email: 'strachen@ofer-academy.edu', password: 'password123', icon: <Users size={20} />, desc: 'Gregory Strachen — Grading, analytics', color: 'from-green-500 to-green-600', bg: 'hover:bg-green-50 hover:border-green-200' },
-  { role: 'Admin', email: 'erez@ofer-academy.edu', password: 'password123', icon: <Shield size={20} />, desc: 'Erez Ofer — Superintendent access', color: 'from-purple-500 to-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200' },
-  { role: 'Parent', email: 'david@ofer-academy.edu', password: 'password123', icon: <Eye size={20} />, desc: "David Betzalel — Lior's parent", color: 'from-pink-500 to-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200' },
+  { role: 'Student', email: 'lior@ofer-academy.edu', password: 'password123', icon: <GraduationCap size={20} />, desc: 'Lior Betzalel — AI tutor, assignments, rewards', color: 'from-blue-500 to-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200', dashRole: 'STUDENT' },
+  { role: 'Teacher', email: 'strachen@ofer-academy.edu', password: 'password123', icon: <Users size={20} />, desc: 'Gregory Strachen — Grading, analytics', color: 'from-green-500 to-green-600', bg: 'hover:bg-green-50 hover:border-green-200', dashRole: 'TEACHER' },
+  { role: 'Admin', email: 'erez@ofer-academy.edu', password: 'password123', icon: <Shield size={20} />, desc: 'Erez Ofer — Superintendent access', color: 'from-purple-500 to-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200', dashRole: 'ADMIN' },
+  { role: 'Parent', email: 'david@ofer-academy.edu', password: 'password123', icon: <Eye size={20} />, desc: "David Betzalel — Lior's parent", color: 'from-pink-500 to-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200', dashRole: 'PARENT' },
 ];
+
+/**
+ * Determine the dashboard path from a role string
+ */
+function getDashboardPath(role?: string): string {
+  switch (role?.toUpperCase()) {
+    case 'STUDENT': return '/student/dashboard';
+    case 'TEACHER': return '/teacher/dashboard';
+    case 'ADMIN': return '/admin/dashboard';
+    case 'PARENT': return '/parent/dashboard';
+    default: return '/student/dashboard';
+  }
+}
+
+/**
+ * Known demo email → role mapping for immediate client-side redirect
+ * This avoids depending on getSession() which can fail if NEXTAUTH_URL is wrong
+ */
+const DEMO_EMAIL_ROLES: Record<string, string> = {
+  'lior@ofer-academy.edu': 'STUDENT',
+  'eitan@ofer-academy.edu': 'STUDENT',
+  'noam@ofer-academy.edu': 'STUDENT',
+  'strachen@ofer-academy.edu': 'TEACHER',
+  'erez@ofer-academy.edu': 'ADMIN',
+  'david@ofer-academy.edu': 'PARENT',
+  'student@limud.edu': 'STUDENT',
+  'teacher@limud.edu': 'TEACHER',
+  'admin@limud.edu': 'ADMIN',
+  'parent@limud.edu': 'PARENT',
+  'master@limud.edu': 'TEACHER',
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -22,23 +53,66 @@ export default function LoginPage() {
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const router = useRouter();
 
+  /**
+   * Core login handler — calls NextAuth signIn, then redirects based on:
+   * 1. Known demo email → role mapping (instant, no session fetch needed)
+   * 2. Fallback: fetch session from NextAuth client
+   * 3. Fallback: redirect to /student/dashboard
+   */
+  const doLogin = async (loginEmail: string, loginPassword: string): Promise<boolean> => {
+    const normalizedEmail = loginEmail.toLowerCase().trim();
+
+    const result = await signIn('credentials', {
+      email: normalizedEmail,
+      password: loginPassword,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      return false; // Auth failed
+    }
+
+    // Auth succeeded — determine where to redirect
+    // Strategy 1: Use known demo email mapping (most reliable, no network call)
+    const knownRole = DEMO_EMAIL_ROLES[normalizedEmail];
+    if (knownRole) {
+      router.push(getDashboardPath(knownRole));
+      router.refresh();
+      return true;
+    }
+
+    // Strategy 2: Try to get session from NextAuth
+    try {
+      const res = await fetch('/api/auth/session');
+      if (res.ok) {
+        const session = await res.json();
+        const role = session?.user?.role;
+        if (role) {
+          router.push(getDashboardPath(role));
+          router.refresh();
+          return true;
+        }
+      }
+    } catch {
+      // Session fetch failed — fall through
+    }
+
+    // Strategy 3: Fallback redirect
+    router.push('/student/dashboard');
+    router.refresh();
+    return true;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        toast.error('Invalid email or password');
-      } else {
+      const success = await doLogin(email, password);
+      if (success) {
         toast.success('Welcome to Limud!');
-        router.push('/');
-        router.refresh();
+      } else {
+        toast.error('Invalid email or password');
       }
     } catch {
       toast.error('Something went wrong');
@@ -54,18 +128,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn('credentials', {
-        email: demoEmail,
-        password: demoPassword,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        toast.error('Demo login failed');
-      } else {
+      const success = await doLogin(demoEmail, demoPassword);
+      if (success) {
         toast.success('Welcome to Limud!');
-        router.push('/');
-        router.refresh();
+      } else {
+        toast.error('Demo login failed — try the manual form above');
       }
     } catch {
       toast.error('Something went wrong');
@@ -225,7 +292,7 @@ export default function LoginPage() {
                 <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-3 bg-white text-gray-400">or explore without signing in</span>
+                <span className="px-3 bg-white text-gray-400">or explore without signing up</span>
               </div>
             </div>
 

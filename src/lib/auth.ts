@@ -1,7 +1,5 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
-import prisma from '@/lib/prisma';
 
 // Master Demo account - full access to all features across all roles
 const MASTER_DEMO = {
@@ -166,6 +164,22 @@ const DEMO_ACCOUNTS: Record<string, any> = {
   },
 };
 
+/**
+ * Helper: Check if an email is a demo account
+ */
+export function isDemoAccount(email: string): boolean {
+  return email === MASTER_DEMO.email || email in DEMO_ACCOUNTS;
+}
+
+/**
+ * Helper: Get role for an email (used for client-side redirect)
+ */
+export function getDemoRole(email: string): string | null {
+  if (email === MASTER_DEMO.email) return 'TEACHER';
+  const account = DEMO_ACCOUNTS[email];
+  return account ? account.role : null;
+}
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
@@ -187,21 +201,28 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password are required');
         }
 
-        // Check Master Demo account first
-        if (credentials.email === MASTER_DEMO.email && credentials.password === MASTER_DEMO.password) {
+        const email = credentials.email.toLowerCase().trim();
+        const password = credentials.password;
+
+        // ── 1. Check Master Demo account ──
+        if (email === MASTER_DEMO.email && password === MASTER_DEMO.password) {
+          console.log('[Limud Auth] Master demo login successful');
           return MASTER_DEMO.user as any;
         }
 
-        // Check role-specific demo accounts (password: password123)
-        const demoAccount = DEMO_ACCOUNTS[credentials.email];
-        if (demoAccount && credentials.password === 'password123') {
+        // ── 2. Check role-specific demo accounts (password: password123) ──
+        const demoAccount = DEMO_ACCOUNTS[email];
+        if (demoAccount && password === 'password123') {
+          console.log(`[Limud Auth] Demo login successful: ${email} (${demoAccount.role})`);
           return demoAccount as any;
         }
 
-        // Fall through to database authentication
+        // ── 3. Fall through to database authentication ──
         try {
+          // Dynamic import prisma to prevent module-level crash if DB is unavailable
+          const { default: prisma } = await import('@/lib/prisma');
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
+            where: { email },
             include: { district: true },
           });
 
@@ -209,7 +230,8 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Invalid email or password');
           }
 
-          const isValid = await bcrypt.compare(credentials.password, user.password);
+          const bcrypt = (await import('bcryptjs')).default;
+          const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) {
             throw new Error('Invalid email or password');
           }
@@ -230,8 +252,13 @@ export const authOptions: NextAuthOptions = {
             isMasterDemo: false,
           } as any;
         } catch (e: any) {
-          // If Prisma/DB is unavailable, only demo accounts work
+          // If user explicitly entered wrong credentials, pass that through
           if (e.message === 'Invalid email or password') throw e;
+          if (e.message === 'Email and password are required') throw e;
+
+          // For all other errors (DB unavailable, connection refused, module errors):
+          // Log and return a clear message
+          console.error('[Limud Auth] Database error during login:', e.message);
           throw new Error('Invalid email or password');
         }
       },
@@ -270,10 +297,7 @@ export const authOptions: NextAuthOptions = {
   // NEXTAUTH_SECRET is required in production.
   // Set it in Render Dashboard → Environment → NEXTAUTH_SECRET
   // Generate with: openssl rand -base64 32
-  secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'production'
-    ? (() => {
-        console.warn('[Limud] WARNING: NEXTAUTH_SECRET is not set! Using auto-generated fallback. Set NEXTAUTH_SECRET in your Render environment variables for persistent sessions.');
-        return require('crypto').randomBytes(32).toString('base64');
-      })()
-    : 'dev-secret-not-for-production'),
+  // CRITICAL v8.9.1: A STABLE secret is mandatory — random secrets break every session on restart.
+  // This hardcoded fallback ensures demo accounts ALWAYS work even without env var set.
+  secret: process.env.NEXTAUTH_SECRET || 'limud-stable-secret-v8-ofer-academy-2026-kj3nf92md',
 };

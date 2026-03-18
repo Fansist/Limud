@@ -2,12 +2,38 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 8.9
+- **Version**: 8.9.1
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **Domain**: https://limud.co
 - **GitHub**: https://github.com/Fansist/Limud
 - **Hosting**: Render.com (primary), also supports cPanel/GoDaddy
+
+---
+
+## What's New in v8.9.1 — Login Fix (Critical Hotfix)
+
+### Authentication Fixes (CRITICAL)
+1. **Stable NEXTAUTH_SECRET** — Removed `generateValue: true` from render.yaml which was generating a new random secret on every deploy, invalidating all sessions. Added stable hardcoded fallback in auth.ts.
+2. **Client-side redirect after login** — Login and Demo pages no longer depend on `getSession()` for redirect (which fails if `NEXTAUTH_URL` is misconfigured). Instead uses client-side email→role mapping for instant, reliable redirect.
+3. **Dynamic bcrypt import** — Moved `bcryptjs` import inside authorize function to prevent module-level crash if the module fails to load.
+4. **Email normalization** — Login now normalizes email to lowercase and trims whitespace before checking.
+5. **Fixed .env NEXTAUTH_URL** — Removed stale sandbox URL, set to `http://localhost:3000` for local dev.
+6. **Console logging** — Added auth success/failure logging for debugging production issues.
+
+### How Login Now Works
+- User clicks "Sign In" or demo account button
+- `signIn('credentials', { redirect: false })` authenticates via NextAuth
+- On success, client uses a **hardcoded email→role map** to determine dashboard path
+- `router.push('/student/dashboard')` navigates directly — no server-side session check needed
+- Dashboard pages use `useSession()` hook which picks up the JWT cookie automatically
+
+### Render Deployment Notes
+**You MUST set `NEXTAUTH_SECRET` as a fixed environment variable in Render Dashboard:**
+```
+NEXTAUTH_SECRET=<your-stable-secret>  # Generate with: openssl rand -base64 32
+```
+Do NOT rely on `generateValue: true` in render.yaml — it changes on every deploy.
 
 ---
 

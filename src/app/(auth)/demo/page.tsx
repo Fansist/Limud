@@ -39,6 +39,34 @@ const ROLE_CONFIG: Record<string, { icon: any; color: string; bg: string; desc: 
   },
 };
 
+/**
+ * Known demo email → role mapping for immediate client-side redirect
+ * This avoids depending on getSession() which can fail if NEXTAUTH_URL is wrong
+ */
+const DEMO_EMAIL_ROLES: Record<string, string> = {
+  'lior@ofer-academy.edu': 'STUDENT',
+  'eitan@ofer-academy.edu': 'STUDENT',
+  'noam@ofer-academy.edu': 'STUDENT',
+  'strachen@ofer-academy.edu': 'TEACHER',
+  'erez@ofer-academy.edu': 'ADMIN',
+  'david@ofer-academy.edu': 'PARENT',
+  'student@limud.edu': 'STUDENT',
+  'teacher@limud.edu': 'TEACHER',
+  'admin@limud.edu': 'ADMIN',
+  'parent@limud.edu': 'PARENT',
+  'master@limud.edu': 'TEACHER',
+};
+
+function getDashboardPath(role?: string): string {
+  switch (role?.toUpperCase()) {
+    case 'STUDENT': return '/student/dashboard';
+    case 'TEACHER': return '/teacher/dashboard';
+    case 'ADMIN': return '/admin/dashboard';
+    case 'PARENT': return '/parent/dashboard';
+    default: return '/student/dashboard';
+  }
+}
+
 export default function DemoPage() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -50,33 +78,52 @@ export default function DemoPage() {
     try {
       // Set demo mode
       localStorage.setItem('limud-demo-mode', 'true');
-      
+
       const result = await signIn('credentials', {
         email,
         password: 'password123',
         redirect: false,
       });
 
-      if (result?.ok) {
-        // Determine redirect based on role
-        const cred = DEMO_CREDENTIALS.find(c => c.email === email);
-        const roleMap: Record<string, string> = {
-          Student: '/student/dashboard',
-          Teacher: '/teacher/dashboard',
-          Admin: '/admin/dashboard',
-          Parent: '/parent/dashboard',
-        };
-        router.push(roleMap[cred?.role || 'Student'] || '/student/dashboard');
+      if (result?.ok && !result?.error) {
+        // Auth succeeded — use known role mapping for instant redirect
+        const knownRole = DEMO_EMAIL_ROLES[email.toLowerCase()];
+        if (knownRole) {
+          router.push(getDashboardPath(knownRole));
+          router.refresh();
+        } else {
+          // Fallback: try from DEMO_CREDENTIALS
+          const cred = DEMO_CREDENTIALS.find(c => c.email === email);
+          const roleMap: Record<string, string> = {
+            Student: '/student/dashboard',
+            Teacher: '/teacher/dashboard',
+            Admin: '/admin/dashboard',
+            Parent: '/parent/dashboard',
+          };
+          router.push(roleMap[cred?.role || 'Student'] || '/student/dashboard');
+          router.refresh();
+        }
       } else {
-        // Fallback to demo mode
-        const cred = DEMO_CREDENTIALS.find(c => c.email === email);
-        const role = cred?.role?.toLowerCase() || 'student';
-        router.push(`/${role}/dashboard?demo=true`);
+        // Auth failed — still navigate to demo mode with ?demo=true
+        const knownRole = DEMO_EMAIL_ROLES[email.toLowerCase()];
+        if (knownRole) {
+          router.push(`${getDashboardPath(knownRole)}?demo=true`);
+        } else {
+          const cred = DEMO_CREDENTIALS.find(c => c.email === email);
+          const role = cred?.role?.toLowerCase() || 'student';
+          router.push(`/${role}/dashboard?demo=true`);
+        }
       }
     } catch {
-      const cred = DEMO_CREDENTIALS.find(c => c.email === email);
-      const role = cred?.role?.toLowerCase() || 'student';
-      router.push(`/${role}/dashboard?demo=true`);
+      // Network error — fallback to demo mode
+      const knownRole = DEMO_EMAIL_ROLES[email.toLowerCase()];
+      if (knownRole) {
+        router.push(`${getDashboardPath(knownRole)}?demo=true`);
+      } else {
+        router.push('/student/dashboard?demo=true');
+      }
+    } finally {
+      setLoading(null);
     }
   };
 
