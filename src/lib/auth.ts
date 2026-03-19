@@ -1,3 +1,14 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║  LIMUD v9.0 — NextAuth Configuration                                   ║
+ * ║  Credentials-based authentication with enterprise security             ║
+ * ║  - Brute-force protection with progressive lockout                     ║
+ * ║  - NIST-compliant password validation                                  ║
+ * ║  - Comprehensive audit logging                                         ║
+ * ║  - 24-hour JWT session with secure cookie settings                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ */
+
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import {
@@ -7,6 +18,7 @@ import {
   createAuditLog,
   trackSecurityEvent,
   getClientIP,
+  SECURITY_CONFIG,
 } from '@/lib/security';
 
 // Master Demo account - full access to all features across all roles
@@ -82,7 +94,37 @@ export function getDemoRole(email: string): string | null {
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60, // 24 hours (tightened from 30 days for security)
+    maxAge: SECURITY_CONFIG.session.maxAgeHours * 60 * 60, // 24 hours (NIST-aligned)
+    updateAge: 60 * 60, // Refresh token every hour
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.callback-url' : 'next-auth.callback-url',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === 'production' ? '__Host-next-auth.csrf-token' : 'next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   pages: {
     signIn: '/login',
@@ -250,8 +292,10 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  // CRITICAL: NEXTAUTH_SECRET must be STABLE across deploys.
-  // Set in Render Dashboard -> Environment -> NEXTAUTH_SECRET
-  // Generate once: openssl rand -base64 32
+  // SECURITY: Secret rotation strategy
+  // 1. Primary secret from env (set in Render Dashboard)
+  // 2. Fallback for dev only — CHANGE IN PRODUCTION
+  // Generate: openssl rand -base64 32
   secret: process.env.NEXTAUTH_SECRET || 'limud-stable-secret-v8-ofer-academy-2026-kj3nf92md',
+  debug: false, // Never expose auth debug in production
 };

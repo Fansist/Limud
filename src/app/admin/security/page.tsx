@@ -94,15 +94,18 @@ const DEMO_COMPLIANCE: ComplianceData = {
   headers: { csp: 'Strict Content-Security-Policy', hsts: 'max-age=63072000; includeSubDomains; preload', xFrameOptions: 'SAMEORIGIN', xContentType: 'nosniff', referrerPolicy: 'strict-origin-when-cross-origin', permissionsPolicy: 'Restrictive', crossOriginPolicy: 'same-origin' },
 };
 
-// Severity colors
+// Severity colors — maps both API formats (info/warning/critical AND LOW/MEDIUM/HIGH/CRITICAL)
 const SEVERITY_COLORS: Record<string, string> = {
-  LOW: 'bg-gray-100 text-gray-700',
-  MEDIUM: 'bg-amber-100 text-amber-700',
+  LOW: 'bg-gray-100 text-gray-700', info: 'bg-gray-100 text-gray-700',
+  MEDIUM: 'bg-amber-100 text-amber-700', warning: 'bg-amber-100 text-amber-700',
   HIGH: 'bg-orange-100 text-orange-700',
-  CRITICAL: 'bg-red-100 text-red-700',
+  CRITICAL: 'bg-red-100 text-red-700', critical: 'bg-red-100 text-red-700',
 };
 const SEVERITY_DOT: Record<string, string> = {
-  LOW: 'bg-gray-400', MEDIUM: 'bg-amber-400', HIGH: 'bg-orange-500', CRITICAL: 'bg-red-500',
+  LOW: 'bg-gray-400', info: 'bg-gray-400',
+  MEDIUM: 'bg-amber-400', warning: 'bg-amber-400',
+  HIGH: 'bg-orange-500',
+  CRITICAL: 'bg-red-500', critical: 'bg-red-500',
 };
 
 function timeAgo(ts: string): string {
@@ -136,42 +139,45 @@ export default function SecurityDashboard() {
       return;
     }
     try {
-      const [dashRes, auditRes] = await Promise.all([
-        fetch('/api/security/dashboard'),
-        fetch('/api/security/audit?limit=100'),
+      const [dashRes, auditRes, compRes] = await Promise.all([
+        fetch('/api/security?view=dashboard'),
+        fetch('/api/security?view=audit&limit=100'),
+        fetch('/api/security?view=compliance'),
       ]);
       if (dashRes.ok) {
         const d = await dashRes.json();
-        // Map dashboard API response to our SecurityMetrics shape
-        setMetrics({
-          totalEvents: d.metrics?.totalRequests || 0,
-          lastHour: {
-            total: d.metrics?.totalRequests || 0,
-            critical: d.recentCriticalEvents?.length || 0,
-            high: d.recentWarnings || 0,
-            blocked: d.metrics?.blockedRequests || 0,
-            authFailures: d.metrics?.failedLogins || 0,
-            authSuccesses: d.metrics?.successfulLogins || 0,
-            rateLimits: d.metrics?.rateLimitHits || 0,
-            xssAttempts: 0,
-            sqlInjections: 0,
-          },
-          last24h: {
-            total: d.metrics?.totalRequests || 0,
-            critical: d.recentCriticalEvents?.length || 0,
-            high: d.recentWarnings || 0,
-            blocked: d.metrics?.blockedRequests || 0,
-            uniqueIPs: d.metrics?.uniqueIPs || 0,
-            topAttackTypes: d.metrics?.topAttackIPs?.map((a: any) => ({ type: `IP: ${a.ip}`, count: a.failedAttempts })) || [],
-          },
-          activeRateLimits: d.metrics?.rateLimitHits || 0,
-          lockedAccounts: d.metrics?.accountLockouts || 0,
-        });
-        if (d.compliance) setCompliance(DEMO_COMPLIANCE); // Use dashboard compliance data
+        const m = d.data?.metrics;
+        if (m) {
+          setMetrics({
+            totalEvents: m.totalEvents || 0,
+            lastHour: {
+              total: m.lastHour?.total || 0,
+              critical: m.lastHour?.critical || 0,
+              high: m.lastHour?.high || 0,
+              blocked: m.lastHour?.blocked || 0,
+              authFailures: m.lastHour?.authFailures || 0,
+              authSuccesses: m.lastHour?.authSuccesses || 0,
+              rateLimits: m.lastHour?.rateLimits || 0,
+              xssAttempts: m.lastHour?.xssAttempts || 0,
+              sqlInjections: m.lastHour?.sqlInjections || 0,
+            },
+            last24h: {
+              total: m.last24h?.total || 0,
+              critical: m.last24h?.critical || 0,
+              high: m.last24h?.high || 0,
+              blocked: m.last24h?.blocked || 0,
+              uniqueIPs: m.last24h?.uniqueIPs || 0,
+              topAttackTypes: m.last24h?.topAttackTypes || [],
+            },
+            activeRateLimits: m.activeRateLimits || 0,
+            lockedAccounts: m.lockedAccounts || 0,
+          });
+        }
       }
       if (auditRes.ok) {
         const a = await auditRes.json();
-        setEvents((a.logs || []).map((l: any) => ({
+        const logs = a.data?.events || [];
+        setEvents(logs.map((l: any) => ({
           id: l.id,
           timestamp: l.timestamp || l.createdAt,
           type: l.action,
@@ -181,10 +187,14 @@ export default function SecurityDashboard() {
           userId: l.userId,
           email: l.userEmail,
           path: l.resource,
-          method: 'API',
-          details: typeof l.details === 'object' ? JSON.stringify(l.details) : l.details || l.action,
-          blocked: !l.success,
+          method: typeof l.details === 'object' ? (l.details?.method || 'API') : 'API',
+          details: typeof l.details === 'object' ? (l.details?.message || JSON.stringify(l.details)) : (l.details || l.action),
+          blocked: l.blocked ?? !l.success,
         })));
+      }
+      if (compRes.ok) {
+        const c = await compRes.json();
+        if (c.data) setCompliance(c.data);
       }
     } catch { /* use demo data on error */ }
     setLoading(false);

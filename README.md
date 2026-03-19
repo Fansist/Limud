@@ -1,10 +1,10 @@
-# Limud - AI-Powered Adaptive Learning Platform
+# Limud — AI-Powered Adaptive Learning Platform
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 8.10
+- **Version**: 9.0
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
-- **Security**: Enterprise-grade FERPA + COPPA compliant security for children's data protection
+- **Security**: Enterprise-grade FERPA + COPPA + OWASP Top 10 compliant security for children's data protection
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **Domain**: https://limud.co
 - **GitHub**: https://github.com/Fansist/Limud
@@ -12,356 +12,292 @@
 
 ---
 
-## What's New in v8.10 — Enterprise Security Overhaul (FERPA + COPPA)
+## What's New in v9.0 — Enterprise Security Overhaul (FERPA + COPPA + OWASP)
 
 ### This is a MAJOR release focused entirely on building enterprise-grade, top-of-the-line security for protecting children's personal and sensitive information.
 
 ---
 
-### 1. Security Engine (`src/lib/security.ts`) — 32KB of pure security infrastructure
+### 1. Security Engine (`src/lib/security.ts`) — 35KB Security Infrastructure
 
 **Rate Limiting (Sliding Window Algorithm)**
-- 100 req/min per IP (global)
-- 5 login attempts per 5 minutes (auth)
-- 60 req/min per authenticated user (API)
-- 3 registrations per hour per IP
-- 3 password resets per hour per IP
-- 20 AI endpoint calls per minute
-- Custom rate limit profiles for file uploads
+- 60 req/min per IP (global)
+- 5 login attempts per minute (auth) with progressive lockout
+- 100 req/min per authenticated user (API)
+- 3 registrations per minute per IP
+- 10 AI endpoint calls per minute
+- 5 file uploads per minute
+- 20 sensitive data accesses per minute
+- Separate tracking stores for each category
 
-**Brute Force Detection & Account Lockout**
-- Tracks failed login attempts per email
-- Auto-locks account after 5 failures
-- 15-minute lockout duration
-- Counter resets after 1 hour of no failures
-- Locked accounts log CRITICAL security events
-- Admin can manually unlock accounts
+**Brute-Force Login Protection (Progressive Lockout)**
+- 5 failed attempts → 15-minute lockout
+- Progressive escalation: 15min → 30min → 1hr → 2hr → ...
+- Maximum lockout: 24 hours
+- Per-email tracking with IP correlation
+- Automatic unlock after lockout period
+- Admin manual unlock via Security Dashboard
 
-**Input Sanitization & Attack Detection**
-- XSS pattern detection (12+ patterns: `<script>`, `javascript:`, `onerror=`, etc.)
-- SQL injection detection (10+ patterns: UNION SELECT, OR 1=1, comments, SLEEP, etc.)
-- Command injection detection (`cat`, `ls`, `curl`, `rm`, backticks, `$()`)
-- Path traversal detection (`../`, `%2e%2e`)
-- HTML entity encoding for all string inputs
-- Null byte stripping
-- Maximum field length enforcement (10,000 chars)
-- Maximum JSON nesting depth (10 levels)
-- Maximum array length (1,000 items)
-- Maximum request body size (10MB)
+**Input Sanitization (Defense in Depth)**
+- XSS prevention: HTML entity encoding for all user input
+- SQL injection blocking: Pattern-based detection (defense layer on top of Prisma ORM parameterized queries)
+- Prototype pollution prevention: Blocks `__proto__`, `constructor`, `prototype` keys
+- Null byte injection prevention
+- Recursive sanitization for nested objects and arrays
+- Payload size limits (100KB max for API requests)
 
-**Password Policy (NIST SP 800-63B Compliant)**
-- Minimum 8 characters
-- Requires uppercase + lowercase + number
-- Checks against database of common breached passwords (100+ entries)
-- Detects email-based passwords
-- Detects sequential/repeated characters (aaaa)
-- Maximum 128 characters (to prevent bcrypt DoS)
+**Password Policy (NIST SP 800-63B)**
+- Minimum 10 characters
+- Must contain: uppercase + lowercase + number
+- Breached password check against 50+ common passwords
+- Cannot contain email local part or user name
+- No 4+ repeated characters (aaaa)
+- No sequential characters (abcd, 1234)
+- Strength scoring: weak / fair / strong / very_strong (0-100)
+- Context-aware validation
 
-**PII Encryption (FERPA Requirement)**
-- AES-256-GCM encryption for sensitive fields
-- scrypt key derivation from NEXTAUTH_SECRET
-- Random IV per encryption (no IV reuse)
-- Authentication tag for tamper detection
-- PII masking in audit logs (shows first/last 2 chars)
-- Automatic detection of 15+ PII field types
+**CSRF Protection**
+- Cryptographic token generation (32 bytes)
+- Timing-safe comparison to prevent timing attacks
+- 1-hour token expiry
+- Per-session token binding
 
-**Audit Logging**
-- 20+ security event types tracked
-- 4 severity levels: LOW, MEDIUM, HIGH, CRITICAL
-- IP address, user agent, user ID, email tracked per event
-- In-memory buffer (10,000 events max)
-- Real-time metrics: last hour and last 24h breakdowns
-- Critical events logged to console immediately
+**Session Fingerprinting**
+- SHA-256 hash of User-Agent + Accept-Language + Accept-Encoding
+- Anomaly detection for session hijacking
+- Fingerprint included in audit logs
 
-### 2. Secure API Middleware (`src/lib/middleware.ts`)
+**PII Encryption (AES-256-GCM)**
+- Field-level encryption for student personal data
+- Unique IV per encryption operation
+- Authentication tag verification (tamper detection)
+- Key derived from NEXTAUTH_SECRET via SHA-256
+- Supports transparent decryption of legacy unencrypted data
 
-- **`secureApiHandler()`** — Drop-in replacement for all API routes with:
-  - Automatic rate limiting (per IP + per user)
-  - Authentication + role authorization
-  - Input validation + attack scanning on POST/PUT/PATCH
-  - PII protection in error messages
-  - Comprehensive error handling (Prisma, auth, generic)
-  - Audit event logging
-- **`apiHandler()`** — Backward-compatible legacy wrapper
-- Options: `roles`, `rateLimit`, `public`, `skipRateLimit`, `skipInputValidation`, `auditType`
+**Audit Logging (FERPA 7-Year Retention)**
+- 25+ audit action types
+- In-memory buffer with periodic database flush
+- Memory store up to 10,000 events
+- Severity levels: info, warning, critical
+- IP masking in logs (last octet hidden)
+- Email masking in logs (local part obscured)
+- Session fingerprint correlation
 
-### 3. Edge Middleware (`src/middleware.ts`) — First line of defense
+---
 
-Runs on EVERY request before reaching the application:
-- **Bot scanner detection**: Blocks SQLMap, Nikto, Nmap, DirBuster, Acunetix, Netsparker, BurpSuite
-- **Malicious path blocking**: `../`, `.env`, `.git/`, `wp-admin`, `phpmyadmin`, `/etc/`, `/proc/`
-- **File extension blocking**: `.php`, `.asp`, `.aspx`, `.jsp`, `.cgi`
-- **Request ID**: Unique UUID per request for tracing
-- **Security headers**: Added at edge level
+### 2. Edge Middleware (`src/middleware.ts`) — Request-Level Security
 
-### 4. Security Headers & CSP (`next.config.js`)
+**Threat Detection (Zero Trust)**
+- 19 malicious bot/scanner User-Agent patterns blocked
+- 17 malicious path patterns detected (path traversal, injection, etc.)
+- Attack file extensions blocked (.php, .asp, .exe, .sh, etc.)
+- URL length limit (8192 chars) against buffer overflow DoS
+- Suspicious header detection (host injection, URL rewriting)
 
-**Content-Security-Policy (Strict)**
-- `default-src 'self'` — Only load resources from same origin
-- `script-src` — Only self + Tailwind CDN + Chart.js CDN
-- `frame-ancestors 'none'` — Prevent ALL embedding (clickjacking protection)
-- `form-action 'self'` — Forms only submit to same origin
-- `base-uri 'self'` — Prevent base tag hijacking
-- `object-src 'none'` — No Flash/plugins
-- `upgrade-insecure-requests` — Force HTTPS
+**Edge Rate Limiting**
+- 200 requests/minute per IP (global)
+- 10 requests/minute per IP (auth endpoints)
+- Separate from application-level rate limiting (defense in depth)
 
-**Permissions-Policy**
-- Camera: disabled
-- Microphone: disabled
-- Geolocation: disabled
-- Payment API: disabled
-- USB: disabled
-- Screen capture: disabled
-- All sensors: disabled
+**Role-Based Access Control (RBAC)**
+- ADMIN: Full access to admin dashboard, security center, district management
+- TEACHER: Teacher dashboard, lesson planning, grading, student data
+- STUDENT: Student dashboard, assignments, AI tutor
+- PARENT: Parent dashboard, child reports, goal setting
+- HOMESCHOOL PARENT: Teacher-level access for homeschool families
+- MASTER DEMO: Cross-role access for demo/testing only
 
-**Other Headers**
-- HSTS: 2 years + includeSubDomains + preload
-- X-Frame-Options: SAMEORIGIN
+**Full Security Headers on Every Response**
+- `Strict-Transport-Security`: 2 years with preload
+- `X-Frame-Options`: DENY (anti-clickjacking)
+- `X-Content-Type-Options`: nosniff
+- `X-XSS-Protection`: 1; mode=block
+- `Content-Security-Policy`: Strict policy with allowlisted CDNs
+- `Permissions-Policy`: Disables camera, microphone, geolocation, payment, USB, etc.
+- `Cross-Origin-Opener-Policy`: same-origin
+- `Cross-Origin-Resource-Policy`: same-origin
+- `Referrer-Policy`: strict-origin-when-cross-origin
+- API routes: `Cache-Control: no-store` (no sensitive data caching)
+- Request tracking: `X-Request-Id` UUID on every response
+
+---
+
+### 3. API Middleware (`src/lib/middleware.ts`) — Handler-Level Security
+
+**`secureApiHandler()` — Wraps every API route with:**
+1. Per-IP rate limiting (configurable per endpoint)
+2. Per-user rate limiting (prevents account abuse)
+3. Authentication verification (JWT session check)
+4. Role-based authorization (configurable allowed roles)
+5. XSS pattern detection in request bodies
+6. SQL injection pattern detection in request bodies
+7. Prototype pollution detection
+8. Payload size validation (100KB limit)
+9. Audit logging for sensitive operations
+10. PII-safe error handling (never leaks stack traces)
+11. Prisma error classification (P1001→503, P2002→409, P2025→404)
+
+**`apiHandler()` — Legacy wrapper for backward compatibility**
+- All existing routes automatically get rate limiting + error handling
+- New routes should use `secureApiHandler()` with explicit options
+
+---
+
+### 4. Authentication (`src/lib/auth.ts`) — Hardened NextAuth
+
+- **24-hour JWT sessions** (reduced from 30 days)
+- **Hourly token refresh** (updateAge: 3600)
+- **Secure cookies**: `__Secure-` prefix in production, HttpOnly, SameSite=lax
+- **CSRF token cookie**: `__Host-` prefix in production (most restrictive)
+- **Brute-force protection** integrated into authorize flow
+- **Progressive account lockout** with audit logging
+- **Email normalization** (toLowerCase + trim)
+- **Dynamic bcrypt import** (prevents module crash if package missing)
+- **Stable NEXTAUTH_SECRET** — no auto-generation, consistent across deploys
+
+---
+
+### 5. Security Headers in `next.config.js`
+
+Applied to all routes via Next.js headers() config:
+- Content Security Policy (strict CSP with allowlisted CDNs)
+- HSTS with 2-year max-age and preload
+- X-Frame-Options: DENY
 - X-Content-Type-Options: nosniff
-- X-XSS-Protection: 1; mode=block
-- Referrer-Policy: strict-origin-when-cross-origin
-- Cross-Origin-Opener-Policy: same-origin
-- Cross-Origin-Resource-Policy: same-origin
-- Cross-Origin-Embedder-Policy: credentialless
-
-### 5. Hardened Authentication (`src/lib/auth.ts`)
-
-- Session reduced from 30 days to 24 hours
-- HttpOnly + Secure + SameSite cookies (prevents XSS session theft)
-- Account lockout on 5 failed attempts
-- Brute force detection with IP logging
-- Dynamic bcrypt import (prevents module crashes)
-- Email normalization (lowercase + trim)
-- Sign-out event logging
-- Token creation time tracking (absolute timeout)
-
-### 6. Security Dashboard (`/admin/security`)
-
-Full admin UI with 4 tabs:
-- **Overview**: Real-time metrics (events/hour, critical alerts, auth failures, locked accounts), active protection grid (9 protections), recent events feed
-- **Threat Monitor**: Filtered view of HIGH/CRITICAL events, blocked attacks with full details
-- **Audit Log**: Searchable/filterable event table with severity, type, IP, user, status columns
-- **Compliance**: FERPA status (6 features), COPPA status (5 features), encryption details, security headers inventory
-
-### 7. Security API (`/api/security`)
-
-Admin-only endpoints:
-- `GET /api/security?view=dashboard` — Metrics + config
-- `GET /api/security?view=audit` — Audit log with filters
-- `GET /api/security?view=threats` — Active threats
-- `GET /api/security?view=compliance` — FERPA/COPPA status
-- `POST /api/security` — Admin actions (unlock accounts, export logs)
-
-### 8. Registration Hardening (`/api/auth/register`)
-
-- Rate limited: 3 per hour per IP
-- NIST password policy enforcement
-- Email format validation + sanitization
-- Name sanitization (XSS prevention)
-- Email enumeration prevention (generic error messages)
-- Audit logging of all registration attempts
+- Permissions-Policy (disables 9 dangerous browser APIs)
+- Cross-Origin policies (same-origin)
+- API routes: no-cache headers
+- Static assets: 1-year immutable cache
 
 ---
 
-## What's New in v8.9.1 — Login Fix (Critical Hotfix)
+### 6. FERPA/COPPA Compliance
 
-### Authentication Fixes (CRITICAL)
-1. **Stable NEXTAUTH_SECRET** — Removed `generateValue: true` from render.yaml which was generating a new random secret on every deploy, invalidating all sessions. Added stable hardcoded fallback in auth.ts.
-2. **Client-side redirect after login** — Login and Demo pages no longer depend on `getSession()` for redirect (which fails if `NEXTAUTH_URL` is misconfigured). Instead uses client-side email→role mapping for instant, reliable redirect.
-3. **Dynamic bcrypt import** — Moved `bcryptjs` import inside authorize function to prevent module-level crash if the module fails to load.
-4. **Email normalization** — Login now normalizes email to lowercase and trims whitespace before checking.
-5. **Fixed .env NEXTAUTH_URL** — Removed stale sandbox URL, set to `http://localhost:3000` for local dev.
-6. **Console logging** — Added auth success/failure logging for debugging production issues.
+**FERPA (Family Educational Rights and Privacy Act)**
+- `checkFERPAAccess()` — enforces data access rules:
+  - Students: access own data only
+  - Parents: access their children's data
+  - Teachers: access enrolled students' data
+  - Admins: access within their district only
+  - Cross-district access: DENIED
+- `classifyField()` — categorizes data as public/internal/confidential/restricted
+- `SecurityAuditLog` Prisma model — 7-year retention
+- `DataAccessLog` Prisma model — tracks every student record access
+- `DataDeletionRequest` Prisma model — right-to-delete workflow
 
-### How Login Now Works
-- User clicks "Sign In" or demo account button
-- `signIn('credentials', { redirect: false })` authenticates via NextAuth
-- On success, client uses a **hardcoded email→role map** to determine dashboard path
-- `router.push('/student/dashboard')` navigates directly — no server-side session check needed
-- Dashboard pages use `useSession()` hook which picks up the JWT cookie automatically
+**COPPA (Children's Online Privacy Protection Act)**
+- `requiresCOPPAConsent()` — detects children under 13
+- `getCOPPAAllowedFields()` — minimal data collection for minors
+- `ParentalConsent` Prisma model — verifiable consent tracking
+- Consent types: data_collection, ai_interaction, third_party_sharing
+- Verification methods: email, signed form, phone, credit card
+- Consent revocation support
 
-### Render Deployment Notes
-**You MUST set `NEXTAUTH_SECRET` as a fixed environment variable in Render Dashboard:**
+---
+
+### 7. OWASP Top 10 Mitigations
+
+| OWASP Threat | Mitigation | Status |
+|---|---|---|
+| A01 Broken Access Control | RBAC + FERPA checks + middleware enforcement | ✅ Active |
+| A02 Cryptographic Failures | AES-256-GCM for PII, bcrypt-12 for passwords, HSTS | ✅ Active |
+| A03 Injection | Prisma ORM (parameterized), input sanitization, CSP | ✅ Active |
+| A04 Insecure Design | Defense in depth, least privilege, threat modeling | ✅ Active |
+| A05 Security Misconfiguration | Security headers, no defaults, error handling | ✅ Active |
+| A06 Vulnerable Components | Dependency auditing, minimal packages | ✅ Active |
+| A07 Auth Failures | Brute-force protection, progressive lockout, NIST | ✅ Active |
+| A08 Data Integrity Failures | CSRF protection, signed tokens, input validation | ✅ Active |
+| A09 Logging Failures | Comprehensive audit logging, 7-year retention | ✅ Active |
+| A10 SSRF | Allowlisted external domains only | ✅ Active |
+
+---
+
+### 8. Security Dashboard (`/admin/security`)
+
+Admin-only dashboard with:
+- **Overview**: Real-time metrics (events/hr, critical alerts, auth failures, locked accounts)
+- **Active Protections**: Visual status of all 9 security systems
+- **Threat Monitor**: Filtered view of HIGH/CRITICAL events with block status
+- **Audit Log**: Filterable table (severity, type, IP, user, status)
+- **Compliance**: FERPA + COPPA feature status, encryption details, security headers
+- **OWASP**: Full Top 10 mitigation status with descriptions
+- Auto-refresh every 30 seconds
+- Admin actions: unlock accounts, export audit logs, flush to database
+
+---
+
+### 9. Prisma Security Models
+
 ```
-NEXTAUTH_SECRET=<your-stable-secret>  # Generate with: openssl rand -base64 32
-```
-Do NOT rely on `generateValue: true` in render.yaml — it changes on every deploy.
-
----
-
-## What's New in v8.9 — Named Demo System, AI Integration, Connected District
-
-### Fully Connected Demo System (Ofer Academy)
-- **District**: Ofer Academy — Premium subscription, AI enabled
-- **Admin**: Erez Ofer (`erez@ofer-academy.edu`) — Superintendent access, full district control
-- **Teacher**: Gregory Strachen (`strachen@ofer-academy.edu`) — Teaches Biology 101, Algebra II, English Literature
-- **Students**: 
-  - Lior Betzalel (`lior@ofer-academy.edu`) — 10th grade, top performer, 18-day streak
-  - Eitan Balan (`eitan@ofer-academy.edu`) — 9th grade, medium risk, needs Math support
-  - Noam Elgarisi (`noam@ofer-academy.edu`) — 10th grade, highest XP, 26-day streak
-- **Parent**: David Betzalel (`david@ofer-academy.edu`) — Lior's parent, with AI check-in
-- **All linked**: Students enrolled in teacher's courses, all in same district, parent sees child's data
-- **Password for all**: `password123`
-- Legacy accounts (`student@limud.edu`, etc.) still work — they redirect to the new demo identities
-
-### AI Integration (GenSpark Proxy)
-- OpenAI API key works through GenSpark's LLM proxy (`gpt-5-mini`)
-- AI Tutor, AI Grading, AI Lesson Planner, AI Quiz Generator — all functional
-- AI Parent Check-in generates real reports when API key is configured
-- Graceful fallback to structured templates when AI is unavailable
-
-### Landing Page Simplification (v8.9.0)
-- **Completely rewritten** landing page — removed heavy animations (floating particles, parallax hero, scroll-triggered counters), condensed from 1087 lines to ~400 lines
-- **Faster load time**, less JavaScript, simpler DOM structure
-- **Added AI features prominently**: "Parent Portal + AI", "AI Safety Monitor" highlighted in features
-
-### New Demo Page
-- Complete redesign of `/demo` page with role-grouped account cards
-- One-click login via NextAuth (no manual email/password entry)
-- Shows district context banner, credentials with copy buttons
-- Direct login as any of the 6+ demo accounts
-
-### Comprehensive Bug Fixes (11 total)
-1. **Notification ownership check** — `PUT /api/notifications` now verifies notification belongs to user
-2. **Grade route ADMIN authorization** — `POST /api/grade` checks district membership
-3. **Batch grade authorization** — `PUT /api/grade` now validates per-submission
-4. **Analytics empty courseIds** — Returns early when no courseIds found
-5. **Submissions ADMIN access** — Handles ADMIN role properly
-6. **Parent goals PUT role check** — Verifies PARENT role
-7. **Division by zero protection** — Fixed `s.maxScore!` divisions (parent reports, skills, teacher insights, teacher reports — 8+ instances)
-8. **JSON.parse crash protection** — Rewards API `unlockedAvatars` / `unlockedBadges` (5 instances) wrapped in safeJsonParse with `[]` fallback
-9. **Parent route JSON.parse** — Already had try/catch but verified safe
-10. **Skills route division safety** — `s.maxScore || 1` protection
-11. **Teacher reports division safety** — `s.maxScore || 1` protection
-
----
-
-## Complete Render Deployment Guide (Step-by-Step)
-
-### Step 1: Prerequisites
-- GitHub account with the Limud repo (https://github.com/Fansist/Limud)
-- Render account (https://render.com)
-- PostgreSQL database (Render, Neon, or Supabase)
-- Domain registrar login for limud.co DNS
-
-### Step 2: Create PostgreSQL Database
-**Option A: Render** — New → PostgreSQL → Name: limud-db, Plan: Starter ($7/mo)
-**Option B: Neon** — https://neon.tech (free tier)
-**Option C: Supabase** — https://supabase.com (free tier)
-
-### Step 3: Create Render Web Service
-1. New → Web Service → Connect GitHub → Select Fansist/Limud
-2. Settings: Name=limud, Region=Oregon, Branch=main, Runtime=Node
-3. Build: `npm install && npm run build` | Start: `node server.js`
-4. Environment Variables:
-
-| Variable | Value |
-|----------|-------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | `https://limud.co` |
-| `NODE_ENV` | `production` |
-| `NODE_VERSION` | `20.11.0` |
-| `NEXT_PUBLIC_APP_URL` | `https://limud.co` |
-| `NEXT_PUBLIC_APP_NAME` | `Limud` |
-| `OPENAI_API_KEY` | (optional — demo mode works without it) |
-
-### Step 4: Initialize Database
-```bash
-npx prisma db push
+SecurityAuditLog  — action, userId, ip, resource, severity, success
+LoginAttempt      — email, ip, success, reason
+ParentalConsent   — childId, parentId, type, granted, verification
+DataAccessLog     — accessorId, studentId, dataType, purpose
+DataDeletionRequest — requestorId, subjectId, status, scope
 ```
 
-### Step 5: Verify
-- `https://limud.co` — Landing page
-- `https://limud.co/api/health` — Health check JSON
-- `https://limud.co/login` — Demo accounts
+---
 
-### Step 6: Custom Domain (limud.co)
-- A record: `limud.co` → Render IP
-- CNAME: `www.limud.co` → `limud.onrender.com`
-- SSL auto-provisioned by Render
+### 10. Security API Endpoints
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/api/security?view=dashboard` | GET | ADMIN | Security metrics & config |
+| `/api/security?view=audit` | GET | ADMIN | Filtered audit log |
+| `/api/security?view=threats` | GET | ADMIN | Active threats |
+| `/api/security?view=compliance` | GET | ADMIN | FERPA/COPPA/OWASP status |
+| `/api/security` | POST | ADMIN | Admin actions (unlock, export, flush) |
+| `/api/security/audit` | GET | ADMIN | Detailed audit log query |
+| `/api/security/consent` | GET/POST | PARENT | Manage COPPA consent |
+| `/api/security/data-deletion` | GET/POST | PARENT/ADMIN | Data deletion requests |
 
 ---
 
-## Features by Role
+## URLs
+- **Production**: https://limud.co
+- **GitHub**: https://github.com/Fansist/Limud
+- **Health Check**: https://limud.co/api/health
 
-### Student (16 features)
-Dashboard, Assignments, AI Tutor, Focus Mode, Knowledge Analytics, Study Planner, Exam Simulator, Growth, Rewards, Games, Daily Challenge, Leaderboard, Badges, Certificates, Platforms, Study Groups, Messages
+## Data Architecture
+- **Database**: PostgreSQL (Prisma ORM)
+- **Auth**: NextAuth.js (JWT strategy)
+- **AI**: OpenAI via GenSpark LLM proxy
+- **Storage**: Prisma + PostgreSQL
 
-### Teacher (14 features)
-Dashboard, Assignments, AI Grading, Intelligence, AI Insights, AI Quiz Generator, AI Lesson Planner, Game Control, Teacher Exchange, Worksheets, Reports, Students, Analytics, Messages
-
-### Admin (12 features)
-Dashboard, Employees, Students, Schools, Classrooms, Announcements, Bulk Provisioning, Analytics, Billing, Settings, Audit Log, Compliance Reports, AI Usage Monitor
-
-### Parent (6 features)
-Dashboard with AI Check-in, Children Management, Growth Reports, Messages, Goal Tracking, Analytics
-
----
-
-## API Endpoints (66 routes)
-| Endpoint | Description |
-|----------|-------------|
-| `/api/health` | Health check |
-| `/api/auth/register` | Registration (Parent/Admin) |
-| `/api/parent/ai-checkin` | **NEW** AI-powered child check-in |
-| `/api/parent` | Children data + add/remove child |
-| `/api/parent/reports` | Growth reports |
-| `/api/parent/goals` | Goal tracking |
-| `/api/tutor` | AI tutor |
-| `/api/grade` | AI auto-grading |
-| `/api/assignments` | Assignment CRUD |
-| `/api/submissions` | Submissions |
-| `/api/games` | Game store |
-| `/api/rewards` | Reward system |
-| `/api/analytics` | Analytics |
-| `/api/notifications` | Notifications |
-| _...and 52 more_ | |
-
----
-
-## Demo Accounts (Ofer Academy)
-| Name | Email | Password | Role | Notes |
-|------|-------|----------|------|-------|
-| Lior Betzalel | `lior@ofer-academy.edu` | `password123` | Student | 10th grade, top performer |
-| Eitan Balan | `eitan@ofer-academy.edu` | `password123` | Student | 9th grade, needs Math help |
-| Noam Elgarisi | `noam@ofer-academy.edu` | `password123` | Student | 10th grade, highest XP |
-| Gregory Strachen | `strachen@ofer-academy.edu` | `password123` | Teacher | Bio, Algebra, English |
-| Erez Ofer | `erez@ofer-academy.edu` | `password123` | Admin | Superintendent access |
-| David Betzalel | `david@ofer-academy.edu` | `password123` | Parent | Lior's parent |
-| Master Demo | `master@limud.edu` | `LimudMaster2026!` | All roles | Full cross-role access |
-
-Legacy accounts (`student@limud.edu`, `teacher@limud.edu`, etc.) still work with `password123`.
-
----
-
-## Version History
-
-### v8.9 (March 17, 2026) - Named Demo System, AI Integration, 11 Bug Fixes
-- Fully connected demo: Ofer Academy (Erez Ofer, Gregory Strachen, Lior/Eitan/Noam, David Betzalel)
-- AI working via GenSpark proxy (gpt-5-mini) — Tutor, Grading, Lessons, Check-ins
-- Simplified landing page (1087 -> 400 lines)
-- Redesigned /demo page with one-click login
-- 11 bug fixes across auth, grading, analytics, rewards, reports
-
-### v8.8 (March 15, 2026) - Bug Fixes & Landing Page Refresh
-- Fixed ADMIN registration, parent rewards, games rate action
-- Balanced competitor comparison on landing page
-
-### v8.7.x (March 12-13, 2026) - Render Deployment
-- District Admin Suite, deployment support, build fixes
-
----
-
-## Local Development
-```bash
-npm install && npx prisma generate && npm run dev
-# Production: npm run build && node server.js
-# DB: npx prisma db push / npx prisma studio
-```
-
-## Deployment Status
+## Deployment
 - **Platform**: Render.com
-- **Status**: Active
-- **Domain**: limud.co
-- **Last Updated**: March 17, 2026
+- **Status**: ✅ Active
+- **Branch**: main
+- **Tech Stack**: Next.js 14 + TypeScript + TailwindCSS + Prisma + NextAuth
+- **Security Level**: Enterprise (FERPA + COPPA + OWASP Top 10)
+- **Last Updated**: 2026-03-19
+
+## Files Changed in v9.0
+
+| File | Change |
+|---|---|
+| `src/lib/security.ts` | 35KB — Complete rewrite with unified API, SECURITY_CONFIG restructured |
+| `src/middleware.ts` | 12.7KB — Edge middleware with full OWASP headers, enhanced bot detection |
+| `src/lib/middleware.ts` | 13KB — secureApiHandler with XSS/SQLi detection, auditAction/auditType compat |
+| `src/lib/auth.ts` | 13.8KB — Secure cookie config, session hardening, SECURITY_CONFIG integration |
+| `src/app/api/security/route.ts` | 8KB — Fixed imports, OWASP compliance view, flush action |
+| `src/app/admin/security/page.tsx` | 30KB — Fixed API mapping, severity compat, compliance tab |
+| `next.config.js` | 4.5KB — v9.0 security headers |
+| `server.js` | Version bump to 9.0 |
+| `render.yaml` | Version bump to 9.0 |
+| `src/app/api/health/route.ts` | Version bump to 9.0 |
+| `src/components/landing/LandingPage.tsx` | Version bump to v9.0 |
+| `package.json` | Version 9.0 |
+| `README.md` | Complete security documentation |
+
+## Render Environment Variables (REQUIRED)
+
+| Variable | Required | Description |
+|---|---|---|
+| `NEXTAUTH_SECRET` | ✅ | Fixed secret — `openssl rand -base64 32`. NEVER use generateValue. |
+| `NEXTAUTH_URL` | ✅ | `https://limud.co` |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `OPENAI_API_KEY` | ✅ | AI tutoring API key |
+| `OPENAI_BASE_URL` | ✅ | `https://www.genspark.ai/api/llm_proxy/v1` |
+| `PII_ENCRYPTION_KEY` | ⚡ | Separate key for PII encryption (falls back to NEXTAUTH_SECRET) |
+| `NODE_ENV` | ✅ | `production` |
