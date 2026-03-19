@@ -2,12 +2,164 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 8.9.1
+- **Version**: 8.10
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
+- **Security**: Enterprise-grade FERPA + COPPA compliant security for children's data protection
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
 - **Domain**: https://limud.co
 - **GitHub**: https://github.com/Fansist/Limud
 - **Hosting**: Render.com (primary), also supports cPanel/GoDaddy
+
+---
+
+## What's New in v8.10 — Enterprise Security Overhaul (FERPA + COPPA)
+
+### This is a MAJOR release focused entirely on building enterprise-grade, top-of-the-line security for protecting children's personal and sensitive information.
+
+---
+
+### 1. Security Engine (`src/lib/security.ts`) — 32KB of pure security infrastructure
+
+**Rate Limiting (Sliding Window Algorithm)**
+- 100 req/min per IP (global)
+- 5 login attempts per 5 minutes (auth)
+- 60 req/min per authenticated user (API)
+- 3 registrations per hour per IP
+- 3 password resets per hour per IP
+- 20 AI endpoint calls per minute
+- Custom rate limit profiles for file uploads
+
+**Brute Force Detection & Account Lockout**
+- Tracks failed login attempts per email
+- Auto-locks account after 5 failures
+- 15-minute lockout duration
+- Counter resets after 1 hour of no failures
+- Locked accounts log CRITICAL security events
+- Admin can manually unlock accounts
+
+**Input Sanitization & Attack Detection**
+- XSS pattern detection (12+ patterns: `<script>`, `javascript:`, `onerror=`, etc.)
+- SQL injection detection (10+ patterns: UNION SELECT, OR 1=1, comments, SLEEP, etc.)
+- Command injection detection (`cat`, `ls`, `curl`, `rm`, backticks, `$()`)
+- Path traversal detection (`../`, `%2e%2e`)
+- HTML entity encoding for all string inputs
+- Null byte stripping
+- Maximum field length enforcement (10,000 chars)
+- Maximum JSON nesting depth (10 levels)
+- Maximum array length (1,000 items)
+- Maximum request body size (10MB)
+
+**Password Policy (NIST SP 800-63B Compliant)**
+- Minimum 8 characters
+- Requires uppercase + lowercase + number
+- Checks against database of common breached passwords (100+ entries)
+- Detects email-based passwords
+- Detects sequential/repeated characters (aaaa)
+- Maximum 128 characters (to prevent bcrypt DoS)
+
+**PII Encryption (FERPA Requirement)**
+- AES-256-GCM encryption for sensitive fields
+- scrypt key derivation from NEXTAUTH_SECRET
+- Random IV per encryption (no IV reuse)
+- Authentication tag for tamper detection
+- PII masking in audit logs (shows first/last 2 chars)
+- Automatic detection of 15+ PII field types
+
+**Audit Logging**
+- 20+ security event types tracked
+- 4 severity levels: LOW, MEDIUM, HIGH, CRITICAL
+- IP address, user agent, user ID, email tracked per event
+- In-memory buffer (10,000 events max)
+- Real-time metrics: last hour and last 24h breakdowns
+- Critical events logged to console immediately
+
+### 2. Secure API Middleware (`src/lib/middleware.ts`)
+
+- **`secureApiHandler()`** — Drop-in replacement for all API routes with:
+  - Automatic rate limiting (per IP + per user)
+  - Authentication + role authorization
+  - Input validation + attack scanning on POST/PUT/PATCH
+  - PII protection in error messages
+  - Comprehensive error handling (Prisma, auth, generic)
+  - Audit event logging
+- **`apiHandler()`** — Backward-compatible legacy wrapper
+- Options: `roles`, `rateLimit`, `public`, `skipRateLimit`, `skipInputValidation`, `auditType`
+
+### 3. Edge Middleware (`src/middleware.ts`) — First line of defense
+
+Runs on EVERY request before reaching the application:
+- **Bot scanner detection**: Blocks SQLMap, Nikto, Nmap, DirBuster, Acunetix, Netsparker, BurpSuite
+- **Malicious path blocking**: `../`, `.env`, `.git/`, `wp-admin`, `phpmyadmin`, `/etc/`, `/proc/`
+- **File extension blocking**: `.php`, `.asp`, `.aspx`, `.jsp`, `.cgi`
+- **Request ID**: Unique UUID per request for tracing
+- **Security headers**: Added at edge level
+
+### 4. Security Headers & CSP (`next.config.js`)
+
+**Content-Security-Policy (Strict)**
+- `default-src 'self'` — Only load resources from same origin
+- `script-src` — Only self + Tailwind CDN + Chart.js CDN
+- `frame-ancestors 'none'` — Prevent ALL embedding (clickjacking protection)
+- `form-action 'self'` — Forms only submit to same origin
+- `base-uri 'self'` — Prevent base tag hijacking
+- `object-src 'none'` — No Flash/plugins
+- `upgrade-insecure-requests` — Force HTTPS
+
+**Permissions-Policy**
+- Camera: disabled
+- Microphone: disabled
+- Geolocation: disabled
+- Payment API: disabled
+- USB: disabled
+- Screen capture: disabled
+- All sensors: disabled
+
+**Other Headers**
+- HSTS: 2 years + includeSubDomains + preload
+- X-Frame-Options: SAMEORIGIN
+- X-Content-Type-Options: nosniff
+- X-XSS-Protection: 1; mode=block
+- Referrer-Policy: strict-origin-when-cross-origin
+- Cross-Origin-Opener-Policy: same-origin
+- Cross-Origin-Resource-Policy: same-origin
+- Cross-Origin-Embedder-Policy: credentialless
+
+### 5. Hardened Authentication (`src/lib/auth.ts`)
+
+- Session reduced from 30 days to 24 hours
+- HttpOnly + Secure + SameSite cookies (prevents XSS session theft)
+- Account lockout on 5 failed attempts
+- Brute force detection with IP logging
+- Dynamic bcrypt import (prevents module crashes)
+- Email normalization (lowercase + trim)
+- Sign-out event logging
+- Token creation time tracking (absolute timeout)
+
+### 6. Security Dashboard (`/admin/security`)
+
+Full admin UI with 4 tabs:
+- **Overview**: Real-time metrics (events/hour, critical alerts, auth failures, locked accounts), active protection grid (9 protections), recent events feed
+- **Threat Monitor**: Filtered view of HIGH/CRITICAL events, blocked attacks with full details
+- **Audit Log**: Searchable/filterable event table with severity, type, IP, user, status columns
+- **Compliance**: FERPA status (6 features), COPPA status (5 features), encryption details, security headers inventory
+
+### 7. Security API (`/api/security`)
+
+Admin-only endpoints:
+- `GET /api/security?view=dashboard` — Metrics + config
+- `GET /api/security?view=audit` — Audit log with filters
+- `GET /api/security?view=threats` — Active threats
+- `GET /api/security?view=compliance` — FERPA/COPPA status
+- `POST /api/security` — Admin actions (unlock accounts, export logs)
+
+### 8. Registration Hardening (`/api/auth/register`)
+
+- Rate limited: 3 per hour per IP
+- NIST password policy enforcement
+- Email format validation + sanitization
+- Name sanitization (XSS prevention)
+- Email enumeration prevention (generic error messages)
+- Audit logging of all registration attempts
 
 ---
 

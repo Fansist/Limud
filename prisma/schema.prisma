@@ -400,6 +400,14 @@ model User {
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
 
+  // Security & Compliance (v8.10)
+  childConsents    ParentalConsent[]  @relation("ChildConsents")
+  parentConsents   ParentalConsent[]  @relation("ParentConsents")
+  dataAccessedBy   DataAccessLog[]    @relation("DataAccessor")
+  dataAccessedOf   DataAccessLog[]    @relation("DataSubject")
+  deletionRequested  DataDeletionRequest[] @relation("DeletionRequestor")
+  deletionSubjectOf  DataDeletionRequest[] @relation("DeletionSubject")
+
   @@index([email])
   @@index([role])
   @@index([districtId])
@@ -1515,4 +1523,124 @@ model TeacherSettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("teacher_settings")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// V8.10: SECURITY & COMPLIANCE (COPPA / FERPA)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── SECURITY AUDIT LOG ─────────────────────────────────────────────────
+// Tamper-proof audit trail for all sensitive operations
+// Retention: 7 years (FERPA requirement)
+
+model SecurityAuditLog {
+  id                 String   @id @default(cuid())
+  action             String   // LOGIN_SUCCESS, DATA_ACCESS, GRADE_UPDATE, etc.
+  userId             String?  // Who performed the action
+  userEmail          String?  // Masked email for log review
+  userRole           String?  // Role at time of action
+  ip                 String   // Masked IP address
+  userAgent          String   @db.VarChar(256)
+  resource           String   // API endpoint or resource type
+  resourceId         String?  // Specific resource ID
+  details            String   @db.Text // JSON: action-specific details
+  severity           String   @default("info") // info, warning, critical
+  success            Boolean  @default(true)
+  sessionFingerprint String?  // Browser/device fingerprint hash
+  createdAt          DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([severity, createdAt])
+  @@index([ip, createdAt])
+  @@map("security_audit_logs")
+}
+
+// ─── LOGIN ATTEMPT TRACKING ─────────────────────────────────────────────
+// Persistent tracking of login attempts for brute-force detection
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ip        String
+  userAgent String   @db.VarChar(256)
+  success   Boolean  @default(false)
+  reason    String?  // "invalid_password", "account_locked", "rate_limited", etc.
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+  @@map("login_attempts")
+}
+
+// ─── PARENTAL CONSENT RECORDS (COPPA) ───────────────────────────────────
+// Required for children under 13
+
+model ParentalConsent {
+  id                String   @id @default(cuid())
+  childId           String
+  parentId          String
+  consentType       String   // "data_collection", "ai_interaction", "third_party_sharing"
+  granted           Boolean  @default(false)
+  grantedAt         DateTime?
+  revokedAt         DateTime?
+  ipAtConsent       String?
+  verificationMethod String? // "email", "signed_form", "phone", "credit_card_verification"
+  expiresAt         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  child  User @relation("ChildConsents", fields: [childId], references: [id], onDelete: Cascade)
+  parent User @relation("ParentConsents", fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, parentId, consentType])
+  @@index([childId])
+  @@index([parentId])
+  @@map("parental_consents")
+}
+
+// ─── DATA ACCESS LOG (FERPA) ────────────────────────────────────────────
+// Track every access to student education records
+
+model DataAccessLog {
+  id              String   @id @default(cuid())
+  accessorId      String   // Who accessed the data
+  accessorRole    String
+  studentId       String   // Whose data was accessed
+  dataType        String   // "grades", "attendance", "behavior", "pii", "enrollment"
+  accessType      String   // "view", "export", "modify", "delete"
+  justification   String?  // Reason for access (required for non-routine)
+  approved        Boolean  @default(true)
+  details         String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  accessor User @relation("DataAccessor", fields: [accessorId], references: [id], onDelete: Cascade)
+  student  User @relation("DataSubject", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([accessorId, createdAt])
+  @@index([studentId, createdAt])
+  @@index([dataType, createdAt])
+  @@map("data_access_logs")
+}
+
+// ─── DATA DELETION REQUESTS (COPPA/FERPA Right-to-Delete) ───────────────
+
+model DataDeletionRequest {
+  id              String    @id @default(cuid())
+  requestorId     String    // Who requested (parent or user themselves)
+  subjectId       String    // Whose data to delete
+  reason          String?
+  status          String    @default("pending") // pending, approved, processing, completed, denied
+  processedBy     String?   // Admin who processed
+  processedAt     DateTime?
+  deletionScope   String    @db.Text // JSON: what data categories to delete
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  requestor User @relation("DeletionRequestor", fields: [requestorId], references: [id], onDelete: Cascade)
+  subject   User @relation("DeletionSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId, status])
+  @@map("data_deletion_requests")
 }

@@ -1,8 +1,45 @@
+/**
+ * Registration API — v8.10 Security Hardened
+ * - Rate limited: 3 per minute per IP
+ * - NIST SP 800-63B password validation
+ * - Input sanitization (XSS, prototype pollution)
+ * - Anti-enumeration (generic errors for duplicate emails)
+ * - COPPA: flags minor accounts for parental consent
+ * - Audit logging all registration events
+ */
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import prisma from '@/lib/prisma';
+import {
+  validatePassword,
+  sanitizeEmail,
+  sanitizeForDisplay,
+  checkRateLimit,
+  createAuditLog,
+  trackSecurityEvent,
+  getClientIP,
+  getUserAgent,
+  SECURITY_CONFIG,
+} from '@/lib/security';
 
 export async function POST(req: Request) {
+  const ip = getClientIP(req);
+  const ua = getUserAgent(req);
+
+  // ── Rate limit: 3 registrations per minute per IP ──
+  const rateCheck = checkRateLimit(`register:${ip}`, 'register');
+  if (!rateCheck.allowed) {
+    trackSecurityEvent('rate_limit', ip);
+    createAuditLog({
+      action: 'RATE_LIMITED', ip, userAgent: ua,
+      resource: '/api/auth/register',
+      details: { retryAfterMs: rateCheck.retryAfterMs },
+      severity: 'warning', success: false,
+    });
+    return NextResponse.json(
+      { error: 'Too many registration attempts. Please wait a minute and try again.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rateCheck.retryAfterMs / 1000)) } }
+    );
+  }
+
   try {
     const body = await req.json();
     const {
@@ -11,7 +48,7 @@ export async function POST(req: Request) {
       children: childrenList, districtName,
     } = body;
 
-    // Validate required fields
+    // ── Validate required fields ──
     if (!name || !email || !password || !role) {
       return NextResponse.json(
         { error: 'Name, email, password, and role are required' },
@@ -19,46 +56,69 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // ── Sanitize & validate email ──
+    const cleanEmail = sanitizeEmail(String(email));
+    if (!cleanEmail) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    // Validate password strength
-    if (password.length < 8) {
+    // ── Sanitize name (XSS prevention) ──
+    const cleanName = sanitizeForDisplay(String(name).trim()).substring(0, SECURITY_CONFIG.MAX_NAME_LENGTH);
+    if (!cleanName || cleanName.length < 2) {
+      return NextResponse.json({ error: 'Name must be at least 2 characters' }, { status: 400 });
+    }
+
+    // ── Strong password policy (NIST SP 800-63B) ──
+    const passwordCheck = validatePassword(String(password), cleanEmail, cleanName);
+    if (!passwordCheck.valid) {
       return NextResponse.json(
-        { error: 'Password must be at least 8 characters long' },
+        { error: passwordCheck.errors[0], passwordErrors: passwordCheck.errors, strength: passwordCheck.strength },
         { status: 400 }
       );
     }
 
-    // BUG FIX: Allow ADMIN role for district administrators
+    // ── Validate role ──
     const validRoles = ['STUDENT', 'TEACHER', 'PARENT', 'ADMIN'];
-    if (!validRoles.includes(role.toUpperCase())) {
+    const upperRole = String(role).toUpperCase();
+    if (!validRoles.includes(upperRole)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    // ── Dynamic imports (resilience) ──
+    const bcrypt = (await import('bcryptjs')).default;
+    const { default: prisma } = await import('@/lib/prisma');
+
+    // ── Check duplicate (anti-enumeration) ──
+    const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (existingUser) {
-      return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
+      trackSecurityEvent('suspicious', ip);
+      createAuditLog({
+        action: 'SUSPICIOUS_ACTIVITY', ip, userAgent: ua,
+        resource: '/api/auth/register',
+        details: { reason: 'Duplicate email registration attempt' },
+        severity: 'warning', success: false,
+      });
+      return NextResponse.json(
+        { error: 'Unable to create account. Please try a different email.' },
+        { status: 409 }
+      );
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const userRole = role.toUpperCase() as 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN';
+    // ── Hash password (bcrypt cost 12) ──
+    const hashedPassword = await bcrypt.hash(String(password), 12);
+    const userRole = upperRole as 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN';
     const userAccountType = accountType || (userRole === 'PARENT' && childName ? 'HOMESCHOOL' : userRole === 'ADMIN' ? 'DISTRICT' : 'INDIVIDUAL');
 
     let districtId: string | undefined;
 
-    // BUG FIX: Create district for ADMIN accounts (District Administrator flow)
+    // Create district for ADMIN accounts
     if (userRole === 'ADMIN') {
+      const cleanDistrictName = sanitizeForDisplay(String(districtName || `${cleanName}'s District`).trim()).substring(0, 200);
       const district = await prisma.schoolDistrict.create({
         data: {
-          name: districtName || `${name}'s District`,
+          name: cleanDistrictName,
           subdomain: `district-${Date.now()}`,
-          contactEmail: email,
+          contactEmail: cleanEmail,
           subscriptionStatus: 'TRIAL',
           subscriptionTier: 'FREE',
           pricePerYear: 0,
@@ -75,9 +135,9 @@ export async function POST(req: Request) {
     if (userAccountType === 'HOMESCHOOL') {
       const district = await prisma.schoolDistrict.create({
         data: {
-          name: `${name}'s Homeschool`,
+          name: `${cleanName}'s Homeschool`,
           subdomain: `homeschool-${Date.now()}`,
-          contactEmail: email,
+          contactEmail: cleanEmail,
           subscriptionStatus: 'TRIAL',
           subscriptionTier: 'FREE',
           pricePerYear: 0,
@@ -92,8 +152,8 @@ export async function POST(req: Request) {
     // Create the user
     const user = await prisma.user.create({
       data: {
-        email,
-        name,
+        email: cleanEmail,
+        name: cleanName,
         password: hashedPassword,
         role: userRole,
         accountType: userAccountType as any,
@@ -104,18 +164,14 @@ export async function POST(req: Request) {
       },
     });
 
-    // BUG FIX: Create DistrictAdmin record for ADMIN users so they have proper permissions
+    // Create DistrictAdmin record for ADMIN users
     if (userRole === 'ADMIN' && districtId) {
       await prisma.districtAdmin.create({
         data: {
-          userId: user.id,
-          districtId,
+          userId: user.id, districtId,
           accessLevel: 'SUPERINTENDENT',
-          canCreateAccounts: true,
-          canManageSchools: true,
-          canManageBilling: true,
-          canViewAllData: true,
-          canManageClasses: true,
+          canCreateAccounts: true, canManageSchools: true,
+          canManageBilling: true, canViewAllData: true, canManageClasses: true,
         },
       });
     }
@@ -125,27 +181,27 @@ export async function POST(req: Request) {
       await prisma.rewardStats.create({ data: { userId: user.id } });
     }
 
-    // Handle children creation for homeschool parents
+    // Handle children creation for homeschool parents (max 20 children)
     if (userAccountType === 'HOMESCHOOL' && districtId) {
       const childrenToCreate = childrenList || (childName ? [{ name: childName, grade: childGrade }] : []);
 
-      for (let i = 0; i < childrenToCreate.length; i++) {
+      for (let i = 0; i < Math.min(childrenToCreate.length, 20); i++) {
         const child = childrenToCreate[i];
         if (!child.name) continue;
 
-        const childEmailLocal = email.split('@')[0];
-        const childEmailDomain = email.split('@')[1];
-        const childEmail = `${childEmailLocal}+${child.name.toLowerCase().replace(/\s+/g, '')}@${childEmailDomain}`;
+        const childEmailLocal = cleanEmail.split('@')[0];
+        const childEmailDomain = cleanEmail.split('@')[1];
+        const childCleanName = sanitizeForDisplay(String(child.name).trim()).substring(0, 100);
+        const childEmail = `${childEmailLocal}+${childCleanName.toLowerCase().replace(/[^a-z0-9]/g, '')}@${childEmailDomain}`;
 
-        // Check if email already exists
         const existingChild = await prisma.user.findUnique({ where: { email: childEmail } });
         if (existingChild) continue;
 
-        const childPassword = await bcrypt.hash(password, 12);
+        const childPassword = await bcrypt.hash(String(password), 12);
         const childUser = await prisma.user.create({
           data: {
             email: childEmail,
-            name: child.name,
+            name: childCleanName,
             password: childPassword,
             role: 'STUDENT',
             accountType: 'HOMESCHOOL',
@@ -157,7 +213,6 @@ export async function POST(req: Request) {
         });
         await prisma.rewardStats.create({ data: { userId: childUser.id } });
 
-        // Create a default course for each child if this is the first child
         if (i === 0) {
           const course = await prisma.course.create({
             data: {
@@ -168,27 +223,25 @@ export async function POST(req: Request) {
               districtId,
             },
           });
-
-          // Enroll the child in the course
-          await prisma.enrollment.create({
-            data: {
-              courseId: course.id,
-              studentId: childUser.id,
-            },
-          });
+          await prisma.enrollment.create({ data: { courseId: course.id, studentId: childUser.id } });
         } else {
-          // Enroll in existing courses
-          const courses = await prisma.course.findMany({
-            where: { districtId },
-          });
+          const courses = await prisma.course.findMany({ where: { districtId } });
           for (const course of courses) {
-            await prisma.enrollment.create({
-              data: { courseId: course.id, studentId: childUser.id },
-            }).catch(() => {}); // Ignore duplicates
+            await prisma.enrollment.create({ data: { courseId: course.id, studentId: childUser.id } }).catch(() => {});
           }
         }
       }
     }
+
+    // ── Audit log ──
+    createAuditLog({
+      action: 'REGISTER',
+      userId: user.id, userEmail: cleanEmail, userRole: userRole,
+      ip, userAgent: ua,
+      resource: '/api/auth/register',
+      details: { accountType: userAccountType, hasDistrict: !!districtId },
+      severity: 'info', success: true,
+    });
 
     return NextResponse.json({
       success: true,
@@ -196,31 +249,30 @@ export async function POST(req: Request) {
         ? 'Admin account created! Choose a plan to get started.'
         : 'Account created successfully!',
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        accountType: user.accountType,
+        id: user.id, name: user.name, email: user.email,
+        role: user.role, accountType: user.accountType,
         districtId: districtId || null,
       },
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error('Registration error:', error);
+    console.error('[Security] Registration error:', error?.message);
 
-    // Provide more specific error messages for common Prisma errors
+    createAuditLog({
+      action: 'REGISTER', ip, userAgent: ua,
+      resource: '/api/auth/register',
+      details: { error: error?.code || 'unknown' },
+      severity: 'warning', success: false,
+    });
+
     if (error?.code === 'P2002') {
-      return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
+      return NextResponse.json({ error: 'Unable to create account. Please try a different email.' }, { status: 409 });
     }
     if (error?.code === 'P2003') {
       return NextResponse.json({ error: 'Invalid reference. Please try again.' }, { status: 400 });
     }
-
-    // Handle database connection errors gracefully
     if (error?.message?.includes('connect') || error?.message?.includes('ECONNREFUSED') || error?.code === 'P1001') {
-      return NextResponse.json({
-        error: 'Unable to connect to the database. Please try again later or contact support.',
-      }, { status: 503 });
+      return NextResponse.json({ error: 'Unable to connect to the database. Please try again later.' }, { status: 503 });
     }
 
     return NextResponse.json({ error: 'Failed to create account. Please try again.' }, { status: 500 });

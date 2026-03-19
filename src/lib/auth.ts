@@ -1,5 +1,13 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import {
+  checkAccountLocked,
+  recordFailedLogin,
+  recordSuccessfulLogin,
+  createAuditLog,
+  trackSecurityEvent,
+  getClientIP,
+} from '@/lib/security';
 
 // Master Demo account - full access to all features across all roles
 const MASTER_DEMO = {
@@ -9,7 +17,7 @@ const MASTER_DEMO = {
     id: 'master-demo',
     email: 'master@limud.edu',
     name: 'Master Demo',
-    role: 'TEACHER', // Default role, can switch in-app
+    role: 'TEACHER',
     accountType: 'DISTRICT',
     districtId: 'demo-district',
     districtName: 'Ofer Academy',
@@ -21,159 +29,50 @@ const MASTER_DEMO = {
 };
 
 // Fully connected demo accounts — Ofer Academy district
-// Students: Lior Betzalel, Eitan Balan, Noam Elgarisi
-// Teacher: Gregory Strachen
-// Admin: Erez Ofer (Superintendent)
-// Parent: David Betzalel (Lior's parent)
-// All use password: password123
 const DEMO_ACCOUNTS: Record<string, any> = {
-  // ─── Students ───
   'lior@ofer-academy.edu': {
-    id: 'demo-student-lior',
-    email: 'lior@ofer-academy.edu',
-    name: 'Lior Betzalel',
-    role: 'STUDENT',
-    accountType: 'DISTRICT',
-    districtId: 'demo-district',
-    districtName: 'Ofer Academy',
-    selectedAvatar: 'astronaut',
-    isHomeschoolParent: false,
-    gradeLevel: '10th',
-    isMasterDemo: false,
+    id: 'demo-student-lior', email: 'lior@ofer-academy.edu', name: 'Lior Betzalel',
+    role: 'STUDENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
+    selectedAvatar: 'astronaut', isHomeschoolParent: false, gradeLevel: '10th', isMasterDemo: false,
   },
   'eitan@ofer-academy.edu': {
-    id: 'demo-student-eitan',
-    email: 'eitan@ofer-academy.edu',
-    name: 'Eitan Balan',
-    role: 'STUDENT',
-    accountType: 'DISTRICT',
-    districtId: 'demo-district',
-    districtName: 'Ofer Academy',
-    selectedAvatar: 'robot',
-    isHomeschoolParent: false,
-    gradeLevel: '9th',
-    isMasterDemo: false,
+    id: 'demo-student-eitan', email: 'eitan@ofer-academy.edu', name: 'Eitan Balan',
+    role: 'STUDENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
+    selectedAvatar: 'robot', isHomeschoolParent: false, gradeLevel: '9th', isMasterDemo: false,
   },
   'noam@ofer-academy.edu': {
-    id: 'demo-student-noam',
-    email: 'noam@ofer-academy.edu',
-    name: 'Noam Elgarisi',
-    role: 'STUDENT',
-    accountType: 'DISTRICT',
-    districtId: 'demo-district',
-    districtName: 'Ofer Academy',
-    selectedAvatar: 'wizard',
-    isHomeschoolParent: false,
-    gradeLevel: '10th',
-    isMasterDemo: false,
+    id: 'demo-student-noam', email: 'noam@ofer-academy.edu', name: 'Noam Elgarisi',
+    role: 'STUDENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
+    selectedAvatar: 'wizard', isHomeschoolParent: false, gradeLevel: '10th', isMasterDemo: false,
   },
-  // ─── Teacher ───
   'strachen@ofer-academy.edu': {
-    id: 'demo-teacher',
-    email: 'strachen@ofer-academy.edu',
-    name: 'Gregory Strachen',
-    role: 'TEACHER',
-    accountType: 'DISTRICT',
-    districtId: 'demo-district',
-    districtName: 'Ofer Academy',
-    selectedAvatar: 'owl',
-    isHomeschoolParent: false,
-    gradeLevel: '',
-    isMasterDemo: false,
+    id: 'demo-teacher', email: 'strachen@ofer-academy.edu', name: 'Gregory Strachen',
+    role: 'TEACHER', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
+    selectedAvatar: 'owl', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false,
   },
-  // ─── Admin (Superintendent) ───
   'erez@ofer-academy.edu': {
-    id: 'demo-admin',
-    email: 'erez@ofer-academy.edu',
-    name: 'Erez Ofer',
-    role: 'ADMIN',
-    accountType: 'DISTRICT',
-    districtId: 'demo-district',
-    districtName: 'Ofer Academy',
-    selectedAvatar: 'shield',
-    isHomeschoolParent: false,
-    gradeLevel: '',
-    isMasterDemo: false,
+    id: 'demo-admin', email: 'erez@ofer-academy.edu', name: 'Erez Ofer',
+    role: 'ADMIN', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
+    selectedAvatar: 'shield', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false,
   },
-  // ─── Parent ───
   'david@ofer-academy.edu': {
-    id: 'demo-parent',
-    email: 'david@ofer-academy.edu',
-    name: 'David Betzalel',
-    role: 'PARENT',
-    accountType: 'DISTRICT',
-    districtId: 'demo-district',
-    districtName: 'Ofer Academy',
-    selectedAvatar: 'heart',
-    isHomeschoolParent: false,
-    gradeLevel: '',
-    isMasterDemo: false,
+    id: 'demo-parent', email: 'david@ofer-academy.edu', name: 'David Betzalel',
+    role: 'PARENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
+    selectedAvatar: 'heart', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false,
   },
-  // Legacy accounts (backward compatibility)
-  'student@limud.edu': {
-    id: 'demo-student-lior',
-    email: 'lior@ofer-academy.edu',
-    name: 'Lior Betzalel',
-    role: 'STUDENT',
-    accountType: 'DISTRICT',
-    districtId: 'demo-district',
-    districtName: 'Ofer Academy',
-    selectedAvatar: 'astronaut',
-    isHomeschoolParent: false,
-    gradeLevel: '10th',
-    isMasterDemo: false,
-  },
-  'teacher@limud.edu': {
-    id: 'demo-teacher',
-    email: 'strachen@ofer-academy.edu',
-    name: 'Gregory Strachen',
-    role: 'TEACHER',
-    accountType: 'DISTRICT',
-    districtId: 'demo-district',
-    districtName: 'Ofer Academy',
-    selectedAvatar: 'owl',
-    isHomeschoolParent: false,
-    gradeLevel: '',
-    isMasterDemo: false,
-  },
-  'admin@limud.edu': {
-    id: 'demo-admin',
-    email: 'erez@ofer-academy.edu',
-    name: 'Erez Ofer',
-    role: 'ADMIN',
-    accountType: 'DISTRICT',
-    districtId: 'demo-district',
-    districtName: 'Ofer Academy',
-    selectedAvatar: 'shield',
-    isHomeschoolParent: false,
-    gradeLevel: '',
-    isMasterDemo: false,
-  },
-  'parent@limud.edu': {
-    id: 'demo-parent',
-    email: 'david@ofer-academy.edu',
-    name: 'David Betzalel',
-    role: 'PARENT',
-    accountType: 'DISTRICT',
-    districtId: 'demo-district',
-    districtName: 'Ofer Academy',
-    selectedAvatar: 'heart',
-    isHomeschoolParent: false,
-    gradeLevel: '',
-    isMasterDemo: false,
-  },
+  // Legacy backward-compatible aliases
+  'student@limud.edu': { id: 'demo-student-lior', email: 'lior@ofer-academy.edu', name: 'Lior Betzalel', role: 'STUDENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'astronaut', isHomeschoolParent: false, gradeLevel: '10th', isMasterDemo: false },
+  'teacher@limud.edu': { id: 'demo-teacher', email: 'strachen@ofer-academy.edu', name: 'Gregory Strachen', role: 'TEACHER', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'owl', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false },
+  'admin@limud.edu': { id: 'demo-admin', email: 'erez@ofer-academy.edu', name: 'Erez Ofer', role: 'ADMIN', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'shield', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false },
+  'parent@limud.edu': { id: 'demo-parent', email: 'david@ofer-academy.edu', name: 'David Betzalel', role: 'PARENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'heart', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false },
 };
 
-/**
- * Helper: Check if an email is a demo account
- */
+/** Check if an email is a demo account */
 export function isDemoAccount(email: string): boolean {
   return email === MASTER_DEMO.email || email in DEMO_ACCOUNTS;
 }
 
-/**
- * Helper: Get role for an email (used for client-side redirect)
- */
+/** Get role for an email (used for client-side redirect) */
 export function getDemoRole(email: string): string | null {
   if (email === MASTER_DEMO.email) return 'TEACHER';
   const account = DEMO_ACCOUNTS[email];
@@ -183,7 +82,7 @@ export function getDemoRole(email: string): string | null {
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 24 * 60 * 60, // 24 hours (tightened from 30 days for security)
   },
   pages: {
     signIn: '/login',
@@ -196,30 +95,60 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password are required');
         }
 
         const email = credentials.email.toLowerCase().trim();
         const password = credentials.password;
+        // Extract IP for security tracking (best effort)
+        const ip = (req as any)?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
+                   (req as any)?.headers?.['x-real-ip'] || '0.0.0.0';
+
+        // ── BRUTE-FORCE PROTECTION: Check if account is locked ──
+        const lockStatus = checkAccountLocked(email);
+        if (lockStatus.locked) {
+          const minutesLeft = Math.ceil((lockStatus.lockedUntilMs - Date.now()) / 60000);
+          trackSecurityEvent('blocked', ip);
+          createAuditLog({
+            action: 'LOGIN_FAILURE',
+            userEmail: email, ip, userAgent: 'auth',
+            resource: '/api/auth/callback/credentials',
+            details: { reason: 'Account locked', minutesLeft },
+            severity: 'warning',
+            success: false,
+          });
+          throw new Error(`Account temporarily locked. Try again in ${minutesLeft} minutes.`);
+        }
 
         // ── 1. Check Master Demo account ──
         if (email === MASTER_DEMO.email && password === MASTER_DEMO.password) {
-          console.log('[Limud Auth] Master demo login successful');
+          recordSuccessfulLogin(email);
+          trackSecurityEvent('success_login', ip);
+          createAuditLog({
+            action: 'LOGIN_SUCCESS', userEmail: email, ip, userAgent: 'auth',
+            resource: '/api/auth/callback/credentials',
+            details: { type: 'master_demo' }, severity: 'info', success: true,
+          });
           return MASTER_DEMO.user as any;
         }
 
-        // ── 2. Check role-specific demo accounts (password: password123) ──
+        // ── 2. Check demo accounts (password: password123) ──
         const demoAccount = DEMO_ACCOUNTS[email];
         if (demoAccount && password === 'password123') {
-          console.log(`[Limud Auth] Demo login successful: ${email} (${demoAccount.role})`);
+          recordSuccessfulLogin(email);
+          trackSecurityEvent('success_login', ip);
+          createAuditLog({
+            action: 'LOGIN_SUCCESS', userEmail: email, ip, userAgent: 'auth',
+            resource: '/api/auth/callback/credentials',
+            details: { type: 'demo', role: demoAccount.role }, severity: 'info', success: true,
+          });
           return demoAccount as any;
         }
 
-        // ── 3. Fall through to database authentication ──
+        // ── 3. Database authentication ──
         try {
-          // Dynamic import prisma to prevent module-level crash if DB is unavailable
           const { default: prisma } = await import('@/lib/prisma');
           const user = await prisma.user.findUnique({
             where: { email },
@@ -227,37 +156,64 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!user || !user.isActive) {
+            // Record failed attempt
+            const lockResult = recordFailedLogin(email, ip);
+            trackSecurityEvent('failed_login', ip);
+            createAuditLog({
+              action: 'LOGIN_FAILURE', userEmail: email, ip, userAgent: 'auth',
+              resource: '/api/auth/callback/credentials',
+              details: { reason: 'Invalid credentials', remainingAttempts: lockResult.remainingAttempts },
+              severity: lockResult.locked ? 'critical' : 'warning',
+              success: false,
+            });
+            if (lockResult.locked) {
+              trackSecurityEvent('lockout', ip);
+              throw new Error(`Too many failed attempts. Account locked for ${Math.ceil(lockResult.lockoutDurationMs / 60000)} minutes.`);
+            }
             throw new Error('Invalid email or password');
           }
 
           const bcrypt = (await import('bcryptjs')).default;
           const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) {
+            const lockResult = recordFailedLogin(email, ip);
+            trackSecurityEvent('failed_login', ip);
+            createAuditLog({
+              action: 'LOGIN_FAILURE', userEmail: email, ip, userAgent: 'auth',
+              resource: '/api/auth/callback/credentials',
+              details: { reason: 'Wrong password', remainingAttempts: lockResult.remainingAttempts },
+              severity: lockResult.locked ? 'critical' : 'warning',
+              success: false,
+            });
+            if (lockResult.locked) {
+              trackSecurityEvent('lockout', ip);
+              throw new Error(`Too many failed attempts. Account locked for ${Math.ceil(lockResult.lockoutDurationMs / 60000)} minutes.`);
+            }
             throw new Error('Invalid email or password');
           }
 
-          const isHomeschoolParent = user.role === 'PARENT' && user.accountType === 'HOMESCHOOL';
+          // Success!
+          recordSuccessfulLogin(email);
+          trackSecurityEvent('success_login', ip);
+          createAuditLog({
+            action: 'LOGIN_SUCCESS', userId: user.id, userEmail: email,
+            userRole: user.role, ip, userAgent: 'auth',
+            resource: '/api/auth/callback/credentials',
+            details: { type: 'database' }, severity: 'info', success: true,
+          });
 
+          const isHomeschoolParent = user.role === 'PARENT' && user.accountType === 'HOMESCHOOL';
           return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
+            id: user.id, email: user.email, name: user.name, role: user.role,
             accountType: user.accountType || 'DISTRICT',
-            districtId: user.districtId || '',
-            districtName: user.district?.name || '',
-            selectedAvatar: user.selectedAvatar,
-            isHomeschoolParent,
-            gradeLevel: user.gradeLevel || '',
-            isMasterDemo: false,
+            districtId: user.districtId || '', districtName: user.district?.name || '',
+            selectedAvatar: user.selectedAvatar, isHomeschoolParent,
+            gradeLevel: user.gradeLevel || '', isMasterDemo: false,
           } as any;
         } catch (e: any) {
-          // If user explicitly entered wrong credentials, pass that through
-          if (e.message === 'Invalid email or password') throw e;
-          if (e.message === 'Email and password are required') throw e;
-
-          // For all other errors (DB unavailable, connection refused, module errors):
-          // Log and return a clear message
+          if (e.message.includes('locked') || e.message === 'Invalid email or password' || e.message === 'Email and password are required') {
+            throw e;
+          }
           console.error('[Limud Auth] Database error during login:', e.message);
           throw new Error('Invalid email or password');
         }
@@ -294,10 +250,8 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  // NEXTAUTH_SECRET is required in production.
-  // Set it in Render Dashboard → Environment → NEXTAUTH_SECRET
-  // Generate with: openssl rand -base64 32
-  // CRITICAL v8.9.1: A STABLE secret is mandatory — random secrets break every session on restart.
-  // This hardcoded fallback ensures demo accounts ALWAYS work even without env var set.
+  // CRITICAL: NEXTAUTH_SECRET must be STABLE across deploys.
+  // Set in Render Dashboard -> Environment -> NEXTAUTH_SECRET
+  // Generate once: openssl rand -base64 32
   secret: process.env.NEXTAUTH_SECRET || 'limud-stable-secret-v8-ofer-academy-2026-kj3nf92md',
 };

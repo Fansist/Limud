@@ -4,11 +4,14 @@ import { NextResponse } from 'next/server';
 // Used by Render (and other platforms) to verify the app is alive.
 // render.yaml sets healthCheckPath: /api/health
 // Returns 200 OK with basic system info.
+// This endpoint is intentionally public (no auth required).
 
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    version: '8.9.1',
+    version: '8.10',
+    security: 'enterprise',
+    compliance: ['FERPA', 'COPPA'],
     platform: process.env.RENDER ? 'Render' : 'generic',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),

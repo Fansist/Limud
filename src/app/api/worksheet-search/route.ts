@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import { requireAuth, apiHandler } from '@/lib/middleware';
 
 /**
- * Worksheet Search API - v8.0
+ * Worksheet Search API - v8.10
  * Comprehensive curated database of REAL publicly available worksheets.
  * AI-enhanced search as a bonus when available (non-blocking).
+ * Now requires authentication.
  */
 
 type Worksheet = {
@@ -421,6 +423,8 @@ export const maxDuration = 60; // Allow up to 60 seconds for AI search
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  // Require authentication for worksheet search
+  const user = await requireAuth();
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('q')?.trim() || '';
   const subject = searchParams.get('subject') || '';

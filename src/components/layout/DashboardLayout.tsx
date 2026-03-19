@@ -71,6 +71,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/admin/payments', label: 'Billing', icon: <CreditCard size={20} /> },
     { href: '/admin/settings', label: 'Settings', icon: <Settings size={20} /> },
     { href: '/admin/audit', label: 'Audit Log', icon: <ClipboardList size={20} /> },
+    { href: '/admin/security', label: 'Security', icon: <Shield size={20} /> },
   ],
   PARENT: [
     { href: '/parent/dashboard', label: 'Dashboard', icon: <Eye size={20} /> },
@@ -108,7 +109,7 @@ const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.Reac
     { href: '/admin/employees', label: 'Staff', icon: <UserCog size={20} /> },
     { href: '/admin/classrooms', label: 'Classes', icon: <BookOpen size={20} /> },
     { href: '/admin/analytics', label: 'Stats', icon: <BarChart3 size={20} /> },
-    { href: '/admin/settings', label: 'Settings', icon: <Settings size={20} /> },
+    { href: '/admin/security', label: 'Security', icon: <Shield size={20} /> },
   ],
   PARENT: [
     { href: '/parent/dashboard', label: 'Home', icon: <Eye size={20} /> },
