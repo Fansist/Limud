@@ -165,7 +165,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const storedDemo = localStorage.getItem('limud-demo-mode') === 'true';
     const storedRole = localStorage.getItem('limud-demo-role') || 'STUDENT';
 
-    // v9.3.2: Master Demo NEVER enters generic demo mode.
+    // v9.3.3: Master Demo NEVER enters generic demo mode.
     // The isMasterDemo flag comes from the NextAuth session (checked below)
     // but we also clear any stale localStorage flag here for safety.
     const sessionIsMaster = (session?.user as any)?.isMasterDemo === true;

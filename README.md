@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.3.2
+- **Version**: 9.3.3
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Security**: Enterprise-grade FERPA + COPPA + OWASP Top 10 compliant security for children's data protection
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
@@ -271,6 +271,28 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 - **Tech Stack**: Next.js 14 + TypeScript + TailwindCSS + Prisma + NextAuth
 - **Security Level**: Enterprise (FERPA + COPPA + OWASP Top 10)
 - **Last Updated**: 2026-03-22
+
+---
+
+## What's New in v9.3.3 — Fix Quiz Generator (All Subjects, Variable Count)
+
+The AI Quiz Generator was only producing Math questions and always returned exactly 5 regardless of settings. Now it supports all subjects with real AI generation and 165 template questions as fallback.
+
+### Fixed
+- **Real AI generation**: Rewrote `/api/quiz-generator` POST with proper system+user prompt that instructs the model to generate the exact number of requested questions, with subject, grade, difficulty, and topic context
+- **Uses `extractJSON`** for robust JSON parsing from AI responses (handles markdown fences, leading text)
+- **Fallback uses `generateSpecializedQuiz`** from `ai-generators.ts` instead of the old `generateDemoQuiz` which only had 3-5 hardcoded Math questions
+- **165 template questions** across 4 subjects and 10 topics:
+  - Math (55): Algebra (18), Geometry (12), Fractions (10), General (15)
+  - Science (44): Biology (12), Chemistry (10), Physics (10), General (12)
+  - English (32): Literary Devices (10), Grammar (10), General (12)
+  - History (34): American History (12), World History (10), General (12)
+- **Smart question pooling**: Topic-specific questions first, then fill from other topics within the subject, then cross-subject as last resort
+- **Proper difficulty filtering**: Questions filtered by difficulty with fallback to mixed if too few match
+- **No more ugly duplicates**: Removed the old `(N) prefix` padding; now pulls unique questions from broader pools
+- **Respects `questionCount` setting**: Generates 5, 8, 10, 15, or 20 questions as requested
+- **Demo route** (`/api/demo`) already used `generateSpecializedQuiz` — now benefits from the expanded banks
+- **Version bump** 9.3.2 → 9.3.3 across 23 files
 
 ---
 
