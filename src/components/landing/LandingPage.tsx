@@ -49,7 +49,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ============================================================
-   LANDING PAGE v9.2.2 — Simplified, Cleaner, Conversion-Focused
+   LANDING PAGE v9.3.0 — Simplified, Cleaner, Conversion-Focused
    ============================================================ */
 
 export default function LandingPage() {
@@ -83,7 +83,7 @@ export default function LandingPage() {
                 <BookOpen size={16} className="text-white" />
               </div>
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
-              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.2.2</span>
+              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.3.0</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -477,7 +477,7 @@ export default function LandingPage() {
                   <BookOpen size={16} className="text-white" />
                 </div>
                 <span className="text-base font-bold text-white">Limud</span>
-                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.2.2</span>
+                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.3.0</span>
               </div>
               <p className="text-xs leading-relaxed">AI-powered K-12 learning platform for homeschool families and school districts.</p>
               <div className="flex gap-2 mt-3">

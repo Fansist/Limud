@@ -157,6 +157,28 @@ export function generateSpecializedLessonPlan(subject: string, gradeLevel: strin
   return customized;
 }
 
+/**
+ * v9.3 — Generates a lesson plan in simplified sections format.
+ * Converts the old 12-field bank template → new { sections[] } schema.
+ */
+export function generateSimplifiedLessonPlan(subject: string, gradeLevel: string, topic: string, duration: string, additionalNotes?: string) {
+  const legacy = generateSpecializedLessonPlan(subject, gradeLevel, topic, duration, additionalNotes);
+  return {
+    title: legacy.title || `${topic} Lesson Plan`,
+    objectives: legacy.objectives || [],
+    standards: legacy.standards || '',
+    materials: legacy.materials || [],
+    sections: [
+      { heading: 'Warm-Up', body: legacy.warmUp || '', duration: '5 min' },
+      { heading: 'Direct Instruction', body: legacy.directInstruction || '', duration: '15 min' },
+      { heading: 'Guided Practice', body: legacy.guidedPractice || '', duration: '10 min' },
+      { heading: 'Independent Practice', body: legacy.independentPractice || '', duration: '10 min' },
+      { heading: 'Assessment & Closure', body: `${legacy.assessment || ''}\n\n${legacy.closure || ''}`.trim(), duration: '10 min' },
+      { heading: 'Differentiation & Homework', body: `${legacy.differentiation || ''}\n\n**Homework:** ${legacy.homework || ''}`.trim(), duration: '' },
+    ].filter(s => s.body),
+  };
+}
+
 
 // ─── QUIZ QUESTION GENERATOR ────────────────────────────────────
 

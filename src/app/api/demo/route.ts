@@ -8,14 +8,14 @@ import {
   DEMO_CLASSROOMS, DEMO_COURSES, DEMO_ADMIN_EMPLOYEES, DEMO_ADMIN_STUDENTS_LIST,
   DEMO_TEACHER_INSIGHTS, DEMO_CREDENTIALS,
 } from '@/lib/demo-data';
-import { generateSpecializedLessonPlan, generateSpecializedQuiz } from '@/lib/ai-generators';
+import { generateSimplifiedLessonPlan, generateSpecializedQuiz } from '@/lib/ai-generators';
 
 // Allow up to 60 seconds for AI-powered lesson plan generation
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 /**
- * Generate a lesson plan using OpenAI with timeout protection.
+ * Generate a lesson plan using OpenAI with timeout protection (simplified v9.3 schema).
  * Returns null if AI fails or is not configured, so caller can fall back to templates.
  */
 async function generateAILessonPlan(
@@ -34,12 +34,26 @@ async function generateAILessonPlan(
     const openai = new OpenAI({ apiKey, baseURL: baseURL || undefined });
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 55000); // 55 sec timeout
+    const timeout = setTimeout(() => controller.abort(), 55000);
 
-    const systemPrompt = `You are an expert K-12 curriculum designer. Create a detailed, standards-aligned lesson plan that is specific to the requested topic — NOT a generic template. Include real examples, specific questions, concrete activities, and actual content the teacher can use immediately.
+    const systemPrompt = `You are an expert K-12 curriculum designer. Create a practical, standards-aligned lesson plan.
 
-Return ONLY valid JSON with NO markdown fences. Keep each field concise (under 500 characters). Structure:
-{"title":"...","objectives":["obj1","obj2","obj3"],"standards":"...","materials":["item1","item2"],"warmUp":"...","directInstruction":"...","guidedPractice":"...","independentPractice":"...","assessment":"...","closure":"...","differentiation":"...","homework":"..."}`;
+Return ONLY valid JSON (no markdown, no backticks). Structure:
+{
+  "title": "Specific lesson title",
+  "objectives": ["obj1", "obj2", "obj3"],
+  "standards": "Relevant standard codes",
+  "materials": ["item1", "item2"],
+  "sections": [
+    { "heading": "Warm-Up", "body": "Activity description...", "duration": "5 min" },
+    { "heading": "Direct Instruction", "body": "Teaching content...", "duration": "15 min" },
+    { "heading": "Guided Practice", "body": "Group activity...", "duration": "10 min" },
+    { "heading": "Independent Practice", "body": "Solo work...", "duration": "10 min" },
+    { "heading": "Assessment & Closure", "body": "Exit ticket + wrap-up...", "duration": "10 min" }
+  ]
+}
+
+Keep each section body under 300 characters. Be specific to the topic with real examples and activities.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-5-mini',
@@ -47,12 +61,11 @@ Return ONLY valid JSON with NO markdown fences. Keep each field concise (under 5
         { role: 'system', content: systemPrompt },
         {
           role: 'user',
-          content: `Create a ${duration || '50 minute'} lesson plan for ${gradeLevel || '8th'} grade ${subject || 'General'} on the topic: "${topic || 'General'}".${additionalNotes ? `\n\nTeacher notes: ${additionalNotes}` : ''}\n\nMake it detailed, specific to the topic, and immediately usable by a teacher. Include specific examples, questions, and activities — NOT generic placeholders.`,
+          content: `Create a ${duration || '50 minute'} lesson plan for ${gradeLevel || '8th'} grade ${subject || 'General'} on: "${topic || 'General'}".${additionalNotes ? `\nTeacher notes: ${additionalNotes}` : ''}\nBe specific to the topic with real examples.`,
         },
       ],
       temperature: 0.7,
-      max_tokens: 4000,
-      // v9.2: Do NOT use response_format — not all proxies support it
+      max_tokens: 2000,
     }, { signal: controller.signal });
 
     clearTimeout(timeout);
@@ -60,7 +73,6 @@ Return ONLY valid JSON with NO markdown fences. Keep each field concise (under 5
     const content = response.choices[0]?.message?.content || '';
     if (!content) return null;
 
-    // v9.2: Detect proxy credit/error messages
     const lower = content.toLowerCase();
     if (lower.includes('credits have been exhausted') || lower.includes('quota exceeded') ||
         (lower.includes('please visit') && lower.includes('pricing'))) {
@@ -76,7 +88,7 @@ Return ONLY valid JSON with NO markdown fences. Keep each field concise (under 5
     if (firstBrace >= 0 && lastBrace > firstBrace) {
       jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
     }
-    
+
     try {
       const parsed = JSON.parse(jsonStr);
       console.log('[AI LESSON DEMO] Successfully parsed AI-generated lesson plan');
@@ -196,15 +208,12 @@ export async function POST(req: Request) {
 
       // Try real AI generation first
       const aiPlan = await generateAILessonPlan(
-        subject || 'Math',
-        gradeLevel || '8th',
-        topic || 'General',
-        duration || '50 min',
-        additionalNotes
+        subject || 'Math', gradeLevel || '8th', topic || 'General',
+        duration || '50 min', additionalNotes
       );
 
-      // Use AI result or fall back to specialized template
-      const planData = aiPlan || generateSpecializedLessonPlan(
+      // If AI worked, use it; otherwise build a simplified demo plan from the template bank
+      const planData = aiPlan || generateSimplifiedLessonPlan(
         subject || 'Math', gradeLevel || '8th', topic || 'General',
         duration || '50 min', additionalNotes
       );
@@ -219,15 +228,8 @@ export async function POST(req: Request) {
           objectives: JSON.stringify(planData.objectives || []),
           standards: planData.standards || '',
           materials: JSON.stringify(planData.materials || []),
-          warmUp: planData.warmUp || '',
-          directInstruction: planData.directInstruction || '',
-          guidedPractice: planData.guidedPractice || '',
-          independentPractice: planData.independentPractice || '',
-          assessment: planData.assessment || '',
-          closure: planData.closure || '',
-          differentiation: planData.differentiation || '',
-          homework: planData.homework || '',
-          aiGenerated: !!aiPlan, // Only true if AI actually generated it
+          sections: JSON.stringify(planData.sections || []),
+          aiGenerated: !!aiPlan,
           isFavorite: false,
           createdAt: new Date().toISOString(),
         },

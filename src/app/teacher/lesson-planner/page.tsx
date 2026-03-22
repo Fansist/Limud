@@ -1,25 +1,56 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { SUBJECTS, GRADE_LEVELS, DURATIONS } from '@/lib/constants';
 import toast from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
 import {
   Wand2, Plus, BookOpen, Clock, Star, ChevronDown, ChevronUp, Copy, Heart, Loader2,
   Sparkles, GraduationCap, FileText, Target, Users, Lightbulb, ClipboardList,
   Search, ExternalLink, Download, Printer, Trash2, CheckCircle, X, Globe, Send,
 } from 'lucide-react';
 
+/* ═══════════════════════════════════════════════════════════════════
+   SIMPLIFIED LESSON PLAN TYPE (v9.3)
+   
+   The old schema had 12 rigid fields (warmUp, directInstruction, etc.).
+   The new schema uses a flexible `sections` array so AI can generate
+   any number of sections with any headings.
+   ═══════════════════════════════════════════════════════════════════ */
+
+type LessonSection = {
+  heading: string;
+  body: string;
+  duration?: string;
+};
+
 type LessonPlan = {
-  id: string; title: string; subject: string; gradeLevel: string; duration: string;
-  objectives: string; standards?: string; materials?: string;
-  warmUp?: string; directInstruction?: string; guidedPractice?: string;
-  independentPractice?: string; assessment?: string; closure?: string;
-  differentiation?: string; homework?: string; notes?: string;
-  aiGenerated: boolean; isFavorite: boolean; createdAt: string;
+  id: string;
+  title: string;
+  subject: string;
+  gradeLevel: string;
+  duration: string;
+  objectives: string;     // JSON array
+  standards?: string;
+  materials?: string;     // JSON array
+  sections?: string;      // JSON array of LessonSection (v9.3)
+  // Legacy fields (v9.2 backwards compat — converted to sections on render)
+  warmUp?: string;
+  directInstruction?: string;
+  guidedPractice?: string;
+  independentPractice?: string;
+  assessment?: string;
+  closure?: string;
+  differentiation?: string;
+  homework?: string;
+  notes?: string;
+  aiGenerated: boolean;
+  isFavorite: boolean;
+  createdAt: string;
 };
 
 type WorksheetResult = {
@@ -28,14 +59,59 @@ type WorksheetResult = {
   rating: number; downloads: number; free: boolean; tags?: string[];
 };
 
-const FLOW_SECTIONS = [
-  { key: 'warmUp', label: 'Warm-Up', icon: '\u{1F525}', desc: 'Hook & engage (5 min)', color: 'border-l-orange-400' },
-  { key: 'directInstruction', label: 'Direct Instruction', icon: '\u{1F4D6}', desc: 'Teach concepts (10-15 min)', color: 'border-l-blue-400' },
-  { key: 'guidedPractice', label: 'Guided Practice', icon: '\u{1F465}', desc: 'Work together (10-15 min)', color: 'border-l-green-400' },
-  { key: 'independentPractice', label: 'Independent Practice', icon: '\u{270D}\u{FE0F}', desc: 'Apply skills (10-15 min)', color: 'border-l-purple-400' },
-  { key: 'assessment', label: 'Assessment', icon: '\u{1F4CA}', desc: 'Check understanding', color: 'border-l-amber-400' },
-  { key: 'closure', label: 'Closure', icon: '\u{1F3AF}', desc: 'Reflect & preview (5 min)', color: 'border-l-cyan-400' },
-];
+/** Section icons/colors for visual variety */
+const SECTION_STYLES: Record<string, { icon: string; color: string }> = {
+  'warm-up':              { icon: '🔥', color: 'border-l-orange-400' },
+  'warmup':               { icon: '🔥', color: 'border-l-orange-400' },
+  'direct instruction':   { icon: '📖', color: 'border-l-blue-400' },
+  'instruction':          { icon: '📖', color: 'border-l-blue-400' },
+  'guided practice':      { icon: '👥', color: 'border-l-green-400' },
+  'independent practice': { icon: '✍️', color: 'border-l-purple-400' },
+  'assessment':           { icon: '📊', color: 'border-l-amber-400' },
+  'closure':              { icon: '🎯', color: 'border-l-cyan-400' },
+  'assessment & closure': { icon: '🎯', color: 'border-l-amber-400' },
+  'differentiation':      { icon: '👥', color: 'border-l-purple-400' },
+  'differentiation & homework': { icon: '📝', color: 'border-l-pink-400' },
+  'homework':             { icon: '📝', color: 'border-l-pink-400' },
+};
+
+function getSectionStyle(heading: string) {
+  const key = heading.toLowerCase().trim();
+  return SECTION_STYLES[key] || { icon: '📋', color: 'border-l-gray-400' };
+}
+
+/**
+ * Extract sections from a plan — handles both v9.3 (sections field)
+ * and v9.2 legacy (individual fields) formats.
+ */
+function getPlanSections(plan: LessonPlan): LessonSection[] {
+  // Try v9.3 sections field first
+  if (plan.sections) {
+    try {
+      const parsed = typeof plan.sections === 'string' ? JSON.parse(plan.sections) : plan.sections;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+  }
+  // Also check notes field (DB stores sections there)
+  if (plan.notes) {
+    try {
+      const parsed = JSON.parse(plan.notes);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+  }
+
+  // Fall back to v9.2 legacy fields
+  const legacy: LessonSection[] = [];
+  if (plan.warmUp) legacy.push({ heading: 'Warm-Up', body: plan.warmUp, duration: '5 min' });
+  if (plan.directInstruction) legacy.push({ heading: 'Direct Instruction', body: plan.directInstruction, duration: '15 min' });
+  if (plan.guidedPractice) legacy.push({ heading: 'Guided Practice', body: plan.guidedPractice, duration: '10 min' });
+  if (plan.independentPractice) legacy.push({ heading: 'Independent Practice', body: plan.independentPractice, duration: '10 min' });
+  if (plan.assessment) legacy.push({ heading: 'Assessment', body: plan.assessment, duration: '5 min' });
+  if (plan.closure) legacy.push({ heading: 'Closure', body: plan.closure, duration: '5 min' });
+  if (plan.differentiation) legacy.push({ heading: 'Differentiation', body: plan.differentiation });
+  if (plan.homework) legacy.push({ heading: 'Homework', body: plan.homework });
+  return legacy;
+}
 
 export default function LessonPlannerPage() {
   const { data: session } = useSession();
@@ -64,14 +140,10 @@ export default function LessonPlannerPage() {
   const [wsSearchSource, setWsSearchSource] = useState<'ai' | 'curated' | ''>('');
   const [initialLoaded, setInitialLoaded] = useState(false);
 
-  // Assign worksheet modal
-  const [assigningWorksheet, setAssigningWorksheet] = useState<WorksheetResult | null>(null);
-
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => { fetchPlans(); }, []);
 
-  // Load initial worksheets when tab becomes active
   useEffect(() => {
     if (activeTab === 'worksheets' && !initialLoaded) {
       fetchWorksheets('', '', '');
@@ -79,7 +151,6 @@ export default function LessonPlannerPage() {
     }
   }, [activeTab, initialLoaded]);
 
-  // Debounced search when filters change
   useEffect(() => {
     if (!initialLoaded || activeTab !== 'worksheets') return;
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -116,7 +187,11 @@ export default function LessonPlannerPage() {
   async function fetchPlans() {
     try {
       const url = isDemo ? '/api/demo?type=lesson-plans' : '/api/lesson-plans';
-      const res = await fetch(url);
+      let res = await fetch(url);
+      // If /api/lesson-plans fails (auth/DB issue), fall back to demo data
+      if (!res.ok && !isDemo) {
+        res = await fetch('/api/demo?type=lesson-plans');
+      }
       if (res.ok) { const d = await res.json(); setPlans(d.lessonPlans || []); }
     } catch { toast.error('Failed to load lesson plans'); }
     finally { setLoading(false); }
@@ -127,17 +202,28 @@ export default function LessonPlannerPage() {
     setGenerating(true);
     try {
       const url = isDemo ? '/api/demo' : '/api/lesson-plans';
-      const body = isDemo
+      const reqBody = isDemo
         ? { type: 'generate-lesson-plan', subject, gradeLevel, topic, duration, additionalNotes }
         : { subject, gradeLevel, topic, duration, additionalNotes };
-      const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      let res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reqBody) });
+
+      // If the main route fails (auth issue, 500, etc.) and we're NOT already on the demo route, try /api/demo as fallback
+      if (!res.ok && !isDemo) {
+        console.warn('[LessonPlanner] /api/lesson-plans failed, falling back to /api/demo');
+        res = await fetch('/api/demo', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ type: 'generate-lesson-plan', subject, gradeLevel, topic, duration, additionalNotes }),
+        });
+      }
+
       if (res.ok) {
         const d = await res.json();
         const newPlan = d.lessonPlan;
         setPlans(prev => [newPlan, ...prev]);
-        toast.success(newPlan.aiGenerated ? 'AI-crafted lesson plan generated!' : 'Lesson plan generated from expert template!');
+        toast.success(newPlan.aiGenerated ? '✨ AI-crafted lesson plan generated!' : 'Lesson plan generated from expert template!');
         setShowForm(false); setExpandedPlan(newPlan.id); resetForm();
-      } else { const d = await res.json(); toast.error(d.error || 'Generation failed'); }
+      } else { const d = await res.json().catch(() => ({})); toast.error(d.error || 'Generation failed'); }
     } catch { toast.error('Failed to generate lesson plan'); }
     finally { setGenerating(false); }
   }
@@ -164,41 +250,24 @@ export default function LessonPlannerPage() {
   function copyToClipboard(plan: LessonPlan) {
     const objectives = safeJSON(plan.objectives, []);
     const materials = safeJSON(plan.materials || '[]', []);
-    const sections = [
+    const sections = getPlanSections(plan);
+    const text = [
       `LESSON PLAN: ${plan.title}`,
       `Subject: ${plan.subject} | Grade: ${plan.gradeLevel} | Duration: ${plan.duration}`,
-      `\nOBJECTIVES:\n${objectives.map((o:string,i:number)=>`${i+1}. ${o}`).join('\n')}`,
-      plan.standards ? `\nSTANDARDS:\n${plan.standards}` : '',
-      materials.length > 0 ? `\nMATERIALS:\n${materials.map((m:string) => `- ${m}`).join('\n')}` : '',
-      plan.warmUp ? `\nWARM-UP:\n${plan.warmUp}` : '',
-      plan.directInstruction ? `\nDIRECT INSTRUCTION:\n${plan.directInstruction}` : '',
-      plan.guidedPractice ? `\nGUIDED PRACTICE:\n${plan.guidedPractice}` : '',
-      plan.independentPractice ? `\nINDEPENDENT PRACTICE:\n${plan.independentPractice}` : '',
-      plan.assessment ? `\nASSESSMENT:\n${plan.assessment}` : '',
-      plan.closure ? `\nCLOSURE:\n${plan.closure}` : '',
-      plan.differentiation ? `\nDIFFERENTIATION:\n${plan.differentiation}` : '',
-      plan.homework ? `\nHOMEWORK:\n${plan.homework}` : '',
+      objectives.length ? `\nOBJECTIVES:\n${objectives.map((o:string,i:number)=>`${i+1}. ${o}`).join('\n')}` : '',
+      plan.standards ? `\nSTANDARDS: ${plan.standards}` : '',
+      materials.length ? `\nMATERIALS:\n${materials.map((m:string) => `- ${m}`).join('\n')}` : '',
+      ...sections.map(s => `\n${s.heading.toUpperCase()}${s.duration ? ` (${s.duration})` : ''}:\n${s.body}`),
     ].filter(Boolean).join('\n');
-    navigator.clipboard.writeText(sections); toast.success('Copied to clipboard!');
-  }
-
-  function printPlan(plan: LessonPlan) {
-    copyToClipboard(plan);
-    toast.success('Plan copied! Use Ctrl+P to print from a new document.');
+    navigator.clipboard.writeText(text); toast.success('Copied to clipboard!');
   }
 
   function safeJSON(str: string, fb: any) { try { return JSON.parse(str); } catch { return fb; } }
 
   function assignWorksheet(ws: WorksheetResult) {
-    // Navigate to assignments page with pre-filled data via URL params
     const params = new URLSearchParams({
-      action: 'create',
-      mode: 'platform',
-      title: ws.title,
-      url: ws.url,
-      source: ws.source,
-      subject: ws.subject,
-      demo: isDemo ? 'true' : '',
+      action: 'create', mode: 'platform', title: ws.title, url: ws.url,
+      source: ws.source, subject: ws.subject, demo: isDemo ? 'true' : '',
     });
     window.location.href = `/teacher/assignments?${params}`;
   }
@@ -237,21 +306,21 @@ export default function LessonPlannerPage() {
         </div>
 
         {activeTab === 'worksheets' ? (
-          /* ─── WORKSHEET FINDER ─── */
+          /* ─── WORKSHEET FINDER (unchanged) ─── */
           <div className="space-y-6">
             <div className="card">
               <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <Globe size={18} className="text-primary-500" /> Search Online Worksheets
               </h2>
               <p className="text-sm text-gray-500 mb-4">
-                Search real, publicly available worksheets from education.com, Khan Academy, K5 Learning, Common Core Sheets, and more.
+                Search real, publicly available worksheets from education.com, Khan Academy, K5 Learning, and more.
                 {wsSearchSource === 'ai' && <span className="ml-1 text-purple-600 font-medium">AI-powered results</span>}
               </p>
               <div className="grid sm:grid-cols-4 gap-3">
                 <div className="sm:col-span-2 relative">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input value={worksheetQuery} onChange={e => setWorksheetQuery(e.target.value)}
-                    className="input-field pl-9" placeholder="Search... e.g. fractions, photosynthesis, civil war" autoFocus />
+                    className="input-field pl-9" placeholder="Search... e.g. fractions, photosynthesis" autoFocus />
                 </div>
                 <select value={wsSubject} onChange={e => setWsSubject(e.target.value)} className="input-field">
                   <option value="">All Subjects</option>
@@ -270,19 +339,16 @@ export default function LessonPlannerPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500 font-medium">
-                {searchingWorksheets ? (
-                  <span className="flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Searching...</span>
-                ) : (
-                  <>
-                    {worksheetResults.length} worksheet{worksheetResults.length !== 1 ? 's' : ''}
-                    {(worksheetQuery || wsSubject || wsGrade) ? ' matching filters' : ' available'}
-                    {wsSearchSource === 'ai' && <span className="ml-1.5 text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">AI Search</span>}
-                  </>
-                )}
-              </p>
-            </div>
+            <p className="text-sm text-gray-500 font-medium">
+              {searchingWorksheets ? (
+                <span className="flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Searching...</span>
+              ) : (
+                <>
+                  {worksheetResults.length} worksheet{worksheetResults.length !== 1 ? 's' : ''}
+                  {(worksheetQuery || wsSubject || wsGrade) ? ' matching filters' : ' available'}
+                </>
+              )}
+            </p>
 
             {worksheetResults.length > 0 ? (
               <div className="space-y-3">
@@ -291,7 +357,7 @@ export default function LessonPlannerPage() {
                   return (
                     <motion.div key={ws.id || i} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay: i*0.03 }} className="card hover:shadow-md transition">
                       <div className="flex items-start gap-4">
-                        <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0', subj?.color || 'bg-gray-100')}>{subj?.icon || '\u{1F4C4}'}</div>
+                        <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0', subj?.color || 'bg-gray-100')}>{subj?.icon || '📄'}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-bold text-gray-900">{ws.title}</h3>
@@ -315,9 +381,6 @@ export default function LessonPlannerPage() {
                           <button onClick={() => assignWorksheet(ws)} className="btn-secondary text-xs flex items-center gap-1 border-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
                             <Send size={12} /> Assign to Students
                           </button>
-                          <button onClick={() => toast.success('Saved to collection!')} className="btn-secondary text-xs flex items-center gap-1">
-                            <Heart size={12} /> Save
-                          </button>
                         </div>
                       </div>
                     </motion.div>
@@ -328,7 +391,7 @@ export default function LessonPlannerPage() {
               <div className="empty-state">
                 <Search size={48} className="empty-state-icon" />
                 <p className="empty-state-title">No worksheets match your search</p>
-                <p className="empty-state-desc">Try different search terms, change the subject filter, or clear all filters</p>
+                <p className="empty-state-desc">Try different search terms or clear all filters</p>
                 <button onClick={() => { setWorksheetQuery(''); setWsSubject(''); setWsGrade(''); }}
                   className="btn-primary mt-4 text-sm">Show All Worksheets</button>
               </div>
@@ -362,12 +425,13 @@ export default function LessonPlannerPage() {
                 {filtered.map((plan, i) => {
                   const objectives = safeJSON(plan.objectives, []);
                   const materials = safeJSON(plan.materials || '[]', []);
+                  const sections = getPlanSections(plan);
                   const isExpanded = expandedPlan === plan.id;
                   const subjectInfo = SUBJECTS.find(s => s.value === plan.subject);
                   return (
                     <motion.div key={plan.id} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:i*0.05}} className="card">
                       <div className="flex items-start gap-4">
-                        <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0', subjectInfo?.color || 'bg-gray-100 text-gray-700')}>{subjectInfo?.icon || '\u{1F4C4}'}</div>
+                        <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0', subjectInfo?.color || 'bg-gray-100 text-gray-700')}>{subjectInfo?.icon || '📄'}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-bold text-gray-900 text-lg">{plan.title}</h3>
@@ -377,6 +441,7 @@ export default function LessonPlannerPage() {
                             <span className="flex items-center gap-1"><BookOpen size={12} /> {plan.subject}</span>
                             <span className="flex items-center gap-1"><GraduationCap size={12} /> {plan.gradeLevel} Grade</span>
                             <span className="flex items-center gap-1"><Clock size={12} /> {plan.duration}</span>
+                            <span>{sections.length} sections</span>
                           </div>
                           {!isExpanded && objectives.length > 0 && (
                             <p className="text-sm text-gray-500 mt-2 line-clamp-2">
@@ -388,8 +453,7 @@ export default function LessonPlannerPage() {
                           <button onClick={() => toggleFavorite(plan)} className={cn('p-2 rounded-lg transition', plan.isFavorite ? 'text-amber-500 bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50')} title="Favorite">
                             <Heart size={16} fill={plan.isFavorite ? 'currentColor' : 'none'} />
                           </button>
-                          <button onClick={() => copyToClipboard(plan)} className="p-2 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 transition" title="Copy to clipboard"><Copy size={16} /></button>
-                          <button onClick={() => printPlan(plan)} className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition" title="Print"><Printer size={16} /></button>
+                          <button onClick={() => copyToClipboard(plan)} className="p-2 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 transition" title="Copy"><Copy size={16} /></button>
                           <button onClick={() => deletePlan(plan.id)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition" title="Delete"><Trash2 size={16} /></button>
                           <button onClick={() => setExpandedPlan(isExpanded ? null : plan.id)} className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
                             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -397,11 +461,11 @@ export default function LessonPlannerPage() {
                         </div>
                       </div>
 
-                      {/* ─── Expanded Lesson Plan Detail ─── */}
+                      {/* ─── Expanded Detail ─── */}
                       <AnimatePresence>
                         {isExpanded && (
                           <motion.div initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}} className="mt-6 overflow-hidden">
-                            <div className="space-y-6">
+                            <div className="space-y-5">
                               {/* Objectives */}
                               {objectives.length > 0 && (
                                 <div className="bg-blue-50 rounded-xl p-5 border border-blue-100">
@@ -416,17 +480,17 @@ export default function LessonPlannerPage() {
                                 </div>
                               )}
 
-                              {/* Standards & Materials Row */}
+                              {/* Standards & Materials */}
                               <div className="grid md:grid-cols-2 gap-4">
                                 {plan.standards && (
                                   <div className="bg-green-50 rounded-xl p-5 border border-green-100">
-                                    <h4 className="text-sm font-semibold text-green-700 flex items-center gap-2 mb-2"><ClipboardList size={16} /> Standards Alignment</h4>
+                                    <h4 className="text-sm font-semibold text-green-700 flex items-center gap-2 mb-2"><ClipboardList size={16} /> Standards</h4>
                                     <p className="text-sm text-gray-700 leading-relaxed">{plan.standards}</p>
                                   </div>
                                 )}
                                 {materials.length > 0 && (
                                   <div className="bg-amber-50 rounded-xl p-5 border border-amber-100">
-                                    <h4 className="text-sm font-semibold text-amber-700 flex items-center gap-2 mb-2"><FileText size={16} /> Materials Needed</h4>
+                                    <h4 className="text-sm font-semibold text-amber-700 flex items-center gap-2 mb-2"><FileText size={16} /> Materials</h4>
                                     <div className="flex flex-wrap gap-1.5">
                                       {materials.map((m:string,j:number) => (
                                         <span key={j} className="text-xs px-2.5 py-1 bg-white text-amber-700 rounded-lg border border-amber-200">{m}</span>
@@ -436,43 +500,34 @@ export default function LessonPlannerPage() {
                                 )}
                               </div>
 
-                              {/* Lesson Flow - The Main Lesson Sections */}
-                              <div>
-                                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-base">
-                                  <BookOpen size={18} className="text-primary-500" /> Lesson Flow
-                                </h4>
-                                <div className="space-y-3">
-                                  {FLOW_SECTIONS.map(section => {
-                                    const content = (plan as any)[section.key];
-                                    if (!content) return null;
-                                    return (
-                                      <div key={section.key} className={cn('bg-white rounded-xl p-5 border border-gray-100 border-l-4 shadow-sm', section.color)}>
-                                        <div className="flex items-center justify-between mb-2">
-                                          <h5 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-                                            <span className="text-base">{section.icon}</span> {section.label}
-                                          </h5>
-                                          <span className="text-[10px] text-gray-400 font-medium">{section.desc}</span>
+                              {/* Lesson Sections (v9.3 flexible) */}
+                              {sections.length > 0 && (
+                                <div>
+                                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-base">
+                                    <BookOpen size={18} className="text-primary-500" /> Lesson Flow
+                                  </h4>
+                                  <div className="space-y-3">
+                                    {sections.map((section, j) => {
+                                      const style = getSectionStyle(section.heading);
+                                      return (
+                                        <div key={j} className={cn('bg-white rounded-xl p-5 border border-gray-100 border-l-4 shadow-sm', style.color)}>
+                                          <div className="flex items-center justify-between mb-2">
+                                            <h5 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                                              <span className="text-base">{style.icon}</span> {section.heading}
+                                            </h5>
+                                            {section.duration && (
+                                              <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                                                <Clock size={10} /> {section.duration}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none">
+                                            <ReactMarkdown>{section.body}</ReactMarkdown>
+                                          </div>
                                         </div>
-                                        <div className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{content}</div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
-                              {/* Differentiation */}
-                              {plan.differentiation && (
-                                <div className="bg-purple-50 rounded-xl p-5 border border-purple-100">
-                                  <h4 className="text-sm font-semibold text-purple-700 flex items-center gap-2 mb-3"><Users size={16} /> Differentiation Strategies</h4>
-                                  <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{plan.differentiation}</div>
-                                </div>
-                              )}
-
-                              {/* Homework */}
-                              {plan.homework && (
-                                <div className="bg-orange-50 rounded-xl p-5 border border-orange-100">
-                                  <h4 className="text-sm font-semibold text-orange-700 flex items-center gap-2 mb-3"><Lightbulb size={16} /> Homework Assignment</h4>
-                                  <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{plan.homework}</div>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -501,11 +556,10 @@ export default function LessonPlannerPage() {
                 </div>
               </div>
 
-              {/* What you'll get */}
               <div className="bg-gradient-to-r from-primary-50 to-indigo-50 rounded-xl p-4 mb-6 border border-primary-100">
-                <p className="text-xs font-semibold text-primary-700 mb-2">Your AI-generated lesson plan will include:</p>
+                <p className="text-xs font-semibold text-primary-700 mb-2">Your AI lesson plan includes:</p>
                 <div className="grid grid-cols-2 gap-1.5 text-[11px] text-primary-600">
-                  {['Learning objectives', 'Standards alignment', 'Materials list', 'Warm-up activity', 'Direct instruction script', 'Guided practice', 'Independent practice', 'Assessment & exit ticket', 'Closure activity', 'Differentiation strategies', 'Homework assignment'].map(item => (
+                  {['Learning objectives', 'Standards alignment', 'Materials list', 'Warm-up activity', 'Direct instruction', 'Guided practice', 'Independent work', 'Assessment & closure', 'Differentiation'].map(item => (
                     <div key={item} className="flex items-center gap-1"><CheckCircle size={10} className="text-primary-500" /> {item}</div>
                   ))}
                 </div>
@@ -533,7 +587,7 @@ export default function LessonPlannerPage() {
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Topic *</label>
                   <input value={topic} onChange={e => setTopic(e.target.value)} className="input-field" placeholder="e.g., Introduction to Photosynthesis, Fractions, Algebra" />
-                  <p className="text-xs text-gray-400 mt-1">Be specific for better results. E.g., "Adding fractions with unlike denominators" rather than "Fractions"</p>
+                  <p className="text-xs text-gray-400 mt-1">Be specific for better results. E.g., "Adding fractions with unlike denominators"</p>
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Additional Notes (optional)</label>
                   <textarea value={additionalNotes} onChange={e => setAdditionalNotes(e.target.value)} className="input-field min-h-[80px]" placeholder="Specific requirements, student needs, focus areas..." />

@@ -66,7 +66,7 @@ export default function LoginPage() {
    * 2. Fallback: fetch session from NextAuth client
    * 3. Fallback: redirect to /student/dashboard
    *
-   * v9.2.2: Master Demo (master@limud.edu) is NOT treated as generic demo.
+   * v9.3.0: Master Demo (master@limud.edu) is NOT treated as generic demo.
    * It gets a real NextAuth session with isMasterDemo:true and the role-switcher.
    * Generic demo accounts get ?demo=true + localStorage flag.
    */
