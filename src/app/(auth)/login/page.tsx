@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { BookOpen, ArrowRight, Sparkles, GraduationCap, Shield, Eye, Users } from 'lucide-react';
+import { BookOpen, ArrowRight, Sparkles, GraduationCap, Shield, Eye, Users, Crown } from 'lucide-react';
 
 const DEMO_ACCOUNTS = [
   { role: 'Student', email: 'lior@ofer-academy.edu', password: 'password123', icon: <GraduationCap size={20} />, desc: 'Lior Betzalel — AI tutor, assignments, rewards', color: 'from-blue-500 to-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200', dashRole: 'STUDENT' },
@@ -14,6 +14,13 @@ const DEMO_ACCOUNTS = [
   { role: 'Admin', email: 'erez@ofer-academy.edu', password: 'password123', icon: <Shield size={20} />, desc: 'Erez Ofer — Superintendent access', color: 'from-purple-500 to-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200', dashRole: 'ADMIN' },
   { role: 'Parent', email: 'david@ofer-academy.edu', password: 'password123', icon: <Eye size={20} />, desc: "David Betzalel — Lior's parent", color: 'from-pink-500 to-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200', dashRole: 'PARENT' },
 ];
+
+/** Master Demo — full access to all roles via role switcher */
+const MASTER_DEMO = {
+  email: 'master@limud.edu',
+  password: 'LimudMaster2026!',
+  dashRole: 'TEACHER',
+};
 
 /**
  * Determine the dashboard path from a role string
@@ -58,9 +65,14 @@ export default function LoginPage() {
    * 1. Known demo email → role mapping (instant, no session fetch needed)
    * 2. Fallback: fetch session from NextAuth client
    * 3. Fallback: redirect to /student/dashboard
+   *
+   * v9.2.2: Master Demo (master@limud.edu) is NOT treated as generic demo.
+   * It gets a real NextAuth session with isMasterDemo:true and the role-switcher.
+   * Generic demo accounts get ?demo=true + localStorage flag.
    */
   const doLogin = async (loginEmail: string, loginPassword: string, isDemo: boolean = false): Promise<boolean> => {
     const normalizedEmail = loginEmail.toLowerCase().trim();
+    const isMaster = normalizedEmail === MASTER_DEMO.email.toLowerCase();
 
     const result = await signIn('credentials', {
       email: normalizedEmail,
@@ -72,7 +84,19 @@ export default function LoginPage() {
       return false; // Auth failed
     }
 
-    // If this is a demo login, set localStorage flag so all pages know
+    // Master Demo: clear any stale demo-mode flag — it uses its own session path
+    if (isMaster) {
+      try {
+        localStorage.removeItem('limud-demo-mode');
+        localStorage.removeItem('limud-demo-role');
+      } catch {}
+      // Redirect to teacher dashboard (default master role) without ?demo=true
+      router.push(getDashboardPath(MASTER_DEMO.dashRole));
+      router.refresh();
+      return true;
+    }
+
+    // Generic demo accounts: set localStorage flag + ?demo=true
     const isDemoAccount = isDemo || !!DEMO_EMAIL_ROLES[normalizedEmail];
     if (isDemoAccount) {
       try { localStorage.setItem('limud-demo-mode', 'true'); } catch {}
@@ -306,6 +330,29 @@ export default function LoginPage() {
                 <span className="px-3 bg-white text-gray-400">or explore without signing up</span>
               </div>
             </div>
+
+            {/* Master Demo — full access button */}
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              onClick={() => handleDemoLogin(MASTER_DEMO.email, MASTER_DEMO.password)}
+              disabled={loading}
+              className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 transition-all disabled:opacity-50 mb-3"
+              aria-label="Sign in as Master Demo"
+            >
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+                {activeDemo === MASTER_DEMO.email ? (
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : <Crown size={20} />}
+              </div>
+              <div className="text-left">
+                <span className="text-sm font-bold text-gray-900 block">Master Demo</span>
+                <span className="text-[10px] text-amber-600 leading-tight">Full access — switch between Student, Teacher, Admin &amp; Parent</span>
+              </div>
+            </motion.button>
 
             <div className="grid grid-cols-2 gap-3">
               {DEMO_ACCOUNTS.map(account => (

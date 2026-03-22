@@ -54,7 +54,8 @@ const DEMO_EMAIL_ROLES: Record<string, string> = {
   'teacher@limud.edu': 'TEACHER',
   'admin@limud.edu': 'ADMIN',
   'parent@limud.edu': 'PARENT',
-  'master@limud.edu': 'TEACHER',
+  // master@limud.edu is NOT here — it uses a different password (LimudMaster2026!)
+  // and has its own login path via the Master Demo button on /login
 };
 
 function getDashboardPath(role?: string): string {

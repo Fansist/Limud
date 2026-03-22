@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    version: '9.2.1',
+    version: '9.2.2',
     security: 'enterprise',
     compliance: ['FERPA', 'COPPA'],
     platform: process.env.RENDER ? 'Render' : 'generic',

@@ -7,6 +7,12 @@ import { useState, useEffect } from 'react';
 /**
  * Known demo email addresses — if a session email matches,
  * the user is in demo mode regardless of localStorage.
+ *
+ * v9.2.2: EXCLUDES master@limud.edu — the Master Demo uses its own
+ * session flag (isMasterDemo) and should NOT enter the generic demo path.
+ * When master@limud.edu was in this set, useIsDemo() returned true,
+ * which hid the role-switcher (DashboardLayout checks isMasterDemo && !isDemo)
+ * and routed the tutor to /api/demo instead of /api/tutor.
  */
 const DEMO_EMAILS = new Set([
   'lior@ofer-academy.edu',
@@ -19,19 +25,26 @@ const DEMO_EMAILS = new Set([
   'teacher@limud.edu',
   'admin@limud.edu',
   'parent@limud.edu',
-  'master@limud.edu',
+  // master@limud.edu is intentionally NOT here — see comment above
 ]);
 
 /**
  * Hook to detect if we're in demo mode.
- * v9.2.1: Three detection paths:
+ * v9.2.2: Three detection paths:
  * 1. URL ?demo=true param (immediate)
  * 2. localStorage 'limud-demo-mode' (set on demo login)
- * 3. Session email matches a known demo account
+ * 3. Session email matches a known demo account (excludes master@limud.edu)
+ *
+ * Master Demo users are NOT treated as generic demo — they have real
+ * NextAuth sessions with isMasterDemo: true and the role-switcher widget.
  */
 export function useIsDemo(): boolean {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
+
+  // Master demo is NEVER generic demo mode
+  const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
+  if (isMasterDemo) return false;
 
   // Check URL param immediately
   const urlDemo = searchParams.get('demo') === 'true';

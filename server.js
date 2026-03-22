@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Limud v9.2.1 — server.js
+// Limud v9.2.2 — server.js
 // Universal entry point for Node.js hosting platforms:
 //   • Render.com  (primary — PORT=10000, auto-detected via RENDER env)
 //   • cPanel / GoDaddy (Phusion Passenger)
@@ -89,7 +89,7 @@ if (isStandalone) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               status: 'ok',
-              version: '9.2.1',
+              version: '9.2.2',
               platform,
               uptime: process.uptime(),
               timestamp: new Date().toISOString(),

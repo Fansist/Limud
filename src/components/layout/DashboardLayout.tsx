@@ -166,7 +166,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const storedDemo = localStorage.getItem('limud-demo-mode') === 'true';
     const storedRole = localStorage.getItem('limud-demo-role') || 'STUDENT';
-    if (isDemoParam || storedDemo) {
+
+    // v9.2.2: Master Demo NEVER enters generic demo mode.
+    // The isMasterDemo flag comes from the NextAuth session (checked below)
+    // but we also clear any stale localStorage flag here for safety.
+    const sessionIsMaster = (session?.user as any)?.isMasterDemo === true;
+    if (sessionIsMaster) {
+      // Clean up stale demo-mode flags if master demo user
+      try {
+        localStorage.removeItem('limud-demo-mode');
+        localStorage.removeItem('limud-demo-role');
+      } catch {}
+      // DO NOT setIsDemo(true) — master demo uses real session
+    } else if (isDemoParam || storedDemo) {
       setIsDemo(true);
       if (pathname.startsWith('/student')) setDemoRole('STUDENT');
       else if (pathname.startsWith('/teacher')) setDemoRole('TEACHER');
@@ -178,7 +190,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // Initialize dark mode
     const dark = localStorage.getItem('limud-dark-mode') === 'true';
     if (dark) document.documentElement.classList.add('dark');
-  }, [isDemoParam, pathname]);
+  }, [isDemoParam, pathname, session]);
 
   const sessionRole = (session?.user as any)?.role || 'STUDENT';
   const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
