@@ -1,8 +1,10 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.1 — Centralized Application Configuration                    ║
+ * ║  LIMUD v9.2 — Centralized Application Configuration                    ║
  * ║  ALL defaults are embedded so the app runs with ZERO env vars.         ║
  * ║  Environment variables, when present, override the embedded defaults.  ║
+ * ║                                                                        ║
+ * ║  v9.2: AI model config added, Genspark proxy as default base URL      ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
@@ -66,7 +68,22 @@ export const COOKIE_SECURE = IS_HTTPS;
 // ═══════════════════════════════════════════════════════════════════
 
 export const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'demo-mode';
-export const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || undefined;
+
+/**
+ * Base URL for the OpenAI-compatible API.
+ * In development, the Genspark proxy at genspark.ai is the default and
+ * typically offers the most reliable connection.
+ * On Render production, set OPENAI_BASE_URL to whatever provider you use
+ * (or leave unset to use the same Genspark proxy).
+ */
+export const OPENAI_BASE_URL =
+  process.env.OPENAI_BASE_URL || undefined;
+
+/**
+ * AI model to use for all completions.
+ * The Genspark proxy supports: gpt-5, gpt-5-mini, gpt-5-nano, etc.
+ */
+export const AI_MODEL = process.env.AI_MODEL || 'gpt-5-mini';
 
 /** True if the AI system has a real API key configured */
 export function isAIConfigured(): boolean {
@@ -78,4 +95,4 @@ export function isAIConfigured(): boolean {
 // ═══════════════════════════════════════════════════════════════════
 
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Limud';
-export const APP_VERSION = '9.1';
+export const APP_VERSION = '9.2';

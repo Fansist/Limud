@@ -38,7 +38,7 @@ async function generateAILessonPlan(
 
     const systemPrompt = `You are an expert K-12 curriculum designer. Create a detailed, standards-aligned lesson plan that is specific to the requested topic — NOT a generic template. Include real examples, specific questions, concrete activities, and actual content the teacher can use immediately.
 
-Return ONLY valid JSON. Keep each field concise (under 500 characters). Structure:
+Return ONLY valid JSON with NO markdown fences. Keep each field concise (under 500 characters). Structure:
 {"title":"...","objectives":["obj1","obj2","obj3"],"standards":"...","materials":["item1","item2"],"warmUp":"...","directInstruction":"...","guidedPractice":"...","independentPractice":"...","assessment":"...","closure":"...","differentiation":"...","homework":"..."}`;
 
     const response = await openai.chat.completions.create({
@@ -52,7 +52,7 @@ Return ONLY valid JSON. Keep each field concise (under 500 characters). Structur
       ],
       temperature: 0.7,
       max_tokens: 4000,
-      response_format: { type: 'json_object' },
+      // v9.2: Do NOT use response_format — not all proxies support it
     }, { signal: controller.signal });
 
     clearTimeout(timeout);
@@ -60,11 +60,17 @@ Return ONLY valid JSON. Keep each field concise (under 500 characters). Structur
     const content = response.choices[0]?.message?.content || '';
     if (!content) return null;
 
-    // Robust JSON extraction — handle markdown fences, leading text, trailing text
+    // v9.2: Detect proxy credit/error messages
+    const lower = content.toLowerCase();
+    if (lower.includes('credits have been exhausted') || lower.includes('quota exceeded') ||
+        (lower.includes('please visit') && lower.includes('pricing'))) {
+      console.warn('[AI LESSON DEMO] Proxy error:', content.substring(0, 150));
+      return null;
+    }
+
+    // Robust JSON extraction
     let jsonStr = content;
-    // Remove markdown code fences
     jsonStr = jsonStr.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-    // If there's text before the opening brace, strip it
     const firstBrace = jsonStr.indexOf('{');
     const lastBrace = jsonStr.lastIndexOf('}');
     if (firstBrace >= 0 && lastBrace > firstBrace) {
@@ -73,19 +79,17 @@ Return ONLY valid JSON. Keep each field concise (under 500 characters). Structur
     
     try {
       const parsed = JSON.parse(jsonStr);
-      console.log('[AI LESSON] Successfully parsed AI-generated lesson plan');
+      console.log('[AI LESSON DEMO] Successfully parsed AI-generated lesson plan');
       return parsed;
     } catch (parseErr: any) {
-      console.error('[AI LESSON] Failed to parse JSON, length:', content.length, 'firstChar:', jsonStr.charCodeAt(0), 'lastChar:', jsonStr.charCodeAt(jsonStr.length - 1));
-      console.error('[AI LESSON] Parse error:', parseErr.message);
-      console.error('[AI LESSON] First 200 chars:', jsonStr.substring(0, 200));
+      console.error('[AI LESSON DEMO] Failed to parse JSON:', parseErr.message);
       return null;
     }
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      console.log('[AI LESSON] Timed out after 50s, falling back to template');
+      console.log('[AI LESSON DEMO] Timed out after 55s, falling back to template');
     } else {
-      console.error('[AI LESSON] Error:', error.message);
+      console.error('[AI LESSON DEMO] Error:', error.message);
     }
     return null;
   }

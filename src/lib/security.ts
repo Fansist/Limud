@@ -1,6 +1,6 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.1 — Security Engine                                          ║
+ * ║  LIMUD v9.2 — Security Engine                                          ║
  * ║  Enterprise-grade security for K-12 educational data protection        ║
  * ║                                                                        ║
  * ║  COPPA (Children's Online Privacy Protection Act) compliant            ║
@@ -476,7 +476,7 @@ export function validateSessionFingerprint(req: Request, storedFingerprint: stri
 // ═══════════════════════════════════════════════════════════════════
 
 function getEncryptionKey(): Buffer {
-  // v9.1: use the stable embedded secret — no env var needed
+  // v9.2: use the stable embedded secret — no env var needed
   const secret = process.env.PII_ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || 'limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB';
   return crypto.createHash('sha256').update(secret).digest();
 }

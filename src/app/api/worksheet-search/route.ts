@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 
 /**
- * Worksheet Search API - v9.1
+ * Worksheet Search API - v9.2
  * Comprehensive curated database of REAL publicly available worksheets.
  * AI-enhanced search as a bonus when available (non-blocking).
  * Now requires authentication.
@@ -341,12 +341,21 @@ async function aiSearchWorksheets(query: string, subject?: string, grade?: strin
         content: `List 5 websites with free ${query}${subject ? ` ${subject}` : ''} worksheets as JSON array: [{"title":"name","url":"https://...","desc":"brief description"}]`,
       }],
       max_tokens: 2000,
+      // v9.2: Do NOT use response_format — not all proxies support it
     }, { signal: controller.signal });
 
     clearTimeout(timeout);
 
     const content = response.choices[0]?.message?.content || '';
     if (!content) return null;
+
+    // v9.2: Detect proxy credit/error messages
+    const lower = content.toLowerCase();
+    if (lower.includes('credits have been exhausted') || lower.includes('quota exceeded') ||
+        (lower.includes('please visit') && lower.includes('pricing'))) {
+      console.warn('[AI WORKSHEET] Proxy error:', content.substring(0, 150));
+      return null;
+    }
 
     let jsonStr = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     if (!jsonStr.endsWith(']')) {

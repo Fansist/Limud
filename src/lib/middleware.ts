@@ -1,6 +1,6 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.1 — SECURE API MIDDLEWARE                                    ║
+ * ║  LIMUD v9.2 — SECURE API MIDDLEWARE                                    ║
  * ║  All API routes use these wrappers for authentication & security       ║
  * ║  Features:                                                             ║
  * ║  - Per-IP + per-user rate limiting                                     ║

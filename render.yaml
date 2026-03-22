@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# Limud v9.1 — Render Blueprint (render.yaml)
+# Limud v9.2 — Render Blueprint (render.yaml)
 # Defines the Render Web Service for automatic deployment.
 # Docs: https://render.com/docs/blueprint-spec
 # ─────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ services:
         value: https://limud.co
       - key: NEXTAUTH_URL
         value: https://limud.co
-      # NEXTAUTH_SECRET: v9.1 embeds a stable default secret so this is OPTIONAL.
+      # NEXTAUTH_SECRET: v9.2 embeds a stable default secret so this is OPTIONAL.
       # If you want to override it, set a fixed secret in Render Dashboard.
       # Generate once with: openssl rand -base64 32
       # DO NOT use generateValue: true — it creates a new secret on every deploy!
@@ -47,10 +47,14 @@ services:
       # ─── SET THESE IN RENDER DASHBOARD (Secrets) ────────────
       # - key: DATABASE_URL
       #   value: postgresql://user:pass@host:5432/limud?sslmode=require
+      #
+      # ─── AI / OpenAI Configuration (v9.2) ──────────────────
+      # The Genspark proxy is recommended — set these in Dashboard → Environment:
       # - key: OPENAI_API_KEY
-      #   value: <your OpenAI API key>
+      #   value: gsk-<your-genspark-key>
       # - key: OPENAI_BASE_URL
-      #   value: https://api.openai.com/v1
+      #   value: https://www.genspark.ai/api/llm_proxy/v1
+      # Without these, AI features (tutor, lesson planner, grading) run in demo mode.
 
 # ─── Optional: Render PostgreSQL Database ─────────────────────
 # Uncomment below to provision a managed Render PostgreSQL DB.

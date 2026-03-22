@@ -1,6 +1,14 @@
 /**
- * AI Service for Limud
- * Supports OpenAI API with intelligent demo fallback
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║  LIMUD v9.2 — AI Service                                               ║
+ * ║  OpenAI-compatible API with robust error handling & demo fallback      ║
+ * ║                                                                        ║
+ * ║  v9.2 fixes:                                                           ║
+ * ║  • Detects proxy credit-exhaustion / non-JSON responses                ║
+ * ║  • Removes response_format: json_object (not always supported)         ║
+ * ║  • Robust JSON extraction from markdown-fenced or prefixed responses   ║
+ * ║  • All env vars have embedded defaults — works with zero config        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
 const TUTOR_SYSTEM_PROMPT = `You are Limud AI, a friendly and encouraging educational tutor for K-12 students. Follow these guidelines strictly:
@@ -108,6 +116,54 @@ export function hasApiKey(): boolean {
   return isOpenAIConfigured();
 }
 
+/**
+ * Detects proxy-level errors returned as 200 OK with plain text body.
+ * Examples: "Your Genspark credits have been exhausted…"
+ */
+function isProxyErrorResponse(text: string): boolean {
+  if (!text || text.length > 10_000) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes('credits have been exhausted') ||
+    lower.includes('rate limit') ||
+    lower.includes('quota exceeded') ||
+    lower.includes('insufficient_quota') ||
+    lower.includes('billing') ||
+    lower.includes('please visit') && lower.includes('pricing')
+  );
+}
+
+/**
+ * Extract JSON from a string that may be wrapped in markdown fences,
+ * have leading/trailing text, or contain multiple JSON objects.
+ */
+export function extractJSON(raw: string): string | null {
+  if (!raw) return null;
+  let s = raw.trim();
+
+  // Strip markdown code fences
+  s = s.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+
+  // Find the first { and last } for object, or first [ and last ] for array
+  const firstBrace = s.indexOf('{');
+  const firstBracket = s.indexOf('[');
+  let start = -1;
+  let end = -1;
+
+  if (firstBrace >= 0 && (firstBracket < 0 || firstBrace < firstBracket)) {
+    start = firstBrace;
+    end = s.lastIndexOf('}');
+  } else if (firstBracket >= 0) {
+    start = firstBracket;
+    end = s.lastIndexOf(']');
+  }
+
+  if (start >= 0 && end > start) {
+    return s.substring(start, end + 1);
+  }
+  return null;
+}
+
 export async function callOpenAI(
   promptOrMessages: string | { role: string; content: string }[],
   temperatureOrOptions?: number | { temperature?: number; maxTokens?: number },
@@ -139,9 +195,16 @@ export async function callOpenAI(
     messages: messages as any,
     temperature: temp,
     max_tokens: tokens,
+    // NOTE: Do NOT use response_format: json_object — not all proxies support it
   });
 
   const content = response.choices[0]?.message?.content || '';
+
+  // v9.2: Detect proxy error responses disguised as successful completions
+  if (isProxyErrorResponse(content)) {
+    throw new Error(`AI proxy error: ${content.substring(0, 200)}`);
+  }
+
   return content;
 }
 
@@ -305,7 +368,7 @@ export async function gradeSubmission(
   return JSON.parse(result);
 }
 
-export { TUTOR_SYSTEM_PROMPT, GRADER_SYSTEM_PROMPT, callOpenAI as callOpenAIRaw };
+export { TUTOR_SYSTEM_PROMPT, GRADER_SYSTEM_PROMPT, callOpenAI as callOpenAIRaw, extractJSON as extractJSONFromAI };
 
 // ─── TEACHER AI FEATURES ────────────────────────────────────────────────────
 

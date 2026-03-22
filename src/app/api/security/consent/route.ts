@@ -1,5 +1,5 @@
 /**
- * COPPA Parental Consent API — v9.1
+ * COPPA Parental Consent API — v9.2
  * 
  * GET: List consent records for parent's children
  * POST: Grant/revoke consent for specific data collection categories

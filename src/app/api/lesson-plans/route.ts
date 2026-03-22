@@ -1,3 +1,18 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║  Lesson Plan API — v9.2                                                ║
+ * ║  GET:  List saved lesson plans for the current teacher                 ║
+ * ║  POST: Generate a lesson plan (AI-powered with demo fallback)         ║
+ * ║  PUT:  Update a lesson plan (favorite, title, notes)                  ║
+ * ║  DELETE: Remove a lesson plan                                         ║
+ * ║                                                                        ║
+ * ║  v9.2 fixes:                                                           ║
+ * ║  • Removed response_format: json_object (proxy-incompatible)          ║
+ * ║  • Robust JSON extraction from markdown-fenced AI responses           ║
+ * ║  • Detects proxy credit-exhaustion errors                             ║
+ * ║  • Always falls back to rich demo template on any AI failure          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ */
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
@@ -8,7 +23,7 @@ export const dynamic = 'force-dynamic';
 
 const LESSON_PLAN_SYSTEM_PROMPT = `You are an expert K-12 curriculum designer. Create a detailed, standards-aligned lesson plan. Include real examples and specific activities.
 
-Return ONLY valid JSON. Keep each field concise (under 500 characters). Structure:
+Return ONLY valid JSON with NO markdown fences. Keep each field concise (under 500 characters). Structure:
 {"title":"...","objectives":["obj1","obj2","obj3"],"standards":"...","materials":["item1","item2"],"warmUp":"...","directInstruction":"...","guidedPractice":"...","independentPractice":"...","assessment":"...","closure":"...","differentiation":"...","homework":"..."}`;
 
 function generateDemoLessonPlan(subject: string, gradeLevel: string, topic: string, duration: string) {
@@ -33,7 +48,48 @@ function generateDemoLessonPlan(subject: string, gradeLevel: string, topic: stri
 }
 
 /**
+ * Detects proxy error messages returned as 200 with plain text.
+ */
+function isProxyError(text: string): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes('credits have been exhausted') ||
+    lower.includes('rate limit') ||
+    lower.includes('quota exceeded') ||
+    lower.includes('insufficient_quota') ||
+    (lower.includes('please visit') && lower.includes('pricing'))
+  );
+}
+
+/**
+ * Robust JSON extraction from AI response.
+ */
+function parseAIJSON(raw: string): Record<string, any> | null {
+  if (!raw) return null;
+  let s = raw.trim();
+
+  // Strip markdown fences
+  s = s.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+
+  // Find JSON object boundaries
+  const firstBrace = s.indexOf('{');
+  const lastBrace = s.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    s = s.substring(firstBrace, lastBrace + 1);
+  }
+
+  try {
+    return JSON.parse(s);
+  } catch {
+    console.error('[AI LESSON] JSON parse failed. First 300 chars:', s.substring(0, 300));
+    return null;
+  }
+}
+
+/**
  * Generate a lesson plan using OpenAI with timeout protection.
+ * v9.2: No response_format, robust JSON extraction, proxy error detection.
  */
 async function generateAILessonPlan(
   subject: string,
@@ -51,7 +107,7 @@ async function generateAILessonPlan(
     const openai = new OpenAI({ apiKey, baseURL: baseURL || undefined });
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 55000); // 55 sec timeout
+    const timeout = setTimeout(() => controller.abort(), 55000);
 
     const response = await openai.chat.completions.create({
       model: 'gpt-5-mini',
@@ -64,7 +120,7 @@ async function generateAILessonPlan(
       ],
       temperature: 0.7,
       max_tokens: 4000,
-      response_format: { type: 'json_object' },
+      // v9.2: DO NOT use response_format — not all proxies support it
     }, { signal: controller.signal });
 
     clearTimeout(timeout);
@@ -72,21 +128,13 @@ async function generateAILessonPlan(
     const content = response.choices[0]?.message?.content || '';
     if (!content) return null;
 
-    // Robust JSON extraction — handle markdown fences, leading text, trailing text
-    let jsonStr = content;
-    jsonStr = jsonStr.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-    const firstBrace = jsonStr.indexOf('{');
-    const lastBrace = jsonStr.lastIndexOf('}');
-    if (firstBrace >= 0 && lastBrace > firstBrace) {
-      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
-    }
-
-    try {
-      return JSON.parse(jsonStr);
-    } catch {
-      console.error('[AI LESSON] Failed to parse JSON, length:', content.length);
+    // v9.2: Detect proxy credit/quota errors returned as 200
+    if (isProxyError(content)) {
+      console.warn('[AI LESSON] Proxy returned error message:', content.substring(0, 150));
       return null;
     }
+
+    return parseAIJSON(content);
   } catch (error: any) {
     if (error.name === 'AbortError') {
       console.log('[AI LESSON] Timed out, falling back to template');
@@ -97,7 +145,10 @@ async function generateAILessonPlan(
   }
 }
 
-// Allow TEACHER, ADMIN, and PARENT (homeschool) to access lesson plans
+// ═══════════════════════════════════════════════════════════════════
+// ROUTE HANDLERS
+// ═══════════════════════════════════════════════════════════════════
+
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
   const { searchParams } = new URL(req.url);
@@ -156,7 +207,6 @@ export const POST = apiHandler(async (req: Request) => {
   };
 
   // Try to save to database, but don't fail if FK constraint fails
-  // (e.g., demo users not in DB, or homeschool parent without teacher record)
   try {
     const saved = await prisma.lessonPlan.create({
       data: {
@@ -181,7 +231,6 @@ export const POST = apiHandler(async (req: Request) => {
     });
     return NextResponse.json({ lessonPlan: saved }, { status: 201 });
   } catch (dbError: any) {
-    // If DB save fails (foreign key, etc.), still return the generated plan
     console.error('[LESSON PLAN] DB save failed:', dbError.code || dbError.message);
     return NextResponse.json({ lessonPlan: planResult }, { status: 201 });
   }
