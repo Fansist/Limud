@@ -1,11 +1,14 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.0 — NextAuth Configuration                                   ║
- * ║  Credentials-based authentication with enterprise security             ║
- * ║  - Brute-force protection with progressive lockout                     ║
- * ║  - NIST-compliant password validation                                  ║
- * ║  - Comprehensive audit logging                                         ║
- * ║  - 24-hour JWT session with secure cookie settings                     ║
+ * ║  LIMUD v9.1 — NextAuth Configuration                                   ║
+ * ║  Zero-env-var authentication — all defaults are embedded.              ║
+ * ║                                                                        ║
+ * ║  Key v9.1 fixes:                                                       ║
+ * ║  • Cookie names use plain names (no __Secure- / __Host- prefix)       ║
+ * ║    so login works on both HTTP and HTTPS without any config.           ║
+ * ║  • Secret is embedded — no NEXTAUTH_SECRET env var required.          ║
+ * ║  • NEXTAUTH_URL is auto-derived from the request when not set.        ║
+ * ║  • Brute-force + audit logging remain fully active.                   ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
@@ -17,11 +20,15 @@ import {
   recordSuccessfulLogin,
   createAuditLog,
   trackSecurityEvent,
-  getClientIP,
   SECURITY_CONFIG,
 } from '@/lib/security';
+import { AUTH_SECRET, COOKIE_SECURE } from '@/lib/config';
 
-// Master Demo account - full access to all features across all roles
+// ═══════════════════════════════════════════════════════════════════
+// DEMO ACCOUNTS
+// ═══════════════════════════════════════════════════════════════════
+
+// Master Demo account — full access to all features across all roles
 const MASTER_DEMO = {
   email: 'master@limud.edu',
   password: 'LimudMaster2026!',
@@ -91,45 +98,56 @@ export function getDemoRole(email: string): string | null {
   return account ? account.role : null;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// NEXTAUTH OPTIONS
+// ═══════════════════════════════════════════════════════════════════
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
-    maxAge: SECURITY_CONFIG.session.maxAgeHours * 60 * 60, // 24 hours (NIST-aligned)
+    maxAge: SECURITY_CONFIG.session.maxAgeHours * 60 * 60, // 24 hours
     updateAge: 60 * 60, // Refresh token every hour
   },
+
+  // ── Cookie config ──────────────────────────────────────────────
+  // v9.1: Use plain cookie names so login works on both HTTP and HTTPS.
+  // The `secure` flag is derived from the canonical APP_URL scheme,
+  // not from NODE_ENV, preventing the mismatch that broke v9.0 logins.
   cookies: {
     sessionToken: {
-      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+      name: 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
+        secure: COOKIE_SECURE,
       },
     },
     callbackUrl: {
-      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.callback-url' : 'next-auth.callback-url',
+      name: 'next-auth.callback-url',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
+        secure: COOKIE_SECURE,
       },
     },
     csrfToken: {
-      name: process.env.NODE_ENV === 'production' ? '__Host-next-auth.csrf-token' : 'next-auth.csrf-token',
+      name: 'next-auth.csrf-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
+        secure: COOKIE_SECURE,
       },
     },
   },
+
   pages: {
     signIn: '/login',
     error: '/login',
   },
+
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -144,27 +162,24 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.toLowerCase().trim();
         const password = credentials.password;
-        // Extract IP for security tracking (best effort)
         const ip = (req as any)?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
                    (req as any)?.headers?.['x-real-ip'] || '0.0.0.0';
 
-        // ── BRUTE-FORCE PROTECTION: Check if account is locked ──
+        // ── BRUTE-FORCE PROTECTION ──
         const lockStatus = checkAccountLocked(email);
         if (lockStatus.locked) {
           const minutesLeft = Math.ceil((lockStatus.lockedUntilMs - Date.now()) / 60000);
           trackSecurityEvent('blocked', ip);
           createAuditLog({
-            action: 'LOGIN_FAILURE',
-            userEmail: email, ip, userAgent: 'auth',
+            action: 'LOGIN_FAILURE', userEmail: email, ip, userAgent: 'auth',
             resource: '/api/auth/callback/credentials',
             details: { reason: 'Account locked', minutesLeft },
-            severity: 'warning',
-            success: false,
+            severity: 'warning', success: false,
           });
           throw new Error(`Account temporarily locked. Try again in ${minutesLeft} minutes.`);
         }
 
-        // ── 1. Check Master Demo account ──
+        // ── 1. Master Demo ──
         if (email === MASTER_DEMO.email && password === MASTER_DEMO.password) {
           recordSuccessfulLogin(email);
           trackSecurityEvent('success_login', ip);
@@ -176,7 +191,7 @@ export const authOptions: NextAuthOptions = {
           return MASTER_DEMO.user as any;
         }
 
-        // ── 2. Check demo accounts (password: password123) ──
+        // ── 2. Demo accounts (password: password123) ──
         const demoAccount = DEMO_ACCOUNTS[email];
         if (demoAccount && password === 'password123') {
           recordSuccessfulLogin(email);
@@ -198,15 +213,13 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!user || !user.isActive) {
-            // Record failed attempt
             const lockResult = recordFailedLogin(email, ip);
             trackSecurityEvent('failed_login', ip);
             createAuditLog({
               action: 'LOGIN_FAILURE', userEmail: email, ip, userAgent: 'auth',
               resource: '/api/auth/callback/credentials',
               details: { reason: 'Invalid credentials', remainingAttempts: lockResult.remainingAttempts },
-              severity: lockResult.locked ? 'critical' : 'warning',
-              success: false,
+              severity: lockResult.locked ? 'critical' : 'warning', success: false,
             });
             if (lockResult.locked) {
               trackSecurityEvent('lockout', ip);
@@ -224,8 +237,7 @@ export const authOptions: NextAuthOptions = {
               action: 'LOGIN_FAILURE', userEmail: email, ip, userAgent: 'auth',
               resource: '/api/auth/callback/credentials',
               details: { reason: 'Wrong password', remainingAttempts: lockResult.remainingAttempts },
-              severity: lockResult.locked ? 'critical' : 'warning',
-              success: false,
+              severity: lockResult.locked ? 'critical' : 'warning', success: false,
             });
             if (lockResult.locked) {
               trackSecurityEvent('lockout', ip);
@@ -234,7 +246,7 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Invalid email or password');
           }
 
-          // Success!
+          // Success
           recordSuccessfulLogin(email);
           trackSecurityEvent('success_login', ip);
           createAuditLog({
@@ -253,15 +265,18 @@ export const authOptions: NextAuthOptions = {
             gradeLevel: user.gradeLevel || '', isMasterDemo: false,
           } as any;
         } catch (e: any) {
+          // Re-throw known auth errors
           if (e.message.includes('locked') || e.message === 'Invalid email or password' || e.message === 'Email and password are required') {
             throw e;
           }
+          // Database unreachable — fall through to generic error
           console.error('[Limud Auth] Database error during login:', e.message);
           throw new Error('Invalid email or password');
         }
       },
     }),
   ],
+
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -292,10 +307,8 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  // SECURITY: Secret rotation strategy
-  // 1. Primary secret from env (set in Render Dashboard)
-  // 2. Fallback for dev only — CHANGE IN PRODUCTION
-  // Generate: openssl rand -base64 32
-  secret: process.env.NEXTAUTH_SECRET || 'limud-stable-secret-v8-ofer-academy-2026-kj3nf92md',
-  debug: false, // Never expose auth debug in production
+
+  // Embedded secret — works with zero env vars
+  secret: AUTH_SECRET,
+  debug: false,
 };

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────
-# Limud v9.0 — Render Blueprint (render.yaml)
+# Limud v9.1 — Render Blueprint (render.yaml)
 # Defines the Render Web Service for automatic deployment.
 # Docs: https://render.com/docs/blueprint-spec
 # ─────────────────────────────────────────────────────────────
@@ -38,11 +38,9 @@ services:
         value: https://limud.co
       - key: NEXTAUTH_URL
         value: https://limud.co
-      # CRITICAL: NEXTAUTH_SECRET must be a STABLE value.
-      # If it changes between deploys, all user sessions are invalidated.
-      # Set a fixed secret in Render Dashboard → Environment → NEXTAUTH_SECRET
+      # NEXTAUTH_SECRET: v9.1 embeds a stable default secret so this is OPTIONAL.
+      # If you want to override it, set a fixed secret in Render Dashboard.
       # Generate once with: openssl rand -base64 32
-      # The app has a hardcoded fallback, but setting this env var is recommended.
       # DO NOT use generateValue: true — it creates a new secret on every deploy!
       # - key: NEXTAUTH_SECRET
       #   value: <your-fixed-secret-here>

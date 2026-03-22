@@ -39,7 +39,7 @@ const nextConfig = {
   swcMinify: true,
 
   // ═══════════════════════════════════════════════════════════════════
-  // SECURITY HEADERS — v9.0 Enterprise-Grade
+  // SECURITY HEADERS — v9.1 Enterprise-Grade
   // COPPA + FERPA + OWASP Top 10 compliance
   // ═══════════════════════════════════════════════════════════════════
   async headers() {

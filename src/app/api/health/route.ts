@@ -5,11 +5,12 @@ import { NextResponse } from 'next/server';
 // render.yaml sets healthCheckPath: /api/health
 // Returns 200 OK with basic system info.
 // This endpoint is intentionally public (no auth required).
+// v9.1: no env vars required — RENDER detection is optional metadata only.
 
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    version: '9.0',
+    version: '9.1',
     security: 'enterprise',
     compliance: ['FERPA', 'COPPA'],
     platform: process.env.RENDER ? 'Render' : 'generic',

@@ -1,10 +1,11 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.0 — Next.js Edge Middleware                                  ║
+ * ║  LIMUD v9.1 — Next.js Edge Middleware                                  ║
  * ║  Runs on EVERY request before the page/API handler                     ║
  * ║  Enterprise-grade edge security: bot blocking, path protection,        ║
  * ║  RBAC, security headers, rate limiting, input validation               ║
  * ║                                                                        ║
+ * ║  v9.1: All secrets embedded — zero env vars required.                  ║
  * ║  COPPA + FERPA + OWASP Top 10 compliant                              ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
@@ -14,10 +15,19 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 // ═══════════════════════════════════════════════════════════════════
+// EMBEDDED SECRET (matches src/lib/config.ts AUTH_SECRET)
+// Edge middleware cannot safely import from @/lib/* in all setups,
+// so we duplicate the single constant here.
+// ═══════════════════════════════════════════════════════════════════
+
+const AUTH_SECRET =
+  process.env.NEXTAUTH_SECRET ||
+  'limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB';
+
+// ═══════════════════════════════════════════════════════════════════
 // PATH CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════
 
-// Publicly accessible paths (no auth required)
 const PUBLIC_PATHS = [
   '/',
   '/login',
@@ -32,25 +42,20 @@ const PUBLIC_PATHS = [
   '/pricing',
 ];
 
-// Public API paths
 const PUBLIC_API_PATHS = [
   '/api/health',
   '/api/auth',
   '/api/demo',
 ];
 
-// ADMIN-only paths
 const ADMIN_PATHS = ['/admin'];
 const ADMIN_API_PATHS = ['/api/admin', '/api/security', '/api/district'];
 
-// TEACHER-only paths (also accessible by homeschool parents)
 const TEACHER_PATHS = ['/teacher'];
 const TEACHER_API_PATHS = ['/api/teacher'];
 
-// STUDENT-only paths
 const STUDENT_PATHS = ['/student'];
 
-// PARENT-only paths
 const PARENT_PATHS = ['/parent'];
 const PARENT_API_PATHS = ['/api/parent'];
 
@@ -117,7 +122,7 @@ function edgeRateLimit(ip: string, category: string = 'global'): boolean {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// HELPER: Check if path matches any prefix list
+// HELPERS
 // ═══════════════════════════════════════════════════════════════════
 
 function matchesPath(pathname: string, paths: string[]): boolean {
@@ -186,23 +191,14 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // ── 6. Block suspicious request headers ──
-  const suspiciousHeaders = ['x-forwarded-host', 'x-original-url', 'x-rewrite-url'];
-  for (const h of suspiciousHeaders) {
-    const val = request.headers.get(h);
-    if (val && val !== request.nextUrl.host) {
-      // Potential host header injection — ignore but log
-    }
-  }
-
-  // ── 7. Public paths — allow without auth ──
+  // ── 6. Public paths — allow without auth ──
   if (matchesPath(pathname, PUBLIC_PATHS) || matchesPath(pathname, PUBLIC_API_PATHS)) {
     const response = NextResponse.next();
     addSecurityHeaders(response, pathname);
     return response;
   }
 
-  // ── 8. Static assets — pass through with basic headers ──
+  // ── 7. Static assets — pass through ──
   if (pathname.startsWith('/_next') || pathname.startsWith('/favicon') ||
       pathname.endsWith('.ico') || pathname.endsWith('.json') ||
       pathname.endsWith('.xml') || pathname.endsWith('.txt') ||
@@ -213,13 +209,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── 9. Auth check for protected paths ──
+  // ── 8. Auth check — uses embedded secret, reads plain cookie name ──
   const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET || 'limud-stable-secret-v8-ofer-academy-2026-kj3nf92md',
+    secret: AUTH_SECRET,
+    // v9.1: match the plain cookie name set in auth.ts
+    cookieName: 'next-auth.session-token',
   });
 
-  // Not authenticated — redirect or return 401
   if (!token) {
     if (pathname.startsWith('/api/')) {
       return new NextResponse(
@@ -242,7 +239,7 @@ export async function middleware(request: NextRequest) {
   const isHomeschoolParent = token.isHomeschoolParent as boolean;
   const isMasterDemo = token.isMasterDemo as boolean;
 
-  // ── 10. Role-based access control ──
+  // ── 9. Role-based access control ──
 
   // ADMIN paths
   if (matchesPath(pathname, ADMIN_PATHS) || matchesPath(pathname, ADMIN_API_PATHS)) {
@@ -290,13 +287,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ── 11. Build response with security headers ──
+  // ── 10. Build response with security headers ──
   const response = NextResponse.next();
   addSecurityHeaders(response, pathname);
-
-  // Add user context headers for downstream logging
   response.headers.set('X-Limud-User-Role', role || 'unknown');
-
   return response;
 }
 
@@ -305,12 +299,11 @@ export async function middleware(request: NextRequest) {
 // ═══════════════════════════════════════════════════════════════════
 
 function addSecurityHeaders(response: NextResponse, pathname: string) {
-  // Request tracking
   response.headers.set('X-Request-Id', crypto.randomUUID());
-  response.headers.set('X-Limud-Version', '9.0');
+  response.headers.set('X-Limud-Version', '9.1');
   response.headers.set('X-Limud-Security', 'active');
 
-  // ── Core Security Headers (OWASP recommended) ──
+  // Core OWASP headers
   response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -321,10 +314,10 @@ function addSecurityHeaders(response: NextResponse, pathname: string) {
   response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
   response.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
 
-  // ── Content Security Policy ──
+  // Content Security Policy
   response.headers.set('Content-Security-Policy', CSP);
 
-  // ── API-specific headers ──
+  // API-specific headers
   if (pathname.startsWith('/api/')) {
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     response.headers.set('Pragma', 'no-cache');

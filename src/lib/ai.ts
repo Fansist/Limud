@@ -100,7 +100,8 @@ const GRADER_SYSTEM_PROMPT = `You are an expert educational grading assistant. Y
 }`;
 
 export function isOpenAIConfigured(): boolean {
-  return !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'demo-mode');
+  const key = process.env.OPENAI_API_KEY || '';
+  return !!(key && key !== 'demo-mode');
 }
 
 export function hasApiKey(): boolean {
@@ -114,7 +115,7 @@ export async function callOpenAI(
 ): Promise<string> {
   const { default: OpenAI } = await import('openai');
   const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY || 'demo-mode',
     baseURL: process.env.OPENAI_BASE_URL || undefined,
   });
 

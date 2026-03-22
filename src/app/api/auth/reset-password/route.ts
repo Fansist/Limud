@@ -1,5 +1,5 @@
 /**
- * Reset Password API — v8.10 Security Hardened
+ * Reset Password API — v9.1 Security Hardened
  * - Rate limited: 5 per minute per IP
  * - Full NIST SP 800-63B password validation
  * - Timing-safe token comparison (via SHA-256 hash)

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 
 /**
- * Worksheet Search API - v8.10
+ * Worksheet Search API - v9.1
  * Comprehensive curated database of REAL publicly available worksheets.
  * AI-enhanced search as a bonus when available (non-blocking).
  * Now requires authentication.
