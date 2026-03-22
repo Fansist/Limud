@@ -298,7 +298,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar (hidden on mobile, replaced by bottom nav) */}
       <aside
         className={cn(
-          'fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col transition-transform duration-300 lg:translate-x-0',
+          'fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col transition-transform duration-300 lg:translate-x-0 overflow-y-auto custom-scrollbar',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           isDemo && 'pt-8'
         )}
@@ -349,7 +349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         {/* Nav */}
-        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-4 py-4 space-y-1 min-h-0">
           {navItems.map(item => {
             const href = buildHref(item.href);
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -380,43 +380,56 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        {/* Bottom section */}
-        <div className="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
-          {/* Lite Mode Toggle */}
-          <button
-            onClick={toggleLiteMode}
-            className={cn(
-              'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium w-full transition-all',
-              liteMode ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50'
-            )}
-          >
-            <Zap size={20} />
-            <span>Lite Mode {liteMode ? 'ON' : 'OFF'}</span>
-          </button>
+        {/* Bottom section — compact utility row + user profile */}
+        <div className="flex-shrink-0 p-3 border-t border-gray-100 dark:border-gray-800 space-y-2">
+          {/* Compact utility toggles row */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggleLiteMode}
+              className={cn(
+                'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium flex-1 transition-all',
+                liteMode ? 'bg-amber-50 text-amber-700' : 'text-gray-500 hover:bg-gray-50'
+              )}
+              title={`Lite Mode ${liteMode ? 'ON' : 'OFF'}`}
+            >
+              <Zap size={14} />
+              <span className="hidden sm:inline">{liteMode ? 'Lite' : 'Lite'}</span>
+            </button>
 
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={() => {
-              const html = document.documentElement;
-              html.classList.toggle('dark');
-              localStorage.setItem('limud-dark-mode', html.classList.contains('dark') ? 'true' : 'false');
-            }}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium w-full text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
-          >
-            <Sun size={20} className="dark:hidden" />
-            <Moon size={20} className="hidden dark:block" />
-            <span>Dark Mode</span>
-          </button>
+            <button
+              onClick={() => {
+                const html = document.documentElement;
+                html.classList.toggle('dark');
+                localStorage.setItem('limud-dark-mode', html.classList.contains('dark') ? 'true' : 'false');
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium flex-1 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+              title="Dark Mode"
+            >
+              <Sun size={14} className="dark:hidden" />
+              <Moon size={14} className="hidden dark:block" />
+              <span className="hidden sm:inline">Theme</span>
+            </button>
 
-          <button
-            onClick={() => setShowAccessibility(!showAccessibility)}
-            className={cn(
-              'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium w-full transition-all',
-              showAccessibility ? 'bg-primary-50 text-primary-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-            )}
-          >
-            <Accessibility size={20} /> <span>Accessibility</span>
-          </button>
+            <button
+              onClick={() => setShowAccessibility(!showAccessibility)}
+              className={cn(
+                'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium flex-1 transition-all',
+                showAccessibility ? 'bg-primary-50 text-primary-700' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+              )}
+              title="Accessibility"
+            >
+              <Accessibility size={14} />
+              <span className="hidden sm:inline">A11y</span>
+            </button>
+
+            <Link href={buildHref('/help')}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium flex-1 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+              title="Help & FAQ"
+            >
+              <HelpCircle size={14} />
+              <span className="hidden sm:inline">Help</span>
+            </Link>
+          </div>
 
           <AnimatePresence>
             {showAccessibility && (
@@ -426,15 +439,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </AnimatePresence>
 
-          <Link href={buildHref('/help')}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium w-full text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
-          >
-            <HelpCircle size={20} /> <span>Help & FAQ</span>
-          </Link>
-
           {/* User profile */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div className={cn('w-10 h-10 bg-gradient-to-br rounded-full flex items-center justify-center text-xl shadow-sm', roleColor)}>
+          <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl">
+            <div className={cn('w-9 h-9 bg-gradient-to-br rounded-full flex items-center justify-center text-lg shadow-sm', roleColor)}>
               <span className="drop-shadow-sm">{avatarEmoji}</span>
             </div>
             <div className="flex-1 min-w-0">
@@ -442,24 +449,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {userName || 'User'}
                 {isDemo && <span className="text-xs text-amber-500 ml-1">(Demo)</span>}
               </p>
-              <p className="text-xs text-gray-400 truncate">{userEmail}</p>
+              <p className="text-[11px] text-gray-400 truncate">{userEmail}</p>
             </div>
+            {isDemo ? (
+              <Link href="/register" className="text-primary-600 hover:bg-primary-50 p-1.5 rounded-lg transition" title="Create Real Account">
+                <Sparkles size={16} />
+              </Link>
+            ) : (
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg transition"
+                title="Sign Out"
+              >
+                <LogOut size={16} />
+              </button>
+            )}
           </div>
-
-          {isDemo ? (
-            <Link href="/register"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium w-full text-primary-600 hover:bg-primary-50 transition-all"
-            >
-              <Sparkles size={20} /> <span>Create Real Account</span>
-            </Link>
-          ) : (
-            <button
-              onClick={() => signOut({ callbackUrl: '/login' })}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
-            >
-              <LogOut size={20} /> <span>Sign Out</span>
-            </button>
-          )}
         </div>
       </aside>
 
