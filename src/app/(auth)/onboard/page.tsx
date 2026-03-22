@@ -14,9 +14,9 @@ import { cn } from '@/lib/utils';
 
 const PLANS = [
   { tier: 'FREE', price: 0, priceLabel: 'Free forever', students: 5, teachers: 2, schools: 1, color: 'from-gray-400 to-gray-500', icon: <Home size={20} />,
-    features: ['Up to 5 students, 2 teachers', 'AI Tutor (50 sessions/mo)', 'AI Lesson Planner (5/mo)', 'Basic gamification (2 games)', 'Parent dashboard', '3 platform links'] },
+    features: ['Up to 5 students, 2 teachers', 'AI Tutor (50 sessions/mo)', 'Basic gamification (2 games)', 'Parent dashboard', '3 platform links'] },
   { tier: 'STARTER', price: 2, priceLabel: '$2/student/mo (annual)', students: 50, teachers: 5, schools: 1, color: 'from-blue-500 to-cyan-500', icon: <Zap size={20} />,
-    features: ['Up to 50 students, 5 teachers', 'AI Tutor (200/mo)', 'AI Auto-Grader (100/mo)', 'Lesson Planner (25/mo)', 'Full gamification & 4 games', '6 platform links', 'Email support'] },
+    features: ['Up to 50 students, 5 teachers', 'AI Tutor (200/mo)', 'AI Auto-Grader (100/mo)', 'Full gamification & 4 games', '6 platform links', 'Email support'] },
   { tier: 'GROWTH', price: 4, priceLabel: '$4/student/mo (annual)', students: 200, teachers: 20, schools: 3, color: 'from-teal-500 to-emerald-500', icon: <SlidersHorizontal size={20} />,
     features: ['Up to 200 students, 20 teachers', 'AI Tutor (1,000/mo)', 'AI Grader (500/mo)', 'Writing Coach (50/mo)', 'All games + Teacher Exchange', 'Google Classroom sync', 'CSV bulk import'] },
   { tier: 'STANDARD', price: 6, priceLabel: '$6/student/mo (annual)', students: 500, teachers: 50, schools: 5, color: 'from-primary-500 to-primary-700', icon: <Star size={20} />, popular: true,

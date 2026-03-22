@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.0
+- **Version**: 9.3.1
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Security**: Enterprise-grade FERPA + COPPA + OWASP Top 10 compliant security for children's data protection
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
@@ -101,7 +101,7 @@
 
 **Role-Based Access Control (RBAC)**
 - ADMIN: Full access to admin dashboard, security center, district management
-- TEACHER: Teacher dashboard, lesson planning, grading, student data
+- TEACHER: Teacher dashboard, grading, student data
 - STUDENT: Student dashboard, assignments, AI tutor
 - PARENT: Parent dashboard, child reports, goal setting
 - HOMESCHOOL PARENT: Teacher-level access for homeschool families
@@ -270,7 +270,7 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 - **Branch**: main
 - **Tech Stack**: Next.js 14 + TypeScript + TailwindCSS + Prisma + NextAuth
 - **Security Level**: Enterprise (FERPA + COPPA + OWASP Top 10)
-- **Last Updated**: 2026-03-19
+- **Last Updated**: 2026-03-22
 
 ## Files Changed in v9.0
 
@@ -289,6 +289,47 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 | `src/components/landing/LandingPage.tsx` | Version bump to v9.0 |
 | `package.json` | Version 9.0 |
 | `README.md` | Complete security documentation |
+
+---
+
+## What's New in v9.3.1 — Remove AI Lesson Planner
+
+The AI Lesson Planner feature has been fully removed from the platform. This includes all code, routes, UI, database models, navigation links, and marketing references.
+
+### Removed
+- **Deleted** `src/app/teacher/lesson-planner/` — entire page directory
+- **Deleted** `src/app/api/lesson-plans/` — entire API route directory
+- **Removed** `LessonPlan` Prisma model and `lessonPlans` relation from `User` model
+- **Removed** `DEMO_LESSON_PLANS` export from `src/lib/demo-data.ts`
+- **Removed** `LESSON_PLAN_BANKS`, `generateSpecializedLessonPlan()`, `generateSimplifiedLessonPlan()` from `src/lib/ai-generators.ts`
+- **Removed** lesson plan generation code from `src/app/api/demo/route.ts` (generate-lesson-plan case, AI generation function, imports)
+- **Removed** AI Lesson Planner navigation links from `DashboardLayout.tsx`, `teacher/dashboard/page.tsx`, `parent/dashboard/page.tsx`
+- **Removed** `Wand2` icon import from files where it was only used for lesson planner
+- **Removed** AI Lesson Planner from pricing tiers, custom plan builder slider/presets, FAQ, and feature lists in `pricing/page.tsx`
+- **Removed** lesson plan references from `LandingPage.tsx` (features, pricing, competitor comparison)
+- **Removed** lesson plan mentions from `register/page.tsx`, `demo/page.tsx`, `onboard/page.tsx`, `terms/page.tsx`, `layout.tsx`
+- **Updated** `roadmap/page.tsx` — replaced "lesson plan" wording with "assignment" or "course content"
+- **Updated** `exchange/page.tsx` — changed demo item type from "Lesson Plan" to "Activity"
+- **Version bump** 9.3.0 → 9.3.1 across 23 files
+
+### Active AI Features (Remaining)
+- AI Tutor (conversational tutoring)
+- AI Auto-Grader (assignment grading with feedback)
+- AI Quiz Generator (quiz generation from topics)
+- AI Writing Coach (essay feedback)
+- AI Navigator (contextual help)
+- AI Micro-Lessons (spaced repetition)
+
+---
+
+## What's New in v9.3.0 — Fix Lesson Planner AI Generation
+
+- `/api/lesson-plans` POST no longer requires strict TEACHER/ADMIN auth; uses soft session check
+- `/api/demo` route uses new `generateSimplifiedLessonPlan()` export
+- Lesson planner page adds auto-fallback to `/api/demo` on failure
+- Introduced simplified `LessonPlan` type with `sections[]` array
+- `ai-generators.ts` added `generateSimplifiedLessonPlan()` converting legacy 12-field template to sections format
+- Version bump 9.2.2 → 9.3.0 across 27 files
 
 ## Render Environment Variables (REQUIRED)
 

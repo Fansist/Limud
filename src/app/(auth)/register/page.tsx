@@ -22,7 +22,7 @@ const ACCOUNT_OPTIONS = [
     icon: Home,
     color: 'from-amber-500 to-orange-500',
     desc: 'I educate my children at home',
-    detail: 'Create a parent account and add your children as student accounts. Use AI lesson planning, tutoring, and track their progress — all free.',
+    detail: 'Create a parent account and add your children as student accounts. Use AI tutoring and track their progress — all free.',
     tags: ['Free forever', 'AI Tutor', 'Parent dashboard', 'Add students'],
   },
   {

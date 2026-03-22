@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: '%s | Limud',
   },
   description: 'Replace Khan Academy, Google Classroom, Quizlet, ClassDojo & more with one AI-powered platform. Free forever plan. FERPA & COPPA compliant.',
-  keywords: ['education', 'AI tutor', 'K-12', 'learning platform', 'auto-grading', 'gamification', 'lesson planner', 'edtech'],
+  keywords: ['education', 'AI tutor', 'K-12', 'learning platform', 'auto-grading', 'gamification', 'edtech'],
   authors: [{ name: 'Limud Education Inc.' }],
   icons: { icon: '/favicon.ico' },
   manifest: '/manifest.json',

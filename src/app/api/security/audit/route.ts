@@ -1,5 +1,5 @@
 /**
- * Security Audit Log API — v9.3.0
+ * Security Audit Log API — v9.3.1
  * Admin-only access to security audit logs
  * 
  * GET: Query audit logs with filters

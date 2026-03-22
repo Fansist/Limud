@@ -69,7 +69,6 @@ const FEATURES: FeatureRow[] = [
   // ── AI Features ──
   { category: 'AI Features', feature: 'AI Tutor sessions', values: ['50/mo', '200/mo', '1,000/mo', 'Unlimited', 'Unlimited', 'Unlimited'] },
   { category: 'AI Features', feature: 'AI Auto-Grader', values: [false, '100/mo', '500/mo', 'Unlimited', 'Unlimited', 'Unlimited'] },
-  { category: 'AI Features', feature: 'AI Lesson Planner', values: ['5/mo', '25/mo', '100/mo', 'Unlimited', 'Unlimited', 'Unlimited'] },
   { category: 'AI Features', feature: 'AI Quiz Generator', values: ['3/mo', '15/mo', '75/mo', 'Unlimited', 'Unlimited', 'Unlimited'] },
   { category: 'AI Features', feature: 'AI Writing Coach', values: [false, false, '50/mo', 'Unlimited', 'Unlimited', 'Unlimited'] },
   { category: 'AI Features', feature: 'AI Reports & Insights', values: [false, false, 'partial', true, true, true] },
@@ -213,18 +212,6 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
       { value: 5000, label: 'Unlim', tierName: 'STANDARD+' },
     ],
     description: 'Automated grading with AI feedback per month',
-  },
-  {
-    id: 'lessonPlans', label: 'AI Lesson Plans', icon: <FileText size={16} />, category: 'AI Features',
-    min: 5, max: 2000, step: 5, defaultValue: 100, unitLabel: '/month',
-    pricePerUnit: 0.002,
-    tiers: [
-      { value: 5, label: '5', tierName: 'FREE' },
-      { value: 25, label: '25', tierName: 'STARTER' },
-      { value: 100, label: '100', tierName: 'GROWTH' },
-      { value: 2000, label: 'Unlim', tierName: 'STANDARD+' },
-    ],
-    description: 'AI-generated standards-aligned lesson plans per month',
   },
   {
     id: 'quizGenerator', label: 'AI Quiz Generator', icon: <Sparkles size={16} />, category: 'AI Features',
@@ -432,10 +419,10 @@ function CustomPlanBuilder() {
 
   // Preset buttons
   const presets = [
-    { label: 'Small School', students: 50, teachers: 5, schools: 1, aiTutor: 200, aiGrader: 100, lessonPlans: 25, quizGenerator: 15, writingCoach: 0, storage: 2000 },
-    { label: 'Growing District', students: 300, teachers: 30, schools: 3, aiTutor: 2000, aiGrader: 1000, lessonPlans: 200, quizGenerator: 150, writingCoach: 100, storage: 25000 },
-    { label: 'Large District', students: 1000, teachers: 100, schools: 10, aiTutor: 5000, aiGrader: 3000, lessonPlans: 500, quizGenerator: 300, writingCoach: 300, storage: 100000 },
-    { label: 'Max Everything', students: 5000, teachers: 500, schools: 50, aiTutor: 10000, aiGrader: 5000, lessonPlans: 2000, quizGenerator: 1000, writingCoach: 1000, storage: 500000 },
+    { label: 'Small School', students: 50, teachers: 5, schools: 1, aiTutor: 200, aiGrader: 100, quizGenerator: 15, writingCoach: 0, storage: 2000 },
+    { label: 'Growing District', students: 300, teachers: 30, schools: 3, aiTutor: 2000, aiGrader: 1000, quizGenerator: 150, writingCoach: 100, storage: 25000 },
+    { label: 'Large District', students: 1000, teachers: 100, schools: 10, aiTutor: 5000, aiGrader: 3000, quizGenerator: 300, writingCoach: 300, storage: 100000 },
+    { label: 'Max Everything', students: 5000, teachers: 500, schools: 50, aiTutor: 10000, aiGrader: 5000, quizGenerator: 1000, writingCoach: 1000, storage: 500000 },
   ];
 
   function applyPreset(preset: typeof presets[0]) {
@@ -445,7 +432,6 @@ function CustomPlanBuilder() {
       schools: preset.schools,
       aiTutor: preset.aiTutor,
       aiGrader: preset.aiGrader,
-      lessonPlans: preset.lessonPlans,
       quizGenerator: preset.quizGenerator,
       writingCoach: preset.writingCoach,
       storage: preset.storage,
@@ -679,7 +665,6 @@ function CustomPlanBuilder() {
                   <hr className="border-gray-50" />
                   <div className="flex justify-between"><span>AI Tutor</span><span className="font-bold text-gray-800">{formatNumber(sliderValues.aiTutor)}/mo</span></div>
                   <div className="flex justify-between"><span>AI Grader</span><span className="font-bold text-gray-800">{formatNumber(sliderValues.aiGrader)}/mo</span></div>
-                  <div className="flex justify-between"><span>Lesson Plans</span><span className="font-bold text-gray-800">{formatNumber(sliderValues.lessonPlans)}/mo</span></div>
                   <div className="flex justify-between"><span>Quiz Gen</span><span className="font-bold text-gray-800">{formatNumber(sliderValues.quizGenerator)}/mo</span></div>
                   <div className="flex justify-between"><span>Writing Coach</span><span className="font-bold text-gray-800">{formatNumber(sliderValues.writingCoach)}/mo</span></div>
                   <hr className="border-gray-50" />
@@ -1019,7 +1004,7 @@ export default function PricingPage() {
           <div className="flex-1">
             <h3 className="font-bold text-gray-900">Homeschool families love Limud!</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Our Free plan gives you AI lesson planning (5/mo), 50 AI tutor sessions, basic gamification, and a parent dashboard &mdash; completely free, forever.
+              Our Free plan gives you 50 AI tutor sessions, basic gamification, and a parent dashboard &mdash; completely free, forever.
               Need more? Upgrade to Starter for just $2/student/month billed annually.
             </p>
           </div>
@@ -1034,14 +1019,14 @@ export default function PricingPage() {
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">Pricing FAQ</h2>
           <div className="space-y-4">
             {[
-              { q: 'Is the Free plan really free forever?', a: 'Yes! Our Free plan supports up to 5 students and 2 teachers with no time limit, no credit card required. You get 50 AI Tutor sessions/month, 5 lesson plans/month, 3 quiz generations/month, basic gamification with 2 free games, a parent dashboard, and community support. Ideal for homeschool families.' },
+              { q: 'Is the Free plan really free forever?', a: 'Yes! Our Free plan supports up to 5 students and 2 teachers with no time limit, no credit card required. You get 50 AI Tutor sessions/month, 3 quiz generations/month, basic gamification with 2 free games, a parent dashboard, and community support. Ideal for homeschool families.' },
               { q: 'What happens when I hit a limit?', a: 'You will see a friendly notification and can either upgrade or wait for your monthly limit to reset. We never cut off access to existing work — students can always view their past assignments, grades, and progress.' },
               { q: 'Can I switch plans at any time?', a: 'Absolutely. Upgrade instantly and we will prorate the difference. Downgrade at the end of your billing cycle. Your data is always preserved regardless of plan changes.' },
-              { q: 'How does the Custom Plan Builder work?', a: 'Our Custom Plan Builder lets you mix and match exactly what you need. Adjust student/teacher capacity, AI usage limits (tutor sessions, grading, lesson plans, quizzes, writing coach), analytics modules, and add-on features like SSO, custom branding, and priority support. The builder calculates your monthly and annual cost in real time, and shows which standard plan most closely matches your selection.' },
+              { q: 'How does the Custom Plan Builder work?', a: 'Our Custom Plan Builder lets you mix and match exactly what you need. Adjust student/teacher capacity, AI usage limits (tutor sessions, grading, quizzes, writing coach), analytics modules, and add-on features like SSO, custom branding, and priority support. The builder calculates your monthly and annual cost in real time, and shows which standard plan most closely matches your selection.' },
               { q: 'Do you offer discounts for large districts?', a: 'Yes! Our Enterprise plan offers volume discounts, custom pricing, dedicated account management, SLA guarantees, and on-site training. For districts with 500+ students, the Custom Plan Builder can also help you design a tailored package. Contact our sales team for a custom quote.' },
               { q: 'What payment methods do you accept?', a: 'We accept all major credit cards, ACH bank transfers, and purchase orders (PO) for Enterprise customers. Districts can pay via invoice with NET-30 terms.' },
               { q: 'Is my data secure?', a: 'All plans include FERPA and COPPA compliance with encrypted data at rest and in transit. Premium and Enterprise plans add SOC 2 Type II certification and data residency options.' },
-              { q: 'Can I customize AI usage limits?', a: 'Yes! With the Custom Plan Builder, you can independently set limits for AI Tutor sessions, Auto-Grader usage, Lesson Plan generation, Quiz generation, and Writing Coach sessions. Each slider shows the monthly cost impact so you can optimize your budget.' },
+              { q: 'Can I customize AI usage limits?', a: 'Yes! With the Custom Plan Builder, you can independently set limits for AI Tutor sessions, Auto-Grader usage, Quiz generation, and Writing Coach sessions. Each slider shows the monthly cost impact so you can optimize your budget.' },
             ].map(faq => (
               <details key={faq.q} className="bg-white rounded-2xl border border-gray-100 overflow-hidden group">
                 <summary className="px-5 py-4 cursor-pointer text-sm font-semibold text-gray-900 flex items-center justify-between hover:bg-gray-50 transition">
@@ -1070,7 +1055,7 @@ function getQuickFeatures(tier: string): string[] {
     case 'FREE': return [
       'Up to 5 students, 2 teachers',
       'AI Tutor (50 sessions/mo)',
-      'AI Lesson Planner (5/mo)',
+
       'AI Quiz Generator (3/mo)',
       'Basic gamification (2 games)',
       'Parent dashboard',
@@ -1081,7 +1066,7 @@ function getQuickFeatures(tier: string): string[] {
       'Up to 50 students, 5 teachers',
       'AI Tutor (200 sessions/mo)',
       'AI Auto-Grader (100/mo)',
-      'AI Lesson Planner (25/mo)',
+
       'AI Quiz Generator (15/mo)',
       '4 games, full gamification',
       '6 platform integrations',
@@ -1091,7 +1076,7 @@ function getQuickFeatures(tier: string): string[] {
       'Up to 200 students, 20 teachers',
       'AI Tutor (1,000/mo)',
       'AI Auto-Grader (500/mo)',
-      'AI Lesson Planner (100/mo)',
+
       'AI Writing Coach (50/mo)',
       'All games + Teacher Exchange',
       '10 platform integrations',
@@ -1100,7 +1085,7 @@ function getQuickFeatures(tier: string): string[] {
     case 'STANDARD': return [
       'Up to 500 students, 50 teachers',
       'Unlimited AI Tutor & Grader',
-      'Unlimited Lesson Plans & Quizzes',
+      'Unlimited Quizzes',
       'All 16+ platform integrations',
       'Cross-platform assignments',
       'District-wide analytics',

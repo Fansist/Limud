@@ -3,109 +3,15 @@ import {
   DEMO_STUDENT, DEMO_TEACHER, DEMO_ADMIN, DEMO_PARENT,
   DEMO_ASSIGNMENTS, DEMO_TEACHER_ASSIGNMENTS, DEMO_ANALYTICS,
   DEMO_DISTRICT, DEMO_PARENT_CHILDREN, DEMO_NOTIFICATIONS,
-  DEMO_REWARD_STATS_DEFAULT as DEMO_REWARD_STATS, DEMO_LESSON_PLANS, DEMO_MESSAGES,
+  DEMO_REWARD_STATS_DEFAULT as DEMO_REWARD_STATS, DEMO_MESSAGES,
   DEMO_STUDENT_EITAN, DEMO_STUDENT_NOAM, DEMO_REWARD_STATS as DEMO_REWARD_STATS_MAP,
   DEMO_CLASSROOMS, DEMO_COURSES, DEMO_ADMIN_EMPLOYEES, DEMO_ADMIN_STUDENTS_LIST,
   DEMO_TEACHER_INSIGHTS, DEMO_CREDENTIALS,
 } from '@/lib/demo-data';
-import { generateSimplifiedLessonPlan, generateSpecializedQuiz } from '@/lib/ai-generators';
+import { generateSpecializedQuiz } from '@/lib/ai-generators';
 
-// Allow up to 60 seconds for AI-powered lesson plan generation
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
-
-/**
- * Generate a lesson plan using OpenAI with timeout protection (simplified v9.3 schema).
- * Returns null if AI fails or is not configured, so caller can fall back to templates.
- */
-async function generateAILessonPlan(
-  subject: string,
-  gradeLevel: string,
-  topic: string,
-  duration: string,
-  additionalNotes?: string
-): Promise<Record<string, any> | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  const baseURL = process.env.OPENAI_BASE_URL;
-  if (!apiKey || apiKey === 'demo-mode') return null;
-
-  try {
-    const { default: OpenAI } = await import('openai');
-    const openai = new OpenAI({ apiKey, baseURL: baseURL || undefined });
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 55000);
-
-    const systemPrompt = `You are an expert K-12 curriculum designer. Create a practical, standards-aligned lesson plan.
-
-Return ONLY valid JSON (no markdown, no backticks). Structure:
-{
-  "title": "Specific lesson title",
-  "objectives": ["obj1", "obj2", "obj3"],
-  "standards": "Relevant standard codes",
-  "materials": ["item1", "item2"],
-  "sections": [
-    { "heading": "Warm-Up", "body": "Activity description...", "duration": "5 min" },
-    { "heading": "Direct Instruction", "body": "Teaching content...", "duration": "15 min" },
-    { "heading": "Guided Practice", "body": "Group activity...", "duration": "10 min" },
-    { "heading": "Independent Practice", "body": "Solo work...", "duration": "10 min" },
-    { "heading": "Assessment & Closure", "body": "Exit ticket + wrap-up...", "duration": "10 min" }
-  ]
-}
-
-Keep each section body under 300 characters. Be specific to the topic with real examples and activities.`;
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-5-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        {
-          role: 'user',
-          content: `Create a ${duration || '50 minute'} lesson plan for ${gradeLevel || '8th'} grade ${subject || 'General'} on: "${topic || 'General'}".${additionalNotes ? `\nTeacher notes: ${additionalNotes}` : ''}\nBe specific to the topic with real examples.`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-    }, { signal: controller.signal });
-
-    clearTimeout(timeout);
-
-    const content = response.choices[0]?.message?.content || '';
-    if (!content) return null;
-
-    const lower = content.toLowerCase();
-    if (lower.includes('credits have been exhausted') || lower.includes('quota exceeded') ||
-        (lower.includes('please visit') && lower.includes('pricing'))) {
-      console.warn('[AI LESSON DEMO] Proxy error:', content.substring(0, 150));
-      return null;
-    }
-
-    // Robust JSON extraction
-    let jsonStr = content;
-    jsonStr = jsonStr.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-    const firstBrace = jsonStr.indexOf('{');
-    const lastBrace = jsonStr.lastIndexOf('}');
-    if (firstBrace >= 0 && lastBrace > firstBrace) {
-      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
-    }
-
-    try {
-      const parsed = JSON.parse(jsonStr);
-      console.log('[AI LESSON DEMO] Successfully parsed AI-generated lesson plan');
-      return parsed;
-    } catch (parseErr: any) {
-      console.error('[AI LESSON DEMO] Failed to parse JSON:', parseErr.message);
-      return null;
-    }
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      console.log('[AI LESSON DEMO] Timed out after 55s, falling back to template');
-    } else {
-      console.error('[AI LESSON DEMO] Error:', error.message);
-    }
-    return null;
-  }
-}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -135,9 +41,6 @@ export async function GET(req: Request) {
         notifications: DEMO_NOTIFICATIONS,
         unreadCount: DEMO_NOTIFICATIONS.filter(n => !n.isRead).length,
       });
-
-    case 'lesson-plans':
-      return NextResponse.json({ lessonPlans: DEMO_LESSON_PLANS });
 
     case 'messages':
       return NextResponse.json({ messages: DEMO_MESSAGES });
@@ -179,7 +82,7 @@ export async function GET(req: Request) {
         available: [
           'student-assignments', 'student-rewards', 'teacher-assignments',
           'teacher-analytics', 'admin-districts', 'parent-children',
-          'notifications', 'lesson-plans', 'messages', 'user',
+          'notifications', 'messages', 'user',
         ],
       });
   }
@@ -202,39 +105,6 @@ export async function POST(req: Request) {
         message: responses[Math.floor(Math.random() * responses.length)],
         tokensUsed: 0,
       });
-
-    case 'generate-lesson-plan': {
-      const { subject, gradeLevel, topic, duration, additionalNotes } = body;
-
-      // Try real AI generation first
-      const aiPlan = await generateAILessonPlan(
-        subject || 'Math', gradeLevel || '8th', topic || 'General',
-        duration || '50 min', additionalNotes
-      );
-
-      // If AI worked, use it; otherwise build a simplified demo plan from the template bank
-      const planData = aiPlan || generateSimplifiedLessonPlan(
-        subject || 'Math', gradeLevel || '8th', topic || 'General',
-        duration || '50 min', additionalNotes
-      );
-
-      return NextResponse.json({
-        lessonPlan: {
-          id: `lp-demo-${Date.now()}`,
-          title: planData.title || `${topic} Lesson Plan`,
-          subject: subject || 'General',
-          gradeLevel: gradeLevel || '8th',
-          duration: duration || '50 min',
-          objectives: JSON.stringify(planData.objectives || []),
-          standards: planData.standards || '',
-          materials: JSON.stringify(planData.materials || []),
-          sections: JSON.stringify(planData.sections || []),
-          aiGenerated: !!aiPlan,
-          isFavorite: false,
-          createdAt: new Date().toISOString(),
-        },
-      });
-    }
 
     case 'generate-quiz': {
       const { subject, gradeLevel, topic, questionCount, difficulty } = body;

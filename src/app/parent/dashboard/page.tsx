@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import {
   Eye, BookOpen, Trophy, TrendingUp, Flame, Zap, GraduationCap, MessageCircle,
-  Star, Home, Plus, Wand2, BarChart3, Users, Brain, Shield, Target,
+  Star, Home, Plus, BarChart3, Users, Brain, Shield, Target,
   Sparkles, RefreshCw, ChevronDown, ChevronRight, Cpu, X,
 } from 'lucide-react';
 
@@ -146,7 +146,6 @@ export default function ParentDashboard() {
             ...(isHomeschoolParent ? [
               { href: '/teacher/assignments', label: 'Create Assignment', icon: <Plus size={18} />, color: 'bg-blue-50 text-blue-600 hover:bg-blue-100' },
               { href: '/teacher/grading', label: 'AI Auto-Grade', icon: <GraduationCap size={18} />, color: 'bg-green-50 text-green-600 hover:bg-green-100' },
-              { href: '/teacher/lesson-planner', label: 'Lesson Planner', icon: <Wand2 size={18} />, color: 'bg-purple-50 text-purple-600 hover:bg-purple-100' },
             ] : []),
             { href: `/parent/reports${demoSuffix}`, label: 'Growth Reports', icon: <TrendingUp size={18} />, color: 'bg-pink-50 text-pink-600 hover:bg-pink-100' },
             { href: `/parent/messages${demoSuffix}`, label: 'Messages', icon: <MessageCircle size={18} />, color: 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' },

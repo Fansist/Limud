@@ -64,7 +64,7 @@ const FAQ_DATA: FAQCategory[] = [
     items: [
       { question: 'What can parents see?', answer: 'Parents can view their children\'s progress, grades, XP/streak data, study time, and skill mastery levels. Weekly AI-generated reports summarize performance and highlight areas needing attention.' },
       { question: 'Can parents message teachers?', answer: 'Yes! The Messages feature allows secure parent-teacher communication. Parents can send messages about specific children, and teachers can share progress updates.' },
-      { question: 'What is Homeschool Mode?', answer: 'Homeschool parents get combined Parent + Teacher access. They can create assignments, use AI grading, generate lesson plans, and monitor their children\'s progress — all from one account.' },
+      { question: 'What is Homeschool Mode?', answer: 'Homeschool parents get combined Parent + Teacher access. They can create assignments, use AI grading, and monitor their children\'s progress — all from one account.' },
     ],
   },
 ];

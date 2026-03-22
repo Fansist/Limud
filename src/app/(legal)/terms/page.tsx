@@ -24,19 +24,19 @@ export default function TermsOfService() {
       </ul>
 
       <h2>4. AI-Powered Features</h2>
-      <p>Limud uses artificial intelligence for tutoring, grading, lesson planning, and analytics. You acknowledge that:</p>
+      <p>Limud uses artificial intelligence for tutoring, grading, and analytics. You acknowledge that:</p>
       <ul>
         <li>AI-generated content may contain inaccuracies and should be reviewed by qualified educators</li>
         <li>AI tutor conversations are logged and accessible to teachers and parents</li>
         <li>AI auto-grading is advisory; teachers retain final grading authority</li>
-        <li>AI-generated lesson plans are suggestions and should be adapted to specific classroom needs</li>
+        <li>AI-generated content (quizzes, reports) are suggestions and should be reviewed by educators</li>
       </ul>
 
       <h2>5. Subscriptions & Billing</h2>
       <p>Limud offers Free, Starter, Standard, and Enterprise plans. Paid subscriptions are billed annually. You may cancel at any time; access continues until the end of the billing period. Refunds are available within 30 days of purchase for annual plans.</p>
 
       <h2>6. Content Ownership</h2>
-      <p>You retain ownership of all content you create on Limud (assignments, submissions, lesson plans, etc.). By uploading content, you grant Limud a limited license to store, process, and display your content as necessary to provide the service.</p>
+      <p>You retain ownership of all content you create on Limud (assignments, submissions, etc.). By uploading content, you grant Limud a limited license to store, process, and display your content as necessary to provide the service.</p>
 
       <h2>7. Intellectual Property</h2>
       <p>The Limud platform, including its design, code, AI models, and branding, is the intellectual property of Limud Education Inc. You may not copy, modify, distribute, or reverse-engineer any part of the platform.</p>

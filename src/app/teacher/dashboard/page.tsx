@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { DEMO_ANALYTICS, DEMO_TEACHER_ASSIGNMENTS, DEMO_TEACHER } from '@/lib/demo-data';
 import {
-  BookOpen, GraduationCap, BarChart3, Users, AlertTriangle, Clock, ArrowRight, TrendingUp, FileText, Sparkles, Wand2,
+  BookOpen, GraduationCap, BarChart3, Users, AlertTriangle, Clock, ArrowRight, TrendingUp, FileText, Sparkles,
 } from 'lucide-react';
 
 export default function TeacherDashboard() {
@@ -99,13 +99,6 @@ export default function TeacherDashboard() {
             <p className="text-gray-500 mt-1">Here's your classroom overview for today</p>
           </div>
           <div className="flex gap-2">
-            <Link
-              href={`/teacher/lesson-planner${demoSuffix}`}
-              className="btn-secondary inline-flex items-center gap-2 w-fit"
-            >
-              <Wand2 size={16} />
-              AI Lesson Planner
-            </Link>
             <Link
               href={`/teacher/assignments${demoSuffix}`}
               className="btn-primary inline-flex items-center gap-2 w-fit"

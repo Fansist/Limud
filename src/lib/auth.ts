@@ -1,9 +1,9 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.3.0 — NextAuth Configuration                                   ║
+ * ║  LIMUD v9.3.1 — NextAuth Configuration                                   ║
  * ║  Zero-env-var authentication — all defaults are embedded.              ║
  * ║                                                                        ║
- * ║  Key v9.3.0 fixes:                                                       ║
+ * ║  Key v9.3.1 fixes:                                                       ║
  * ║  • Cookie names use plain names (no __Secure- / __Host- prefix)       ║
  * ║    so login works on both HTTP and HTTPS without any config.           ║
  * ║  • Secret is embedded — no NEXTAUTH_SECRET env var required.          ║
@@ -110,7 +110,7 @@ export const authOptions: NextAuthOptions = {
   },
 
   // ── Cookie config ──────────────────────────────────────────────
-  // v9.3.0: Use plain cookie names so login works on both HTTP and HTTPS.
+  // v9.3.1: Use plain cookie names so login works on both HTTP and HTTPS.
   // The `secure` flag is derived from the canonical APP_URL scheme,
   // not from NODE_ENV, preventing the mismatch that broke v9.0 logins.
   cookies: {

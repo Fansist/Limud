@@ -8,7 +8,7 @@ import {
   Shield, Users, Brain, Sparkles, ArrowRight,
   Check, Play, Heart, TrendingUp,
   Lightbulb, Gamepad2, Eye,
-  FileText, Target, Wand2, LayoutDashboard,
+  FileText, Target, LayoutDashboard,
   ChevronDown, ChevronUp, MessageCircle, DollarSign,
   Award, Link2, Lock, Zap, Home, Building2, Cpu,
 } from 'lucide-react';
@@ -49,7 +49,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ============================================================
-   LANDING PAGE v9.3.0 — Simplified, Cleaner, Conversion-Focused
+   LANDING PAGE v9.3.1 — Simplified, Cleaner, Conversion-Focused
    ============================================================ */
 
 export default function LandingPage() {
@@ -83,7 +83,7 @@ export default function LandingPage() {
                 <BookOpen size={16} className="text-white" />
               </div>
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
-              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.3.0</span>
+              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.3.1</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -240,7 +240,6 @@ export default function LandingPage() {
             {[
               { icon: <Brain size={22} />, title: 'AI Tutor', desc: 'Socratic questioning that guides students to answers. Teaches critical thinking through discovery.', color: 'bg-purple-100 text-purple-600' },
               { icon: <GraduationCap size={22} />, title: 'AI Auto-Grader', desc: 'One-click rubric-based grading for essays, short answers, and projects. No more midnight grading.', color: 'bg-green-100 text-green-600' },
-              { icon: <Wand2 size={22} />, title: 'AI Lesson Planner', desc: 'Generate complete, standards-aligned lesson plans in seconds with real AI.', color: 'bg-indigo-100 text-indigo-600' },
               { icon: <Trophy size={22} />, title: 'Gamification', desc: 'XP, levels, streaks, coins, avatar shop, badges, and leaderboards that keep students engaged.', color: 'bg-amber-100 text-amber-600' },
               { icon: <Gamepad2 size={22} />, title: 'Educational Games', desc: 'Math Blaster, Word Quest, Science Puzzles, History Trivia — all subjects covered.', color: 'bg-pink-100 text-pink-600' },
               { icon: <Lightbulb size={22} />, title: 'AI Quiz Generator', desc: 'Curriculum-aligned quizzes with multiple choice and short answer. AI-generated and verified.', color: 'bg-amber-100 text-amber-600' },
@@ -282,14 +281,14 @@ export default function LandingPage() {
                 name: 'Google Classroom',
                 emoji: '📚',
                 good: 'Seamless Google Workspace integration, massive adoption, free for all schools.',
-                limud: 'Limud syncs with Classroom and adds AI tutoring, lesson planning, and deep analytics.',
+                limud: 'Limud syncs with Classroom and adds AI tutoring, grading, and deep analytics.',
                 color: 'bg-blue-50 border-blue-200',
               },
               {
                 name: 'Quizlet + ClassDojo + Nearpod',
                 emoji: '✨',
                 good: 'Each excels in its niche: flashcards, parent comms, and interactive lessons.',
-                limud: 'Limud combines quizzes, rewards, AI lessons, and more. One login, one price.',
+                limud: 'Limud combines quizzes, rewards, AI tutoring, and more. One login, one price.',
                 color: 'bg-purple-50 border-purple-200',
               },
             ].map(item => (
@@ -323,7 +322,7 @@ export default function LandingPage() {
             {[
               {
                 icon: <Home size={22} />, title: 'Homeschool Families', color: 'from-amber-400 to-orange-500',
-                features: ['Free forever', 'AI lesson planner', 'Gamification', 'Parent AI check-ins', 'Progress tracking'],
+                features: ['Free forever', 'Gamification', 'Parent AI check-ins', 'Progress tracking'],
                 cta: 'Start Free', link: '/register',
               },
               {
@@ -375,7 +374,7 @@ export default function LandingPage() {
             {[
               {
                 name: 'Free', price: '$0', period: '/forever', desc: 'Homeschool families',
-                features: ['Up to 5 students', 'AI Tutor (50/mo)', 'AI Lesson Planner', 'Basic gamification', 'Parent dashboard', 'AI check-ins'],
+                features: ['Up to 5 students', 'AI Tutor (50/mo)', 'Basic gamification', 'Parent dashboard', 'AI check-ins'],
                 cta: 'Get Started Free', link: '/register', highlight: false,
               },
               {
@@ -433,7 +432,7 @@ export default function LandingPage() {
 
           <div className="bg-white rounded-xl border border-gray-100 p-6">
             {[
-              { q: 'Is Limud really free for homeschool families?', a: 'Yes! The Free plan is free forever for up to 5 students with no credit card required. It includes AI tutoring, lesson planning, gamification, and the full parent dashboard including AI check-ins.' },
+              { q: 'Is Limud really free for homeschool families?', a: 'Yes! The Free plan is free forever for up to 5 students with no credit card required. It includes AI tutoring, gamification, and the full parent dashboard including AI check-ins.' },
               { q: 'How does the AI tutor work?', a: 'Unlike ChatGPT which gives direct answers, Limud\'s AI tutor uses Socratic questioning to guide students to discover answers themselves. All conversations are logged for parent/teacher review. It\'s grade-level appropriate and builds critical thinking.' },
               { q: 'Do I need to leave Google Classroom or Khan Academy?', a: 'Not at all! Limud integrates with both. Keep everything you love — Limud adds AI grading, gamification, analytics, and parent dashboards that those platforms don\'t offer.' },
               { q: 'What is the AI parent check-in?', a: 'Parents can ask Limud\'s AI to generate a summary of their child\'s recent academic performance, emotional engagement, study habits, and areas needing attention. It analyzes grades, streaks, tutor usage, and more to give you a comprehensive check-in report.' },
@@ -477,7 +476,7 @@ export default function LandingPage() {
                   <BookOpen size={16} className="text-white" />
                 </div>
                 <span className="text-base font-bold text-white">Limud</span>
-                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.3.0</span>
+                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.3.1</span>
               </div>
               <p className="text-xs leading-relaxed">AI-powered K-12 learning platform for homeschool families and school districts.</p>
               <div className="flex gap-2 mt-3">

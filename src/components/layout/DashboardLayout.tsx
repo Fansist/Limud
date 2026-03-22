@@ -15,7 +15,7 @@ import {
 import {
   LayoutDashboard, BookOpen, MessageCircle, Trophy, BarChart3,
   GraduationCap, LogOut, Bell, Menu, X, Upload, Eye, Accessibility,
-  ChevronRight, Wand2, Mail, Award, Play, Sparkles, ArrowLeft, Users,
+  ChevronRight, Mail, Award, Play, Sparkles, ArrowLeft, Users,
   Home, Brain, FileText, Calendar, TrendingUp, Swords, Sun, Moon,
   Lightbulb, Focus, Zap, Target, ChevronDown, Settings, Gamepad2,
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
@@ -49,7 +49,6 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
     { href: '/teacher/intelligence', label: 'Intelligence', icon: <Brain size={20} /> },
     { href: '/teacher/quiz-generator', label: 'AI Quiz Generator', icon: <Lightbulb size={20} /> },
-    { href: '/teacher/lesson-planner', label: 'AI Lesson Planner', icon: <Wand2 size={20} /> },
     { href: '/teacher/worksheets', label: 'Worksheet Builder', icon: <PenTool size={20} /> },
     { href: '/teacher/exchange', label: 'Teacher Exchange', icon: <Globe2 size={20} /> },
     { href: '/teacher/insights', label: 'Insights & Heatmap', icon: <Target size={20} /> },
@@ -83,7 +82,6 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/parent/children', label: 'Manage Children', icon: <Home size={20} /> },
     { href: '/teacher/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
     { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
-    { href: '/teacher/lesson-planner', label: 'AI Lesson Planner', icon: <Wand2 size={20} /> },
     { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
   ],
 };
@@ -167,7 +165,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const storedDemo = localStorage.getItem('limud-demo-mode') === 'true';
     const storedRole = localStorage.getItem('limud-demo-role') || 'STUDENT';
 
-    // v9.3.0: Master Demo NEVER enters generic demo mode.
+    // v9.3.1: Master Demo NEVER enters generic demo mode.
     // The isMasterDemo flag comes from the NextAuth session (checked below)
     // but we also clear any stale localStorage flag here for safety.
     const sessionIsMaster = (session?.user as any)?.isMasterDemo === true;

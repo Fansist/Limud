@@ -20,7 +20,7 @@ export const GRADE_LEVELS = ['K','1st','2nd','3rd','4th','5th','6th','7th','8th'
 
 export const DURATIONS = ['30 min','45 min','50 min','60 min','90 min'] as const;
 
-export const RESOURCE_TYPES = ['Worksheet', 'Lesson Plan', 'Activity', 'Assessment', 'Presentation', 'Project', 'Game', 'Other'] as const;
+export const RESOURCE_TYPES = ['Worksheet', 'Activity', 'Assessment', 'Presentation', 'Project', 'Game', 'Other'] as const;
 
 export type SubjectValue = typeof SUBJECTS[number]['value'];
 export type GradeLevel = typeof GRADE_LEVELS[number];

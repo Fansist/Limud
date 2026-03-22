@@ -58,8 +58,8 @@ const DEMO_ITEMS: ExchangeItem[] = [
     createdAt: '2026-02-20', isLiked: false, isSaved: false, previewAvailable: true,
   },
   {
-    id: 'ex-2', type: 'Lesson Plan', title: 'Introduction to the Scientific Method',
-    description: 'Complete 5E lesson plan with hands-on experiment using gummy bears to teach the scientific method. Includes student lab sheet, rubric, and extension activities.',
+    id: 'ex-2', type: 'Activity', title: 'Introduction to the Scientific Method',
+    description: 'Complete 5E activity pack with hands-on experiment using gummy bears to teach the scientific method. Includes student lab sheet, rubric, and extension activities.',
     subject: 'Science', gradeLevel: '6th',
     author: { name: 'Mr. Patel', district: 'Riverside Unified', avatar: '👨‍🔬' },
     rating: 4.9, ratingCount: 67, downloads: 2340, likes: 156, comments: 23,

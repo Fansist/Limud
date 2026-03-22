@@ -23,7 +23,7 @@ const ROLE_CONFIG: Record<string, { icon: any; color: string; bg: string; desc: 
     icon: BookOpen,
     color: 'from-emerald-500 to-teal-500',
     bg: 'bg-emerald-50',
-    desc: 'AI Lesson Planner, Auto-Grading, Analytics, Insights',
+    desc: 'Auto-Grading, Analytics, Insights, Worksheets',
   },
   Admin: {
     icon: Shield,
@@ -324,7 +324,7 @@ export default function DemoPage() {
               <h3 className="text-lg font-bold text-gray-900">Homeschool Families</h3>
               <p className="text-sm text-gray-600 mt-1">
                 Limud is perfect for homeschool parents! Create a free account, add your children,
-                and use AI lesson planning, progress tracking — completely free.
+                and use AI grading, progress tracking — completely free.
               </p>
             </div>
             <Link

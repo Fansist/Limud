@@ -1,5 +1,5 @@
 /**
- * Registration API — v9.3.0 Security Hardened
+ * Registration API — v9.3.1 Security Hardened
  * - Rate limited: 3 per minute per IP
  * - NIST SP 800-63B password validation
  * - Input sanitization (XSS, prototype pollution)

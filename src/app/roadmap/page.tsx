@@ -92,15 +92,15 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
   {
     id: 'pl-1', title: 'AI-Powered Differentiated Instruction Engine', status: 'planned', quarter: 'Q2 2026',
     category: 'AI & Intelligence', icon: <Brain size={18} />, impact: 'high',
-    description: 'AI automatically generates differentiated versions of every lesson plan — approaching, on-grade, and advanced — tailored to each student\'s skill level.',
+    description: 'AI automatically generates differentiated versions of every assignment — approaching, on-grade, and advanced — tailored to each student\'s skill level.',
     details: [
-      'Automatic 3-tier differentiation for every lesson plan',
+      'Automatic 3-tier differentiation for every assignment',
       'Real-time skill assessment adjusts content difficulty mid-lesson',
       'ELL/IEP-specific modifications with visual scaffolding',
       'Teacher override controls for manual adjustments',
       'Progress-based automatic re-leveling every 2 weeks',
     ],
-    tags: ['AI', 'Lesson Plans', 'Personalization'],
+    tags: ['AI', 'Differentiation', 'Personalization'],
   },
   {
     id: 'pl-2', title: 'Peer Tutoring Marketplace', status: 'planned', quarter: 'Q2 2026',
@@ -121,7 +121,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     description: 'Visual concept mapping tool that shows how topics connect across subjects. AI suggests connections students might be missing.',
     details: [
       'Drag-and-drop node editor for building concept maps',
-      'AI auto-generates concept maps from lesson plan content',
+      'AI auto-generates concept maps from course content',
       'Cross-subject connections highlighted (e.g., fractions in music)',
       'Collaborative maps for group study sessions',
       'Knowledge gap visualization — missing nodes shown in red',
@@ -236,7 +236,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
   {
     id: 'pl-12', title: 'Curriculum Standards Alignment Auditor', status: 'planned', quarter: 'Q4 2026',
     category: 'Administration', icon: <FileText size={18} />, impact: 'medium',
-    description: 'AI scans all lesson plans, quizzes, and assignments across a district and identifies gaps in standards coverage.',
+    description: 'AI scans all quizzes and assignments across a district and identifies gaps in standards coverage.',
     details: [
       'Full Common Core, NGSS, and state standards mapping',
       'Visual heatmap: green (fully covered) to red (gaps)',
@@ -266,7 +266,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     category: 'AI & Intelligence', icon: <Bot size={18} />, impact: 'high',
     description: 'A full AI teaching assistant that can autonomously plan lessons for the week, generate homework, grade submissions, send parent updates, and flag struggling students — all with teacher approval.',
     details: [
-      'Weekly lesson plan generation based on pacing guide and student data',
+      'Weekly assignment generation based on pacing guide and student data',
       'Automatic homework assignment creation after each lesson',
       'Autonomous grading queue with teacher approval workflow',
       'Proactive parent communication: "Your child excelled in fractions today"',
@@ -297,7 +297,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
       'Personalized to student\'s current understanding level',
       'Animated diagrams, step-by-step walkthroughs, and visual metaphors',
       'Multiple explanation styles: visual, verbal, kinesthetic analogies',
-      'Teacher can embed generated videos directly into lesson plans',
+      'Teacher can embed generated videos directly into assignments',
     ],
     tags: ['AI', 'Video', 'Personalization'],
   },
@@ -384,7 +384,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     category: 'Community', icon: <Star size={18} />, impact: 'medium',
     description: 'A marketplace where teachers worldwide can publish, share, and sell curriculum materials. Peer reviews, ratings, and standards alignment verification.',
     details: [
-      'Teacher-created lesson plans, quizzes, and worksheets for sale or free',
+      'Teacher-created quizzes, worksheets, and activities for sale or free',
       'Peer review and rating system with verified teacher reviews',
       'AI-verified standards alignment for every resource',
       'Revenue sharing: teachers earn 80% of sales',
@@ -399,7 +399,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     category: 'Administration', icon: <Code size={18} />, impact: 'high',
     description: 'Mix-and-match pricing calculator with 9 sliders for AI usage, capacity, analytics toggles, and add-on features. Real-time cost estimation with donut chart.',
     details: [
-      '9 customizable sliders (students, teachers, schools, storage, AI tutor, grader, lesson plans, quiz gen, writing coach)',
+      '8 customizable sliders (students, teachers, schools, storage, AI tutor, grader, quiz gen, writing coach)',
       '8 analytics toggles and 8 add-on features',
       'Donut chart cost breakdown with sticky summary panel',
       '4 quick presets: Small School, Growing District, Large District, Max Everything',
@@ -412,7 +412,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     description: 'Expanded from 4 to 6 pricing tiers (Free, Starter, Growth, Standard, Premium, Enterprise) with explicit limitations per feature across 50+ features.',
     details: [
       'Every tier has explicit student/teacher/school caps',
-      'AI usage limits per tier (tutor sessions, grading, lesson plans, quizzes)',
+      'AI usage limits per tier (tutor sessions, grading, quizzes)',
       'Full 50+ feature comparison table across 9 categories',
       'Consistent pricing across pricing, landing, onboard, and help pages',
     ],
