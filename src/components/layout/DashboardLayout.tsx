@@ -165,7 +165,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const storedDemo = localStorage.getItem('limud-demo-mode') === 'true';
     const storedRole = localStorage.getItem('limud-demo-role') || 'STUDENT';
 
-    // v9.3.1: Master Demo NEVER enters generic demo mode.
+    // v9.3.2: Master Demo NEVER enters generic demo mode.
     // The isMasterDemo flag comes from the NextAuth session (checked below)
     // but we also clear any stale localStorage flag here for safety.
     const sessionIsMaster = (session?.user as any)?.isMasterDemo === true;
@@ -298,7 +298,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar (hidden on mobile, replaced by bottom nav) */}
       <aside
         className={cn(
-          'fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col transition-transform duration-300 lg:translate-x-0 overflow-y-auto custom-scrollbar',
+          'fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col transition-transform duration-300 lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           isDemo && 'pt-8'
         )}
@@ -349,7 +349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         {/* Nav */}
-        <nav className="flex-1 px-4 py-4 space-y-1 min-h-0">
+        <nav className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-1 min-h-0">
           {navItems.map(item => {
             const href = buildHref(item.href);
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -382,18 +382,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Bottom section — compact utility row + user profile */}
         <div className="flex-shrink-0 p-3 border-t border-gray-100 dark:border-gray-800 space-y-2">
-          {/* Compact utility toggles row */}
-          <div className="flex items-center gap-1">
+          {/* Compact utility icon row */}
+          <div className="flex items-center justify-around">
             <button
               onClick={toggleLiteMode}
               className={cn(
-                'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium flex-1 transition-all',
-                liteMode ? 'bg-amber-50 text-amber-700' : 'text-gray-500 hover:bg-gray-50'
+                'flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium transition-all',
+                liteMode ? 'bg-amber-50 text-amber-700' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
               )}
               title={`Lite Mode ${liteMode ? 'ON' : 'OFF'}`}
             >
-              <Zap size={14} />
-              <span className="hidden sm:inline">{liteMode ? 'Lite' : 'Lite'}</span>
+              <Zap size={16} />
+              <span>Lite</span>
             </button>
 
             <button
@@ -402,32 +402,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 html.classList.toggle('dark');
                 localStorage.setItem('limud-dark-mode', html.classList.contains('dark') ? 'true' : 'false');
               }}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium flex-1 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+              className="flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 transition-all"
               title="Dark Mode"
             >
-              <Sun size={14} className="dark:hidden" />
-              <Moon size={14} className="hidden dark:block" />
-              <span className="hidden sm:inline">Theme</span>
+              <Sun size={16} className="dark:hidden" />
+              <Moon size={16} className="hidden dark:block" />
+              <span>Theme</span>
             </button>
 
             <button
               onClick={() => setShowAccessibility(!showAccessibility)}
               className={cn(
-                'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium flex-1 transition-all',
-                showAccessibility ? 'bg-primary-50 text-primary-700' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                'flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium transition-all',
+                showAccessibility ? 'bg-primary-50 text-primary-700' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600'
               )}
               title="Accessibility"
             >
-              <Accessibility size={14} />
-              <span className="hidden sm:inline">A11y</span>
+              <Accessibility size={16} />
+              <span>A11y</span>
             </button>
 
             <Link href={buildHref('/help')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium flex-1 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+              className="flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 transition-all"
               title="Help & FAQ"
             >
-              <HelpCircle size={14} />
-              <span className="hidden sm:inline">Help</span>
+              <HelpCircle size={16} />
+              <span>Help</span>
             </Link>
           </div>
 
@@ -439,29 +439,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </AnimatePresence>
 
-          {/* User profile */}
-          <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div className={cn('w-9 h-9 bg-gradient-to-br rounded-full flex items-center justify-center text-lg shadow-sm', roleColor)}>
+          {/* User profile + sign out */}
+          <div className="flex items-center gap-2.5 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-xl">
+            <div className={cn('w-8 h-8 bg-gradient-to-br rounded-full flex items-center justify-center text-base shadow-sm flex-shrink-0', roleColor)}>
               <span className="drop-shadow-sm">{avatarEmoji}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
                 {userName || 'User'}
-                {isDemo && <span className="text-xs text-amber-500 ml-1">(Demo)</span>}
+                {isDemo && <span className="text-[10px] text-amber-500 ml-1">(Demo)</span>}
               </p>
-              <p className="text-[11px] text-gray-400 truncate">{userEmail}</p>
+              <p className="text-[10px] text-gray-400 truncate">{userEmail}</p>
             </div>
             {isDemo ? (
-              <Link href="/register" className="text-primary-600 hover:bg-primary-50 p-1.5 rounded-lg transition" title="Create Real Account">
-                <Sparkles size={16} />
+              <Link href="/register" className="text-primary-600 hover:bg-primary-50 p-1.5 rounded-lg transition flex-shrink-0" title="Create Real Account">
+                <Sparkles size={14} />
               </Link>
             ) : (
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg transition"
+                className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg transition flex-shrink-0"
                 title="Sign Out"
               >
-                <LogOut size={16} />
+                <LogOut size={14} />
               </button>
             )}
           </div>

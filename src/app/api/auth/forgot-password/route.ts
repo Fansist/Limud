@@ -1,5 +1,5 @@
 /**
- * Forgot Password API — v9.3.1 Security Hardened
+ * Forgot Password API — v9.3.2 Security Hardened
  * - Rate limited: 3 per minute per IP
  * - Anti-enumeration: always returns generic message
  * - Secure token generation (32 bytes, SHA-256 hashed for storage)
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // Derive reset URL from request origin (v9.3.1: auto-detect, no env needed)
+    // Derive reset URL from request origin (v9.3.2: auto-detect, no env needed)
     const url = new URL(req.url);
     const origin = `${url.protocol}//${url.host}`;
     const baseUrl = origin; // Always use the actual request origin

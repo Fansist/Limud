@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.3.1
+- **Version**: 9.3.2
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Security**: Enterprise-grade FERPA + COPPA + OWASP Top 10 compliant security for children's data protection
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
@@ -271,6 +271,20 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 - **Tech Stack**: Next.js 14 + TypeScript + TailwindCSS + Prisma + NextAuth
 - **Security Level**: Enterprise (FERPA + COPPA + OWASP Top 10)
 - **Last Updated**: 2026-03-22
+
+---
+
+## What's New in v9.3.2 — Fix Sidebar Layout Overlap
+
+The sidebar bottom section (utility buttons + user profile) was overlapping the navigation items on desktop, especially visible with the Master Demo role switcher active.
+
+### Fixed
+- **Restored proper flex layout**: Nav section (`flex-1 overflow-y-auto`) scrolls independently; bottom section stays pinned
+- **Compact utility icons**: Lite/Theme/A11y/Help rendered as a 4-icon row with labels stacked below (consistent across all screen sizes)
+- **Smaller user profile row**: Reduced avatar, font sizes, and padding to minimize height
+- **Sign out inline**: Logout button integrated into profile row as icon-only
+- **No more overlap**: Bottom section is `flex-shrink-0` and the aside no longer has `overflow-y-auto` on the whole container
+- **Version bump** 9.3.1 → 9.3.2 across 23 files
 
 ## Files Changed in v9.0
 
