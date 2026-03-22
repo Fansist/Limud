@@ -1,11 +1,11 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.2 — Next.js Edge Middleware                                  ║
+ * ║  LIMUD v9.2.1 — Next.js Edge Middleware                                  ║
  * ║  Runs on EVERY request before the page/API handler                     ║
  * ║  Enterprise-grade edge security: bot blocking, path protection,        ║
  * ║  RBAC, security headers, rate limiting, input validation               ║
  * ║                                                                        ║
- * ║  v9.2: All secrets embedded — zero env vars required.                  ║
+ * ║  v9.2.1: All secrets embedded — zero env vars required.                  ║
  * ║  COPPA + FERPA + OWASP Top 10 compliant                              ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
@@ -213,7 +213,7 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({
     req: request,
     secret: AUTH_SECRET,
-    // v9.2: match the plain cookie name set in auth.ts
+    // v9.2.1: match the plain cookie name set in auth.ts
     cookieName: 'next-auth.session-token',
   });
 
@@ -300,7 +300,7 @@ export async function middleware(request: NextRequest) {
 
 function addSecurityHeaders(response: NextResponse, pathname: string) {
   response.headers.set('X-Request-Id', crypto.randomUUID());
-  response.headers.set('X-Limud-Version', '9.2');
+  response.headers.set('X-Limud-Version', '9.2.1');
   response.headers.set('X-Limud-Security', 'active');
 
   // Core OWASP headers

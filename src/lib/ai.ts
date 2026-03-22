@@ -1,9 +1,9 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.2 — AI Service                                               ║
+ * ║  LIMUD v9.2.1 — AI Service                                               ║
  * ║  OpenAI-compatible API with robust error handling & demo fallback      ║
  * ║                                                                        ║
- * ║  v9.2 fixes:                                                           ║
+ * ║  v9.2.1 fixes:                                                           ║
  * ║  • Detects proxy credit-exhaustion / non-JSON responses                ║
  * ║  • Removes response_format: json_object (not always supported)         ║
  * ║  • Robust JSON extraction from markdown-fenced or prefixed responses   ║
@@ -200,7 +200,7 @@ export async function callOpenAI(
 
   const content = response.choices[0]?.message?.content || '';
 
-  // v9.2: Detect proxy error responses disguised as successful completions
+  // v9.2.1: Detect proxy error responses disguised as successful completions
   if (isProxyErrorResponse(content)) {
     throw new Error(`AI proxy error: ${content.substring(0, 200)}`);
   }

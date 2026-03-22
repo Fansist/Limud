@@ -59,7 +59,7 @@ export default function LoginPage() {
    * 2. Fallback: fetch session from NextAuth client
    * 3. Fallback: redirect to /student/dashboard
    */
-  const doLogin = async (loginEmail: string, loginPassword: string): Promise<boolean> => {
+  const doLogin = async (loginEmail: string, loginPassword: string, isDemo: boolean = false): Promise<boolean> => {
     const normalizedEmail = loginEmail.toLowerCase().trim();
 
     const result = await signIn('credentials', {
@@ -72,11 +72,22 @@ export default function LoginPage() {
       return false; // Auth failed
     }
 
+    // If this is a demo login, set localStorage flag so all pages know
+    const isDemoAccount = isDemo || !!DEMO_EMAIL_ROLES[normalizedEmail];
+    if (isDemoAccount) {
+      try { localStorage.setItem('limud-demo-mode', 'true'); } catch {}
+    } else {
+      try { localStorage.removeItem('limud-demo-mode'); } catch {}
+    }
+
+    // Build the demo query string
+    const demoParam = isDemoAccount ? '?demo=true' : '';
+
     // Auth succeeded — determine where to redirect
     // Strategy 1: Use known demo email mapping (most reliable, no network call)
     const knownRole = DEMO_EMAIL_ROLES[normalizedEmail];
     if (knownRole) {
-      router.push(getDashboardPath(knownRole));
+      router.push(getDashboardPath(knownRole) + demoParam);
       router.refresh();
       return true;
     }
@@ -88,7 +99,7 @@ export default function LoginPage() {
         const session = await res.json();
         const role = session?.user?.role;
         if (role) {
-          router.push(getDashboardPath(role));
+          router.push(getDashboardPath(role) + demoParam);
           router.refresh();
           return true;
         }
@@ -98,7 +109,7 @@ export default function LoginPage() {
     }
 
     // Strategy 3: Fallback redirect
-    router.push('/student/dashboard');
+    router.push('/student/dashboard' + demoParam);
     router.refresh();
     return true;
   };
@@ -128,7 +139,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const success = await doLogin(demoEmail, demoPassword);
+      const success = await doLogin(demoEmail, demoPassword, true);
       if (success) {
         toast.success('Welcome to Limud!');
       } else {
