@@ -1,6 +1,6 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.3.3 — Centralized Application Configuration                  ║
+ * ║  LIMUD v9.3.4 — Centralized Application Configuration                  ║
  * ║  ALL defaults are embedded so the app runs with ZERO env vars.         ║
  * ║  Environment variables, when present, override the embedded defaults.  ║
  * ║                                                                        ║
@@ -95,4 +95,4 @@ export function isAIConfigured(): boolean {
 // ═══════════════════════════════════════════════════════════════════
 
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Limud';
-export const APP_VERSION = '9.3.3';
+export const APP_VERSION = '9.3.4';

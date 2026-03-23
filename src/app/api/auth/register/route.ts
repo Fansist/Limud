@@ -1,11 +1,12 @@
 /**
- * Registration API — v9.3.3 Security Hardened
+ * Registration API — v9.3.4 Security Hardened
  * - Rate limited: 3 per minute per IP
  * - NIST SP 800-63B password validation
  * - Input sanitization (XSS, prototype pollution)
  * - Anti-enumeration (generic errors for duplicate emails)
  * - COPPA: flags minor accounts for parental consent
  * - Audit logging all registration events
+ * - v9.3.4: Improved error responses — returns all password errors with details
  */
 import { NextResponse } from 'next/server';
 import {
@@ -72,7 +73,11 @@ export async function POST(req: Request) {
     const passwordCheck = validatePassword(String(password), cleanEmail, cleanName);
     if (!passwordCheck.valid) {
       return NextResponse.json(
-        { error: passwordCheck.errors[0], passwordErrors: passwordCheck.errors, strength: passwordCheck.strength },
+        {
+          error: `Password requirements not met: ${passwordCheck.errors.join('. ')}`,
+          passwordErrors: passwordCheck.errors,
+          strength: passwordCheck.strength,
+        },
         { status: 400 }
       );
     }

@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.3.3
+- **Version**: 9.3.4
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Security**: Enterprise-grade FERPA + COPPA + OWASP Top 10 compliant security for children's data protection
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
@@ -273,6 +273,20 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 - **Last Updated**: 2026-03-22
 
 ---
+
+## What's New in v9.3.4 — Fix Account Creation
+
+**Root cause:** Frontend password validation required only 8 characters but the backend NIST SP 800-63B policy requires 10+ characters, uppercase, lowercase, and a number. Users could reach the submit button with passwords the backend would silently reject. Additionally, the frontend displayed only a generic toast on backend errors, never showing the specific password requirement failures.
+
+**Changes:**
+- **`src/app/(auth)/register/page.tsx`** — Rewrote client-side password validator to match backend NIST rules (10 chars, upper/lower/number, no repeats, no sequences)
+- **`src/app/(auth)/register/page.tsx`** — Password strength meter now uses the same thresholds as backend
+- **`src/app/(auth)/register/page.tsx`** — Real-time inline error list shows unmet requirements below the password field
+- **`src/app/(auth)/register/page.tsx`** — Green checkmark when all requirements met
+- **`src/app/(auth)/register/page.tsx`** — "Create Account" button disabled until all password rules pass
+- **`src/app/(auth)/register/page.tsx`** — On backend 400 response, displays all `passwordErrors` from the API instead of generic toast
+- **`src/app/api/auth/register/route.ts`** — Improved error message: returns all password errors joined, not just the first one
+- **Version bump** 9.3.3 → 9.3.4 across 25 files
 
 ## What's New in v9.3.3 — Fix Quiz Generator (All Subjects, Variable Count)
 

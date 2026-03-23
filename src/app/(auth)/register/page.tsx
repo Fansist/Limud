@@ -60,16 +60,29 @@ export default function RegisterPage() {
   // District admin fields
   const [districtName, setDistrictName] = useState('');
 
+  // Password validation matching NIST SP 800-63B backend rules
+  const passwordErrors = (pw: string): string[] => {
+    const errs: string[] = [];
+    if (pw.length < 10) errs.push('At least 10 characters');
+    if (!/[A-Z]/.test(pw)) errs.push('One uppercase letter');
+    if (!/[a-z]/.test(pw)) errs.push('One lowercase letter');
+    if (!/[0-9]/.test(pw)) errs.push('One number');
+    if (/(.)\1{3,}/.test(pw)) errs.push('No 4+ repeated characters');
+    if (/(?:abcd|bcde|cdef|defg|1234|2345|3456|4567|5678|6789|0123)/i.test(pw)) errs.push('No sequential characters');
+    return errs;
+  };
+
   const passwordStrength = (pw: string) => {
     let score = 0;
-    if (pw.length >= 8) score++;
-    if (pw.length >= 12) score++;
+    if (pw.length >= 10) score++;
+    if (pw.length >= 14) score++;
     if (/[A-Z]/.test(pw)) score++;
     if (/[0-9]/.test(pw)) score++;
     if (/[^A-Za-z0-9]/.test(pw)) score++;
     return score;
   };
 
+  const pwErrors = passwordErrors(password);
   const strength = passwordStrength(password);
   const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Excellent'][strength];
   const strengthColor = ['', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-emerald-500'][strength];
@@ -79,8 +92,8 @@ export default function RegisterPage() {
       toast.error('Passwords do not match');
       return;
     }
-    if (password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+    if (pwErrors.length > 0) {
+      toast.error('Password requirements: ' + pwErrors.join(', '));
       return;
     }
 
@@ -112,7 +125,11 @@ export default function RegisterPage() {
             router.push('/login');
           }
         } else {
-          toast.error(data.error || 'Registration failed');
+          if (data.passwordErrors && data.passwordErrors.length > 0) {
+            toast.error('Password: ' + data.passwordErrors.join('. '));
+          } else {
+            toast.error(data.error || 'Registration failed');
+          }
         }
       } else {
         // District admin flow: register as ADMIN
@@ -140,7 +157,11 @@ export default function RegisterPage() {
             router.push('/login');
           }
         } else {
-          toast.error(data.error || 'Registration failed');
+          if (data.passwordErrors && data.passwordErrors.length > 0) {
+            toast.error('Password: ' + data.passwordErrors.join('. '));
+          } else {
+            toast.error(data.error || 'Registration failed');
+          }
         }
       }
     } catch {
@@ -153,7 +174,7 @@ export default function RegisterPage() {
   const canProceedStep1 = accountType !== '';
   const canProceedStep2 = name.trim() !== '' && email.trim() !== '' &&
     (accountType === 'homeschool' ? childrenList.filter(c => c.name.trim()).length > 0 : true);
-  const canProceedStep3 = password.length >= 8 && password === confirmPassword;
+  const canProceedStep3 = pwErrors.length === 0 && password === confirmPassword;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex">
@@ -482,7 +503,7 @@ export default function RegisterPage() {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       className="input-field pr-10"
-                      placeholder="Min. 8 characters"
+                      placeholder="Min. 10 characters"
                       autoFocus
                     />
                     <button
@@ -507,6 +528,21 @@ export default function RegisterPage() {
                         ))}
                       </div>
                       <p className="text-xs text-gray-500 mt-1">Strength: {strengthLabel}</p>
+                      {pwErrors.length > 0 && (
+                        <ul className="mt-2 space-y-0.5">
+                          {pwErrors.map((err, i) => (
+                            <li key={i} className="text-xs text-red-500 flex items-center gap-1">
+                              <span className="w-1 h-1 bg-red-400 rounded-full flex-shrink-0" />
+                              {err}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {pwErrors.length === 0 && password.length > 0 && (
+                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                          <CheckCircle2 size={12} /> Password meets all requirements
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

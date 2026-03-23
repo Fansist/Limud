@@ -1,10 +1,10 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  AI Tutor API — v9.3.3                                                 ║
+ * ║  AI Tutor API — v9.3.4                                                 ║
  * ║  POST: Send a message to the AI tutor                                  ║
  * ║  GET:  Retrieve chat history / recent sessions                         ║
  * ║                                                                        ║
- * ║  v9.3.3 fixes:                                                         ║
+ * ║  v9.3.4 fixes:                                                         ║
  * ║  • Wrapped ALL Prisma calls in try/catch — DB failure never crashes    ║
  * ║  • Falls back to chatWithTutor demo mode if DB is unavailable          ║
  * ║  • Gamification calls are also safely wrapped                          ║

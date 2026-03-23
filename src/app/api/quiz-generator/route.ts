@@ -1,5 +1,5 @@
 /**
- * Teacher AI Quiz Generator API — v9.3.3
+ * Teacher AI Quiz Generator API — v9.3.4
  * GET: List saved quiz templates
  * POST: Generate a new quiz with real AI (fallback to specialized template bank)
  * DELETE: Delete a quiz template

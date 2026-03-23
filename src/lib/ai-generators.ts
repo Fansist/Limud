@@ -1,5 +1,5 @@
 /**
- * AI content generators for demo mode — v9.3.3
+ * AI content generators for demo mode — v9.3.4
  * Expanded quiz banks across all subjects with 10+ questions per topic.
  * generateSpecializedQuiz now pools ALL matching questions and generates
  * unique variations when the bank runs short.
