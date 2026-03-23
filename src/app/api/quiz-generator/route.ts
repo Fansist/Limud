@@ -1,5 +1,5 @@
 /**
- * Teacher AI Quiz Generator API — v9.3.4
+ * Teacher AI Quiz Generator API — v9.3.5
  * GET: List saved quiz templates
  * POST: Generate a new quiz with real AI (fallback to specialized template bank)
  * DELETE: Delete a quiz template
@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
-import { callOpenAI, hasApiKey, extractJSON } from '@/lib/ai';
+import { callGemini, hasApiKey, extractJSON } from '@/lib/ai';
 import { generateSpecializedQuiz } from '@/lib/ai-generators';
 
 export const maxDuration = 60;
@@ -90,7 +90,7 @@ export const POST = apiHandler(async (req: Request) => {
         { role: 'user', content: userPrompt },
       ];
 
-      const response = await callOpenAI(messages, { temperature: 0.7, maxTokens: 4000 });
+      const response = await callGemini(messages, { temperature: 0.7, maxTokens: 4000 });
       const jsonStr = extractJSON(response);
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);

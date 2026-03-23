@@ -23,10 +23,10 @@ const FAQ_DATA: FAQCategory[] = [
     name: 'AI Features',
     icon: <Brain size={20} />,
     items: [
-      { question: 'How does the AI Tutor work?', answer: 'The AI Tutor uses OpenAI\'s GPT-4o-mini to provide personalized, Socratic-style tutoring. It never gives direct answers — instead, it guides students with hints and questions. If no API key is configured, a demo mode provides helpful preset responses.' },
+      { question: 'How does the AI Tutor work?', answer: 'The AI Tutor uses Google\'s Gemini 2.0 Flash to provide personalized, Socratic-style tutoring. It never gives direct answers - instead, it guides students with hints and questions. If no API key is configured, a demo mode provides helpful preset responses.' },
       { question: 'How does AI Auto-Grading work?', answer: 'Teachers can grade individual submissions or batch-grade entire classes with one click. The AI analyzes student work against the assignment rubric, provides a score (0-100), detailed feedback, strengths, areas for improvement, and encouragement.' },
       { question: 'What about the Quiz Generator?', answer: 'Teachers enter a subject, grade level, and topic. The AI generates multiple-choice questions with correct answers, explanations, and skill tags. Teachers can review and edit before sharing with students.' },
-      { question: 'Is my data used to train AI models?', answer: 'No. Limud uses the OpenAI API which does not use API data for training. Student conversations and submissions are stored securely in your district\'s database and are never shared externally.' },
+      { question: 'Is my data used to train AI models?', answer: 'No. Limud uses the Google Gemini API which does not use API data for training. Student conversations and submissions are stored securely in your district\'s database and are never shared externally.' },
     ],
   },
   {

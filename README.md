@@ -2,10 +2,10 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.3.4
+- **Version**: 9.3.5
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Security**: Enterprise-grade FERPA + COPPA + OWASP Top 10 compliant security for children's data protection
-- **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + OpenAI + Framer Motion
+- **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + Google Gemini + Framer Motion
 - **Domain**: https://limud.co
 - **GitHub**: https://github.com/Fansist/Limud
 - **Hosting**: Render.com (primary), also supports cPanel/GoDaddy
@@ -261,7 +261,7 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 ## Data Architecture
 - **Database**: PostgreSQL (Prisma ORM)
 - **Auth**: NextAuth.js (JWT strategy)
-- **AI**: OpenAI via GenSpark LLM proxy
+- **AI**: Google Gemini via @google/genai SDK
 - **Storage**: Prisma + PostgreSQL
 
 ## Deployment
@@ -273,6 +273,26 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 - **Last Updated**: 2026-03-22
 
 ---
+
+## What's New in v9.3.5 — Migrate from OpenAI to Google Gemini
+
+**Full AI backend migration** from OpenAI SDK (`openai` npm) to Google Gemini (`@google/genai` npm). All AI features (tutor, grader, quiz generator, exam sim, writing coach, curriculum analysis, navigator, parent check-in, worksheet search) now use Gemini natively.
+
+**Changes:**
+- **`src/lib/config.ts`** — Replaced `OPENAI_API_KEY` / `OPENAI_BASE_URL` with `GEMINI_API_KEY` (fallback `GOOGLE_API_KEY`); default model `gemini-2.0-flash`
+- **`src/lib/ai.ts`** — Complete rewrite: replaced `openai` SDK with `@google/genai` `GoogleGenAI`; new `callGemini()` function uses `ai.models.generateContent()` with system instruction support; backward-compat aliases (`callOpenAI`, `isOpenAIConfigured`) kept
+- **`src/app/api/worksheet-search/route.ts`** — Replaced direct OpenAI SDK usage with `@google/genai` SDK
+- **`src/app/api/quiz-generator/route.ts`** — `callOpenAI` -> `callGemini`
+- **`src/app/api/exam-sim/route.ts`** — `callOpenAI` -> `callGemini`
+- **`src/app/api/ai-navigator/route.ts`** — `callOpenAI`/`isOpenAIConfigured` -> `callGemini`/`isGeminiConfigured`
+- **`src/app/api/parent/ai-checkin/route.ts`** — `callOpenAI`/`isOpenAIConfigured` -> `callGemini`/`isGeminiConfigured`
+- **`next.config.js`** — Updated external packages, CSP `connect-src`, and webpack alias
+- **`src/middleware.ts`** + **`src/lib/security.ts`** — CSP connect-src updated from `api.openai.com` to `generativelanguage.googleapis.com`
+- **`src/app/layout.tsx`** — DNS prefetch updated to Gemini API domain
+- **`src/app/help/page.tsx`** — User-facing text updated from "OpenAI GPT-4o-mini" to "Google Gemini 2.0 Flash"
+- **`.env`** + **`.env.example`** — Env vars renamed: `OPENAI_API_KEY` -> `GEMINI_API_KEY`, removed `OPENAI_BASE_URL`
+- **`package.json`** — Replaced `openai` with `@google/genai`
+- **Version bump** 9.3.4 -> 9.3.5 across 24 files
 
 ## What's New in v9.3.4 — Fix Account Creation
 
@@ -388,7 +408,7 @@ The AI Lesson Planner feature has been fully removed from the platform. This inc
 | `NEXTAUTH_SECRET` | ✅ | Fixed secret — `openssl rand -base64 32`. NEVER use generateValue. |
 | `NEXTAUTH_URL` | ✅ | `https://limud.co` |
 | `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `OPENAI_API_KEY` | ✅ | AI tutoring API key |
-| `OPENAI_BASE_URL` | ✅ | `https://www.genspark.ai/api/llm_proxy/v1` |
+| `GEMINI_API_KEY` | Yes | Google Gemini API key (from https://aistudio.google.com/apikey) |
+| `AI_MODEL` | | AI model override (default: `gemini-2.0-flash`) |
 | `PII_ENCRYPTION_KEY` | ⚡ | Separate key for PII encryption (falls back to NEXTAUTH_SECRET) |
 | `NODE_ENV` | ✅ | `production` |

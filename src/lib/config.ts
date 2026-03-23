@@ -1,11 +1,9 @@
 /**
- * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.3.4 — Centralized Application Configuration                  ║
- * ║  ALL defaults are embedded so the app runs with ZERO env vars.         ║
- * ║  Environment variables, when present, override the embedded defaults.  ║
- * ║                                                                        ║
- * ║  v9.2: AI model config added, Genspark proxy as default base URL      ║
- * ╚══════════════════════════════════════════════════════════════════════════╝
+ * LIMUD v9.3.5 — Centralized Application Configuration
+ * ALL defaults are embedded so the app runs with ZERO env vars.
+ * Environment variables, when present, override the embedded defaults.
+ *
+ * v9.3.5: Migrated from OpenAI to Google Gemini (@google/genai)
  */
 
 // ═══════════════════════════════════════════════════════════════════
@@ -43,7 +41,7 @@ export const DATABASE_URL =
 
 /**
  * Canonical origin used by NextAuth for callback URLs.
- * Priority: NEXTAUTH_URL → NEXT_PUBLIC_APP_URL → localhost default
+ * Priority: NEXTAUTH_URL -> NEXT_PUBLIC_APP_URL -> localhost default
  */
 export const APP_URL =
   process.env.NEXTAUTH_URL ||
@@ -58,36 +56,31 @@ export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 /**
  * Cookie secure flag: true when the canonical URL is HTTPS.
- * This avoids the old bug where `NODE_ENV === 'production'` was used
+ * This avoids the old bug where NODE_ENV === 'production' was used
  * but the server was actually on HTTP (e.g. Render internal routing).
  */
 export const COOKIE_SECURE = IS_HTTPS;
 
 // ═══════════════════════════════════════════════════════════════════
-// OPENAI / AI
+// GEMINI / AI
 // ═══════════════════════════════════════════════════════════════════
 
-export const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'demo-mode';
-
 /**
- * Base URL for the OpenAI-compatible API.
- * In development, the Genspark proxy at genspark.ai is the default and
- * typically offers the most reliable connection.
- * On Render production, set OPENAI_BASE_URL to whatever provider you use
- * (or leave unset to use the same Genspark proxy).
+ * Google Gemini API key.
+ * Priority: GEMINI_API_KEY -> GOOGLE_API_KEY -> 'demo-mode'
  */
-export const OPENAI_BASE_URL =
-  process.env.OPENAI_BASE_URL || undefined;
+export const GEMINI_API_KEY =
+  process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || 'demo-mode';
 
 /**
  * AI model to use for all completions.
- * The Genspark proxy supports: gpt-5, gpt-5-mini, gpt-5-nano, etc.
+ * Supported: gemini-2.0-flash, gemini-2.5-flash, gemini-2.5-pro, etc.
  */
-export const AI_MODEL = process.env.AI_MODEL || 'gpt-5-mini';
+export const AI_MODEL = process.env.AI_MODEL || 'gemini-2.0-flash';
 
-/** True if the AI system has a real API key configured */
+/** True if the AI system has a real Gemini API key configured */
 export function isAIConfigured(): boolean {
-  return !!(OPENAI_API_KEY && OPENAI_API_KEY !== 'demo-mode');
+  return !!(GEMINI_API_KEY && GEMINI_API_KEY !== 'demo-mode');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -95,4 +88,4 @@ export function isAIConfigured(): boolean {
 // ═══════════════════════════════════════════════════════════════════
 
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Limud';
-export const APP_VERSION = '9.3.4';
+export const APP_VERSION = '9.3.5';

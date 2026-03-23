@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
-import { callOpenAI, isOpenAIConfigured } from '@/lib/ai';
+import { callGemini, isGeminiConfigured } from '@/lib/ai';
 import prisma from '@/lib/prisma';
 
 /**
@@ -267,7 +267,7 @@ export const POST = apiHandler(async (req: Request) => {
     // Continue without context
   }
 
-  if (isOpenAIConfigured()) {
+  if (isGeminiConfigured()) {
     try {
       const messages = [
         { role: 'system', content: NAVIGATOR_SYSTEM_PROMPT + studentContext },
@@ -275,10 +275,10 @@ export const POST = apiHandler(async (req: Request) => {
         { role: 'user', content: message.trim() },
       ];
 
-      const content = await callOpenAI(messages, { temperature: 0.5, maxTokens: 500 });
+      const content = await callGemini(messages, { temperature: 0.5, maxTokens: 500 });
       return NextResponse.json({ message: content });
     } catch (e) {
-      console.error('OpenAI navigator error, falling back to demo:', e);
+      console.error('Gemini navigator error, falling back to demo:', e);
     }
   }
 

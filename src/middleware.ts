@@ -1,11 +1,11 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.3.4 — Next.js Edge Middleware                                  ║
+ * ║  LIMUD v9.3.5 — Next.js Edge Middleware                                  ║
  * ║  Runs on EVERY request before the page/API handler                     ║
  * ║  Enterprise-grade edge security: bot blocking, path protection,        ║
  * ║  RBAC, security headers, rate limiting, input validation               ║
  * ║                                                                        ║
- * ║  v9.3.4: All secrets embedded — zero env vars required.                  ║
+ * ║  v9.3.5: All secrets embedded — zero env vars required.                  ║
  * ║  COPPA + FERPA + OWASP Top 10 compliant                              ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
@@ -139,7 +139,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.cdnfonts.com",
   "img-src 'self' data: https: blob:",
   "font-src 'self' https://fonts.gstatic.com https://fonts.cdnfonts.com https://cdn.jsdelivr.net",
-  "connect-src 'self' https://api.openai.com https://www.genspark.ai",
+  "connect-src 'self' https://generativelanguage.googleapis.com https://www.genspark.ai",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -213,7 +213,7 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({
     req: request,
     secret: AUTH_SECRET,
-    // v9.3.4: match the plain cookie name set in auth.ts
+    // v9.3.5: match the plain cookie name set in auth.ts
     cookieName: 'next-auth.session-token',
   });
 
@@ -300,7 +300,7 @@ export async function middleware(request: NextRequest) {
 
 function addSecurityHeaders(response: NextResponse, pathname: string) {
   response.headers.set('X-Request-Id', crypto.randomUUID());
-  response.headers.set('X-Limud-Version', '9.3.4');
+  response.headers.set('X-Limud-Version', '9.3.5');
   response.headers.set('X-Limud-Security', 'active');
 
   // Core OWASP headers

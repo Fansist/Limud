@@ -10,7 +10,7 @@ const nextConfig = {
     apiTimeout: 60000, // 60 seconds
   },
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'openai'],
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', '@google/genai'],
     optimizePackageImports: [
       'lucide-react',
       'framer-motion',
@@ -50,7 +50,7 @@ const nextConfig = {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.cdnfonts.com",
       "img-src 'self' data: https: blob:",
       "font-src 'self' https://fonts.gstatic.com https://fonts.cdnfonts.com https://cdn.jsdelivr.net",
-      "connect-src 'self' https://api.openai.com https://www.genspark.ai",
+      "connect-src 'self' https://generativelanguage.googleapis.com https://www.genspark.ai",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -109,7 +109,7 @@ const nextConfig = {
       // Tree-shake server-only modules from client bundle
       config.resolve.alias = {
         ...config.resolve.alias,
-        'openai': false,
+        '@google/genai': false,
         'bcryptjs': false,
       };
     }

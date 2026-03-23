@@ -1,12 +1,12 @@
 /**
- * Registration API — v9.3.4 Security Hardened
+ * Registration API — v9.3.5 Security Hardened
  * - Rate limited: 3 per minute per IP
  * - NIST SP 800-63B password validation
  * - Input sanitization (XSS, prototype pollution)
  * - Anti-enumeration (generic errors for duplicate emails)
  * - COPPA: flags minor accounts for parental consent
  * - Audit logging all registration events
- * - v9.3.4: Improved error responses — returns all password errors with details
+ * - v9.3.5: Improved error responses — returns all password errors with details
  */
 import { NextResponse } from 'next/server';
 import {

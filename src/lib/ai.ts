@@ -1,14 +1,13 @@
 /**
- * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.3.4 — AI Service                                               ║
- * ║  OpenAI-compatible API with robust error handling & demo fallback      ║
- * ║                                                                        ║
- * ║  v9.3.4 fixes:                                                           ║
- * ║  • Detects proxy credit-exhaustion / non-JSON responses                ║
- * ║  • Removes response_format: json_object (not always supported)         ║
- * ║  • Robust JSON extraction from markdown-fenced or prefixed responses   ║
- * ║  • All env vars have embedded defaults — works with zero config        ║
- * ╚══════════════════════════════════════════════════════════════════════════╝
+ * LIMUD v9.3.5 — AI Service
+ * Google Gemini API via @google/genai with robust error handling & demo fallback
+ *
+ * v9.3.5: Migrated from OpenAI SDK to Google Gemini (@google/genai)
+ *   - Uses GoogleGenAI + models.generateContent()
+ *   - Env var: GEMINI_API_KEY (or GOOGLE_API_KEY)
+ *   - Model: gemini-2.0-flash (configurable via AI_MODEL)
+ *   - Robust JSON extraction from markdown-fenced or prefixed responses
+ *   - All env vars have embedded defaults — works with zero config
  */
 
 const TUTOR_SYSTEM_PROMPT = `You are Limud AI, a friendly and encouraging educational tutor for K-12 students. Follow these guidelines strictly:
@@ -107,31 +106,25 @@ const GRADER_SYSTEM_PROMPT = `You are an expert educational grading assistant. Y
   "encouragement": "<brief encouraging closing message>"
 }`;
 
-export function isOpenAIConfigured(): boolean {
-  const key = process.env.OPENAI_API_KEY || '';
+// ═══════════════════════════════════════════════════════════════════
+// AI CONFIGURATION CHECK
+// ═══════════════════════════════════════════════════════════════════
+
+export function isGeminiConfigured(): boolean {
+  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
   return !!(key && key !== 'demo-mode');
 }
 
+/** @deprecated Use isGeminiConfigured() — kept for backward compat */
+export const isOpenAIConfigured = isGeminiConfigured;
+
 export function hasApiKey(): boolean {
-  return isOpenAIConfigured();
+  return isGeminiConfigured();
 }
 
-/**
- * Detects proxy-level errors returned as 200 OK with plain text body.
- * Examples: "Your Genspark credits have been exhausted…"
- */
-function isProxyErrorResponse(text: string): boolean {
-  if (!text || text.length > 10_000) return false;
-  const lower = text.toLowerCase();
-  return (
-    lower.includes('credits have been exhausted') ||
-    lower.includes('rate limit') ||
-    lower.includes('quota exceeded') ||
-    lower.includes('insufficient_quota') ||
-    lower.includes('billing') ||
-    lower.includes('please visit') && lower.includes('pricing')
-  );
-}
+// ═══════════════════════════════════════════════════════════════════
+// JSON EXTRACTION
+// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Extract JSON from a string that may be wrapped in markdown fences,
@@ -164,49 +157,90 @@ export function extractJSON(raw: string): string | null {
   return null;
 }
 
-export async function callOpenAI(
+// ═══════════════════════════════════════════════════════════════════
+// GEMINI API CALL
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Call Google Gemini API using @google/genai SDK.
+ * Supports both simple string prompts and message arrays (chat format).
+ */
+export async function callGemini(
   promptOrMessages: string | { role: string; content: string }[],
   temperatureOrOptions?: number | { temperature?: number; maxTokens?: number },
   maxTokens?: number
 ): Promise<string> {
-  const { default: OpenAI } = await import('openai');
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || 'demo-mode',
-    baseURL: process.env.OPENAI_BASE_URL || undefined,
-  });
+  const { GoogleGenAI } = await import('@google/genai');
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || 'demo-mode';
+  const model = process.env.AI_MODEL || 'gemini-2.0-flash';
+  const ai = new GoogleGenAI({ apiKey });
 
-  let messages: { role: string; content: string }[];
   let temp: number;
   let tokens: number;
 
-  if (typeof promptOrMessages === 'string') {
-    messages = [{ role: 'user', content: promptOrMessages }];
-    temp = typeof temperatureOrOptions === 'number' ? temperatureOrOptions : 0.7;
+  if (typeof temperatureOrOptions === 'number') {
+    temp = temperatureOrOptions;
     tokens = maxTokens ?? 1024;
+  } else if (typeof temperatureOrOptions === 'object') {
+    temp = temperatureOrOptions.temperature ?? 0.7;
+    tokens = temperatureOrOptions.maxTokens ?? 1024;
   } else {
-    messages = promptOrMessages;
-    const opts = typeof temperatureOrOptions === 'object' ? temperatureOrOptions : {};
-    temp = typeof temperatureOrOptions === 'number' ? temperatureOrOptions : (opts.temperature ?? 0.7);
-    tokens = maxTokens ?? (typeof temperatureOrOptions === 'object' ? temperatureOrOptions.maxTokens ?? 1024 : 1024);
+    temp = 0.7;
+    tokens = maxTokens ?? 1024;
   }
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-5-mini',
-    messages: messages as any,
-    temperature: temp,
-    max_tokens: tokens,
-    // NOTE: Do NOT use response_format: json_object — not all proxies support it
+  // Build contents for Gemini API
+  let contents: any;
+  let systemInstruction: string | undefined;
+
+  if (typeof promptOrMessages === 'string') {
+    contents = promptOrMessages;
+  } else {
+    // Separate system messages from user/model messages
+    const systemMsgs = promptOrMessages.filter(m => m.role === 'system');
+    const chatMsgs = promptOrMessages.filter(m => m.role !== 'system');
+
+    if (systemMsgs.length > 0) {
+      systemInstruction = systemMsgs.map(m => m.content).join('\n\n');
+    }
+
+    // Convert to Gemini format: role 'user' stays, role 'assistant' -> 'model'
+    contents = chatMsgs.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+  }
+
+  const response = await ai.models.generateContent({
+    model,
+    contents,
+    config: {
+      temperature: temp,
+      maxOutputTokens: tokens,
+      ...(systemInstruction ? { systemInstruction } : {}),
+    },
   });
 
-  const content = response.choices[0]?.message?.content || '';
+  const content = response.text || '';
 
-  // v9.3.4: Detect proxy error responses disguised as successful completions
-  if (isProxyErrorResponse(content)) {
-    throw new Error(`AI proxy error: ${content.substring(0, 200)}`);
+  // Detect error responses
+  const lower = content.toLowerCase();
+  if (lower.includes('credits have been exhausted') ||
+      lower.includes('quota exceeded') ||
+      lower.includes('insufficient_quota') ||
+      (lower.includes('please visit') && lower.includes('pricing'))) {
+    throw new Error(`AI API error: ${content.substring(0, 200)}`);
   }
 
   return content;
 }
+
+/** @deprecated Use callGemini() — kept for backward compat */
+export const callOpenAI = callGemini;
+
+// ═══════════════════════════════════════════════════════════════════
+// DEMO RESPONSES
+// ═══════════════════════════════════════════════════════════════════
 
 // Smart demo responses for when no API key is configured
 function getDemoTutorResponse(message: string, survey?: any): string {
@@ -237,35 +271,35 @@ Can you tell me what specific part is giving you trouble? I'd love to walk throu
   }
 
   if (lower.includes('science') || lower.includes('photosynthesis') || lower.includes('cell') || lower.includes('ecosystem')) {
-    return `What a fascinating science topic! 🔬 Let me help you explore this.
+    return `What a fascinating science topic! Let me help you explore this.
 
 Science is all about understanding how the world works. The best way to learn is to connect new ideas to things you already know.
 
-💡 **Think about it this way**: Everything in nature is connected. Can you think of a real-world example that relates to what you're studying?
+**Think about it this way**: Everything in nature is connected. Can you think of a real-world example that relates to what you're studying?
 
-What specific part would you like to dive deeper into? I'm here to help you discover the answers! 🌟`;
+What specific part would you like to dive deeper into? I'm here to help you discover the answers!`;
   }
 
   if (lower.includes('essay') || lower.includes('write') || lower.includes('book') || lower.includes('read')) {
-    return `Let's work on your writing together! 📝 Great writers are made through practice.
+    return `Let's work on your writing together! Great writers are made through practice.
 
 The secret to a strong essay is organization. Think of your writing like building a house - you need a solid foundation (your thesis), strong walls (your supporting paragraphs), and a roof to tie it all together (your conclusion).
 
-💡 **Try this approach**: Start by jotting down 3 main ideas you want to cover. Don't worry about perfect sentences yet - just get your thoughts flowing!
+**Try this approach**: Start by jotting down 3 main ideas you want to cover. Don't worry about perfect sentences yet - just get your thoughts flowing!
 
-What's the main point you're trying to make? Let's build from there! ✨`;
+What's the main point you're trying to make? Let's build from there!`;
   }
 
-  return `That's a really thoughtful question! 💡 I love your curiosity.
+  return `That's a really thoughtful question! I love your curiosity.
 
 Let me help you think through this. The best way to understand something deeply is to:
 1. **Break it down** - What are the key parts of your question?
 2. **Connect it** - How does this relate to what you already know?
 3. **Apply it** - Can you think of a real-world example?
 
-🎯 **Here's what I suggest**: Start with what you understand, and we'll build from there. Sometimes the things that seem confusing become clear when we look at them from a different angle.
+**Here's what I suggest**: Start with what you understand, and we'll build from there. Sometimes the things that seem confusing become clear when we look at them from a different angle.
 
-What part would you like to explore first? I'm right here to help! ✨`;
+What part would you like to explore first? I'm right here to help!`;
 }
 
 function getDemoGradeResponse(content: string, rubric: string | null, maxScore: number): string {
@@ -294,26 +328,30 @@ function getDemoGradeResponse(content: string, rubric: string | null, maxScore: 
       !hasDetail ? 'Try to include more specific details and examples' : 'Consider adding even more real-world connections',
       !hasExplanation ? 'Walk through your reasoning step by step' : 'Try to cite specific evidence from the material',
     ],
-    encouragement: "Keep up the great work! Every assignment is a chance to grow, and I can see you're on the right track. 🌟",
+    encouragement: "Keep up the great work! Every assignment is a chance to grow, and I can see you're on the right track.",
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// PUBLIC API: TUTOR, GRADER, REPORTS, CURRICULUM, WRITING
+// ═══════════════════════════════════════════════════════════════════
 
 export async function chatWithTutor(
   messages: { role: string; content: string }[],
   subject?: string,
   surveyData?: any
 ): Promise<{ content: string; tokensUsed: number }> {
-  if (isOpenAIConfigured()) {
+  if (isGeminiConfigured()) {
     try {
       const systemPrompt = buildPersonalizedPrompt(surveyData || null, subject);
       const fullMessages = [
         { role: 'system', content: systemPrompt },
         ...messages,
       ];
-      const content = await callOpenAI(fullMessages, { temperature: 0.7, maxTokens: 800 });
+      const content = await callGemini(fullMessages, { temperature: 0.7, maxTokens: 800 });
       return { content, tokensUsed: content.split(' ').length * 2 };
     } catch (e) {
-      console.error('OpenAI tutor error, falling back to demo:', e);
+      console.error('Gemini tutor error, falling back to demo:', e);
     }
   }
 
@@ -336,7 +374,7 @@ export async function gradeSubmission(
   improvements: string[];
   encouragement: string;
 }> {
-  if (isOpenAIConfigured()) {
+  if (isGeminiConfigured()) {
     try {
       const messages = [
         { role: 'system', content: GRADER_SYSTEM_PROMPT },
@@ -345,7 +383,7 @@ export async function gradeSubmission(
           content: `Assignment: ${assignmentDescription}\n\nRubric: ${rubric || 'Use standard academic grading criteria'}\n\nMax Score: ${maxScore}\n\nStudent Submission:\n${studentContent}`,
         },
       ];
-      const result = await callOpenAI(messages, { temperature: 0.3, maxTokens: 1024 });
+      const result = await callGemini(messages, { temperature: 0.3, maxTokens: 1024 });
       try {
         return JSON.parse(result);
       } catch {
@@ -359,7 +397,7 @@ export async function gradeSubmission(
         };
       }
     } catch (e) {
-      console.error('OpenAI grading error, falling back to demo:', e);
+      console.error('Gemini grading error, falling back to demo:', e);
     }
   }
 
@@ -368,7 +406,7 @@ export async function gradeSubmission(
   return JSON.parse(result);
 }
 
-export { TUTOR_SYSTEM_PROMPT, GRADER_SYSTEM_PROMPT, callOpenAI as callOpenAIRaw, extractJSON as extractJSONFromAI };
+export { TUTOR_SYSTEM_PROMPT, GRADER_SYSTEM_PROMPT, callGemini as callOpenAIRaw, extractJSON as extractJSONFromAI };
 
 // ─── TEACHER AI FEATURES ────────────────────────────────────────────────────
 
@@ -446,7 +484,7 @@ export async function generateStudentReport(
     recentScores: number[];
   }
 ): Promise<any> {
-  if (isOpenAIConfigured()) {
+  if (isGeminiConfigured()) {
     try {
       const messages = [
         { role: 'system', content: REPORT_SYSTEM_PROMPT },
@@ -455,7 +493,7 @@ export async function generateStudentReport(
           content: `Generate a progress report for:\n\nStudent: ${studentData.name} (Grade ${studentData.grade})\n\nSubject Performance:\n${studentData.subjects.map(s => `- ${s.name}: ${s.avgScore}% avg (${s.trend}), Skills: ${s.skills.join(', ')}`).join('\n')}\n\nEngagement: ${studentData.engagement}%\nStreak: ${studentData.streak} days\nRecent Scores: ${studentData.recentScores.join(', ')}%`,
         },
       ];
-      const result = await callOpenAI(messages, { temperature: 0.5, maxTokens: 1500 });
+      const result = await callGemini(messages, { temperature: 0.5, maxTokens: 1500 });
       try { return JSON.parse(result); } catch { /* fallthrough */ }
     } catch (e) { console.error('Report generation error:', e); }
   }
@@ -499,7 +537,7 @@ export async function analyzeCurriculum(
     overallAvg: number;
   }
 ): Promise<any> {
-  if (isOpenAIConfigured()) {
+  if (isGeminiConfigured()) {
     try {
       const messages = [
         { role: 'system', content: CURRICULUM_ANALYSIS_PROMPT },
@@ -508,7 +546,7 @@ export async function analyzeCurriculum(
           content: `Analyze curriculum for ${classData.gradeLevel} grade ${classData.subject}.\n\nOverall class average: ${classData.overallAvg}%\n\nSkill mastery:\n${classData.skills.map(s => `- ${s.name}: ${s.avgMastery}% avg (${s.studentCount} students)`).join('\n')}`,
         },
       ];
-      const result = await callOpenAI(messages, { temperature: 0.4, maxTokens: 1500 });
+      const result = await callGemini(messages, { temperature: 0.4, maxTokens: 1500 });
       try { return JSON.parse(result); } catch { /* fallthrough */ }
     } catch (e) { console.error('Curriculum analysis error:', e); }
   }
@@ -553,7 +591,7 @@ export async function analyzeWriting(
   gradeLevel: string,
   assignmentType: string
 ): Promise<any> {
-  if (isOpenAIConfigured()) {
+  if (isGeminiConfigured()) {
     try {
       const messages = [
         { role: 'system', content: WRITING_FEEDBACK_PROMPT },
@@ -562,7 +600,7 @@ export async function analyzeWriting(
           content: `Grade Level: ${gradeLevel}\nAssignment Type: ${assignmentType}\n\nStudent Writing:\n${content}`,
         },
       ];
-      const result = await callOpenAI(messages, { temperature: 0.3, maxTokens: 1500 });
+      const result = await callGemini(messages, { temperature: 0.3, maxTokens: 1500 });
       try { return JSON.parse(result); } catch { /* fallthrough */ }
     } catch (e) { console.error('Writing analysis error:', e); }
   }
@@ -586,4 +624,3 @@ export async function analyzeWriting(
     encouragement: 'Great effort! Your writing is improving with each assignment. Keep practicing!',
   };
 }
-

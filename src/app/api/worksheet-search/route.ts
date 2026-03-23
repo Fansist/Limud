@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 
 /**
- * Worksheet Search API - v9.3.4
+ * Worksheet Search API - v9.3.5
  * Comprehensive curated database of REAL publicly available worksheets.
  * AI-enhanced search as a bonus when available (non-blocking).
  * Now requires authentication.
@@ -322,38 +322,36 @@ function searchWorksheets(
 // ─────────────────────────────────────────────────────────────
 
 async function aiSearchWorksheets(query: string, subject?: string, grade?: string): Promise<Worksheet[] | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  const baseURL = process.env.OPENAI_BASE_URL;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey || apiKey === 'demo-mode') return null;
 
   try {
-    const { default: OpenAI } = await import('openai');
-    const openai = new OpenAI({ apiKey, baseURL: baseURL || undefined });
+    const { GoogleGenAI } = await import('@google/genai');
+    const ai = new GoogleGenAI({ apiKey });
+    const model = process.env.AI_MODEL || 'gemini-2.0-flash';
 
     // Use AbortController for timeout
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-5-mini',
-      messages: [{
-        role: 'user',
-        content: `List 5 websites with free ${query}${subject ? ` ${subject}` : ''} worksheets as JSON array: [{"title":"name","url":"https://...","desc":"brief description"}]`,
-      }],
-      max_tokens: 2000,
-      // v9.3.4: Do NOT use response_format — not all proxies support it
-    }, { signal: controller.signal });
+    const response = await ai.models.generateContent({
+      model,
+      contents: `List 5 websites with free ${query}${subject ? ` ${subject}` : ''} worksheets as JSON array: [{"title":"name","url":"https://...","desc":"brief description"}]`,
+      config: {
+        maxOutputTokens: 2000,
+      },
+    });
 
     clearTimeout(timeout);
 
-    const content = response.choices[0]?.message?.content || '';
+    const content = response.text || '';
     if (!content) return null;
 
-    // v9.3.4: Detect proxy credit/error messages
+    // v9.3.5: Detect API credit/error messages
     const lower = content.toLowerCase();
     if (lower.includes('credits have been exhausted') || lower.includes('quota exceeded') ||
         (lower.includes('please visit') && lower.includes('pricing'))) {
-      console.warn('[AI WORKSHEET] Proxy error:', content.substring(0, 150));
+      console.warn('[AI WORKSHEET] API error:', content.substring(0, 150));
       return null;
     }
 

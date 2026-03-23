@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
-import { callOpenAI, hasApiKey } from '@/lib/ai';
+import { callGemini, hasApiKey } from '@/lib/ai';
 import { updateSkillRecord } from '@/lib/cognitive-engine';
 
 function generateDemoExam(subject: string, gradeLevel: string, questionCount: number) {
@@ -89,7 +89,7 @@ export const POST = apiHandler(async (req: Request) => {
     try {
       const prompt = `Generate ${questionCount} multiple-choice exam questions for a ${level} grade ${subject} exam. Each question should have 4 options.
 Return JSON array: [{"question":"...","options":["A","B","C","D"],"correctAnswer":"...","skill":"...","explanation":"..."}]`;
-      const response = await callOpenAI(prompt, 0.7, 2048);
+      const response = await callGemini(prompt, 0.7, 2048);
       const parsed = JSON.parse(response || '[]');
       if (Array.isArray(parsed) && parsed.length > 0) questions = parsed;
     } catch {

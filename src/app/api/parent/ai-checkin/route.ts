@@ -5,7 +5,7 @@
  */
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
-import { callOpenAI, isOpenAIConfigured } from '@/lib/ai';
+import { callGemini, isGeminiConfigured } from '@/lib/ai';
 import prisma from '@/lib/prisma';
 
 const CHECKIN_SYSTEM_PROMPT = `You are Limud AI, a caring and insightful educational assistant helping parents monitor their children's academic wellbeing. Generate a comprehensive but concise check-in report based on the student data provided.
@@ -150,9 +150,9 @@ ${gradedSubs.slice(0, 8).map(s => `• "${s.assignment.title}" (${s.assignment.c
 
   let report: string;
 
-  if (isOpenAIConfigured()) {
+  if (isGeminiConfigured()) {
     try {
-      const result = await callOpenAI([
+      const result = await callGemini([
         { role: 'system', content: CHECKIN_SYSTEM_PROMPT },
         { role: 'user', content: `Generate a parent check-in report for this student:\n${dataPrompt}` },
       ], { temperature: 0.7, maxTokens: 800 });

@@ -73,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           media="print"
         />
         {/* DNS prefetch for API domains */}
-        <link rel="dns-prefetch" href="https://api.openai.com" />
+        <link rel="dns-prefetch" href="https://generativelanguage.googleapis.com" />
       </head>
       <body className="min-h-screen bg-gray-50 dark:bg-gray-900 antialiased font-sans">
         <Providers>{children}</Providers>

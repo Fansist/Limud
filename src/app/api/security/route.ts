@@ -1,6 +1,6 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.3.4 — SECURITY DASHBOARD API                                   ║
+ * ║  LIMUD v9.3.5 — SECURITY DASHBOARD API                                   ║
  * ║  Admin-only endpoints for security monitoring & compliance              ║
  * ║  GET /api/security — Security metrics, audit log, threats, compliance  ║
  * ║  POST /api/security — Admin security actions (unlock, export, etc.)    ║

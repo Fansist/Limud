@@ -1,6 +1,6 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.3.4 — Security Engine                                          ║
+ * ║  LIMUD v9.3.5 — Security Engine                                          ║
  * ║  Enterprise-grade security for K-12 educational data protection        ║
  * ║                                                                        ║
  * ║  COPPA (Children's Online Privacy Protection Act) compliant            ║
@@ -476,7 +476,7 @@ export function validateSessionFingerprint(req: Request, storedFingerprint: stri
 // ═══════════════════════════════════════════════════════════════════
 
 function getEncryptionKey(): Buffer {
-  // v9.3.4: use the stable embedded secret — no env var needed
+  // v9.3.5: use the stable embedded secret — no env var needed
   const secret = process.env.PII_ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || 'limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB';
   return crypto.createHash('sha256').update(secret).digest();
 }
@@ -749,7 +749,7 @@ export const SECURITY_HEADERS = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.cdnfonts.com",
     "img-src 'self' data: https: blob:",
     "font-src 'self' https://fonts.gstatic.com https://fonts.cdnfonts.com https://cdn.jsdelivr.net",
-    "connect-src 'self' https://api.openai.com https://www.genspark.ai",
+    "connect-src 'self' https://generativelanguage.googleapis.com https://www.genspark.ai",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
