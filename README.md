@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.4.2
+- **Version**: 9.4.3
 - **Mission**: Limud is built for students who learn differently. Our mission is to embrace and support diverse learning styles at every level of the experience.
 - **Slogan**: "Every mind learns differently."
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
@@ -272,7 +272,39 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 - **Branch**: main
 - **Tech Stack**: Next.js 14 + TypeScript + TailwindCSS + Prisma + NextAuth
 - **Security Level**: Enterprise (FERPA + COPPA + OWASP Top 10)
-- **Last Updated**: 2026-03-22
+- **Last Updated**: 2026-03-24
+
+---
+
+## What's New in v9.4.3 — Teacher Learning Insights Tab
+
+**New teacher tab**: Teachers can now view each student's learning style, how assignments are adapted to that specific student, and what solving methods students use.
+
+### Teacher Learning Insights Page (`/teacher/learning-insights`)
+- **New sidebar tab**: "Learning Styles" added to teacher navigation with Brain icon
+- **Class overview stats**: Students profiled, adapted assignments count, unique learning styles, average adapted scores
+- **Style distribution**: Interactive visual showing how many students use each learning style (visual, auditory, ADHD-friendly, etc.) with average scores per style
+- **Student learning profiles**: Expandable cards for each student showing:
+  - Primary learning style with description and preferred formats
+  - Survey completion status and special learning needs (ADHD, dyslexia, etc.)
+  - Recent solving methods with scores for each assignment
+  - Whether each assignment was AI-adapted
+- **AI adaptation viewer**: For each adapted assignment, teachers can see:
+  - What modifications the AI made (e.g., "Added diagram placeholders", "Broke into 6 micro-tasks")
+  - Suggested solving method (visual, step-by-step, interactive, etc.)
+  - Difficulty adjustment (simplified, standard, enriched)
+  - Full adapted content preview in markdown
+- **Filter by style**: Filter students by learning style to focus on specific groups
+- **Backend API**: `GET /api/teacher/learning-insights` returns all students with learning profiles, adapted assignments, and method history
+- **Demo mode**: Full demo data with 3 students (Lior/visual, Eitan/ADHD-friendly, Noam/reading-writing) showing realistic adaptations
+
+### Self Education Accounts
+- **Confirmed working**: Registration API returns `success: true` for Self Education accounts on production
+- Backend creates micro-district, default course, enrollment, and learning style profile
+- Frontend registration flow (3-step form) is fully functional
+
+### Version Bump
+- 9.4.2 → 9.4.3 across package.json, health API, security dashboard, landing page, .env, register route, README
 
 ---
 

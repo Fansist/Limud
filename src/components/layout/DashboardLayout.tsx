@@ -51,6 +51,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/teacher/quiz-generator', label: 'AI Quiz Generator', icon: <Lightbulb size={20} /> },
     { href: '/teacher/worksheets', label: 'Worksheet Builder', icon: <PenTool size={20} /> },
     { href: '/teacher/exchange', label: 'Teacher Exchange', icon: <Globe2 size={20} /> },
+    { href: '/teacher/learning-insights', label: 'Learning Styles', icon: <Brain size={20} /> },
     { href: '/teacher/insights', label: 'Insights & Heatmap', icon: <Target size={20} /> },
     { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { href: '/teacher/reports', label: 'AI Reports', icon: <FileText size={20} /> },

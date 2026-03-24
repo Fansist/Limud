@@ -664,6 +664,151 @@ export const DEMO_TEACHER_INSIGHTS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// LEARNING INSIGHTS (v9.4.3 — teacher view of student learning styles & adaptations)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const DEMO_LEARNING_INSIGHTS = {
+  students: [
+    {
+      id: 'demo-student-lior',
+      name: 'Lior Betzalel',
+      gradeLevel: '10th',
+      surveyCompleted: true,
+      learningStyle: 'visual',
+      learningNeeds: [],
+      preferredFormats: ['diagrams', 'charts', 'color-coded notes'],
+      recentMethods: [
+        { assignment: 'Photosynthesis Lab Report', method: 'visual', score: 92, adapted: true },
+        { assignment: 'Great Gatsby Character Analysis', method: 'visual', score: 91, adapted: true },
+        { assignment: 'Ecosystem Research Project', method: 'visual', score: 94, adapted: false },
+        { assignment: 'Quadratic Equations Test', method: 'step_by_step', score: 74, adapted: true },
+      ],
+      adaptations: [
+        {
+          assignmentTitle: 'Photosynthesis Lab Report',
+          assignmentId: 'demo-ta1',
+          originalType: 'ESSAY',
+          adaptedStyle: 'visual',
+          methodSuggestion: 'visual',
+          difficulty: 'standard',
+          modifications: ['Added diagram placeholders for light-dependent/independent reactions', 'Included color-coded section headers', 'Added visual flowchart template for process steps'],
+          adaptedContent: '## Photosynthesis Lab Report (Visual Edition)\n\n**Instructions:** Use the visual aids below to guide your report.\n\n### 1. Draw the Process (30 pts)\nSketch the light-dependent and light-independent reactions. Use:\n- 🔵 Blue arrows for water molecules\n- 🟡 Yellow arrows for light energy\n- 🟢 Green for chlorophyll activity\n\n### 2. Flowchart (30 pts)\nComplete the provided flowchart template...',
+        },
+        {
+          assignmentTitle: 'Quadratic Equations Test',
+          assignmentId: 'demo-ta4',
+          originalType: 'QUIZ',
+          adaptedStyle: 'visual',
+          methodSuggestion: 'visual',
+          difficulty: 'standard',
+          modifications: ['Added graphing components to each problem', 'Included parabola visualization templates', 'Color-coded variable tracking'],
+          adaptedContent: '## Quadratic Equations (Visual Edition)\n\n**For each problem:** Graph the equation on the provided grid, then solve algebraically.\n\n### Problem 1 (10 pts)\nSolve: x² + 5x + 6 = 0\n📊 First, sketch the parabola on the grid below...',
+        },
+      ],
+    },
+    {
+      id: 'demo-student-eitan',
+      name: 'Eitan Balan',
+      gradeLevel: '9th',
+      surveyCompleted: true,
+      learningStyle: 'adhd_friendly',
+      learningNeeds: ['adhd', 'extra_time'],
+      preferredFormats: ['short tasks', 'interactive', 'checkboxes'],
+      recentMethods: [
+        { assignment: 'Photosynthesis Lab Report', method: 'interactive', score: 78, adapted: true },
+        { assignment: 'Great Gatsby Character Analysis', method: 'simplified', score: 78, adapted: true },
+        { assignment: 'Ecosystem Research Project', method: 'interactive', score: 82, adapted: false },
+        { assignment: 'Quadratic Equations Test', method: 'step_by_step', score: 62, adapted: true },
+      ],
+      adaptations: [
+        {
+          assignmentTitle: 'Photosynthesis Lab Report',
+          assignmentId: 'demo-ta1',
+          originalType: 'ESSAY',
+          adaptedStyle: 'adhd_friendly',
+          methodSuggestion: 'interactive',
+          difficulty: 'simplified',
+          modifications: ['Broke into 6 micro-tasks (3 min each)', 'Added checkboxes for progress tracking', 'Included brain break after section 3', 'Simplified vocabulary', 'Added encouraging progress messages'],
+          adaptedContent: '## Photosynthesis Lab Report (ADHD-Friendly)\n\n⏱️ **Total time: ~20 minutes** | 6 micro-tasks\n\n### ☐ Task 1: What is Photosynthesis? (3 min)\nIn 2-3 sentences, explain what photosynthesis is. Use simple words.\n\n✅ **Done? Great start!**\n\n### ☐ Task 2: Where Does It Happen? (3 min)\nName the part of the plant cell where photosynthesis occurs.\n\n🧠 **Brain Break!** Stand up, stretch, and take 3 deep breaths...',
+        },
+        {
+          assignmentTitle: 'Quadratic Equations Test',
+          assignmentId: 'demo-ta4',
+          originalType: 'QUIZ',
+          adaptedStyle: 'adhd_friendly',
+          methodSuggestion: 'step_by_step',
+          difficulty: 'simplified',
+          modifications: ['Split each problem into numbered micro-steps', 'Added checkpoint boxes', 'Reduced from 10 to 8 focused problems', 'Built-in brain break after problem 4'],
+          adaptedContent: '## Quadratic Equations (ADHD-Friendly)\n\n⏱️ **8 problems** | ☐ Check off each step as you go\n\n### Problem 1\n**Solve: x² + 5x + 6 = 0**\n\n☐ Step 1: Find two numbers that multiply to 6\n☐ Step 2: Check — do they add to 5?\n☐ Step 3: Write the factored form\n☐ Step 4: Set each factor = 0 and solve\n\n✅ **Nice work!** Move to Problem 2...',
+        },
+      ],
+    },
+    {
+      id: 'demo-student-noam',
+      name: 'Noam Elgarisi',
+      gradeLevel: '10th',
+      surveyCompleted: true,
+      learningStyle: 'reading_writing',
+      learningNeeds: [],
+      preferredFormats: ['detailed text', 'note-taking', 'written reflection'],
+      recentMethods: [
+        { assignment: 'Photosynthesis Lab Report', method: 'step_by_step', score: 95, adapted: true },
+        { assignment: 'Great Gatsby Character Analysis', method: 'step_by_step', score: 96, adapted: true },
+        { assignment: 'Ecosystem Research Project', method: 'step_by_step', score: 97, adapted: false },
+        { assignment: 'Quadratic Equations Test', method: 'step_by_step', score: 79, adapted: true },
+      ],
+      adaptations: [
+        {
+          assignmentTitle: 'Photosynthesis Lab Report',
+          assignmentId: 'demo-ta1',
+          originalType: 'ESSAY',
+          adaptedStyle: 'reading_writing',
+          methodSuggestion: 'step_by_step',
+          difficulty: 'enriched',
+          modifications: ['Added detailed vocabulary list with definitions', 'Included note-taking templates', 'Added written reflection prompts', 'Enriched with additional reading references'],
+          adaptedContent: '## Photosynthesis Lab Report (Reading/Writing Edition)\n\n### Key Vocabulary\nBefore you begin, review and define these terms:\n- **Chloroplast**: _____\n- **Thylakoid**: _____\n- **Calvin Cycle**: _____\n\n### Part 1: Research Notes (40 pts)\nUsing the textbook (Ch. 8), take detailed notes on...\n\n### Part 2: Written Analysis (40 pts)\nIn a 3-paragraph essay, explain...\n\n### Part 3: Reflection Journal (20 pts)\nWrite a personal reflection on what surprised you most...',
+        },
+        {
+          assignmentTitle: 'Quadratic Equations Test',
+          assignmentId: 'demo-ta4',
+          originalType: 'QUIZ',
+          adaptedStyle: 'reading_writing',
+          methodSuggestion: 'step_by_step',
+          difficulty: 'enriched',
+          modifications: ['Added written explanation requirement for each problem', 'Included vocabulary connections', 'Required proof writing for bonus'],
+          adaptedContent: '## Quadratic Equations (Reading/Writing Edition)\n\n**For each problem:** Show your work AND write a 1-2 sentence explanation of your method.\n\n### Problem 1 (10 pts)\nSolve: x² + 5x + 6 = 0\n\n**Solution:**\n\n**Method Explanation:** In your own words, describe why you chose this approach...',
+        },
+      ],
+    },
+  ],
+  // Aggregate stats for the class
+  classStats: {
+    totalStudents: 3,
+    surveysCompleted: 3,
+    adaptedAssignments: 6,
+    styleDistribution: {
+      visual: 1,
+      auditory: 0,
+      kinesthetic: 0,
+      reading_writing: 1,
+      adhd_friendly: 1,
+      structured: 0,
+    },
+    methodDistribution: {
+      visual: 4,
+      step_by_step: 7,
+      interactive: 2,
+      simplified: 1,
+    },
+    avgScoreByStyle: {
+      visual: 87.8,
+      adhd_friendly: 75.0,
+      reading_writing: 91.8,
+    },
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // DEMO ACCOUNT CREDENTIALS (for login page display)
 // ═══════════════════════════════════════════════════════════════════════════
 
