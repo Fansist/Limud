@@ -1,5 +1,5 @@
-// Prisma schema for Limud EdTech Platform v4.0
-// Adaptive AI-Powered K-12 Platform with Cognitive Science Engine
+// Prisma schema for Limud EdTech Platform v5.0
+// Adaptive AI-Powered K-12 Platform with Personalized Learning Engine
 // Covers: Users (RBAC), Districts, Schools, Classes, Assignments, Submissions, AI Logs,
 //   Gamification, Game Store, Skill Tracking, Spaced Repetition,
 //   Study Planner, Exam Simulation, Leagues & Tournaments, Mistake Replay,
@@ -27,6 +27,7 @@ enum AccountType {
   DISTRICT
   HOMESCHOOL
   INDIVIDUAL
+  SELF_EDUCATION
 }
 
 enum SubmissionStatus {
@@ -306,6 +307,7 @@ model User {
   avatarUrl      String?
   selectedAvatar String          @default("default")
   selectedTheme  String          @default("default") // unlockable themes
+  colorTheme     String          @default("blue")    // "blue" | "green" — app-wide color theme
   isActive       Boolean         @default(true)
   isDemo         Boolean         @default(false)
   districtId     String?
@@ -325,6 +327,7 @@ model User {
   onboardingComplete Boolean     @default(false)
   surveyCompleted    Boolean     @default(false)
   preferredTutor String          @default("socratic") // tutor personality
+  learningStyleProfile String?   @db.Text             // JSON: detailed learning style preferences from onboarding
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -524,12 +527,16 @@ model Assignment {
   difficulty    Difficulty     @default(MEDIUM)
   skills        String?        @db.Text  // JSON array of skill tags
   standards     String?        @db.Text  // JSON aligned standards
+  // v9.4.0: Adaptive learning
+  workMode      String         @default("in_class")  // "in_class" | "homework" | "independent_practice"
+  adaptiveEnabled Boolean      @default(false)        // When true, AI adapts per student learning style
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
   course     Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
   createdBy  User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
   submissions Submission[]
+  adaptedVersions AdaptedAssignment[]
 
   @@index([courseId])
   @@index([dueDate])
@@ -552,6 +559,10 @@ model Submission {
   gradedAt      DateTime?
   submittedAt   DateTime?
   timeSpentSec  Int?             // Time student spent
+  // v9.4.0: Learning method tracking
+  solvingMethod   String?        // "visual" | "step_by_step" | "audio_based" | "simplified" | "structured" | "interactive"
+  methodDetails   String?        @db.Text  // JSON: detailed breakdown of how student solved the work
+  adaptedFrom     String?        // ID of AdaptedAssignment used (if any)
   // File upload support
   fileUploadIds String?          @db.Text  // JSON array of FileUpload IDs
   createdAt     DateTime         @default(now())
@@ -565,6 +576,26 @@ model Submission {
   @@index([studentId])
   @@index([status])
   @@map("submissions")
+}
+
+// ─── ADAPTED ASSIGNMENT (v9.4.0 — Per-Student Personalized Versions) ────
+
+model AdaptedAssignment {
+  id               String   @id @default(cuid())
+  assignmentId     String
+  studentId        String
+  adaptedContent   String   @db.Text  // AI-transformed assignment content
+  learningStyle    String              // Primary style used: "visual", "auditory", "adhd_friendly", "structured", "kinesthetic", "reading_writing"
+  adaptations      String   @db.Text  // JSON: { modifications: [], scaffolding: [], format_changes: [] }
+  methodSuggestion String?             // Suggested solving method for this student
+  difficulty       String?             // Adjusted difficulty: "simplified", "standard", "enriched"
+  createdAt        DateTime @default(now())
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId])
+  @@index([studentId])
+  @@map("adapted_assignments")
 }
 
 // ─── FILE UPLOAD ──────────────────────────────────────────────────────────
@@ -965,7 +996,9 @@ model StudentSurvey {
   favoriteMovies   String?  @db.Text
   favoriteGames    String?  @db.Text
   dreamJob         String?
-  learningStyle    String   @default("visual") // "visual", "auditory", "kinesthetic", "reading"
+  learningStyle    String   @default("visual") // primary: "visual", "auditory", "kinesthetic", "reading_writing", "adhd_friendly", "structured"
+  learningNeeds    String   @default("[]") @db.Text  // JSON: ["adhd", "dyslexia", "short_attention", "anxiety", "gifted"]
+  preferredFormats String   @default("[]") @db.Text  // JSON: ["diagrams", "audio", "step_by_step", "interactive", "video"]
   motivators       String   @default("[]") @db.Text  // JSON: ["badges", "competition", "helping-others"]
   challenges       String   @default("[]") @db.Text  // JSON: what subjects/topics are hard
   funFacts         String?  @db.Text                  // free-text: something fun about themselves

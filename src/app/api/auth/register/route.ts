@@ -1,5 +1,5 @@
 /**
- * Registration API — v9.3.5 Security Hardened
+ * Registration API — v9.4.0 Security Hardened
  * - Rate limited: 3 per minute per IP
  * - NIST SP 800-63B password validation
  * - Input sanitization (XSS, prototype pollution)
@@ -7,6 +7,9 @@
  * - COPPA: flags minor accounts for parental consent
  * - Audit logging all registration events
  * - v9.3.5: Improved error responses — returns all password errors with details
+ * - v9.4.0: Added SELF_EDUCATION account type for independent learners
+ *   Self-education students register as STUDENT with SELF_EDUCATION accountType
+ *   and get a learning style profile set from onboarding
  */
 import { NextResponse } from 'next/server';
 import {
@@ -47,6 +50,7 @@ export async function POST(req: Request) {
       name, email, password, role, accountType,
       gradeLevel, childName, childGrade,
       children: childrenList, districtName,
+      learningStyle,
     } = body;
 
     // ── Validate required fields ──
@@ -114,6 +118,36 @@ export async function POST(req: Request) {
     const userRole = upperRole as 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN';
     const userAccountType = accountType || (userRole === 'PARENT' && childName ? 'HOMESCHOOL' : userRole === 'ADMIN' ? 'DISTRICT' : 'INDIVIDUAL');
 
+    // v9.4.0: SELF_EDUCATION accounts get their own micro-district for self-paced learning
+    if (userAccountType === 'SELF_EDUCATION' && userRole === 'STUDENT') {
+      const district = await prisma.schoolDistrict.create({
+        data: {
+          name: `${cleanName}'s Self Education`,
+          subdomain: `self-edu-${Date.now()}`,
+          contactEmail: cleanEmail,
+          subscriptionStatus: 'TRIAL',
+          subscriptionTier: 'FREE',
+          pricePerYear: 0,
+          maxStudents: 1,
+          maxTeachers: 0,
+          isHomeschool: false,
+        },
+      });
+      districtId = district.id;
+
+      // Create a default "My Studies" course for self-education
+      const course = await prisma.course.create({
+        data: {
+          name: 'My Studies',
+          description: 'Self-paced learning course',
+          subject: 'General',
+          gradeLevel: gradeLevel || 'K-12',
+          districtId: district.id,
+        },
+      });
+      // Enrollment created after user creation below
+    }
+
     let districtId: string | undefined;
 
     // Create district for ADMIN accounts
@@ -154,6 +188,11 @@ export async function POST(req: Request) {
       districtId = district.id;
     }
 
+    // Build learning style profile for SELF_EDUCATION students
+    const initialLearningProfile = (userAccountType === 'SELF_EDUCATION' && learningStyle)
+      ? JSON.stringify({ primaryStyle: learningStyle, needs: [], formats: [], updatedAt: new Date().toISOString() })
+      : null;
+
     // Create the user
     const user = await prisma.user.create({
       data: {
@@ -164,6 +203,7 @@ export async function POST(req: Request) {
         accountType: userAccountType as any,
         districtId: districtId || null,
         gradeLevel: userRole === 'STUDENT' ? gradeLevel || null : null,
+        learningStyleProfile: initialLearningProfile,
         isActive: true,
         onboardingComplete: false,
       },
@@ -184,6 +224,14 @@ export async function POST(req: Request) {
     // If student, create reward stats
     if (userRole === 'STUDENT') {
       await prisma.rewardStats.create({ data: { userId: user.id } });
+    }
+
+    // v9.4.0: Enroll self-education students in their default course
+    if (userAccountType === 'SELF_EDUCATION' && districtId) {
+      const selfCourse = await prisma.course.findFirst({ where: { districtId, name: 'My Studies' } });
+      if (selfCourse) {
+        await prisma.enrollment.create({ data: { courseId: selfCourse.id, studentId: user.id } }).catch(() => {});
+      }
     }
 
     // Handle children creation for homeschool parents (max 20 children)

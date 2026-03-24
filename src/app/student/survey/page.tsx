@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Sparkles, ArrowRight, ArrowLeft, CheckCircle2, BookOpen, Music, Trophy, Brain, Heart, Star, Rocket, Puzzle,
+  Accessibility, Eye, Headphones, Hand, PenTool, ListChecks, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,11 +44,36 @@ const HOBBIES = [
   { id: 'board-games', label: 'Board Games', emoji: '🎲' },
 ];
 
+// v9.4.0: Expanded learning styles with ADHD-friendly and structured options
 const LEARNING_STYLES = [
-  { id: 'visual', label: 'Visual', desc: 'I learn best with pictures, diagrams, and videos', emoji: '👀', color: 'from-blue-500 to-cyan-500' },
-  { id: 'auditory', label: 'Auditory', desc: 'I learn best by listening and discussing', emoji: '👂', color: 'from-purple-500 to-pink-500' },
-  { id: 'kinesthetic', label: 'Hands-On', desc: 'I learn best by doing and experimenting', emoji: '🤲', color: 'from-green-500 to-emerald-500' },
-  { id: 'reading', label: 'Reading/Writing', desc: 'I learn best by reading and taking notes', emoji: '📝', color: 'from-amber-500 to-orange-500' },
+  { id: 'visual', label: 'Visual Learner', desc: 'I learn best with pictures, diagrams, charts, and videos', emoji: '👀', icon: Eye, color: 'from-blue-500 to-cyan-500' },
+  { id: 'auditory', label: 'Auditory Learner', desc: 'I learn best by listening, discussing, and hearing explanations', emoji: '👂', icon: Headphones, color: 'from-purple-500 to-pink-500' },
+  { id: 'kinesthetic', label: 'Hands-On Learner', desc: 'I learn best by doing, building, and experimenting', emoji: '🤲', icon: Hand, color: 'from-green-500 to-emerald-500' },
+  { id: 'reading_writing', label: 'Reading/Writing', desc: 'I learn best by reading, taking notes, and writing things down', emoji: '📝', icon: PenTool, color: 'from-amber-500 to-orange-500' },
+  { id: 'adhd_friendly', label: 'ADHD-Friendly', desc: 'I focus best with short tasks, movement breaks, and interactive activities', emoji: '⚡', icon: Zap, color: 'from-rose-500 to-red-500' },
+  { id: 'structured', label: 'Structured Learner', desc: 'I prefer clear step-by-step instructions, checklists, and predictable routines', emoji: '📋', icon: ListChecks, color: 'from-slate-500 to-gray-600' },
+];
+
+// v9.4.0: Learning needs — additional support requirements
+const LEARNING_NEEDS = [
+  { id: 'adhd', label: 'ADHD / Focus challenges', emoji: '⚡', desc: 'Shorter tasks, built-in breaks' },
+  { id: 'dyslexia', label: 'Dyslexia support', emoji: '📖', desc: 'Larger text, dyslexia-friendly fonts' },
+  { id: 'short_attention', label: 'Short attention span', emoji: '⏱️', desc: 'Micro-tasks, frequent rewards' },
+  { id: 'anxiety', label: 'Test/school anxiety', emoji: '💙', desc: 'Encouraging tone, low-pressure format' },
+  { id: 'gifted', label: 'Gifted / Advanced', emoji: '🌟', desc: 'Enriched content, deeper challenges' },
+  { id: 'esl', label: 'English as 2nd language', emoji: '🌍', desc: 'Simpler vocabulary, visual aids' },
+];
+
+// v9.4.0: Preferred content formats
+const PREFERRED_FORMATS = [
+  { id: 'diagrams', label: 'Diagrams & Charts', emoji: '📊' },
+  { id: 'audio', label: 'Audio Explanations', emoji: '🔊' },
+  { id: 'step_by_step', label: 'Step-by-Step Guides', emoji: '1️⃣' },
+  { id: 'interactive', label: 'Interactive Activities', emoji: '🎮' },
+  { id: 'video', label: 'Video Lessons', emoji: '🎬' },
+  { id: 'stories', label: 'Stories & Analogies', emoji: '📖' },
+  { id: 'flashcards', label: 'Flashcards', emoji: '🃏' },
+  { id: 'games', label: 'Learning Games', emoji: '🎲' },
 ];
 
 const MOTIVATORS = [
@@ -87,11 +113,14 @@ export default function StudentSurveyPage() {
   const [dreamJob, setDreamJob] = useState('');
   const [customDreamJob, setCustomDreamJob] = useState('');
   const [learningStyle, setLearningStyle] = useState('visual');
+  const [learningNeeds, setLearningNeeds] = useState<string[]>([]);
+  const [preferredFormats, setPreferredFormats] = useState<string[]>([]);
   const [motivators, setMotivators] = useState<string[]>([]);
   const [challenges, setChallenges] = useState<string[]>([]);
   const [funFacts, setFunFacts] = useState('');
 
-  const totalSteps = 4;
+  const totalSteps = 5;
+  const STEP_LABELS = ['Subjects', 'Hobbies', 'How You Learn', 'Your Needs', 'Fun Stuff'];
 
   useEffect(() => {
     if (!isDemo && status === 'authenticated' && (session?.user as any)?.role !== 'STUDENT' && !(session?.user as any)?.isMasterDemo) {
@@ -108,7 +137,7 @@ export default function StudentSurveyPage() {
     try {
       if (isDemo) {
         await new Promise(r => setTimeout(r, 1000));
-        toast.success('Survey saved! Your AI tutor is now personalized! (Demo)');
+        toast.success('Survey saved! Your learning experience is now personalized! (Demo)');
         router.push('/student/dashboard?demo=true');
         return;
       }
@@ -123,6 +152,8 @@ export default function StudentSurveyPage() {
           favoriteGames: favoriteGames || null,
           dreamJob: dreamJob === 'Other' ? customDreamJob : dreamJob,
           learningStyle,
+          learningNeeds,
+          preferredFormats,
           motivators,
           challenges,
           funFacts: funFacts || null,
@@ -131,7 +162,7 @@ export default function StudentSurveyPage() {
       });
 
       if (res.ok) {
-        toast.success('Survey saved! Your AI tutor is now personalized!');
+        toast.success('Survey saved! Your learning experience is now fully personalized!');
         router.push('/student/dashboard');
       } else {
         const data = await res.json();
@@ -158,31 +189,31 @@ export default function StudentSurveyPage() {
           >
             🌟
           </motion.div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             {isFirstTime ? `Welcome, ${firstName}!` : 'About You'}
           </h1>
-          <p className="text-gray-500 mt-2">
+          <p className="text-gray-500 mt-2 max-w-md mx-auto">
             {isFirstTime
-              ? "Let's get to know you so your AI tutor can make learning extra awesome!"
-              : 'Update your interests so your AI tutor gives you better analogies and examples!'}
+              ? "Every mind learns differently. Let's discover your unique learning style so we can personalize everything just for you!"
+              : 'Update your learning profile so Limud can better adapt to how you learn best!'}
           </p>
         </div>
 
         {/* Progress */}
-        <div className="flex items-center gap-2 mb-8 justify-center">
-          {['Subjects', 'Hobbies', 'How You Learn', 'Fun Stuff'].map((label, i) => (
-            <div key={i} className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 mb-8 justify-center">
+          {STEP_LABELS.map((label, i) => (
+            <div key={i} className="flex items-center gap-1.5">
               <button
                 onClick={() => i + 1 < step && setStep(i + 1)}
-                className={cn('w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition',
+                className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition',
                   step >= i + 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-400',
                   i + 1 < step && 'cursor-pointer hover:bg-primary-700'
                 )}
               >
-                {step > i + 1 ? <CheckCircle2 size={16} /> : i + 1}
+                {step > i + 1 ? <CheckCircle2 size={14} /> : i + 1}
               </button>
-              <span className={cn('text-sm hidden sm:inline', step >= i + 1 ? 'text-gray-900 font-medium' : 'text-gray-400')}>{label}</span>
-              {i < 3 && <div className={cn('w-8 h-0.5 rounded', step > i + 1 ? 'bg-primary-500' : 'bg-gray-200')} />}
+              <span className={cn('text-xs hidden sm:inline', step >= i + 1 ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-400')}>{label}</span>
+              {i < totalSteps - 1 && <div className={cn('w-6 h-0.5 rounded', step > i + 1 ? 'bg-primary-500' : 'bg-gray-200')} />}
             </div>
           ))}
         </div>
@@ -192,10 +223,10 @@ export default function StudentSurveyPage() {
           {step === 1 && (
             <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
               <div className="card p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                   <BookOpen size={22} className="text-primary-600" /> What subjects do you enjoy?
                 </h2>
-                <p className="text-sm text-gray-500 mb-4">Pick as many as you like! This helps your AI tutor use examples from subjects you love.</p>
+                <p className="text-sm text-gray-500 mb-4">Pick as many as you like! This helps personalize your assignments and AI tutor.</p>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {SUBJECTS.map(s => (
                     <button
@@ -216,10 +247,10 @@ export default function StudentSurveyPage() {
               </div>
 
               <div className="card p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                   <Puzzle size={18} className="text-amber-600" /> Any subjects you find challenging?
                 </h2>
-                <p className="text-xs text-gray-500 mb-3">No worries - this helps your tutor give extra support where you need it!</p>
+                <p className="text-xs text-gray-500 mb-3">No worries - this helps us give extra support where you need it!</p>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {SUBJECTS.map(s => (
                     <button
@@ -250,7 +281,7 @@ export default function StudentSurveyPage() {
           {step === 2 && (
             <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
               <div className="card p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                   <Heart size={22} className="text-pink-500" /> What are your hobbies?
                 </h2>
                 <p className="text-sm text-gray-500 mb-4">Your AI tutor will use examples related to what you love!</p>
@@ -274,7 +305,7 @@ export default function StudentSurveyPage() {
               </div>
 
               <div className="card p-6 space-y-4">
-                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Rocket size={18} className="text-indigo-600" /> Dream Job
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -314,14 +345,15 @@ export default function StudentSurveyPage() {
             </motion.div>
           )}
 
-          {/* Step 3: Learning Style & Motivators */}
+          {/* Step 3: Learning Style (expanded with ADHD-friendly & structured) */}
           {step === 3 && (
             <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
               <div className="card p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                   <Brain size={22} className="text-violet-600" /> How do you learn best?
                 </h2>
-                <p className="text-sm text-gray-500 mb-4">This helps your tutor explain things in a way that clicks for you!</p>
+                <p className="text-sm text-gray-500 mb-1">Every mind learns differently. Pick the one that fits you most!</p>
+                <p className="text-xs text-primary-600 font-medium mb-4">Your assignments, tutor, and content will adapt to match your style.</p>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {LEARNING_STYLES.map(ls => (
                     <button
@@ -335,9 +367,11 @@ export default function StudentSurveyPage() {
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">{ls.emoji}</span>
+                        <div className={cn('w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-white flex-shrink-0', ls.color)}>
+                          <ls.icon size={20} />
+                        </div>
                         <div>
-                          <p className="font-bold text-gray-900">{ls.label}</p>
+                          <p className="font-bold text-gray-900 dark:text-white text-sm">{ls.label}</p>
                           <p className="text-xs text-gray-500">{ls.desc}</p>
                         </div>
                       </div>
@@ -347,7 +381,7 @@ export default function StudentSurveyPage() {
               </div>
 
               <div className="card p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                   <Trophy size={18} className="text-amber-600" /> What motivates you?
                 </h2>
                 <p className="text-xs text-gray-500 mb-3">Pick what gets you excited to learn!</p>
@@ -381,68 +415,105 @@ export default function StudentSurveyPage() {
             </motion.div>
           )}
 
-          {/* Step 4: Fun Stuff */}
+          {/* Step 4: Learning Needs & Preferred Formats (NEW in v9.4.0) */}
           {step === 4 && (
             <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+              <div className="card p-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                  <Accessibility size={22} className="text-teal-600" /> Do any of these describe you?
+                </h2>
+                <p className="text-sm text-gray-500 mb-1">This is completely optional and private.</p>
+                <p className="text-xs text-teal-600 font-medium mb-4">Selecting these helps us adapt your assignments and content to support you better.</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {LEARNING_NEEDS.map(n => (
+                    <button
+                      key={n.id}
+                      onClick={() => toggleItem(learningNeeds, setLearningNeeds, n.id)}
+                      className={cn(
+                        'p-4 rounded-2xl border-2 text-left transition-all',
+                        learningNeeds.includes(n.id)
+                          ? 'border-teal-500 bg-teal-50 ring-2 ring-teal-200 shadow-md'
+                          : 'border-gray-100 hover:border-gray-200'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl flex-shrink-0">{n.emoji}</span>
+                        <div>
+                          <p className="font-bold text-gray-900 dark:text-white text-sm">{n.label}</p>
+                          <p className="text-xs text-gray-500">{n.desc}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card p-6">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                  <Star size={18} className="text-yellow-500" /> How do you like content delivered?
+                </h2>
+                <p className="text-xs text-gray-500 mb-3">Pick your favorite ways to receive information!</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {PREFERRED_FORMATS.map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => toggleItem(preferredFormats, setPreferredFormats, f.id)}
+                      className={cn(
+                        'p-3 rounded-xl border-2 text-center transition-all',
+                        preferredFormats.includes(f.id)
+                          ? 'border-yellow-400 bg-yellow-50 text-yellow-700 ring-2 ring-yellow-200 shadow-md'
+                          : 'border-gray-100 hover:border-gray-200 bg-gray-50'
+                      )}
+                    >
+                      <span className="text-xl block">{f.emoji}</span>
+                      <span className="text-xs font-medium mt-1 block">{f.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-between">
+                <button onClick={() => setStep(3)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                  <ArrowLeft size={14} /> Back
+                </button>
+                <button onClick={() => setStep(5)} className="btn-primary flex items-center gap-2">
+                  Next <ArrowRight size={16} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 5: Fun Stuff */}
+          {step === 5 && (
+            <motion.div key="s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
               <div className="card p-6 space-y-4">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Star size={22} className="text-yellow-500" /> Tell us the fun stuff!
                 </h2>
-                <p className="text-sm text-gray-500">These are optional but help your AI tutor use analogies you'll love!</p>
+                <p className="text-sm text-gray-500">These are optional but help your AI tutor use analogies you will love!</p>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Favorite books or book series
-                  </label>
-                  <input
-                    value={favoriteBooks}
-                    onChange={e => setFavoriteBooks(e.target.value)}
-                    className="input-field"
-                    placeholder="e.g., Harry Potter, Percy Jackson, Diary of a Wimpy Kid..."
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Favorite books or book series</label>
+                  <input value={favoriteBooks} onChange={e => setFavoriteBooks(e.target.value)} className="input-field" placeholder="e.g., Harry Potter, Percy Jackson, Diary of a Wimpy Kid..." />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Favorite movies or TV shows
-                  </label>
-                  <input
-                    value={favoriteMovies}
-                    onChange={e => setFavoriteMovies(e.target.value)}
-                    className="input-field"
-                    placeholder="e.g., Spider-Man, Stranger Things, Avatar..."
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Favorite movies or TV shows</label>
+                  <input value={favoriteMovies} onChange={e => setFavoriteMovies(e.target.value)} className="input-field" placeholder="e.g., Spider-Man, Stranger Things, Avatar..." />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Favorite video games
-                  </label>
-                  <input
-                    value={favoriteGames}
-                    onChange={e => setFavoriteGames(e.target.value)}
-                    className="input-field"
-                    placeholder="e.g., Minecraft, Roblox, Fortnite, Mario..."
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Favorite video games</label>
+                  <input value={favoriteGames} onChange={e => setFavoriteGames(e.target.value)} className="input-field" placeholder="e.g., Minecraft, Roblox, Fortnite, Mario..." />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Something cool about you!
-                  </label>
-                  <textarea
-                    value={funFacts}
-                    onChange={e => setFunFacts(e.target.value)}
-                    className="input-field min-h-[80px] resize-none"
-                    placeholder="Tell your AI tutor something fun! e.g., I have a pet iguana named Rex, I can solve a Rubik's cube in 30 seconds..."
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Something cool about you!</label>
+                  <textarea value={funFacts} onChange={e => setFunFacts(e.target.value)} className="input-field min-h-[80px] resize-none" placeholder="Tell your AI tutor something fun! e.g., I have a pet iguana named Rex..." />
                 </div>
               </div>
 
               {/* Summary */}
               <div className="card p-6 bg-gradient-to-br from-primary-50 to-accent-50">
                 <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <Sparkles size={18} className="text-primary-600" /> Your AI Tutor Profile
+                  <Sparkles size={18} className="text-primary-600" /> Your Personalized Learning Profile
                 </h3>
                 <div className="grid sm:grid-cols-2 gap-3 text-sm">
                   {favoriteSubjects.length > 0 && (
@@ -451,16 +522,22 @@ export default function StudentSurveyPage() {
                       <p className="font-medium text-gray-700">{favoriteSubjects.map(s => SUBJECTS.find(x => x.id === s)?.label).join(', ')}</p>
                     </div>
                   )}
-                  {hobbies.length > 0 && (
-                    <div className="bg-white rounded-xl p-3">
-                      <p className="text-xs text-gray-400 font-medium">Hobbies</p>
-                      <p className="font-medium text-gray-700">{hobbies.map(h => HOBBIES.find(x => x.id === h)?.label).join(', ')}</p>
-                    </div>
-                  )}
                   <div className="bg-white rounded-xl p-3">
                     <p className="text-xs text-gray-400 font-medium">Learning Style</p>
                     <p className="font-medium text-gray-700">{LEARNING_STYLES.find(l => l.id === learningStyle)?.label}</p>
                   </div>
+                  {learningNeeds.length > 0 && (
+                    <div className="bg-white rounded-xl p-3">
+                      <p className="text-xs text-gray-400 font-medium">Learning Needs</p>
+                      <p className="font-medium text-gray-700">{learningNeeds.map(n => LEARNING_NEEDS.find(x => x.id === n)?.label).join(', ')}</p>
+                    </div>
+                  )}
+                  {preferredFormats.length > 0 && (
+                    <div className="bg-white rounded-xl p-3">
+                      <p className="text-xs text-gray-400 font-medium">Preferred Formats</p>
+                      <p className="font-medium text-gray-700">{preferredFormats.map(f => PREFERRED_FORMATS.find(x => x.id === f)?.label).join(', ')}</p>
+                    </div>
+                  )}
                   {dreamJob && (
                     <div className="bg-white rounded-xl p-3">
                       <p className="text-xs text-gray-400 font-medium">Dream Job</p>
@@ -471,7 +548,7 @@ export default function StudentSurveyPage() {
               </div>
 
               <div className="flex justify-between">
-                <button onClick={() => setStep(3)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                <button onClick={() => setStep(4)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
                   <ArrowLeft size={14} /> Back
                 </button>
                 <button
@@ -482,7 +559,7 @@ export default function StudentSurveyPage() {
                   {saving ? (
                     <><div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> Saving...</>
                   ) : (
-                    <><Sparkles size={18} /> Finish & Meet Your AI Tutor!</>
+                    <><Sparkles size={18} /> Finish & Start Learning!</>
                   )}
                 </button>
               </div>

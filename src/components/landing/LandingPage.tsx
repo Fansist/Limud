@@ -49,7 +49,8 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ============================================================
-   LANDING PAGE v9.3.5 — Simplified, Cleaner, Conversion-Focused
+   LANDING PAGE v9.4.0 — Diverse Learning Styles & Self Education
+   Slogan: "Every mind learns differently."
    ============================================================ */
 
 export default function LandingPage() {
@@ -83,7 +84,7 @@ export default function LandingPage() {
                 <BookOpen size={16} className="text-white" />
               </div>
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
-              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.3.5</span>
+              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.4.0</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -129,17 +130,16 @@ export default function LandingPage() {
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <div className="inline-flex items-center gap-2 bg-primary-50 border border-primary-200 text-primary-700 px-3 py-1 rounded-full text-sm font-medium mb-6">
-              <Sparkles size={14} /> AI-Powered K-12 Learning
+              <Sparkles size={14} /> AI-Powered Adaptive Learning
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1]">
-              One platform for
-              <span className="bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent"> everything </span>
-              your school needs
+              Every mind learns
+              <span className="bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent"> differently </span>
             </h1>
 
             <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-              AI tutoring, auto-grading, gamification, parent dashboards, and 16+ platform integrations &mdash; built for homeschool families and school districts.
+              AI that adapts to each student&apos;s unique learning style &mdash; visual, auditory, ADHD-friendly, and more. Built for self-learners, homeschool families, and school districts.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
@@ -213,8 +213,8 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { icon: <Brain size={24} className="text-purple-500" />, label: 'AI Tutoring', sub: 'Socratic method' },
-              { icon: <Link2 size={24} className="text-cyan-500" />, label: '16+ Integrations', sub: 'Khan, Google, IXL...' },
+              { icon: <Brain size={24} className="text-purple-500" />, label: 'Adaptive Learning', sub: 'Visual, auditory, ADHD & more' },
+              { icon: <Sparkles size={24} className="text-cyan-500" />, label: 'Self Education', sub: 'Learn at your own pace' },
               { icon: <Home size={24} className="text-amber-500" />, label: 'Homeschool Ready', sub: 'Free forever' },
               { icon: <Shield size={24} className="text-green-500" />, label: 'FERPA & COPPA', sub: 'Fully compliant' },
             ].map(item => (
@@ -232,13 +232,13 @@ export default function LandingPage() {
       <Section id="features" className="py-20 lg:py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Everything in one place</h2>
-            <p className="mt-3 text-gray-500 max-w-xl mx-auto">Built for students, teachers, parents, and administrators. Every feature designed to replace a separate paid app.</p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Personalized for every learner</h2>
+            <p className="mt-3 text-gray-500 max-w-xl mx-auto">AI adapts assignments and tutoring to each student&apos;s learning style. Visual diagrams, audio explanations, ADHD-friendly micro-tasks, and more.</p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { icon: <Brain size={22} />, title: 'AI Tutor', desc: 'Socratic questioning that guides students to answers. Teaches critical thinking through discovery.', color: 'bg-purple-100 text-purple-600' },
+              { icon: <Brain size={22} />, title: 'Adaptive AI Tutor', desc: 'Adapts to each student\'s learning style. Visual learners get diagrams, auditory learners get explanations, ADHD students get shorter interactive tasks.', color: 'bg-purple-100 text-purple-600' },
               { icon: <GraduationCap size={22} />, title: 'AI Auto-Grader', desc: 'One-click rubric-based grading for essays, short answers, and projects. No more midnight grading.', color: 'bg-green-100 text-green-600' },
               { icon: <Trophy size={22} />, title: 'Gamification', desc: 'XP, levels, streaks, coins, avatar shop, badges, and leaderboards that keep students engaged.', color: 'bg-amber-100 text-amber-600' },
               { icon: <Gamepad2 size={22} />, title: 'Educational Games', desc: 'Math Blaster, Word Quest, Science Puzzles, History Trivia — all subjects covered.', color: 'bg-pink-100 text-pink-600' },
@@ -246,7 +246,7 @@ export default function LandingPage() {
               { icon: <Eye size={22} />, title: 'Parent Portal + AI', desc: 'Real-time grades, AI-powered check-ins on your child\'s progress, safety monitoring, and goal tracking.', color: 'bg-rose-100 text-rose-600' },
               { icon: <LayoutDashboard size={22} />, title: 'Admin Dashboard', desc: 'District management, CSV provisioning, compliance dashboards, billing, and usage analytics.', color: 'bg-slate-100 text-slate-600' },
               { icon: <Link2 size={22} />, title: '16+ Integrations', desc: 'Connect Khan Academy, Google Classroom, Canvas, IXL, Quizlet, Clever, and more.', color: 'bg-cyan-100 text-cyan-600' },
-              { icon: <BarChart3 size={22} />, title: 'Knowledge Analytics', desc: 'Skill radars, heatmaps, learning DNA, and AI that flags at-risk students before they fall behind.', color: 'bg-emerald-100 text-emerald-600' },
+              { icon: <BarChart3 size={22} />, title: 'Method Insights for Teachers', desc: 'See how each student solved their work: visual, step-by-step, audio, or simplified reasoning. Inform your teaching adjustments.', color: 'bg-emerald-100 text-emerald-600' },
               { icon: <FileText size={22} />, title: 'Worksheet Finder', desc: 'Search 87+ curated worksheets filtered by subject, grade, and topic.', color: 'bg-teal-100 text-teal-600' },
               { icon: <Cpu size={22} />, title: 'AI Safety Monitor', desc: 'Parents can use AI to check in on their children\'s learning, emotional state, and academic wellbeing.', color: 'bg-violet-100 text-violet-600' },
             ].map(f => (
@@ -321,23 +321,23 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
               {
+                icon: <Sparkles size={22} />, title: 'Self Learners', color: 'from-teal-400 to-emerald-500',
+                features: ['Free forever', 'AI adapts to your style', 'Learning style survey', 'Self-paced progress', 'Gamification'],
+                cta: 'Start Learning Free', link: '/register',
+              },
+              {
                 icon: <Home size={22} />, title: 'Homeschool Families', color: 'from-amber-400 to-orange-500',
                 features: ['Free forever', 'Gamification', 'Parent AI check-ins', 'Progress tracking'],
                 cta: 'Start Free', link: '/register',
               },
               {
                 icon: <Building2 size={22} />, title: 'School Districts', color: 'from-blue-500 to-indigo-600',
-                features: ['From $2/student/mo', 'CSV provisioning', 'AI auto-grading', 'Multi-school mgmt', 'Compliance dashboard'],
+                features: ['From $2/student/mo', 'AI auto-grading', 'Adaptive assignments', 'Method insights for teachers'],
                 cta: 'Create Admin Account', link: '/register',
               },
               {
-                icon: <Eye size={22} />, title: 'Parents', color: 'from-rose-400 to-pink-500',
-                features: ['AI check-ins', 'Real-time grades', 'Goal tracking', 'Safety monitoring', 'Messaging'],
-                cta: 'Learn More', link: '/register',
-              },
-              {
                 icon: <GraduationCap size={22} />, title: 'Students', color: 'from-green-400 to-emerald-500',
-                features: ['AI tutor', 'Educational games', 'XP & rewards', 'Study planner', 'Exam simulator'],
+                features: ['AI adapts to you', 'Educational games', 'XP & rewards', 'Study planner', 'Visual/audio/ADHD modes'],
                 cta: 'Try Demo', link: '/login',
               },
             ].map(item => (
@@ -447,8 +447,8 @@ export default function LandingPage() {
       <Section className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-10 lg:p-14 text-center text-white">
-            <h2 className="text-3xl sm:text-4xl font-extrabold">Ready to simplify learning?</h2>
-            <p className="mt-3 text-white/70 max-w-lg mx-auto">AI tutoring, auto-grading, gamification, and parent AI check-ins &mdash; all in one platform.</p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold">Every mind learns differently</h2>
+            <p className="mt-3 text-white/70 max-w-lg mx-auto">AI that adapts to visual, auditory, ADHD-friendly, and structured learning styles &mdash; personalized for every student.</p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/register" className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-7 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg">
                 Start Free Now <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
@@ -476,9 +476,9 @@ export default function LandingPage() {
                   <BookOpen size={16} className="text-white" />
                 </div>
                 <span className="text-base font-bold text-white">Limud</span>
-                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.3.5</span>
+                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.4.0</span>
               </div>
-              <p className="text-xs leading-relaxed">AI-powered K-12 learning platform for homeschool families and school districts.</p>
+              <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for self-learners, homeschool families, and school districts.</p>
               <div className="flex gap-2 mt-3">
                 {['FERPA', 'COPPA', 'WCAG'].map(badge => (
                   <span key={badge} className="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded border border-gray-700">{badge}</span>

@@ -90,7 +90,7 @@ export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
   const body = await req.json();
 
-  const { title, description, type, courseId, dueDate, totalPoints, rubric, isPublished, allowLateSubmission } = body;
+  const { title, description, type, courseId, dueDate, totalPoints, rubric, isPublished, allowLateSubmission, workMode, adaptiveEnabled } = body;
 
   if (!title || !description || !type || !courseId || !dueDate) {
     return NextResponse.json(
@@ -129,11 +129,23 @@ export const POST = apiHandler(async (req: Request) => {
       rubric: rubric ? JSON.stringify(rubric) : null,
       isPublished: isPublished ?? false,
       allowLateSubmission: allowLateSubmission ?? false,
+      workMode: workMode || 'in_class',
+      adaptiveEnabled: adaptiveEnabled ?? false,
     },
     include: {
       course: { select: { name: true } },
     },
   });
+
+  // v9.4.0: If adaptive is enabled and work mode is homework/independent, auto-generate adapted versions
+  if (assignment.adaptiveEnabled && ['homework', 'independent_practice'].includes(assignment.workMode)) {
+    // Fire-and-forget adaptive generation (don't block the response)
+    fetch(new URL('/api/adaptive', req.url).toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: req.headers.get('cookie') || '' },
+      body: JSON.stringify({ assignmentId: assignment.id }),
+    }).catch(() => {});
+  }
 
   return NextResponse.json({ assignment }, { status: 201 });
 });

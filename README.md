@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.3.5
+- **Version**: 9.4.0
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Security**: Enterprise-grade FERPA + COPPA + OWASP Top 10 compliant security for children's data protection
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + Google Gemini + Framer Motion
@@ -274,25 +274,54 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 
 ---
 
+## What's New in v9.4.0 — Adaptive Learning & Self Education
+
+**New company theme: "Every mind learns differently."** This release introduces AI-driven adaptive assignments, diverse learning style support, Self Education accounts, and a color theme switcher.
+
+### Adaptive Assignment Engine
+- **`src/app/api/adaptive/route.ts`** (NEW) — POST generates AI-adapted versions of assignments per student's learning style (visual, auditory, kinesthetic, ADHD-friendly, structured); GET retrieves adapted content for a student
+- **`prisma/schema.prisma`** — Added `AdaptedAssignment` model, `adaptiveEnabled`/`workMode` fields on Assignment, `solvingMethod`/`methodDetails`/`adaptedFrom` on Submission, `learningStyleProfile` on User, `learningNeeds`/`preferredFormats` on StudentSurvey, `SELF_EDUCATION` enum on AccountType, `colorTheme` field on User
+- **`src/app/api/assignments/route.ts`** — POST now accepts `adaptiveEnabled` and `workMode`; auto-triggers adaptation for homework/independent_practice
+
+### Teacher Method Insights
+- **`src/app/api/teacher/method-insights/route.ts`** (NEW) — GET returns submissions with each student's solving method (visual, step-by-step, audio, simplified) plus their learning style profile, enabling teachers to adjust instruction
+
+### Learning Style Survey (Expanded)
+- **`src/app/student/survey/page.tsx`** — Expanded from 4 to 6 learning styles (added ADHD-Friendly, Structured); added Learning Needs step (ADHD, dyslexia, anxiety, gifted, ESL) and Preferred Formats step (diagrams, audio, interactive, video, etc.)
+- **`src/app/api/survey/route.ts`** — Handles `learningNeeds`, `preferredFormats` fields; saves `learningStyleProfile` JSON on User; master demo can now access the survey
+
+### Self Education Accounts
+- **`src/app/(auth)/register/page.tsx`** — New "Self Education" account type for independent learners; includes quick learning style picker during signup
+- **`src/app/api/auth/register/route.ts`** — Handles `SELF_EDUCATION` accountType: creates micro-district, default "My Studies" course, initial learningStyleProfile, and enrolls the student automatically
+
+### Master Demo Survey Access
+- **`src/components/layout/DashboardLayout.tsx`** — Master demo sidebar now includes "Open Student Learning Survey" link
+
+### Green Theme Switcher
+- **`src/components/layout/DashboardLayout.tsx`** — New Palette toggle in sidebar utility row switches between blue and green color themes; persists to localStorage
+- **`src/app/globals.css`** — Full `.theme-green` CSS overrides for all primary-* colors (background, text, border, gradient, ring, hover, focus)
+- **`prisma/schema.prisma`** — Added `colorTheme` field on User (default "blue")
+
+### Branding Update
+- **`src/components/landing/LandingPage.tsx`** — New hero: "Every mind learns differently"; new value props (Adaptive Learning, Self Education); Self Learners audience card; Method Insights feature; updated CTA and footer tagline
+- **`src/app/(auth)/register/page.tsx`** — Left panel shows new branding: "Every mind learns differently" with ADHD, visual, auditory, self-education callouts
+
+### Version Bump
+- 9.3.5 -> 9.4.0 across package.json, config, middleware, health, security dashboard, README, .env
+
+---
+
 ## What's New in v9.3.5 — Migrate from OpenAI to Google Gemini
 
-**Full AI backend migration** from OpenAI SDK (`openai` npm) to Google Gemini (`@google/genai` npm). All AI features (tutor, grader, quiz generator, exam sim, writing coach, curriculum analysis, navigator, parent check-in, worksheet search) now use Gemini natively.
+**Full AI backend migration** from OpenAI SDK (`openai` npm) to Google Gemini (`@google/genai` npm). All AI features now use Gemini natively.
 
 **Changes:**
-- **`src/lib/config.ts`** — Replaced `OPENAI_API_KEY` / `OPENAI_BASE_URL` with `GEMINI_API_KEY` (fallback `GOOGLE_API_KEY`); default model `gemini-2.0-flash`
-- **`src/lib/ai.ts`** — Complete rewrite: replaced `openai` SDK with `@google/genai` `GoogleGenAI`; new `callGemini()` function uses `ai.models.generateContent()` with system instruction support; backward-compat aliases (`callOpenAI`, `isOpenAIConfigured`) kept
-- **`src/app/api/worksheet-search/route.ts`** — Replaced direct OpenAI SDK usage with `@google/genai` SDK
-- **`src/app/api/quiz-generator/route.ts`** — `callOpenAI` -> `callGemini`
-- **`src/app/api/exam-sim/route.ts`** — `callOpenAI` -> `callGemini`
-- **`src/app/api/ai-navigator/route.ts`** — `callOpenAI`/`isOpenAIConfigured` -> `callGemini`/`isGeminiConfigured`
-- **`src/app/api/parent/ai-checkin/route.ts`** — `callOpenAI`/`isOpenAIConfigured` -> `callGemini`/`isGeminiConfigured`
-- **`next.config.js`** — Updated external packages, CSP `connect-src`, and webpack alias
-- **`src/middleware.ts`** + **`src/lib/security.ts`** — CSP connect-src updated from `api.openai.com` to `generativelanguage.googleapis.com`
-- **`src/app/layout.tsx`** — DNS prefetch updated to Gemini API domain
-- **`src/app/help/page.tsx`** — User-facing text updated from "OpenAI GPT-4o-mini" to "Google Gemini 2.0 Flash"
-- **`.env`** + **`.env.example`** — Env vars renamed: `OPENAI_API_KEY` -> `GEMINI_API_KEY`, removed `OPENAI_BASE_URL`
-- **`package.json`** — Replaced `openai` with `@google/genai`
-- **Version bump** 9.3.4 -> 9.3.5 across 24 files
+- `src/lib/ai.ts` — Rewritten with `@google/genai`; `callGemini()` replaces `callOpenAI()`
+- `src/lib/config.ts` — `GEMINI_API_KEY` replaces `OPENAI_API_KEY`; default model `gemini-2.0-flash`
+- All API routes updated: quiz-generator, exam-sim, ai-navigator, parent/ai-checkin, worksheet-search
+- CSP headers updated to `generativelanguage.googleapis.com`
+- Help page text updated to "Google Gemini 2.0 Flash"
+- `.env` vars renamed, `package.json` dependency switched
 
 ## What's New in v9.3.4 — Fix Account Creation
 

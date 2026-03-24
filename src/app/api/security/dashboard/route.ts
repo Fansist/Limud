@@ -1,5 +1,5 @@
 /**
- * Security Dashboard API — v9.3.5
+ * Security Dashboard API — v9.4.0
  * Admin-only real-time security metrics and overview
  * 
  * GET: Returns security posture, metrics, threats, compliance status
@@ -98,7 +98,7 @@ export const GET = secureApiHandler(
       : 'LOW';
 
     return NextResponse.json({
-      version: '9.3.5',
+      version: '9.4.0',
       threatLevel,
       metrics,
       districtStats,

@@ -1,9 +1,9 @@
 /**
- * LIMUD v9.3.5 — Centralized Application Configuration
+ * LIMUD v9.4.0 — Centralized Application Configuration
  * ALL defaults are embedded so the app runs with ZERO env vars.
  * Environment variables, when present, override the embedded defaults.
  *
- * v9.3.5: Migrated from OpenAI to Google Gemini (@google/genai)
+ * v9.4.0: Migrated from OpenAI to Google Gemini (@google/genai)
  */
 
 // ═══════════════════════════════════════════════════════════════════
@@ -88,4 +88,4 @@ export function isAIConfigured(): boolean {
 // ═══════════════════════════════════════════════════════════════════
 
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Limud';
-export const APP_VERSION = '9.3.5';
+export const APP_VERSION = '9.4.0';

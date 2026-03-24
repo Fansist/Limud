@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('STUDENT');
-  const { assignmentId, content, fileUploadIds } = await req.json();
+  const { assignmentId, content, fileUploadIds, solvingMethod, methodDetails } = await req.json();
 
   if (!assignmentId) {
     return NextResponse.json({ error: 'assignmentId is required' }, { status: 400 });
@@ -64,6 +64,8 @@ export const POST = apiHandler(async (req: Request) => {
       status: 'SUBMITTED',
       submittedAt: new Date(),
       fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
+      solvingMethod: solvingMethod || null,
+      methodDetails: methodDetails ? JSON.stringify(methodDetails) : null,
     },
     update: {
       content: content || '(File submission - see attached files)',
@@ -73,6 +75,8 @@ export const POST = apiHandler(async (req: Request) => {
       aiFeedback: null,
       gradedAt: null,
       fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
+      solvingMethod: solvingMethod || undefined,
+      methodDetails: methodDetails ? JSON.stringify(methodDetails) : undefined,
     },
   });
 
@@ -184,19 +188,55 @@ export const GET = apiHandler(async (req: Request) => {
     const submissions = await prisma.submission.findMany({
       where: { assignmentId },
       include: {
-        student: { select: { id: true, name: true, email: true, gradeLevel: true } },
+        student: {
+          select: {
+            id: true, name: true, email: true, gradeLevel: true,
+            learningStyleProfile: true, surveyCompleted: true,
+          },
+        },
       },
       orderBy: { submittedAt: 'desc' },
     });
 
-    // Enrich with file info
+    // Enrich with file info + learning method data
     const enriched = await Promise.all(submissions.map(async (s) => {
       const fileIds = s.fileUploadIds ? JSON.parse(s.fileUploadIds) as string[] : [];
       const files = fileIds.length > 0 ? await prisma.fileUpload.findMany({
         where: { id: { in: fileIds } },
         select: { id: true, originalName: true, mimeType: true, fileSize: true },
       }) : [];
-      return { ...s, files, fileCount: files.length };
+
+      // v9.4.0: Get student's learning style from survey
+      let studentLearningStyle = null;
+      try {
+        const survey = await prisma.studentSurvey.findUnique({ where: { userId: s.studentId } });
+        if (survey) {
+          studentLearningStyle = {
+            primary: survey.learningStyle,
+            needs: JSON.parse(survey.learningNeeds || '[]'),
+            formats: JSON.parse(survey.preferredFormats || '[]'),
+          };
+        }
+      } catch {}
+
+      // Get adapted version info if it exists
+      let adaptedInfo = null;
+      try {
+        const adapted = await prisma.adaptedAssignment.findUnique({
+          where: { assignmentId_studentId: { assignmentId: assignmentId!, studentId: s.studentId } },
+          select: { learningStyle: true, methodSuggestion: true, difficulty: true },
+        });
+        if (adapted) adaptedInfo = adapted;
+      } catch {}
+
+      return {
+        ...s,
+        files,
+        fileCount: files.length,
+        methodDetails: s.methodDetails ? JSON.parse(s.methodDetails) : null,
+        studentLearningStyle,
+        adaptedInfo,
+      };
     }));
 
     return NextResponse.json({ submissions: enriched });

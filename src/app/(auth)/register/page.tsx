@@ -8,14 +8,32 @@ import toast from 'react-hot-toast';
 import {
   Home, Shield, ArrowRight, ArrowLeft,
   Eye, EyeOff, CheckCircle2, UserPlus, GraduationCap, Plus, Trash2,
-  BookOpen, Building2,
+  BookOpen, Building2, Brain, Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-type AccountType = 'homeschool' | 'admin';
+type AccountType = 'homeschool' | 'admin' | 'self_education';
+
+const QUICK_LEARNING_STYLES = [
+  { id: 'visual', label: 'Visual', emoji: '👀' },
+  { id: 'auditory', label: 'Auditory', emoji: '👂' },
+  { id: 'kinesthetic', label: 'Hands-On', emoji: '🤲' },
+  { id: 'reading_writing', label: 'Reading/Writing', emoji: '📝' },
+  { id: 'adhd_friendly', label: 'ADHD-Friendly', emoji: '⚡' },
+  { id: 'structured', label: 'Structured', emoji: '📋' },
+];
 
 const ACCOUNT_OPTIONS = [
+  {
+    value: 'self_education' as const,
+    label: 'Self Education',
+    icon: Brain,
+    color: 'from-teal-500 to-emerald-500',
+    desc: 'I want to learn at my own pace',
+    detail: 'Create a student account to learn independently with AI-powered personalized methods. No teacher or parent needed.',
+    tags: ['Free forever', 'AI Tutor', 'Personalized learning', 'Self-paced'],
+  },
   {
     value: 'homeschool' as const,
     label: 'Homeschool Family',
@@ -60,6 +78,10 @@ export default function RegisterPage() {
   // District admin fields
   const [districtName, setDistrictName] = useState('');
 
+  // Self Education fields
+  const [gradeLevel, setGradeLevel] = useState('');
+  const [learningStyle, setLearningStyle] = useState('visual');
+
   // Password validation matching NIST SP 800-63B backend rules
   const passwordErrors = (pw: string): string[] => {
     const errs: string[] = [];
@@ -99,7 +121,40 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      if (accountType === 'homeschool') {
+      if (accountType === 'self_education') {
+        // Self Education flow: register as STUDENT with SELF_EDUCATION type
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, email, password,
+            role: 'STUDENT',
+            accountType: 'SELF_EDUCATION',
+            gradeLevel: gradeLevel || null,
+            learningStyle,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          toast.success('Account created! Let\u2019s personalize your learning!');
+          const signInResult = await signIn('credentials', {
+            email, password, redirect: false,
+          });
+          if (signInResult?.ok) {
+            router.push('/student/survey?first=true');
+          } else {
+            router.push('/login');
+          }
+        } else {
+          if (data.passwordErrors && data.passwordErrors.length > 0) {
+            toast.error('Password: ' + data.passwordErrors.join('. '));
+          } else {
+            toast.error(data.error || 'Registration failed');
+          }
+        }
+      } else if (accountType === 'homeschool') {
         // Homeschool flow: register as PARENT with HOMESCHOOL type
         const res = await fetch('/api/auth/register', {
           method: 'POST',
@@ -173,7 +228,8 @@ export default function RegisterPage() {
 
   const canProceedStep1 = accountType !== '';
   const canProceedStep2 = name.trim() !== '' && email.trim() !== '' &&
-    (accountType === 'homeschool' ? childrenList.filter(c => c.name.trim()).length > 0 : true);
+    (accountType === 'homeschool' ? childrenList.filter(c => c.name.trim()).length > 0 : true) &&
+    (accountType === 'self_education' ? gradeLevel !== '' : true);
   const canProceedStep3 = pwErrors.length === 0 && password === confirmPassword;
 
   return (
@@ -195,19 +251,19 @@ export default function RegisterPage() {
           </Link>
 
           <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-            Start your learning<br />journey today
+            Every mind learns<br />differently.
           </h2>
           <p className="text-white/70 text-lg">
-            Create your free account and unlock AI-powered learning for your family or school.
+            Create your free account and unlock AI-powered personalized learning for every student.
           </p>
         </div>
 
         <div className="relative z-10 space-y-4">
           {[
-            { icon: '🏠', text: 'Homeschool families start free forever' },
-            { icon: '🎓', text: 'AI-powered tutoring that adapts to each student' },
+            { icon: '🧠', text: 'AI adapts to each student\u2019s learning style' },
+            { icon: '⚡', text: 'ADHD-friendly, visual, auditory & more formats' },
+            { icon: '🏠', text: 'Self-education, homeschool, or district accounts' },
             { icon: '🏆', text: 'Gamification that makes learning engaging' },
-            { icon: '📊', text: 'Real-time analytics for parents & administrators' },
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -330,10 +386,12 @@ export default function RegisterPage() {
               >
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">
-                    {accountType === 'homeschool' ? 'Your Homeschool Account' : 'District Admin Account'}
+                    {accountType === 'self_education' ? 'Your Learning Account' : accountType === 'homeschool' ? 'Your Homeschool Account' : 'District Admin Account'}
                   </h1>
                   <p className="text-gray-500 mt-2">
-                    {accountType === 'homeschool'
+                    {accountType === 'self_education'
+                      ? 'Set up your account and tell us how you learn best'
+                      : accountType === 'homeschool'
                       ? 'Set up your parent account and add your children'
                       : 'Create your administrator account'}
                   </p>
@@ -440,6 +498,50 @@ export default function RegisterPage() {
                     ))}
                     <p className="text-xs text-amber-600">
                       Student accounts will be created automatically for each child. You can add more children later.
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* Self Education fields */}
+                {accountType === 'self_education' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-4 p-4 bg-teal-50 rounded-2xl border border-teal-200"
+                  >
+                    <div className="flex items-center gap-2 text-teal-700">
+                      <Brain size={16} />
+                      <p className="text-sm font-medium">Your Learning Profile</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Grade Level</label>
+                      <select value={gradeLevel} onChange={e => setGradeLevel(e.target.value)} className="input-field">
+                        <option value="">Select your grade</option>
+                        {GRADE_LEVELS.map(g => (<option key={g} value={g}>{g}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-2">How do you learn best?</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {QUICK_LEARNING_STYLES.map(ls => (
+                          <button
+                            key={ls.id} type="button"
+                            onClick={() => setLearningStyle(ls.id)}
+                            className={cn(
+                              'p-2 rounded-xl border-2 text-center text-xs font-medium transition',
+                              learningStyle === ls.id
+                                ? 'border-teal-500 bg-teal-100 text-teal-800 ring-1 ring-teal-300'
+                                : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                            )}
+                          >
+                            <span className="text-lg block">{ls.emoji}</span>
+                            {ls.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-teal-600">
+                      You can customize your full learning profile after sign-up. Every mind learns differently!
                     </p>
                   </motion.div>
                 )}
@@ -568,9 +670,11 @@ export default function RegisterPage() {
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200">
                   <p className="text-sm font-medium text-gray-700 mb-2">Account Summary</p>
                   <div className="space-y-1 text-sm text-gray-500">
-                    <p><span className="text-gray-400">Type:</span> {accountType === 'homeschool' ? 'Homeschool Parent' : 'District Administrator'}</p>
+                    <p><span className="text-gray-400">Type:</span> {accountType === 'self_education' ? 'Self Education Student' : accountType === 'homeschool' ? 'Homeschool Parent' : 'District Administrator'}</p>
                     <p><span className="text-gray-400">Name:</span> {name}</p>
                     <p><span className="text-gray-400">Email:</span> {email}</p>
+                    {accountType === 'self_education' && gradeLevel && <p><span className="text-gray-400">Grade:</span> {gradeLevel}</p>}
+                    {accountType === 'self_education' && <p><span className="text-gray-400">Learning Style:</span> {QUICK_LEARNING_STYLES.find(l => l.id === learningStyle)?.label}</p>}
                     {accountType === 'admin' && districtName && <p><span className="text-gray-400">District:</span> {districtName}</p>}
                     {accountType === 'homeschool' && childrenList.filter(c => c.name.trim()).length > 0 && (
                       <p><span className="text-gray-400">Children:</span> {childrenList.filter(c => c.name.trim()).map(c => `${c.name}${c.grade ? ` (${c.grade})` : ''}`).join(', ')}</p>

@@ -19,7 +19,7 @@ import {
   Home, Brain, FileText, Calendar, TrendingUp, Swords, Sun, Moon,
   Lightbulb, Focus, Zap, Target, ChevronDown, Settings, Gamepad2,
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
-  Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList,
+  Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList, Clipboard, Palette,
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?: React.ReactNode; };
@@ -154,6 +154,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  // v9.4.0: Color theme toggle (blue/green)
+  const [colorTheme, setColorTheme] = useState<'blue' | 'green'>('blue');
 
   // Demo mode detection
   const isDemoParam = searchParams.get('demo') === 'true';
@@ -188,7 +190,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // Initialize dark mode
     const dark = localStorage.getItem('limud-dark-mode') === 'true';
     if (dark) document.documentElement.classList.add('dark');
+    // v9.4.0: Initialize color theme
+    const savedTheme = localStorage.getItem('limud-color-theme') as 'blue' | 'green' || 'blue';
+    setColorTheme(savedTheme);
+    if (savedTheme === 'green') document.documentElement.classList.add('theme-green');
   }, [isDemoParam, pathname, session]);
+
+  function toggleColorTheme() {
+    const next = colorTheme === 'blue' ? 'green' : 'blue';
+    setColorTheme(next);
+    localStorage.setItem('limud-color-theme', next);
+    if (next === 'green') {
+      document.documentElement.classList.add('theme-green');
+    } else {
+      document.documentElement.classList.remove('theme-green');
+    }
+  }
 
   const sessionRole = (session?.user as any)?.role || 'STUDENT';
   const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
@@ -345,6 +362,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Link>
               ))}
             </div>
+            {/* v9.4.0: Master demo quick access to student learning survey */}
+            <Link href="/student/survey"
+              className="mt-1.5 flex items-center gap-1.5 text-[10px] text-amber-700 dark:text-amber-300 font-medium hover:underline py-1"
+              onClick={() => setSidebarOpen(false)}>
+              <Clipboard size={10} /> Open Student Learning Survey
+            </Link>
           </div>
         )}
 
@@ -408,6 +431,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Sun size={16} className="dark:hidden" />
               <Moon size={16} className="hidden dark:block" />
               <span>Theme</span>
+            </button>
+
+            {/* v9.4.0: Color Theme toggle (blue/green) */}
+            <button
+              onClick={toggleColorTheme}
+              className={cn(
+                'flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium transition-all',
+                colorTheme === 'green' ? 'bg-green-50 text-green-700' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600'
+              )}
+              title={`Color Theme: ${colorTheme === 'blue' ? 'Blue' : 'Green'}`}
+            >
+              <Palette size={16} />
+              <span>{colorTheme === 'blue' ? 'Blue' : 'Green'}</span>
             </button>
 
             <button
