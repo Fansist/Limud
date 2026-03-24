@@ -2,7 +2,7 @@
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
-import { redirect } from 'next/navigation';
+// redirect removed — use router.push() in client components
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';

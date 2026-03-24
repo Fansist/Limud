@@ -1,7 +1,6 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { XPBar } from '@/components/gamification/RewardComponents';
@@ -32,7 +31,7 @@ export default function StudentDashboard() {
     if (status === 'authenticated') {
       const user = session?.user as any;
       if (user?.role !== 'STUDENT' && !user?.isMasterDemo) {
-        redirect('/');
+        router.push('/'); return;
       }
       if (user?.isMasterDemo && user?.role !== 'STUDENT') {
         // Master demo visiting student view — show demo data

@@ -1,7 +1,7 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
@@ -14,6 +14,7 @@ import {
 
 export default function TeacherDashboard() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const isDemo = useIsDemo();
   const [analytics, setAnalytics] = useState<any>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -28,7 +29,7 @@ export default function TeacherDashboard() {
     }
     if (status === 'authenticated') {
       const user = session?.user as any;
-      if (user?.role !== 'TEACHER' && !user?.isMasterDemo) redirect('/');
+      if (user?.role !== 'TEACHER' && !user?.isMasterDemo) { router.push('/'); return; }
       if (user?.isMasterDemo && user?.role !== 'TEACHER') {
         // Master demo visiting teacher view — show demo data
         setAnalytics(DEMO_ANALYTICS);
