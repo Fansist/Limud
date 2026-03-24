@@ -1,5 +1,5 @@
 /**
- * Registration API — v9.4.0 Security Hardened
+ * Registration API — v9.4.1 Security Hardened
  * - Rate limited: 3 per minute per IP
  * - NIST SP 800-63B password validation
  * - Input sanitization (XSS, prototype pollution)
@@ -10,6 +10,9 @@
  * - v9.4.0: Added SELF_EDUCATION account type for independent learners
  *   Self-education students register as STUDENT with SELF_EDUCATION accountType
  *   and get a learning style profile set from onboarding
+ * - v9.4.1: Fixed fatal ReferenceError — districtId used before declaration in
+ *   SELF_EDUCATION block caused registration failure for ALL account types.
+ *   Moved `let districtId` declaration above all conditional blocks.
  */
 import { NextResponse } from 'next/server';
 import {
@@ -118,6 +121,9 @@ export async function POST(req: Request) {
     const userRole = upperRole as 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN';
     const userAccountType = accountType || (userRole === 'PARENT' && childName ? 'HOMESCHOOL' : userRole === 'ADMIN' ? 'DISTRICT' : 'INDIVIDUAL');
 
+    // v9.4.1: districtId declared before all conditional blocks to avoid ReferenceError
+    let districtId: string | undefined;
+
     // v9.4.0: SELF_EDUCATION accounts get their own micro-district for self-paced learning
     if (userAccountType === 'SELF_EDUCATION' && userRole === 'STUDENT') {
       const district = await prisma.schoolDistrict.create({
@@ -136,7 +142,7 @@ export async function POST(req: Request) {
       districtId = district.id;
 
       // Create a default "My Studies" course for self-education
-      const course = await prisma.course.create({
+      await prisma.course.create({
         data: {
           name: 'My Studies',
           description: 'Self-paced learning course',
@@ -147,8 +153,6 @@ export async function POST(req: Request) {
       });
       // Enrollment created after user creation below
     }
-
-    let districtId: string | undefined;
 
     // Create district for ADMIN accounts
     if (userRole === 'ADMIN') {

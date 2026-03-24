@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.4.0
+- **Version**: 9.4.1
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Security**: Enterprise-grade FERPA + COPPA + OWASP Top 10 compliant security for children's data protection
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + Google Gemini + Framer Motion
@@ -271,6 +271,25 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 - **Tech Stack**: Next.js 14 + TypeScript + TailwindCSS + Prisma + NextAuth
 - **Security Level**: Enterprise (FERPA + COPPA + OWASP Top 10)
 - **Last Updated**: 2026-03-22
+
+---
+
+## What's New in v9.4.1 — Registration Hotfix
+
+**Critical bugfix**: Account creation was broken for ALL account types after v9.4.0.
+
+### Root Cause
+The `SELF_EDUCATION` block in `src/app/api/auth/register/route.ts` assigned to `districtId` (line 136) **before** the `let districtId` declaration (line 151). Because `let` variables exist in a Temporal Dead Zone before their declaration, this threw an **unrecoverable `ReferenceError`** that crashed the entire POST handler — even for non-SELF_EDUCATION account types (STUDENT, TEACHER, PARENT, ADMIN, HOMESCHOOL) since the error was thrown before the `try` block's variable scoping could proceed.
+
+### Fix
+- Moved `let districtId: string | undefined` declaration **above** all conditional district-creation blocks
+- Removed unused `course` variable from the SELF_EDUCATION block (enrollment uses `findFirst` later)
+- Updated registration API header comment to v9.4.1 with fix description
+
+### Files Changed
+- `src/app/api/auth/register/route.ts` — Moved declaration, fixed scoping
+- `package.json` — Version bump 9.4.0 → 9.4.1
+- `README.md` — Added v9.4.1 release notes
 
 ---
 

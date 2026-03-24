@@ -49,7 +49,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ============================================================
-   LANDING PAGE v9.4.0 — Diverse Learning Styles & Self Education
+   LANDING PAGE v9.4.1 — Diverse Learning Styles & Self Education
    Slogan: "Every mind learns differently."
    ============================================================ */
 
@@ -84,7 +84,7 @@ export default function LandingPage() {
                 <BookOpen size={16} className="text-white" />
               </div>
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
-              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.4.0</span>
+              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.4.1</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -476,7 +476,7 @@ export default function LandingPage() {
                   <BookOpen size={16} className="text-white" />
                 </div>
                 <span className="text-base font-bold text-white">Limud</span>
-                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.4.0</span>
+                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.4.1</span>
               </div>
               <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for self-learners, homeschool families, and school districts.</p>
               <div className="flex gap-2 mt-3">
