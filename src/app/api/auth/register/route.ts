@@ -1,5 +1,5 @@
 /**
- * Registration API — v9.4.1 Security Hardened
+ * Registration API — v9.4.2 Security Hardened
  * - Rate limited: 3 per minute per IP
  * - NIST SP 800-63B password validation
  * - Input sanitization (XSS, prototype pollution)
@@ -8,11 +8,9 @@
  * - Audit logging all registration events
  * - v9.3.5: Improved error responses — returns all password errors with details
  * - v9.4.0: Added SELF_EDUCATION account type for independent learners
- *   Self-education students register as STUDENT with SELF_EDUCATION accountType
- *   and get a learning style profile set from onboarding
- * - v9.4.1: Fixed fatal ReferenceError — districtId used before declaration in
- *   SELF_EDUCATION block caused registration failure for ALL account types.
- *   Moved `let districtId` declaration above all conditional blocks.
+ * - v9.4.1: Fixed fatal ReferenceError — districtId declaration ordering
+ * - v9.4.2: Enhanced error logging with full stack traces for debugging;
+ *   improved error responses to surface actual failure reasons
  */
 import { NextResponse } from 'next/server';
 import {
@@ -313,12 +311,22 @@ export async function POST(req: Request) {
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error('[Security] Registration error:', error?.message);
+    // v9.4.2: Enhanced error logging — full details for debugging
+    console.error('[Security] Registration error:', {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+      stack: error?.stack?.split('\n').slice(0, 5).join('\n'),
+    });
 
     createAuditLog({
       action: 'REGISTER', ip, userAgent: ua,
       resource: '/api/auth/register',
-      details: { error: error?.code || 'unknown' },
+      details: {
+        error: error?.code || 'unknown',
+        message: error?.message?.substring(0, 200),
+        prismaCode: error?.meta?.target || null,
+      },
       severity: 'warning', success: false,
     });
 
@@ -328,8 +336,16 @@ export async function POST(req: Request) {
     if (error?.code === 'P2003') {
       return NextResponse.json({ error: 'Invalid reference. Please try again.' }, { status: 400 });
     }
+    if (error?.code === 'P2021' || error?.code === 'P2022') {
+      // Table or column doesn't exist — schema out of sync
+      console.error('[Security] DATABASE SCHEMA OUT OF SYNC — run prisma db push');
+      return NextResponse.json({ error: 'Database configuration error. Please contact support.' }, { status: 503 });
+    }
     if (error?.message?.includes('connect') || error?.message?.includes('ECONNREFUSED') || error?.code === 'P1001') {
       return NextResponse.json({ error: 'Unable to connect to the database. Please try again later.' }, { status: 503 });
+    }
+    if (error?.message?.includes('DATABASE_URL') || error?.message?.includes('prisma')) {
+      return NextResponse.json({ error: 'Database not configured. Please contact support.' }, { status: 503 });
     }
 
     return NextResponse.json({ error: 'Failed to create account. Please try again.' }, { status: 500 });

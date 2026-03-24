@@ -2,7 +2,9 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.4.1
+- **Version**: 9.4.2
+- **Mission**: Limud is built for students who learn differently. Our mission is to embrace and support diverse learning styles at every level of the experience.
+- **Slogan**: "Every mind learns differently."
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
 - **Security**: Enterprise-grade FERPA + COPPA + OWASP Top 10 compliant security for children's data protection
 - **Tech Stack**: Next.js 14 + TypeScript + Tailwind CSS + Prisma + NextAuth + Google Gemini + Framer Motion
@@ -271,6 +273,64 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 - **Tech Stack**: Next.js 14 + TypeScript + TailwindCSS + Prisma + NextAuth
 - **Security Level**: Enterprise (FERPA + COPPA + OWASP Top 10)
 - **Last Updated**: 2026-03-22
+
+---
+
+## What's New in v9.4.2 — Personalized Learning & Stability
+
+**Core philosophy shift**: Limud now centers on fully personalized learning methods rather than a one-size-fits-all approach. Every feature is designed around the principle that every mind learns differently.
+
+### Adaptive Assignment Engine (confirmed working)
+- When a teacher uploads an assignment marked as **homework** or **independent practice**, the AI automatically adapts it to each student’s learning style
+- **ADHD students** receive shorter, more interactive tasks with built-in breaks
+- **Auditory learners** get audio-based explanations and verbal scaffolding
+- **Visual learners** see diagrams, color-coded steps, and visual breakdowns
+- **Structured learners** receive checklists and step-by-step guides
+- Powered by Google Gemini with intelligent fallback when AI is unavailable
+
+### Teacher Method Insights
+- After each student submits work, teachers can see **both the final answer and the method used**
+- Methods tracked: visual, step-by-step, audio-based, simplified reasoning
+- Enables teachers to understand how each student learns and adjust instruction accordingly
+- Accessible via `GET /api/teacher/method-insights?assignmentId=X`
+
+### Learning Style Onboarding
+- Learning styles are now integrated directly into sign-up
+- Students identify preferences during registration: visual, auditory, ADHD-friendly, structured, kinesthetic, reading/writing
+- Full 5-step survey available after first login for detailed profiling (learning needs, preferred formats, motivators)
+- Platform immediately tailors the experience from day one
+
+### Self Education Accounts (confirmed working)
+- Independent learners can create accounts to learn at their own pace
+- Auto-creates a personal micro-district, default “My Studies” course, and enrollment
+- Quick learning style picker during signup
+- Redirects to full survey after first login
+
+### Dashboard Stability Fix
+- Fixed “Application error: a client-side exception” on all dashboards (teacher, student, admin, parent)
+- Root cause: `redirect()` from `next/navigation` used inside `useEffect` in client components throws uncatchable `NEXT_REDIRECT` errors
+- Replaced with `router.push()` across all four dashboard pages
+- Added global `error.tsx` boundary for graceful error display
+
+### Enhanced Error Handling
+- Registration API now logs full error details (message, Prisma code, stack trace) for debugging
+- New detection for schema-out-of-sync errors (P2021/P2022) with clear messaging
+- Better DATABASE_URL missing detection
+
+### Master Demo Survey Access
+- Master demo can access the student learning survey at any time from the sidebar
+
+### Color Theme Switcher
+- Users can toggle between blue and green themes from the sidebar
+- Persisted via localStorage and `colorTheme` field on User
+
+### Branding
+- **Slogan**: “Every mind learns differently.”
+- Updated landing page hero, value props, audience cards, and footer
+- Self Learners audience card added
+
+### Version Bump
+- 9.4.1 → 9.4.2 across package.json, health API, security dashboard, landing page, .env, README
 
 ---
 

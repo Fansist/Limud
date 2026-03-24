@@ -98,7 +98,7 @@ export const GET = secureApiHandler(
       : 'LOW';
 
     return NextResponse.json({
-      version: '9.4.1',
+      version: '9.4.2',
       threatLevel,
       metrics,
       districtStats,
