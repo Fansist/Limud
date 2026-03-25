@@ -300,7 +300,7 @@ export async function middleware(request: NextRequest) {
 
 function addSecurityHeaders(response: NextResponse, pathname: string) {
   response.headers.set('X-Request-Id', crypto.randomUUID());
-  response.headers.set('X-Limud-Version', '9.4.0');
+  response.headers.set('X-Limud-Version', '9.5.0');
   response.headers.set('X-Limud-Security', 'active');
 
   // Core OWASP headers

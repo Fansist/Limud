@@ -30,10 +30,9 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/student/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
     { href: '/student/tutor', label: 'AI Tutor', icon: <MessageCircle size={20} /> },
     { href: '/student/focus', label: 'Focus Mode', icon: <Focus size={20} /> },
-    { href: '/student/knowledge', label: 'Knowledge', icon: <Brain size={20} /> },
+    { href: '/student/knowledge', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { href: '/student/study-planner', label: 'Study Planner', icon: <Calendar size={20} /> },
     { href: '/student/exam-sim', label: 'Exam Simulator', icon: <FileText size={20} /> },
-    { href: '/student/growth', label: 'Growth Analytics', icon: <TrendingUp size={20} /> },
     { href: '/student/rewards', label: 'Rewards', icon: <Trophy size={20} /> },
     { href: '/student/games', label: 'Game Store', icon: <Gamepad2 size={20} /> },
     { href: '/student/daily-challenge', label: 'Daily Challenge', icon: <Zap size={20} /> },
@@ -51,8 +50,6 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/teacher/quiz-generator', label: 'AI Quiz Generator', icon: <Lightbulb size={20} /> },
     { href: '/teacher/worksheets', label: 'Worksheet Builder', icon: <PenTool size={20} /> },
     { href: '/teacher/exchange', label: 'Teacher Exchange', icon: <Globe2 size={20} /> },
-    { href: '/teacher/learning-insights', label: 'Learning Styles', icon: <Brain size={20} /> },
-    { href: '/teacher/insights', label: 'Insights & Heatmap', icon: <Target size={20} /> },
     { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { href: '/teacher/reports', label: 'AI Reports', icon: <FileText size={20} /> },
     { href: '/teacher/students', label: 'My Students', icon: <Users size={20} /> },
@@ -91,9 +88,9 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
 const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.ReactNode }[]> = {
   STUDENT: [
     { href: '/student/dashboard', label: 'Home', icon: <LayoutDashboard size={20} /> },
-    { href: '/student/knowledge', label: 'Learn', icon: <Brain size={20} /> },
+    { href: '/student/knowledge', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { href: '/student/focus', label: 'Focus', icon: <Focus size={20} /> },
-    { href: '/student/growth', label: 'Growth', icon: <TrendingUp size={20} /> },
+    { href: '/student/tutor', label: 'Tutor', icon: <MessageCircle size={20} /> },
     { href: '/student/rewards', label: 'Rewards', icon: <Trophy size={20} /> },
   ],
   TEACHER: [

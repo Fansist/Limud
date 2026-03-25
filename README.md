@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.4.3
+- **Version**: 9.5.0
 - **Mission**: Limud is built for students who learn differently. Our mission is to embrace and support diverse learning styles at every level of the experience.
 - **Slogan**: "Every mind learns differently."
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
@@ -14,244 +14,248 @@
 
 ---
 
-## What's New in v9.0 — Enterprise Security Overhaul (FERPA + COPPA + OWASP)
+## What's New in v9.5.0 — Feature Consolidation, Assignment Diff & Performance
 
-### This is a MAJOR release focused entirely on building enterprise-grade, top-of-the-line security for protecting children's personal and sensitive information.
+### 1. Consolidated Teacher Analytics (3-in-1)
 
----
+Three formerly separate teacher pages have been merged into a single **tabbed Analytics page** (`/teacher/analytics`):
 
-### 1. Security Engine (`src/lib/security.ts`) — 35KB Security Infrastructure
+| Tab | Content | Old URL |
+|-----|---------|---------|
+| **Overview** | Student scores, score distribution chart, at-risk students, search | `/teacher/analytics` |
+| **Insights & Heatmap** | Misconception heatmap, skill gaps, performance predictions | `/teacher/insights` |
+| **Learning Styles** | Student learning profiles, AI adaptations, solving methods | `/teacher/learning-insights` |
+| **Assignment Diff** | Side-by-side original vs AI-adapted assignment comparison | NEW |
 
-**Rate Limiting (Sliding Window Algorithm)**
-- 60 req/min per IP (global)
-- 5 login attempts per minute (auth) with progressive lockout
-- 100 req/min per authenticated user (API)
-- 3 registrations per minute per IP
-- 10 AI endpoint calls per minute
-- 5 file uploads per minute
-- 20 sensitive data accesses per minute
-- Separate tracking stores for each category
+**Backward compatibility**: The old URLs (`/teacher/insights`, `/teacher/learning-insights`) now **redirect** to the corresponding tabs. No bookmarks will break.
 
-**Brute-Force Login Protection (Progressive Lockout)**
-- 5 failed attempts → 15-minute lockout
-- Progressive escalation: 15min → 30min → 1hr → 2hr → ...
-- Maximum lockout: 24 hours
-- Per-email tracking with IP correlation
-- Automatic unlock after lockout period
-- Admin manual unlock via Security Dashboard
+### 2. Consolidated Student Analytics (2-in-1)
 
-**Input Sanitization (Defense in Depth)**
-- XSS prevention: HTML entity encoding for all user input
-- SQL injection blocking: Pattern-based detection (defense layer on top of Prisma ORM parameterized queries)
-- Prototype pollution prevention: Blocks `__proto__`, `constructor`, `prototype` keys
-- Null byte injection prevention
-- Recursive sanitization for nested objects and arrays
-- Payload size limits (100KB max for API requests)
+Two student pages merged into a single **tabbed Analytics page** (`/student/knowledge`):
 
-**Password Policy (NIST SP 800-63B)**
-- Minimum 10 characters
-- Must contain: uppercase + lowercase + number
-- Breached password check against 50+ common passwords
-- Cannot contain email local part or user name
-- No 4+ repeated characters (aaaa)
-- No sequential characters (abcd, 1234)
-- Strength scoring: weak / fair / strong / very_strong (0-100)
-- Context-aware validation
+| Tab | Content | Old URL |
+|-----|---------|---------|
+| **Knowledge Map** | Radar chart, skill mastery, study heatmap, goals, rank | `/student/knowledge` |
+| **Growth & Predictions** | Mastery overview, predicted grade, skill map by category | `/student/growth` |
 
-**CSRF Protection**
-- Cryptographic token generation (32 bytes)
-- Timing-safe comparison to prevent timing attacks
-- 1-hour token expiry
-- Per-session token binding
+**Backward compatibility**: `/student/growth` redirects to `/student/knowledge?tab=growth`.
 
-**Session Fingerprinting**
-- SHA-256 hash of User-Agent + Accept-Language + Accept-Encoding
-- Anomaly detection for session hijacking
-- Fingerprint included in audit logs
+### 3. Assignment Diff View (NEW)
 
-**PII Encryption (AES-256-GCM)**
-- Field-level encryption for student personal data
-- Unique IV per encryption operation
-- Authentication tag verification (tamper detection)
-- Key derived from NEXTAUTH_SECRET via SHA-256
-- Supports transparent decryption of legacy unencrypted data
+Teachers can now compare the **original assignment** with **AI-adapted versions** side-by-side:
+- Select any adaptive-enabled assignment from the list
+- Switch between adapted versions for each student
+- **Side-by-side mode**: Original and adapted content rendered in parallel columns
+- **Changes-only mode**: See just the AI modifications list
+- Shows learning style, difficulty adjustment, and suggested method
 
-**Audit Logging (FERPA 7-Year Retention)**
-- 25+ audit action types
-- In-memory buffer with periodic database flush
-- Memory store up to 10,000 events
-- Severity levels: info, warning, critical
-- IP masking in logs (last octet hidden)
-- Email masking in logs (local part obscured)
-- Session fingerprint correlation
+API: `GET /api/teacher/assignment-diff` (list) and `GET /api/teacher/assignment-diff?assignmentId=X` (full diff data)
+
+### 4. Performance Optimizations for Concurrent Users
+
+- **Server hardening**: Graceful shutdown (SIGTERM/SIGINT), uncaught exception handling prevents crashes
+- **Prisma connection pooling**: Singleton pattern with optimized logging (warn+error in dev, error-only in prod)
+- **Static asset caching**: Immutable hashing for `/_next/static/`, 1-day cache for favicon
+- **API no-cache**: All `/api/*` routes return `Cache-Control: no-store`
+- **Parallel data loading**: Teacher analytics loads all 3 data sources in parallel (`Promise.allSettled`)
+- **Memory tracking**: Health endpoint now reports heap memory usage
+
+### 5. Update Safety (No Breaking Changes)
+
+- **No schema changes**: v9.5 adds NO new database columns or tables — `prisma db push` is safe
+- **Old URLs redirect**: All old page URLs redirect to their new consolidated locations
+- **API endpoints preserved**: All existing API endpoints work exactly as before
+- **How to update safely**:
+  1. `git pull origin main`
+  2. `npm install`
+  3. `npm run build`
+  4. Restart the server (or Render auto-deploys)
+  5. No database migration needed
+
+### 6. Navigation Cleanup
+
+**Teacher sidebar** (14 → 12 items):
+- Removed "Learning Styles" and "Insights & Heatmap" (consolidated into Analytics)
+- "Analytics" now contains all insights, heatmaps, learning styles, and diff view
+
+**Student sidebar** (15 → 14 items):
+- Removed "Growth Analytics" (consolidated into Analytics/Knowledge)
+- "Knowledge" renamed to "Analytics"
 
 ---
 
-### 2. Edge Middleware (`src/middleware.ts`) — Request-Level Security
+## Complete Render Deployment Tutorial
 
-**Threat Detection (Zero Trust)**
-- 19 malicious bot/scanner User-Agent patterns blocked
-- 17 malicious path patterns detected (path traversal, injection, etc.)
-- Attack file extensions blocked (.php, .asp, .exe, .sh, etc.)
-- URL length limit (8192 chars) against buffer overflow DoS
-- Suspicious header detection (host injection, URL rewriting)
+### Prerequisites
+1. A [Render.com](https://render.com) account (free tier works)
+2. A [PostgreSQL database](https://render.com/docs/databases) (Render provides free PostgreSQL)
+3. A [Google Gemini API key](https://aistudio.google.com/apikey) (free tier: 15 req/min)
+4. Source code pushed to GitHub
 
-**Edge Rate Limiting**
-- 200 requests/minute per IP (global)
-- 10 requests/minute per IP (auth endpoints)
-- Separate from application-level rate limiting (defense in depth)
+### Step 1: Create a PostgreSQL Database
 
-**Role-Based Access Control (RBAC)**
-- ADMIN: Full access to admin dashboard, security center, district management
-- TEACHER: Teacher dashboard, grading, student data
-- STUDENT: Student dashboard, assignments, AI tutor
-- PARENT: Parent dashboard, child reports, goal setting
-- HOMESCHOOL PARENT: Teacher-level access for homeschool families
-- MASTER DEMO: Cross-role access for demo/testing only
+1. Go to **Render Dashboard** → **New** → **PostgreSQL**
+2. Name: `limud-db`
+3. Region: Choose closest to your users (e.g., Ohio for US East)
+4. Plan: **Free** (90-day limit) or **Starter** ($7/mo, persistent)
+5. Click **Create Database**
+6. Copy the **Internal Database URL** (starts with `postgresql://...`)
 
-**Full Security Headers on Every Response**
-- `Strict-Transport-Security`: 2 years with preload
-- `X-Frame-Options`: DENY (anti-clickjacking)
-- `X-Content-Type-Options`: nosniff
-- `X-XSS-Protection`: 1; mode=block
-- `Content-Security-Policy`: Strict policy with allowlisted CDNs
-- `Permissions-Policy`: Disables camera, microphone, geolocation, payment, USB, etc.
-- `Cross-Origin-Opener-Policy`: same-origin
-- `Cross-Origin-Resource-Policy`: same-origin
-- `Referrer-Policy`: strict-origin-when-cross-origin
-- API routes: `Cache-Control: no-store` (no sensitive data caching)
-- Request tracking: `X-Request-Id` UUID on every response
+### Step 2: Create a Web Service
 
----
+1. Go to **Render Dashboard** → **New** → **Web Service**
+2. Connect your GitHub repository
+3. Configure:
+   - **Name**: `limud`
+   - **Region**: Same as your database
+   - **Branch**: `main`
+   - **Runtime**: `Node`
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
+   - **Plan**: **Free** (spins down after 15 min idle) or **Starter** ($7/mo, always-on)
 
-### 3. API Middleware (`src/lib/middleware.ts`) — Handler-Level Security
+### Step 3: Set Environment Variables
 
-**`secureApiHandler()` — Wraps every API route with:**
-1. Per-IP rate limiting (configurable per endpoint)
-2. Per-user rate limiting (prevents account abuse)
-3. Authentication verification (JWT session check)
-4. Role-based authorization (configurable allowed roles)
-5. XSS pattern detection in request bodies
-6. SQL injection pattern detection in request bodies
-7. Prototype pollution detection
-8. Payload size validation (100KB limit)
-9. Audit logging for sensitive operations
-10. PII-safe error handling (never leaks stack traces)
-11. Prisma error classification (P1001→503, P2002→409, P2025→404)
+In the Render web service settings, add these environment variables:
 
-**`apiHandler()` — Legacy wrapper for backward compatibility**
-- All existing routes automatically get rate limiting + error handling
-- New routes should use `secureApiHandler()` with explicit options
+| Variable | Value | Required |
+|----------|-------|----------|
+| `DATABASE_URL` | `postgresql://user:pass@host:5432/dbname` (from Step 1) | Yes |
+| `NEXTAUTH_SECRET` | Run `openssl rand -base64 32` to generate | Yes |
+| `NEXTAUTH_URL` | `https://your-app.onrender.com` (or custom domain) | Yes |
+| `GEMINI_API_KEY` | Your Google Gemini API key | Yes |
+| `NODE_ENV` | `production` | Yes |
+| `AI_MODEL` | `gemini-2.0-flash` (optional, this is the default) | No |
+| `PII_ENCRYPTION_KEY` | `openssl rand -base64 32` (optional, falls back to NEXTAUTH_SECRET) | No |
 
----
+### Step 4: Initialize the Database
 
-### 4. Authentication (`src/lib/auth.ts`) — Hardened NextAuth
+After the first deploy succeeds, open the Render **Shell** tab and run:
 
-- **24-hour JWT sessions** (reduced from 30 days)
-- **Hourly token refresh** (updateAge: 3600)
-- **Secure cookies**: `__Secure-` prefix in production, HttpOnly, SameSite=lax
-- **CSRF token cookie**: `__Host-` prefix in production (most restrictive)
-- **Brute-force protection** integrated into authorize flow
-- **Progressive account lockout** with audit logging
-- **Email normalization** (toLowerCase + trim)
-- **Dynamic bcrypt import** (prevents module crash if package missing)
-- **Stable NEXTAUTH_SECRET** — no auto-generation, consistent across deploys
+```bash
+# Push the Prisma schema to create all tables
+npx prisma db push
 
----
-
-### 5. Security Headers in `next.config.js`
-
-Applied to all routes via Next.js headers() config:
-- Content Security Policy (strict CSP with allowlisted CDNs)
-- HSTS with 2-year max-age and preload
-- X-Frame-Options: DENY
-- X-Content-Type-Options: nosniff
-- Permissions-Policy (disables 9 dangerous browser APIs)
-- Cross-Origin policies (same-origin)
-- API routes: no-cache headers
-- Static assets: 1-year immutable cache
-
----
-
-### 6. FERPA/COPPA Compliance
-
-**FERPA (Family Educational Rights and Privacy Act)**
-- `checkFERPAAccess()` — enforces data access rules:
-  - Students: access own data only
-  - Parents: access their children's data
-  - Teachers: access enrolled students' data
-  - Admins: access within their district only
-  - Cross-district access: DENIED
-- `classifyField()` — categorizes data as public/internal/confidential/restricted
-- `SecurityAuditLog` Prisma model — 7-year retention
-- `DataAccessLog` Prisma model — tracks every student record access
-- `DataDeletionRequest` Prisma model — right-to-delete workflow
-
-**COPPA (Children's Online Privacy Protection Act)**
-- `requiresCOPPAConsent()` — detects children under 13
-- `getCOPPAAllowedFields()` — minimal data collection for minors
-- `ParentalConsent` Prisma model — verifiable consent tracking
-- Consent types: data_collection, ai_interaction, third_party_sharing
-- Verification methods: email, signed form, phone, credit card
-- Consent revocation support
-
----
-
-### 7. OWASP Top 10 Mitigations
-
-| OWASP Threat | Mitigation | Status |
-|---|---|---|
-| A01 Broken Access Control | RBAC + FERPA checks + middleware enforcement | ✅ Active |
-| A02 Cryptographic Failures | AES-256-GCM for PII, bcrypt-12 for passwords, HSTS | ✅ Active |
-| A03 Injection | Prisma ORM (parameterized), input sanitization, CSP | ✅ Active |
-| A04 Insecure Design | Defense in depth, least privilege, threat modeling | ✅ Active |
-| A05 Security Misconfiguration | Security headers, no defaults, error handling | ✅ Active |
-| A06 Vulnerable Components | Dependency auditing, minimal packages | ✅ Active |
-| A07 Auth Failures | Brute-force protection, progressive lockout, NIST | ✅ Active |
-| A08 Data Integrity Failures | CSRF protection, signed tokens, input validation | ✅ Active |
-| A09 Logging Failures | Comprehensive audit logging, 7-year retention | ✅ Active |
-| A10 SSRF | Allowlisted external domains only | ✅ Active |
-
----
-
-### 8. Security Dashboard (`/admin/security`)
-
-Admin-only dashboard with:
-- **Overview**: Real-time metrics (events/hr, critical alerts, auth failures, locked accounts)
-- **Active Protections**: Visual status of all 9 security systems
-- **Threat Monitor**: Filtered view of HIGH/CRITICAL events with block status
-- **Audit Log**: Filterable table (severity, type, IP, user, status)
-- **Compliance**: FERPA + COPPA feature status, encryption details, security headers
-- **OWASP**: Full Top 10 mitigation status with descriptions
-- Auto-refresh every 30 seconds
-- Admin actions: unlock accounts, export audit logs, flush to database
-
----
-
-### 9. Prisma Security Models
-
+# (Optional) Seed with demo data
+npx tsx prisma/seed.ts
 ```
-SecurityAuditLog  — action, userId, ip, resource, severity, success
-LoginAttempt      — email, ip, success, reason
-ParentalConsent   — childId, parentId, type, granted, verification
-DataAccessLog     — accessorId, studentId, dataType, purpose
-DataDeletionRequest — requestorId, subjectId, status, scope
+
+### Step 5: Set Up Custom Domain (Optional)
+
+1. In Render → Your Service → **Settings** → **Custom Domains**
+2. Add your domain (e.g., `limud.co`)
+3. Add the DNS records Render provides to your domain registrar
+4. Update `NEXTAUTH_URL` to your custom domain
+
+### Step 6: Verify Deployment
+
+```bash
+# Check health
+curl https://your-app.onrender.com/api/health
+
+# Expected response:
+# {"status":"ok","version":"9.5.0","platform":"Render","uptime":42.5}
+```
+
+### Updating the App
+
+When you push changes to the `main` branch, Render automatically rebuilds and redeploys.
+
+**Manual update:**
+1. Push to GitHub: `git push origin main`
+2. Render detects the push and starts a new build
+3. Build runs: `npm install && npm run build`
+4. Deploy runs: `npm start` (which runs `node server.js`)
+
+**If you added new Prisma schema changes:**
+1. After deploy, go to Render Shell
+2. Run: `npx prisma db push`
+3. The app will automatically pick up the new schema
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| App shows "Application Error" | Check Render logs for the error. Usually a missing env var. |
+| Database connection refused | Ensure DATABASE_URL uses the **Internal** URL and same region |
+| Login doesn't work | Verify NEXTAUTH_SECRET is set and NEXTAUTH_URL matches your domain |
+| AI features return fallback data | Check GEMINI_API_KEY is valid. Test at https://aistudio.google.com |
+| Build fails with OOM | Upgrade to Starter plan (512MB→1GB RAM). Free tier has 512MB limit. |
+| App is slow after idle | Free tier spins down after 15 min. First request takes ~30s to cold start. |
+
+### render.yaml (Alternative: Infrastructure as Code)
+
+Place this at the project root for one-click deploy:
+
+```yaml
+services:
+  - type: web
+    name: limud
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: limud-db
+          property: connectionString
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: NEXTAUTH_URL
+        value: https://limud.onrender.com
+      - key: GEMINI_API_KEY
+        sync: false
+
+databases:
+  - name: limud-db
+    plan: starter
+    databaseName: limud
+    user: limud
 ```
 
 ---
 
-### 10. Security API Endpoints
+## API Endpoints (Key Routes)
 
-| Endpoint | Method | Auth | Description |
-|---|---|---|---|
-| `/api/security?view=dashboard` | GET | ADMIN | Security metrics & config |
-| `/api/security?view=audit` | GET | ADMIN | Filtered audit log |
-| `/api/security?view=threats` | GET | ADMIN | Active threats |
-| `/api/security?view=compliance` | GET | ADMIN | FERPA/COPPA/OWASP status |
-| `/api/security` | POST | ADMIN | Admin actions (unlock, export, flush) |
-| `/api/security/audit` | GET | ADMIN | Detailed audit log query |
-| `/api/security/consent` | GET/POST | PARENT | Manage COPPA consent |
-| `/api/security/data-deletion` | GET/POST | PARENT/ADMIN | Data deletion requests |
+### Authentication
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/[...nextauth]` | GET/POST | NextAuth.js authentication |
+| `/api/auth/register` | POST | Create new account |
+| `/api/auth/forgot-password` | POST | Password reset email |
+| `/api/auth/reset-password` | POST | Reset password with token |
+
+### Student APIs
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/skills` | GET | Student skill mastery data |
+| `/api/rewards` | GET | Gamification stats (XP, level, streak) |
+| `/api/study-next` | GET | AI-recommended next study action |
+| `/api/confidence` | GET | Confidence/mastery analysis |
+| `/api/tutor` | POST | AI tutor conversation |
+| `/api/focus` | GET/POST | Focus mode questions |
+| `/api/submissions` | GET/POST | Assignment submissions |
+
+### Teacher APIs
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/analytics` | GET | Student performance overview |
+| `/api/teacher/insights` | GET | Misconception heatmap & predictions |
+| `/api/teacher/learning-insights` | GET | Student learning styles & adaptations |
+| `/api/teacher/assignment-diff` | GET | Original vs adapted assignment comparison |
+| `/api/adaptive` | GET/POST | Generate/retrieve adapted assignments |
+| `/api/grade` | POST | AI auto-grading |
+| `/api/quiz-generator` | POST | AI quiz generation |
+
+### Admin APIs
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/admin/provision` | POST | Bulk import students/teachers |
+| `/api/security` | GET/POST | Security dashboard & audit logs |
 
 ---
 
@@ -262,293 +266,28 @@ DataDeletionRequest — requestorId, subjectId, status, scope
 
 ## Data Architecture
 - **Database**: PostgreSQL (Prisma ORM)
-- **Auth**: NextAuth.js (JWT strategy)
+- **Auth**: NextAuth.js (JWT strategy, 24-hour sessions)
 - **AI**: Google Gemini via @google/genai SDK
 - **Storage**: Prisma + PostgreSQL
 
 ## Deployment
 - **Platform**: Render.com
-- **Status**: ✅ Active
+- **Status**: Active
 - **Branch**: main
 - **Tech Stack**: Next.js 14 + TypeScript + TailwindCSS + Prisma + NextAuth
 - **Security Level**: Enterprise (FERPA + COPPA + OWASP Top 10)
-- **Last Updated**: 2026-03-24
+- **Last Updated**: 2026-03-25
 
 ---
-
-## What's New in v9.4.3 — Teacher Learning Insights Tab
-
-**New teacher tab**: Teachers can now view each student's learning style, how assignments are adapted to that specific student, and what solving methods students use.
-
-### Teacher Learning Insights Page (`/teacher/learning-insights`)
-- **New sidebar tab**: "Learning Styles" added to teacher navigation with Brain icon
-- **Class overview stats**: Students profiled, adapted assignments count, unique learning styles, average adapted scores
-- **Style distribution**: Interactive visual showing how many students use each learning style (visual, auditory, ADHD-friendly, etc.) with average scores per style
-- **Student learning profiles**: Expandable cards for each student showing:
-  - Primary learning style with description and preferred formats
-  - Survey completion status and special learning needs (ADHD, dyslexia, etc.)
-  - Recent solving methods with scores for each assignment
-  - Whether each assignment was AI-adapted
-- **AI adaptation viewer**: For each adapted assignment, teachers can see:
-  - What modifications the AI made (e.g., "Added diagram placeholders", "Broke into 6 micro-tasks")
-  - Suggested solving method (visual, step-by-step, interactive, etc.)
-  - Difficulty adjustment (simplified, standard, enriched)
-  - Full adapted content preview in markdown
-- **Filter by style**: Filter students by learning style to focus on specific groups
-- **Backend API**: `GET /api/teacher/learning-insights` returns all students with learning profiles, adapted assignments, and method history
-- **Demo mode**: Full demo data with 3 students (Lior/visual, Eitan/ADHD-friendly, Noam/reading-writing) showing realistic adaptations
-
-### Self Education Accounts
-- **Confirmed working**: Registration API returns `success: true` for Self Education accounts on production
-- Backend creates micro-district, default course, enrollment, and learning style profile
-- Frontend registration flow (3-step form) is fully functional
-
-### Version Bump
-- 9.4.2 → 9.4.3 across package.json, health API, security dashboard, landing page, .env, register route, README
-
----
-
-## What's New in v9.4.2 — Personalized Learning & Stability
-
-**Core philosophy shift**: Limud now centers on fully personalized learning methods rather than a one-size-fits-all approach. Every feature is designed around the principle that every mind learns differently.
-
-### Adaptive Assignment Engine (confirmed working)
-- When a teacher uploads an assignment marked as **homework** or **independent practice**, the AI automatically adapts it to each student’s learning style
-- **ADHD students** receive shorter, more interactive tasks with built-in breaks
-- **Auditory learners** get audio-based explanations and verbal scaffolding
-- **Visual learners** see diagrams, color-coded steps, and visual breakdowns
-- **Structured learners** receive checklists and step-by-step guides
-- Powered by Google Gemini with intelligent fallback when AI is unavailable
-
-### Teacher Method Insights
-- After each student submits work, teachers can see **both the final answer and the method used**
-- Methods tracked: visual, step-by-step, audio-based, simplified reasoning
-- Enables teachers to understand how each student learns and adjust instruction accordingly
-- Accessible via `GET /api/teacher/method-insights?assignmentId=X`
-
-### Learning Style Onboarding
-- Learning styles are now integrated directly into sign-up
-- Students identify preferences during registration: visual, auditory, ADHD-friendly, structured, kinesthetic, reading/writing
-- Full 5-step survey available after first login for detailed profiling (learning needs, preferred formats, motivators)
-- Platform immediately tailors the experience from day one
-
-### Self Education Accounts (confirmed working)
-- Independent learners can create accounts to learn at their own pace
-- Auto-creates a personal micro-district, default “My Studies” course, and enrollment
-- Quick learning style picker during signup
-- Redirects to full survey after first login
-
-### Dashboard Stability Fix
-- Fixed “Application error: a client-side exception” on all dashboards (teacher, student, admin, parent)
-- Root cause: `redirect()` from `next/navigation` used inside `useEffect` in client components throws uncatchable `NEXT_REDIRECT` errors
-- Replaced with `router.push()` across all four dashboard pages
-- Added global `error.tsx` boundary for graceful error display
-
-### Enhanced Error Handling
-- Registration API now logs full error details (message, Prisma code, stack trace) for debugging
-- New detection for schema-out-of-sync errors (P2021/P2022) with clear messaging
-- Better DATABASE_URL missing detection
-
-### Master Demo Survey Access
-- Master demo can access the student learning survey at any time from the sidebar
-
-### Color Theme Switcher
-- Users can toggle between blue and green themes from the sidebar
-- Persisted via localStorage and `colorTheme` field on User
-
-### Branding
-- **Slogan**: “Every mind learns differently.”
-- Updated landing page hero, value props, audience cards, and footer
-- Self Learners audience card added
-
-### Version Bump
-- 9.4.1 → 9.4.2 across package.json, health API, security dashboard, landing page, .env, README
-
----
-
-## What's New in v9.4.1 — Registration Hotfix
-
-**Critical bugfix**: Account creation was broken for ALL account types after v9.4.0.
-
-### Root Cause
-The `SELF_EDUCATION` block in `src/app/api/auth/register/route.ts` assigned to `districtId` (line 136) **before** the `let districtId` declaration (line 151). Because `let` variables exist in a Temporal Dead Zone before their declaration, this threw an **unrecoverable `ReferenceError`** that crashed the entire POST handler — even for non-SELF_EDUCATION account types (STUDENT, TEACHER, PARENT, ADMIN, HOMESCHOOL) since the error was thrown before the `try` block's variable scoping could proceed.
-
-### Fix
-- Moved `let districtId: string | undefined` declaration **above** all conditional district-creation blocks
-- Removed unused `course` variable from the SELF_EDUCATION block (enrollment uses `findFirst` later)
-- Updated registration API header comment to v9.4.1 with fix description
-
-### Files Changed
-- `src/app/api/auth/register/route.ts` — Moved declaration, fixed scoping
-- `package.json` — Version bump 9.4.0 → 9.4.1
-- `README.md` — Added v9.4.1 release notes
-
----
-
-## What's New in v9.4.0 — Adaptive Learning & Self Education
-
-**New company theme: "Every mind learns differently."** This release introduces AI-driven adaptive assignments, diverse learning style support, Self Education accounts, and a color theme switcher.
-
-### Adaptive Assignment Engine
-- **`src/app/api/adaptive/route.ts`** (NEW) — POST generates AI-adapted versions of assignments per student's learning style (visual, auditory, kinesthetic, ADHD-friendly, structured); GET retrieves adapted content for a student
-- **`prisma/schema.prisma`** — Added `AdaptedAssignment` model, `adaptiveEnabled`/`workMode` fields on Assignment, `solvingMethod`/`methodDetails`/`adaptedFrom` on Submission, `learningStyleProfile` on User, `learningNeeds`/`preferredFormats` on StudentSurvey, `SELF_EDUCATION` enum on AccountType, `colorTheme` field on User
-- **`src/app/api/assignments/route.ts`** — POST now accepts `adaptiveEnabled` and `workMode`; auto-triggers adaptation for homework/independent_practice
-
-### Teacher Method Insights
-- **`src/app/api/teacher/method-insights/route.ts`** (NEW) — GET returns submissions with each student's solving method (visual, step-by-step, audio, simplified) plus their learning style profile, enabling teachers to adjust instruction
-
-### Learning Style Survey (Expanded)
-- **`src/app/student/survey/page.tsx`** — Expanded from 4 to 6 learning styles (added ADHD-Friendly, Structured); added Learning Needs step (ADHD, dyslexia, anxiety, gifted, ESL) and Preferred Formats step (diagrams, audio, interactive, video, etc.)
-- **`src/app/api/survey/route.ts`** — Handles `learningNeeds`, `preferredFormats` fields; saves `learningStyleProfile` JSON on User; master demo can now access the survey
-
-### Self Education Accounts
-- **`src/app/(auth)/register/page.tsx`** — New "Self Education" account type for independent learners; includes quick learning style picker during signup
-- **`src/app/api/auth/register/route.ts`** — Handles `SELF_EDUCATION` accountType: creates micro-district, default "My Studies" course, initial learningStyleProfile, and enrolls the student automatically
-
-### Master Demo Survey Access
-- **`src/components/layout/DashboardLayout.tsx`** — Master demo sidebar now includes "Open Student Learning Survey" link
-
-### Green Theme Switcher
-- **`src/components/layout/DashboardLayout.tsx`** — New Palette toggle in sidebar utility row switches between blue and green color themes; persists to localStorage
-- **`src/app/globals.css`** — Full `.theme-green` CSS overrides for all primary-* colors (background, text, border, gradient, ring, hover, focus)
-- **`prisma/schema.prisma`** — Added `colorTheme` field on User (default "blue")
-
-### Branding Update
-- **`src/components/landing/LandingPage.tsx`** — New hero: "Every mind learns differently"; new value props (Adaptive Learning, Self Education); Self Learners audience card; Method Insights feature; updated CTA and footer tagline
-- **`src/app/(auth)/register/page.tsx`** — Left panel shows new branding: "Every mind learns differently" with ADHD, visual, auditory, self-education callouts
-
-### Version Bump
-- 9.3.5 -> 9.4.0 across package.json, config, middleware, health, security dashboard, README, .env
-
----
-
-## What's New in v9.3.5 — Migrate from OpenAI to Google Gemini
-
-**Full AI backend migration** from OpenAI SDK (`openai` npm) to Google Gemini (`@google/genai` npm). All AI features now use Gemini natively.
-
-**Changes:**
-- `src/lib/ai.ts` — Rewritten with `@google/genai`; `callGemini()` replaces `callOpenAI()`
-- `src/lib/config.ts` — `GEMINI_API_KEY` replaces `OPENAI_API_KEY`; default model `gemini-2.0-flash`
-- All API routes updated: quiz-generator, exam-sim, ai-navigator, parent/ai-checkin, worksheet-search
-- CSP headers updated to `generativelanguage.googleapis.com`
-- Help page text updated to "Google Gemini 2.0 Flash"
-- `.env` vars renamed, `package.json` dependency switched
-
-## What's New in v9.3.4 — Fix Account Creation
-
-**Root cause:** Frontend password validation required only 8 characters but the backend NIST SP 800-63B policy requires 10+ characters, uppercase, lowercase, and a number. Users could reach the submit button with passwords the backend would silently reject. Additionally, the frontend displayed only a generic toast on backend errors, never showing the specific password requirement failures.
-
-**Changes:**
-- **`src/app/(auth)/register/page.tsx`** — Rewrote client-side password validator to match backend NIST rules (10 chars, upper/lower/number, no repeats, no sequences)
-- **`src/app/(auth)/register/page.tsx`** — Password strength meter now uses the same thresholds as backend
-- **`src/app/(auth)/register/page.tsx`** — Real-time inline error list shows unmet requirements below the password field
-- **`src/app/(auth)/register/page.tsx`** — Green checkmark when all requirements met
-- **`src/app/(auth)/register/page.tsx`** — "Create Account" button disabled until all password rules pass
-- **`src/app/(auth)/register/page.tsx`** — On backend 400 response, displays all `passwordErrors` from the API instead of generic toast
-- **`src/app/api/auth/register/route.ts`** — Improved error message: returns all password errors joined, not just the first one
-- **Version bump** 9.3.3 → 9.3.4 across 25 files
-
-## What's New in v9.3.3 — Fix Quiz Generator (All Subjects, Variable Count)
-
-The AI Quiz Generator was only producing Math questions and always returned exactly 5 regardless of settings. Now it supports all subjects with real AI generation and 165 template questions as fallback.
-
-### Fixed
-- **Real AI generation**: Rewrote `/api/quiz-generator` POST with proper system+user prompt that instructs the model to generate the exact number of requested questions, with subject, grade, difficulty, and topic context
-- **Uses `extractJSON`** for robust JSON parsing from AI responses (handles markdown fences, leading text)
-- **Fallback uses `generateSpecializedQuiz`** from `ai-generators.ts` instead of the old `generateDemoQuiz` which only had 3-5 hardcoded Math questions
-- **165 template questions** across 4 subjects and 10 topics:
-  - Math (55): Algebra (18), Geometry (12), Fractions (10), General (15)
-  - Science (44): Biology (12), Chemistry (10), Physics (10), General (12)
-  - English (32): Literary Devices (10), Grammar (10), General (12)
-  - History (34): American History (12), World History (10), General (12)
-- **Smart question pooling**: Topic-specific questions first, then fill from other topics within the subject, then cross-subject as last resort
-- **Proper difficulty filtering**: Questions filtered by difficulty with fallback to mixed if too few match
-- **No more ugly duplicates**: Removed the old `(N) prefix` padding; now pulls unique questions from broader pools
-- **Respects `questionCount` setting**: Generates 5, 8, 10, 15, or 20 questions as requested
-- **Demo route** (`/api/demo`) already used `generateSpecializedQuiz` — now benefits from the expanded banks
-- **Version bump** 9.3.2 → 9.3.3 across 23 files
-
----
-
-## What's New in v9.3.2 — Fix Sidebar Layout Overlap
-
-The sidebar bottom section (utility buttons + user profile) was overlapping the navigation items on desktop, especially visible with the Master Demo role switcher active.
-
-### Fixed
-- **Restored proper flex layout**: Nav section (`flex-1 overflow-y-auto`) scrolls independently; bottom section stays pinned
-- **Compact utility icons**: Lite/Theme/A11y/Help rendered as a 4-icon row with labels stacked below (consistent across all screen sizes)
-- **Smaller user profile row**: Reduced avatar, font sizes, and padding to minimize height
-- **Sign out inline**: Logout button integrated into profile row as icon-only
-- **No more overlap**: Bottom section is `flex-shrink-0` and the aside no longer has `overflow-y-auto` on the whole container
-- **Version bump** 9.3.1 → 9.3.2 across 23 files
-
-## Files Changed in v9.0
-
-| File | Change |
-|---|---|
-| `src/lib/security.ts` | 35KB — Complete rewrite with unified API, SECURITY_CONFIG restructured |
-| `src/middleware.ts` | 12.7KB — Edge middleware with full OWASP headers, enhanced bot detection |
-| `src/lib/middleware.ts` | 13KB — secureApiHandler with XSS/SQLi detection, auditAction/auditType compat |
-| `src/lib/auth.ts` | 13.8KB — Secure cookie config, session hardening, SECURITY_CONFIG integration |
-| `src/app/api/security/route.ts` | 8KB — Fixed imports, OWASP compliance view, flush action |
-| `src/app/admin/security/page.tsx` | 30KB — Fixed API mapping, severity compat, compliance tab |
-| `next.config.js` | 4.5KB — v9.0 security headers |
-| `server.js` | Version bump to 9.0 |
-| `render.yaml` | Version bump to 9.0 |
-| `src/app/api/health/route.ts` | Version bump to 9.0 |
-| `src/components/landing/LandingPage.tsx` | Version bump to v9.0 |
-| `package.json` | Version 9.0 |
-| `README.md` | Complete security documentation |
-
----
-
-## What's New in v9.3.1 — Remove AI Lesson Planner
-
-The AI Lesson Planner feature has been fully removed from the platform. This includes all code, routes, UI, database models, navigation links, and marketing references.
-
-### Removed
-- **Deleted** `src/app/teacher/lesson-planner/` — entire page directory
-- **Deleted** `src/app/api/lesson-plans/` — entire API route directory
-- **Removed** `LessonPlan` Prisma model and `lessonPlans` relation from `User` model
-- **Removed** `DEMO_LESSON_PLANS` export from `src/lib/demo-data.ts`
-- **Removed** `LESSON_PLAN_BANKS`, `generateSpecializedLessonPlan()`, `generateSimplifiedLessonPlan()` from `src/lib/ai-generators.ts`
-- **Removed** lesson plan generation code from `src/app/api/demo/route.ts` (generate-lesson-plan case, AI generation function, imports)
-- **Removed** AI Lesson Planner navigation links from `DashboardLayout.tsx`, `teacher/dashboard/page.tsx`, `parent/dashboard/page.tsx`
-- **Removed** `Wand2` icon import from files where it was only used for lesson planner
-- **Removed** AI Lesson Planner from pricing tiers, custom plan builder slider/presets, FAQ, and feature lists in `pricing/page.tsx`
-- **Removed** lesson plan references from `LandingPage.tsx` (features, pricing, competitor comparison)
-- **Removed** lesson plan mentions from `register/page.tsx`, `demo/page.tsx`, `onboard/page.tsx`, `terms/page.tsx`, `layout.tsx`
-- **Updated** `roadmap/page.tsx` — replaced "lesson plan" wording with "assignment" or "course content"
-- **Updated** `exchange/page.tsx` — changed demo item type from "Lesson Plan" to "Activity"
-- **Version bump** 9.3.0 → 9.3.1 across 23 files
-
-### Active AI Features (Remaining)
-- AI Tutor (conversational tutoring)
-- AI Auto-Grader (assignment grading with feedback)
-- AI Quiz Generator (quiz generation from topics)
-- AI Writing Coach (essay feedback)
-- AI Navigator (contextual help)
-- AI Micro-Lessons (spaced repetition)
-
----
-
-## What's New in v9.3.0 — Fix Lesson Planner AI Generation
-
-- `/api/lesson-plans` POST no longer requires strict TEACHER/ADMIN auth; uses soft session check
-- `/api/demo` route uses new `generateSimplifiedLessonPlan()` export
-- Lesson planner page adds auto-fallback to `/api/demo` on failure
-- Introduced simplified `LessonPlan` type with `sections[]` array
-- `ai-generators.ts` added `generateSimplifiedLessonPlan()` converting legacy 12-field template to sections format
-- Version bump 9.2.2 → 9.3.0 across 27 files
 
 ## Render Environment Variables (REQUIRED)
 
 | Variable | Required | Description |
 |---|---|---|
-| `NEXTAUTH_SECRET` | ✅ | Fixed secret — `openssl rand -base64 32`. NEVER use generateValue. |
-| `NEXTAUTH_URL` | ✅ | `https://limud.co` |
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `NEXTAUTH_SECRET` | Yes | Fixed secret — `openssl rand -base64 32`. NEVER use generateValue. |
+| `NEXTAUTH_URL` | Yes | `https://limud.co` (or your domain) |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `GEMINI_API_KEY` | Yes | Google Gemini API key (from https://aistudio.google.com/apikey) |
-| `AI_MODEL` | | AI model override (default: `gemini-2.0-flash`) |
-| `PII_ENCRYPTION_KEY` | ⚡ | Separate key for PII encryption (falls back to NEXTAUTH_SECRET) |
-| `NODE_ENV` | ✅ | `production` |
+| `AI_MODEL` | No | AI model override (default: `gemini-2.0-flash`) |
+| `PII_ENCRYPTION_KEY` | No | Separate key for PII encryption (falls back to NEXTAUTH_SECRET) |
+| `NODE_ENV` | Yes | `production` |

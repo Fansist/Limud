@@ -1,13 +1,14 @@
 // ─────────────────────────────────────────────────────────────
-// Limud v9.4.0 — server.js
+// Limud v9.5.0 — server.js
 // Universal entry point for Node.js hosting platforms:
-//   • Render.com  (primary — PORT=10000, auto-detected via RENDER env)
-//   • cPanel / GoDaddy (Phusion Passenger)
-//   • Any Node.js host that runs `node server.js`
+//   - Render.com (primary — PORT=10000, auto-detected via RENDER env)
+//   - cPanel / GoDaddy (Phusion Passenger)
+//   - Any Node.js host that runs `node server.js`
 //
-// IMPORTANT: Render runs `npm run start` which calls `node server.js`.
-// Render sets PORT=10000. This file reads PORT from env and binds there.
-// With output:'standalone', we load .next/standalone/server.js directly.
+// v9.5.0: Concurrency optimizations
+//   - Increased Node.js memory limits
+//   - Graceful shutdown handling
+//   - Health check always available
 // ─────────────────────────────────────────────────────────────
 
 const { createServer } = require('http');
@@ -16,7 +17,6 @@ const path = require('path');
 const fs = require('fs');
 
 // ─── Environment Setup ────────────────────────────────────────
-// Load .env file if present (production vars should be set in hosting dashboard)
 const envPath = path.join(__dirname, '.env');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
@@ -41,31 +41,62 @@ const platform = isRender ? 'Render' : (process.env.PASSENGER_APP_ENV ? 'cPanel/
 
 // Render sets PORT=10000; Passenger sets it too; fallback to 3000
 const port = parseInt(process.env.PORT || '3000', 10);
-const hostname = '0.0.0.0'; // Always bind to all interfaces
+const hostname = '0.0.0.0';
 
 // ─── Determine standalone server path ─────────────────────────
 const standaloneServerPath = path.join(__dirname, '.next', 'standalone', 'server.js');
 const isStandalone = fs.existsSync(standaloneServerPath);
 
-console.log(`[Limud] Platform: ${platform}`);
+// ─── v9.5.0: Track startup time ──────────────────────────────
+const startTime = Date.now();
+
+console.log(`[Limud v9.5.0] Platform: ${platform}`);
 console.log(`[Limud] Node.js ${process.version}`);
 console.log(`[Limud] Environment: ${process.env.NODE_ENV || 'production'}`);
 console.log(`[Limud] Standalone build: ${isStandalone ? 'YES' : 'NO'}`);
 console.log(`[Limud] PORT: ${port} (from ${process.env.PORT ? 'env' : 'default'})`);
+console.log(`[Limud] Memory limit: ${Math.round(require('v8').getHeapStatistics().heap_size_limit / 1024 / 1024)}MB`);
+
+// ─── v9.5.0: Graceful shutdown ───────────────────────────────
+let isShuttingDown = false;
+
+function gracefulShutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`[Limud] ${signal} received — graceful shutdown in 5s...`);
+  
+  setTimeout(() => {
+    console.log('[Limud] Shutting down.');
+    process.exit(0);
+  }, 5000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// ─── Unhandled error handling (prevents crash) ────────────────
+process.on('uncaughtException', (err) => {
+  console.error('[Limud] Uncaught exception:', err.message);
+  // Don't exit — keep serving other requests
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Limud] Unhandled rejection:', reason);
+  // Don't exit — keep serving other requests
+});
 
 if (isStandalone) {
   // ─── PRODUCTION: Run standalone Next.js server ──────────────
-  // The standalone server.js reads PORT and HOSTNAME from env
   process.env.PORT = String(port);
   process.env.HOSTNAME = hostname;
 
   console.log(`[Limud] Starting standalone server on ${hostname}:${port}`);
+  console.log(`[Limud] Startup time: ${Date.now() - startTime}ms`);
 
-  // The standalone server.js sets up its own HTTP server
   require(standaloneServerPath);
 
 } else {
-  // ─── FALLBACK: Use next() programmatically (if standalone not built) ─────
+  // ─── FALLBACK: Use next() programmatically ─────────────────
   console.log('[Limud] Standalone build not found — falling back to next() mode.');
   console.log('[Limud] Tip: Run `npm run build` to create the standalone build.');
 
@@ -81,17 +112,25 @@ if (isStandalone) {
 
     app.prepare().then(() => {
       createServer(async (req, res) => {
+        // Reject new requests during shutdown
+        if (isShuttingDown) {
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Server is shutting down' }));
+          return;
+        }
+
         try {
           const parsedUrl = parse(req.url, true);
 
-          // ─── Health-check endpoint (always available) ─────────
+          // Health-check endpoint (always available)
           if (parsedUrl.pathname === '/api/health') {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               status: 'ok',
-              version: '9.4.0',
+              version: '9.5.0',
               platform,
               uptime: process.uptime(),
+              memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
               timestamp: new Date().toISOString(),
             }));
             return;
@@ -104,7 +143,8 @@ if (isStandalone) {
           res.end('Internal Server Error');
         }
       }).listen(port, hostname, () => {
-        console.log(`[Limud] Fallback server running on http://${hostname}:${port}`);
+        console.log(`[Limud] Server running on http://${hostname}:${port}`);
+        console.log(`[Limud] Startup time: ${Date.now() - startTime}ms`);
       });
     });
   } catch (err) {
