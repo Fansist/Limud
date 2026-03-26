@@ -31,7 +31,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: 20.11.0
+        value: 20.19.0
       - key: NEXT_PUBLIC_APP_NAME
         value: Limud
       - key: NEXT_PUBLIC_APP_URL

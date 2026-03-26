@@ -1,6 +1,6 @@
 {
   "name": "limud",
-  "version": "9.5.1",
+  "version": "9.5.2",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
@@ -19,7 +19,7 @@
     "health": "curl -s http://localhost:${PORT:-3000}/api/health | node -e \"process.stdin.resume(); process.stdin.on('data',d=>console.log(JSON.parse(d)))\""
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "20.x"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^1.6.0",

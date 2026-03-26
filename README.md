@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.5.1
+- **Version**: 9.5.2
 - **Mission**: Limud is built for students who learn differently. Our mission is to embrace and support diverse learning styles at every level of the experience.
 - **Slogan**: "Every mind learns differently."
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
@@ -14,9 +14,13 @@
 
 ---
 
-## What's New in v9.5.1 — Env Var Simplification, Announcement Fix & Stability
+## What's New in v9.5.2 — Env Var Simplification, Announcement Fix & Stability
 
-### v9.5.1 Changes
+### v9.5.2 Changes
+
+#### 0. Node.js Version Pinned (CRITICAL FIX)
+
+Render was auto-selecting Node.js 25.x which installs Prisma 7.x (breaking change — `datasource url` no longer supported in schema). Fixed by pinning Node.js to **20.x** in `package.json` engines and `NODE_VERSION` in render.yaml. This ensures Prisma 5.x is used which is compatible with our schema.
 
 #### 1. Environment Variable Simplification
 
@@ -42,11 +46,11 @@ Announcements are stored in-memory for demo/development, and in the database whe
 
 #### 3. Version Bumps
 
-- `package.json`: 9.5.0 → 9.5.1
-- `config.ts` APP_VERSION: 9.5.1
-- Middleware X-Limud-Version: 9.5.1
-- Health endpoint version: 9.5.1
-- server.js version: 9.5.1
+- `package.json`: 9.5.0 → 9.5.2
+- `config.ts` APP_VERSION: 9.5.2
+- Middleware X-Limud-Version: 9.5.2
+- Health endpoint version: 9.5.2
+- server.js version: 9.5.2
 
 ---
 
