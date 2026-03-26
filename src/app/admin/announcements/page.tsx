@@ -135,6 +135,16 @@ export default function AdminAnnouncementsPage() {
       setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, isPinned: !current } : a));
       toast.success(!current ? 'Announcement pinned' : 'Announcement unpinned'); return;
     }
+    try {
+      const res = await fetch('/api/district/announcements', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isPinned: !current }),
+      });
+      if (res.ok) {
+        setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, isPinned: !current } : a));
+        toast.success(!current ? 'Announcement pinned' : 'Announcement unpinned');
+      } else { toast.error('Failed to update'); }
+    } catch { toast.error('Failed to update'); }
   }
 
   async function deleteAnnouncement(id: string) {
@@ -142,6 +152,13 @@ export default function AdminAnnouncementsPage() {
       setAnnouncements(prev => prev.filter(a => a.id !== id));
       toast.success('Announcement deleted (Demo)'); return;
     }
+    try {
+      const res = await fetch(`/api/district/announcements?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAnnouncements(prev => prev.filter(a => a.id !== id));
+        toast.success('Announcement deleted');
+      } else { toast.error('Failed to delete'); }
+    } catch { toast.error('Failed to delete'); }
   }
 
   function resetForm() {

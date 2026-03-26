@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.5.0
+- **Version**: 9.5.1
 - **Mission**: Limud is built for students who learn differently. Our mission is to embrace and support diverse learning styles at every level of the experience.
 - **Slogan**: "Every mind learns differently."
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
@@ -11,6 +11,42 @@
 - **Domain**: https://limud.co
 - **GitHub**: https://github.com/Fansist/Limud
 - **Hosting**: Render.com (primary), also supports cPanel/GoDaddy
+
+---
+
+## What's New in v9.5.1 — Env Var Simplification, Announcement Fix & Stability
+
+### v9.5.1 Changes
+
+#### 1. Environment Variable Simplification
+
+**NEXTAUTH_SECRET**, **NEXTAUTH_URL**, and **PII_ENCRYPTION_KEY** are no longer required.
+
+All three have always had embedded safe defaults in the code. They are now officially **optional** in all documentation. Removing them from your Render/deployment config will NOT break anything.
+
+| Variable | Status | Notes |
+|----------|--------|-------|
+| `NEXTAUTH_SECRET` | **Optional** | Embedded stable default. Only override if you want a custom JWT secret. |
+| `NEXTAUTH_URL` | **Optional** | Auto-derived from request headers. Only set for custom domains. |
+| `PII_ENCRYPTION_KEY` | **Optional** | Falls back to AUTH_SECRET automatically. |
+
+#### 2. District Announcements Fix
+
+The Admin Announcements page (`/admin/announcements`) now works correctly. Previously it tried to call `/api/district/announcements` which didn't exist. A new API route has been created that handles:
+- **GET**: List all announcements (with pagination, search, filtering)
+- **POST**: Create new announcements (admin only)
+- **PUT**: Update announcements (pin/unpin, edit)
+- **DELETE**: Delete announcements
+
+Announcements are stored in-memory for demo/development, and in the database when the `Announcement` model is available.
+
+#### 3. Version Bumps
+
+- `package.json`: 9.5.0 → 9.5.1
+- `config.ts` APP_VERSION: 9.5.1
+- Middleware X-Limud-Version: 9.5.1
+- Health endpoint version: 9.5.1
+- server.js version: 9.5.1
 
 ---
 
@@ -120,13 +156,13 @@ In the Render web service settings, add these environment variables:
 
 | Variable | Value | Required |
 |----------|-------|----------|
-| `DATABASE_URL` | `postgresql://user:pass@host:5432/dbname` (from Step 1) | Yes |
-| `NEXTAUTH_SECRET` | Run `openssl rand -base64 32` to generate | Yes |
-| `NEXTAUTH_URL` | `https://your-app.onrender.com` (or custom domain) | Yes |
-| `GEMINI_API_KEY` | Your Google Gemini API key | Yes |
-| `NODE_ENV` | `production` | Yes |
+| `DATABASE_URL` | `postgresql://user:pass@host:5432/dbname` (from Step 1) | **Yes** |
+| `GEMINI_API_KEY` | Your Google Gemini API key | **Yes** |
+| `NODE_ENV` | `production` | **Yes** |
+| `NEXTAUTH_SECRET` | Run `openssl rand -base64 32` to generate | No (safe default embedded) |
+| `NEXTAUTH_URL` | `https://your-app.onrender.com` (or custom domain) | No (auto-derived from request) |
 | `AI_MODEL` | `gemini-2.0-flash` (optional, this is the default) | No |
-| `PII_ENCRYPTION_KEY` | `openssl rand -base64 32` (optional, falls back to NEXTAUTH_SECRET) | No |
+| `PII_ENCRYPTION_KEY` | `openssl rand -base64 32` (optional, falls back to auth secret) | No |
 
 ### Step 4: Initialize the Database
 
@@ -178,7 +214,7 @@ When you push changes to the `main` branch, Render automatically rebuilds and re
 |-------|----------|
 | App shows "Application Error" | Check Render logs for the error. Usually a missing env var. |
 | Database connection refused | Ensure DATABASE_URL uses the **Internal** URL and same region |
-| Login doesn't work | Verify NEXTAUTH_SECRET is set and NEXTAUTH_URL matches your domain |
+| Login doesn't work | Check browser console for errors. NEXTAUTH_SECRET and NEXTAUTH_URL are auto-configured — only override if using a custom domain. |
 | AI features return fallback data | Check GEMINI_API_KEY is valid. Test at https://aistudio.google.com |
 | Build fails with OOM | Upgrade to Starter plan (512MB→1GB RAM). Free tier has 512MB limit. |
 | App is slow after idle | Free tier spins down after 15 min. First request takes ~30s to cold start. |
@@ -203,12 +239,10 @@ services:
         fromDatabase:
           name: limud-db
           property: connectionString
-      - key: NEXTAUTH_SECRET
-        generateValue: true
-      - key: NEXTAUTH_URL
-        value: https://limud.onrender.com
       - key: GEMINI_API_KEY
         sync: false
+      # NEXTAUTH_SECRET: Optional — safe default is embedded in the app
+      # NEXTAUTH_URL: Optional — auto-derived from request headers
 
 databases:
   - name: limud-db
@@ -276,18 +310,18 @@ databases:
 - **Branch**: main
 - **Tech Stack**: Next.js 14 + TypeScript + TailwindCSS + Prisma + NextAuth
 - **Security Level**: Enterprise (FERPA + COPPA + OWASP Top 10)
-- **Last Updated**: 2026-03-25
+- **Last Updated**: 2026-03-26
 
 ---
 
-## Render Environment Variables (REQUIRED)
+## Render Environment Variables
 
 | Variable | Required | Description |
 |---|---|---|
-| `NEXTAUTH_SECRET` | Yes | Fixed secret — `openssl rand -base64 32`. NEVER use generateValue. |
-| `NEXTAUTH_URL` | Yes | `https://limud.co` (or your domain) |
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `GEMINI_API_KEY` | Yes | Google Gemini API key (from https://aistudio.google.com/apikey) |
+| `DATABASE_URL` | **Yes** | PostgreSQL connection string |
+| `GEMINI_API_KEY` | **Yes** | Google Gemini API key (from https://aistudio.google.com/apikey) |
+| `NODE_ENV` | **Yes** | `production` |
+| `NEXTAUTH_SECRET` | No | Override JWT secret (safe default embedded — `openssl rand -base64 32` to customize) |
+| `NEXTAUTH_URL` | No | Override canonical URL (auto-derived from request — only set for custom domains) |
 | `AI_MODEL` | No | AI model override (default: `gemini-2.0-flash`) |
-| `PII_ENCRYPTION_KEY` | No | Separate key for PII encryption (falls back to NEXTAUTH_SECRET) |
-| `NODE_ENV` | Yes | `production` |
+| `PII_ENCRYPTION_KEY` | No | Separate key for PII encryption (falls back to auth secret) |
