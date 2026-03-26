@@ -99,12 +99,15 @@ const nextConfig = {
     ];
   },
   webpack: (config, { isServer }) => {
+    const path = require('path');
+    // Ensure @/ alias resolves on all platforms (fixes Render build)
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, 'src'),
+    };
     if (!isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        '@google/genai': false,
-        'bcryptjs': false,
-      };
+      config.resolve.alias['@google/genai'] = false;
+      config.resolve.alias['bcryptjs'] = false;
     }
     return config;
   },
