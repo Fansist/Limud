@@ -10,7 +10,7 @@ services:
     runtime: node
     region: oregon  # us-west-2 — change if you prefer another region
     plan: starter   # starter ($7/mo) or standard ($25/mo) for production
-    buildCommand: npm install --legacy-peer-deps && npm run build
+    buildCommand: rm -rf node_modules && npm install && npm run build
     startCommand: node server.js
     healthCheckPath: /api/health
     autoDeploy: true  # Auto-deploy on push to main branch
