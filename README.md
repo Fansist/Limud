@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Name**: Limud (Hebrew: "learning")
-- **Version**: 9.5.2
+- **Version**: 9.5.3
 - **Mission**: Limud is built for students who learn differently. Our mission is to embrace and support diverse learning styles at every level of the experience.
 - **Slogan**: "Every mind learns differently."
 - **Goal**: Transform K-12 education with AI-powered tutoring, smart grading, gamification, 16+ platform integrations, and comprehensive analytics
@@ -14,9 +14,9 @@
 
 ---
 
-## What's New in v9.5.2 — Env Var Simplification, Announcement Fix & Stability
+## What's New in v9.5.3 — Env Var Simplification, Announcement Fix & Stability
 
-### v9.5.2 Changes
+### v9.5.3 Changes
 
 #### 0. Node.js Version Pinned (CRITICAL FIX)
 
@@ -46,11 +46,11 @@ Announcements are stored in-memory for demo/development, and in the database whe
 
 #### 3. Version Bumps
 
-- `package.json`: 9.5.0 → 9.5.2
-- `config.ts` APP_VERSION: 9.5.2
-- Middleware X-Limud-Version: 9.5.2
-- Health endpoint version: 9.5.2
-- server.js version: 9.5.2
+- `package.json`: 9.5.0 → 9.5.3
+- `config.ts` APP_VERSION: 9.5.3
+- Middleware X-Limud-Version: 9.5.3
+- Health endpoint version: 9.5.3
+- server.js version: 9.5.3
 
 ---
 

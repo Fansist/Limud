@@ -1,10 +1,10 @@
 {
   "name": "limud",
-  "version": "9.5.2",
+  "version": "9.5.3",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
-    "build": "npx prisma generate && next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
+    "build": "npx prisma@5.22.0 generate && next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
     "build:standalone": "npx prisma generate && next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && cp server.js .next/standalone/ && cp package.json .next/standalone/ && cp -r prisma .next/standalone/",
     "start": "node server.js",
     "start:next": "next start -p 3000 -H 0.0.0.0",
