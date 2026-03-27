@@ -80,11 +80,9 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center shadow-md shadow-primary-500/20">
-                <BookOpen size={16} className="text-white" />
-              </div>
+              <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg shadow-md object-cover" />
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
-              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.4.3</span>
+              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.6</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -472,11 +470,9 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="md:col-span-1">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-                  <BookOpen size={16} className="text-white" />
-                </div>
+                <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg object-cover" />
                 <span className="text-base font-bold text-white">Limud</span>
-                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.4.3</span>
+                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.6</span>
               </div>
               <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for self-learners, homeschool families, and school districts.</p>
               <div className="flex gap-2 mt-3">

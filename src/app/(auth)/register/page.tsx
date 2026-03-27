@@ -13,7 +13,7 @@ import {
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-type AccountType = 'homeschool' | 'admin' | 'self_education';
+type AccountType = 'homeschool' | 'admin' | 'self_education' | 'student_standalone';
 
 const QUICK_LEARNING_STYLES = [
   { id: 'visual', label: 'Visual', emoji: '👀' },
@@ -25,6 +25,15 @@ const QUICK_LEARNING_STYLES = [
 ];
 
 const ACCOUNT_OPTIONS = [
+  {
+    value: 'student_standalone' as const,
+    label: 'Student',
+    icon: GraduationCap,
+    color: 'from-blue-500 to-cyan-500',
+    desc: 'I want to join my school\'s district',
+    detail: 'Create a student account and request to link to your school district. Use AI features while waiting for approval.',
+    tags: ['Free', 'AI Tutor', 'Request district link', 'Full features on approval'],
+  },
   {
     value: 'self_education' as const,
     label: 'Self Education',
@@ -121,7 +130,46 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      if (accountType === 'self_education') {
+      if (accountType === 'student_standalone') {
+        // v9.6: Standalone student — creates account without a district (NOT demo, NOT self_education)
+        // They can then request to link to a district from the dashboard
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, email, password,
+            role: 'STUDENT',
+            accountType: 'INDIVIDUAL',
+            gradeLevel: gradeLevel || null,
+            learningStyle,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          toast.success('Account created! You can now request to join a district.');
+          const signInResult = await signIn('credentials', {
+            email, password, redirect: false,
+          });
+          if (signInResult?.ok) {
+            // Clear any stale demo flags
+            try {
+              localStorage.removeItem('limud-demo-mode');
+              localStorage.removeItem('limud-demo-role');
+            } catch {}
+            router.push('/student/link-district');
+          } else {
+            router.push('/login');
+          }
+        } else {
+          if (data.passwordErrors && data.passwordErrors.length > 0) {
+            toast.error('Password: ' + data.passwordErrors.join('. '));
+          } else {
+            toast.error(data.error || 'Registration failed');
+          }
+        }
+      } else if (accountType === 'self_education') {
         // Self Education flow: register as STUDENT with SELF_EDUCATION type
         const res = await fetch('/api/auth/register', {
           method: 'POST',
@@ -229,7 +277,7 @@ export default function RegisterPage() {
   const canProceedStep1 = accountType !== '';
   const canProceedStep2 = name.trim() !== '' && email.trim() !== '' &&
     (accountType === 'homeschool' ? childrenList.filter(c => c.name.trim()).length > 0 : true) &&
-    (accountType === 'self_education' ? gradeLevel !== '' : true);
+    ((accountType === 'self_education' || accountType === 'student_standalone') ? gradeLevel !== '' : true);
   const canProceedStep3 = pwErrors.length === 0 && password === confirmPassword;
 
   return (
@@ -244,9 +292,7 @@ export default function RegisterPage() {
 
         <div className="relative z-10">
           <Link href="/" className="flex items-center gap-2.5 text-white mb-12">
-            <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <BookOpen className="text-white" size={20} />
-            </div>
+            <img src="/logo.png" alt="Limud" className="w-10 h-10 rounded-xl object-cover" />
             <span className="text-xl font-extrabold">Limud</span>
           </Link>
 
@@ -386,10 +432,12 @@ export default function RegisterPage() {
               >
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">
-                    {accountType === 'self_education' ? 'Your Learning Account' : accountType === 'homeschool' ? 'Your Homeschool Account' : 'District Admin Account'}
+                    {accountType === 'student_standalone' ? 'Your Student Account' : accountType === 'self_education' ? 'Your Learning Account' : accountType === 'homeschool' ? 'Your Homeschool Account' : 'District Admin Account'}
                   </h1>
                   <p className="text-gray-500 mt-2">
-                    {accountType === 'self_education'
+                    {accountType === 'student_standalone'
+                      ? 'Create your account, then request to join your school district'
+                      : accountType === 'self_education'
                       ? 'Set up your account and tell us how you learn best'
                       : accountType === 'homeschool'
                       ? 'Set up your parent account and add your children'
@@ -498,6 +546,50 @@ export default function RegisterPage() {
                     ))}
                     <p className="text-xs text-amber-600">
                       Student accounts will be created automatically for each child. You can add more children later.
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* Standalone Student fields */}
+                {accountType === 'student_standalone' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-4 p-4 bg-blue-50 rounded-2xl border border-blue-200"
+                  >
+                    <div className="flex items-center gap-2 text-blue-700">
+                      <GraduationCap size={16} />
+                      <p className="text-sm font-medium">Your Info</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Grade Level</label>
+                      <select value={gradeLevel} onChange={e => setGradeLevel(e.target.value)} className="input-field">
+                        <option value="">Select your grade</option>
+                        {GRADE_LEVELS.map(g => (<option key={g} value={g}>{g}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-2">How do you learn best?</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {QUICK_LEARNING_STYLES.map(ls => (
+                          <button
+                            key={ls.id} type="button"
+                            onClick={() => setLearningStyle(ls.id)}
+                            className={cn(
+                              'p-2 rounded-xl border-2 text-center text-xs font-medium transition',
+                              learningStyle === ls.id
+                                ? 'border-blue-500 bg-blue-100 text-blue-800 ring-1 ring-blue-300'
+                                : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                            )}
+                          >
+                            <span className="text-lg block">{ls.emoji}</span>
+                            {ls.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-blue-600">
+                      After creating your account, you&apos;ll be able to search for and request to join your school&apos;s district.
                     </p>
                   </motion.div>
                 )}
@@ -670,11 +762,11 @@ export default function RegisterPage() {
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200">
                   <p className="text-sm font-medium text-gray-700 mb-2">Account Summary</p>
                   <div className="space-y-1 text-sm text-gray-500">
-                    <p><span className="text-gray-400">Type:</span> {accountType === 'self_education' ? 'Self Education Student' : accountType === 'homeschool' ? 'Homeschool Parent' : 'District Administrator'}</p>
+                    <p><span className="text-gray-400">Type:</span> {accountType === 'student_standalone' ? 'Student (Join a District)' : accountType === 'self_education' ? 'Self Education Student' : accountType === 'homeschool' ? 'Homeschool Parent' : 'District Administrator'}</p>
                     <p><span className="text-gray-400">Name:</span> {name}</p>
                     <p><span className="text-gray-400">Email:</span> {email}</p>
-                    {accountType === 'self_education' && gradeLevel && <p><span className="text-gray-400">Grade:</span> {gradeLevel}</p>}
-                    {accountType === 'self_education' && <p><span className="text-gray-400">Learning Style:</span> {QUICK_LEARNING_STYLES.find(l => l.id === learningStyle)?.label}</p>}
+                    {(accountType === 'self_education' || accountType === 'student_standalone') && gradeLevel && <p><span className="text-gray-400">Grade:</span> {gradeLevel}</p>}
+                    {(accountType === 'self_education' || accountType === 'student_standalone') && <p><span className="text-gray-400">Learning Style:</span> {QUICK_LEARNING_STYLES.find(l => l.id === learningStyle)?.label}</p>}
                     {accountType === 'admin' && districtName && <p><span className="text-gray-400">District:</span> {districtName}</p>}
                     {accountType === 'homeschool' && childrenList.filter(c => c.name.trim()).length > 0 && (
                       <p><span className="text-gray-400">Children:</span> {childrenList.filter(c => c.name.trim()).map(c => `${c.name}${c.grade ? ` (${c.grade})` : ''}`).join(', ')}</p>

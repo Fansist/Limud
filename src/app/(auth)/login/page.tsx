@@ -69,6 +69,9 @@ export default function LoginPage() {
    * v9.3.5: Master Demo (master@limud.edu) is NOT treated as generic demo.
    * It gets a real NextAuth session with isMasterDemo:true and the role-switcher.
    * Generic demo accounts get ?demo=true + localStorage flag.
+   *
+   * v9.6 FIX: Real (non-demo) students are NEVER sent to the demo page.
+   * Stale localStorage flags are aggressively cleared on every non-demo login.
    */
   const doLogin = async (loginEmail: string, loginPassword: string, isDemo: boolean = false): Promise<boolean> => {
     const normalizedEmail = loginEmail.toLowerCase().trim();
@@ -96,15 +99,21 @@ export default function LoginPage() {
       return true;
     }
 
-    // Generic demo accounts: set localStorage flag + ?demo=true
+    // Determine if this is a demo account
     const isDemoAccount = isDemo || !!DEMO_EMAIL_ROLES[normalizedEmail];
+
+    // v9.6 FIX: ALWAYS clear stale demo flags for non-demo logins FIRST
+    // This prevents the bug where a real student sees Lior's demo data
     if (isDemoAccount) {
       try { localStorage.setItem('limud-demo-mode', 'true'); } catch {}
     } else {
-      try { localStorage.removeItem('limud-demo-mode'); } catch {}
+      try {
+        localStorage.removeItem('limud-demo-mode');
+        localStorage.removeItem('limud-demo-role');
+      } catch {}
     }
 
-    // Build the demo query string
+    // Build the demo query string — ONLY for actual demo accounts
     const demoParam = isDemoAccount ? '?demo=true' : '';
 
     // Auth succeeded — determine where to redirect
@@ -116,14 +125,14 @@ export default function LoginPage() {
       return true;
     }
 
-    // Strategy 2: Try to get session from NextAuth
+    // Strategy 2: Try to get session from NextAuth (for real DB users)
     try {
       const res = await fetch('/api/auth/session');
       if (res.ok) {
         const session = await res.json();
         const role = session?.user?.role;
         if (role) {
-          router.push(getDashboardPath(role) + demoParam);
+          router.push(getDashboardPath(role));
           router.refresh();
           return true;
         }
@@ -132,8 +141,8 @@ export default function LoginPage() {
       // Session fetch failed — fall through
     }
 
-    // Strategy 3: Fallback redirect
-    router.push('/student/dashboard' + demoParam);
+    // Strategy 3: Fallback redirect — real users go to student dashboard cleanly
+    router.push('/student/dashboard');
     router.refresh();
     return true;
   };
@@ -188,9 +197,7 @@ export default function LoginPage() {
 
         <div className="relative flex flex-col justify-between p-12 w-full">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <BookOpen size={20} className="text-white" />
-            </div>
+            <img src="/logo.png" alt="Limud" className="w-10 h-10 rounded-xl object-cover" />
             <span className="text-xl font-extrabold text-white">Limud</span>
           </Link>
 
@@ -247,9 +254,7 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
-                <BookOpen size={20} className="text-white" />
-              </div>
+              <img src="/logo.png" alt="Limud" className="w-10 h-10 rounded-xl shadow-lg object-cover" />
               <span className="text-2xl font-extrabold text-gray-900">Limud</span>
             </Link>
             <p className="text-gray-500 text-sm">Sign in to continue learning</p>

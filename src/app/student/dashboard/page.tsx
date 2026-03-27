@@ -10,7 +10,7 @@ import { DEMO_STUDENT, DEMO_ASSIGNMENTS, DEMO_REWARD_STATS_DEFAULT as DEMO_REWAR
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  BookOpen, MessageCircle, Trophy, AlertTriangle, ArrowRight, TrendingUp, Calendar, Zap, Flame, Target,
+  BookOpen, MessageCircle, Trophy, AlertTriangle, ArrowRight, TrendingUp, Calendar, Zap, Flame, Target, Building2,
 } from 'lucide-react';
 
 export default function StudentDashboard() {
@@ -20,6 +20,12 @@ export default function StudentDashboard() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // v9.6: Unlinked students (INDIVIDUAL/SELF_EDUCATION without district courses)
+  // get demo-like capabilities but are NOT flagged as isDemo
+  const isUnlinked = status === 'authenticated' && !isDemo &&
+    (session?.user as any)?.role === 'STUDENT' &&
+    (!(session?.user as any)?.districtId || (session?.user as any)?.accountType === 'INDIVIDUAL');
 
   useEffect(() => {
     if (isDemo) {
@@ -53,11 +59,17 @@ export default function StudentDashboard() {
       ]);
       if (assignRes.ok) {
         const data = await assignRes.json();
-        setAssignments(data.assignments || []);
+        const fetched = data.assignments || [];
+        // v9.6: Unlinked students with no real assignments get demo data as samples
+        setAssignments(fetched.length > 0 ? fetched : (isUnlinked ? DEMO_ASSIGNMENTS : []));
+      } else if (isUnlinked) {
+        setAssignments(DEMO_ASSIGNMENTS);
       }
       if (rewardRes.ok) {
         const data = await rewardRes.json();
-        setRewards(data.stats);
+        setRewards(data.stats || (isUnlinked ? DEMO_REWARD_STATS : null));
+      } else if (isUnlinked) {
+        setRewards(DEMO_REWARD_STATS);
       }
       // Check if student needs to complete survey
       if (surveyRes.ok) {
@@ -70,6 +82,11 @@ export default function StudentDashboard() {
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
+      // v9.6: Fallback to demo data for unlinked students on error
+      if (isUnlinked) {
+        setAssignments(DEMO_ASSIGNMENTS);
+        setRewards(DEMO_REWARD_STATS);
+      }
     } finally {
       setLoading(false);
     }
@@ -179,6 +196,30 @@ export default function StudentDashboard() {
             </div>
           )}
         </motion.div>
+
+        {/* Unlinked Student Banner */}
+        {isUnlinked && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-4 flex items-center gap-3"
+          >
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Building2 className="text-blue-600" size={20} />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-blue-800">
+                You&apos;re not linked to a school district yet
+              </p>
+              <p className="text-sm text-blue-600/80">
+                Join your school to access teacher-assigned work, official grades, and district resources. You can explore all features with sample data in the meantime.
+              </p>
+            </div>
+            <Link href="/student/link-district" className="btn-primary text-xs whitespace-nowrap">
+              Join District
+            </Link>
+          </motion.div>
+        )}
 
         {/* Due Today Alert */}
         {dueToday.length > 0 && (

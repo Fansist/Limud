@@ -41,6 +41,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/student/certificates', label: 'Certificates', icon: <Award size={20} /> },
     { href: '/student/messages', label: 'Messages', icon: <Mail size={20} /> },
     { href: '/student/platforms', label: 'My Platforms', icon: <Link2 size={20} /> },
+    { href: '/student/link-district', label: 'Join District', icon: <Building2 size={20} /> },
   ],
   TEACHER: [
     { href: '/teacher/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
@@ -62,6 +63,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { href: '/admin/students', label: 'Students', icon: <Users size={20} /> },
     { href: '/admin/schools', label: 'Schools', icon: <Building2 size={20} /> },
     { href: '/admin/classrooms', label: 'Classrooms', icon: <BookOpen size={20} /> },
+    { href: '/admin/link-requests', label: 'Link Requests', icon: <UserPlus size={20} /> },
     { href: '/admin/announcements', label: 'Announcements', icon: <Megaphone size={20} /> },
     { href: '/admin/provision', label: 'Bulk Import', icon: <Upload size={20} /> },
     { href: '/admin/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
@@ -320,9 +322,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-          <div className={cn('w-10 h-10 bg-gradient-to-br rounded-xl flex items-center justify-center shadow-sm', roleColor)}>
-            <Sparkles size={20} className="text-white" />
-          </div>
+          <img src="/logo.png" alt="Limud" className="w-10 h-10 rounded-xl shadow-sm object-cover" />
           <div>
             <h1 className="text-lg font-bold text-gray-900 dark:text-white">Limud</h1>
             <p className="text-[11px] text-gray-400 font-medium">{roleLabel}</p>

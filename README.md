@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.5.8
+  v9.6.0
 </p>
 
 ---
@@ -875,13 +875,13 @@ Limud/
 │   ├── app/
 │   │   ├── (auth)/         # Auth pages (login, register, demo, pricing, etc.)
 │   │   ├── (legal)/        # Legal pages (about, privacy, terms, accessibility)
-│   │   ├── admin/          # Admin portal (12 pages)
+│   │   ├── admin/          # Admin portal (13 pages, incl. Link Requests)
 │   │   ├── help/           # Help center
 │   │   ├── parent/         # Parent portal (3 pages + children management)
 │   │   ├── roadmap/        # Public roadmap
-│   │   ├── student/        # Student portal (17 pages)
+│   │   ├── student/        # Student portal (18 pages, incl. Join District)
 │   │   ├── teacher/        # Teacher portal (14 pages)
-│   │   ├── api/            # 75+ API routes
+│   │   ├── api/            # 80+ API routes
 │   │   ├── layout.tsx      # Root layout
 │   │   └── page.tsx        # Landing page router
 │   ├── components/
@@ -922,6 +922,73 @@ Limud/
 ---
 
 ## Changelog
+
+### v9.6.0 (2026-03-27) — District Linking, Standalone Students, App Logo
+
+**Major Features:**
+
+- **Student-Initiated District Linking** — Students can create accounts independently and request to link to an existing school district. Search for districts by name, send a join request with an optional message and grade level, and track request status.
+- **District Admin Link Request Management** — New "Link Requests" page in the admin portal. Admins can view, accept, or deny student link requests. Approved students are automatically linked to the district with full access. Includes review notes and audit logging.
+- **Standalone Student Accounts** — New "Student" registration option (account type: `INDIVIDUAL`). Unlinked students get demo-like capabilities (sample assignments, rewards, AI tutor access) without being flagged as `is_demo`. They can browse all features while waiting for district approval.
+- **Limud-Academy Non-Demo District** — Created `Limud-Academy` as a real, non-demo district with superintendent credentials (`Owner@limud.co` / `LimudRock2026!`). Includes default school, 4 courses, and full enterprise subscription.
+- **Custom App Logo** — Designed and applied a modest app logo (book + light motif) across all branding touchpoints: landing page, login, register, and dashboard sidebar.
+
+**Bug Fixes:**
+
+- **Student Login Redirect Fix** — Fixed the bug where real (non-demo) students were redirected to the demo page with Lior's data after signing in. Root cause: stale `limud-demo-mode` localStorage flag from previous demo sessions was not cleared on non-demo login. Fix applied in both the login page (`doLogin()`) and the `useIsDemo` hook.
+- **useIsDemo Hook Hardened** — The hook now detects authenticated non-demo users and aggressively clears stale localStorage flags, ensuring real students always see their own data.
+
+**New Routes & Pages:**
+
+| Route | Description |
+|---|---|
+| `/student/link-district` | Student UI to search districts and send link requests |
+| `/admin/link-requests` | Admin UI to manage incoming student link requests |
+| `/api/district-link/search` | GET — Search available districts by name |
+| `/api/district-link/route` | GET/POST — Student's link requests (view/create) |
+| `/api/district-link/manage` | GET/PUT — Admin management of link requests |
+
+**Schema Changes:**
+
+- `DistrictLinkRequest` model added to Prisma schema with fields: `studentId`, `districtId`, `message`, `status` (pending/approved/denied), `reviewedBy`, `reviewNote`, `gradeLevel`, timestamps
+- Relations added to `User` (`districtLinkRequests`) and `SchoolDistrict` (`linkRequests`)
+
+**Navigation Updates:**
+
+- Student sidebar: Added "Join District" link (Building2 icon)
+- Admin sidebar: Added "Link Requests" link (UserPlus icon) between "Students" and "Announcements"
+
+**Registration Updates:**
+
+- New "Student" account type option in registration wizard (blue, GraduationCap icon)
+- Student standalone registration creates an `INDIVIDUAL` account with no district
+- After registration, standalone students are redirected to `/student/link-district` to find their school
+
+**AI Capabilities:**
+
+- Full AI features (tutor, grading, quiz generation, reports, etc.) require `GEMINI_API_KEY` environment variable set to a valid Google Gemini API key
+- Without the key, all AI features run in demo mode with rich pre-built content
+- Master demo account (`master@limud.edu`) has full access to all AI features when the API key is configured
+
+**Screenshots (Placeholders):**
+
+> *District Search & Link Request UI:*
+>
+> ![Student Link District](https://via.placeholder.com/800x400?text=Student+Link+District+Page)
+>
+> *Admin Link Request Management:*
+>
+> ![Admin Link Requests](https://via.placeholder.com/800x400?text=Admin+Link+Requests+Page)
+>
+> *Standalone Student Dashboard (Unlinked):*
+>
+> ![Unlinked Student Dashboard](https://via.placeholder.com/800x400?text=Unlinked+Student+Dashboard)
+>
+> *New App Logo:*
+>
+> ![Limud Logo](https://via.placeholder.com/200x200?text=Limud+Logo)
+
+---
 
 ### v9.5.8 (2026-03-26) — Comprehensive Documentation
 - Complete README rewrite with full feature documentation, API reference, data architecture, and deployment guide
@@ -996,10 +1063,18 @@ Planned features and improvements:
 | Role | Email | Password |
 |---|---|---|
 | **Master Demo** (full access) | `master@limud.edu` | `LimudMaster2026!` |
-| Student | See demo page | `password123` |
-| Teacher | See demo page | `password123` |
-| Admin | See demo page | `password123` |
-| Parent | See demo page | `password123` |
+| Student (Lior) | `lior@ofer-academy.edu` | `password123` |
+| Teacher (Strachen) | `strachen@ofer-academy.edu` | `password123` |
+| Admin (Erez) | `erez@ofer-academy.edu` | `password123` |
+| Parent (David) | `david@ofer-academy.edu` | `password123` |
+
+### Real Accounts (Limud-Academy)
+
+| Role | Email | Password |
+|---|---|---|
+| **Superintendent** | `Owner@limud.co` | `LimudRock2026!` |
+
+> **Note:** The Limud-Academy district is a real, non-demo district. Students can search for and request to join this district. Run `npx tsx prisma/seed.ts` to create it.
 
 ---
 

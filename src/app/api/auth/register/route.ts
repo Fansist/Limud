@@ -117,6 +117,7 @@ export async function POST(req: Request) {
     // ── Hash password (bcrypt cost 12) ──
     const hashedPassword = await bcrypt.hash(String(password), 12);
     const userRole = upperRole as 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN';
+    // v9.6: INDIVIDUAL type for standalone students who will request district linking
     const userAccountType = accountType || (userRole === 'PARENT' && childName ? 'HOMESCHOOL' : userRole === 'ADMIN' ? 'DISTRICT' : 'INDIVIDUAL');
 
     // v9.4.1: districtId declared before all conditional blocks to avoid ReferenceError
