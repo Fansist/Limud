@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import {
   Building2, Search, Send, Clock, CheckCircle2, XCircle,
   ArrowRight, Link2, MapPin, Users, Loader2, Info, Sparkles,
+  RefreshCw, AlertTriangle, Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -40,9 +41,12 @@ export default function LinkDistrictPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<District[]>([]);
+  const [allDistricts, setAllDistricts] = useState<District[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [myRequests, setMyRequests] = useState<LinkRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   // Request form
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
@@ -54,6 +58,8 @@ export default function LinkDistrictPage() {
   useEffect(() => {
     if (authStatus === 'authenticated') {
       fetchMyRequests();
+      // Auto-load all districts on page mount
+      loadAllDistricts();
     }
   }, [authStatus]);
 
@@ -63,41 +69,89 @@ export default function LinkDistrictPage() {
       if (res.ok) {
         const data = await res.json();
         setMyRequests(data.requests || []);
+      } else {
+        console.warn('[LinkDistrict] Failed to fetch requests:', res.status);
       }
-    } catch {
-      console.error('Failed to fetch requests');
+    } catch (err) {
+      console.error('[LinkDistrict] Fetch requests error:', err);
     } finally {
       setLoadingRequests(false);
     }
   }
 
-  // Search districts
-  async function searchDistricts(query: string, browse = false) {
-    setSearching(true);
+  // Load all districts on page mount
+  async function loadAllDistricts() {
     try {
-      const params = new URLSearchParams();
-      if (query.length >= 2) params.set('q', query);
-      if (browse) params.set('browse', '1');
-      const res = await fetch(`/api/district-link/search?${params.toString()}`);
+      const res = await fetch('/api/district-link/search?browse=1');
       if (res.ok) {
         const data = await res.json();
-        setSearchResults(data.districts || []);
+        const districts = data.districts || [];
+        setAllDistricts(districts);
+        // Show all districts by default
+        setSearchResults(districts);
+        setInitialLoaded(true);
+        console.log(`[LinkDistrict] Loaded ${districts.length} districts`);
+      } else {
+        const errorText = await res.text();
+        console.error('[LinkDistrict] Browse failed:', res.status, errorText);
+        setSearchError(`Failed to load districts (${res.status})`);
       }
-    } catch {
-      // ignore
-    } finally {
-      setSearching(false);
+    } catch (err: any) {
+      console.error('[LinkDistrict] Browse error:', err);
+      setSearchError(`Connection error: ${err.message || 'Unknown error'}`);
     }
   }
 
-  useEffect(() => {
-    if (searchQuery.length < 2) {
-      setSearchResults([]);
+  // Search districts (filters from pre-loaded list or calls API)
+  const searchDistricts = useCallback(async (query: string) => {
+    setSearchError(null);
+
+    if (query.length < 2) {
+      // Show all pre-loaded districts when query is cleared
+      setSearchResults(allDistricts);
       return;
     }
-    const timer = setTimeout(() => searchDistricts(searchQuery), 300);
+
+    // First, try client-side filtering from allDistricts (instant)
+    const lowerQuery = query.toLowerCase();
+    const localResults = allDistricts.filter(d =>
+      d.name.toLowerCase().includes(lowerQuery) ||
+      (d.city && d.city.toLowerCase().includes(lowerQuery)) ||
+      (d.state && d.state.toLowerCase().includes(lowerQuery))
+    );
+
+    if (localResults.length > 0) {
+      setSearchResults(localResults);
+      return;
+    }
+
+    // If local filter yields nothing, call the API (in case there are more than 50)
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/district-link/search?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data.districts || []);
+      } else {
+        const errText = await res.text();
+        console.error('[LinkDistrict] Search API error:', res.status, errText);
+        setSearchError(`Search failed (${res.status}). Try again.`);
+        setSearchResults([]);
+      }
+    } catch (err: any) {
+      console.error('[LinkDistrict] Search fetch error:', err);
+      setSearchError(`Connection error: ${err.message}`);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, [allDistricts]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => searchDistricts(searchQuery), 200);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, searchDistricts]);
 
   async function handleSubmitRequest() {
     if (!selectedDistrict) return;
@@ -120,7 +174,6 @@ export default function LinkDistrictPage() {
         setMessage('');
         setGradeLevel('');
         setSearchQuery('');
-        setSearchResults([]);
         fetchMyRequests();
       } else {
         toast.error(data.error || 'Failed to send request');
@@ -144,6 +197,9 @@ export default function LinkDistrictPage() {
 
   const isLinked = !!user?.districtId && user?.accountType === 'DISTRICT';
   const hasPending = myRequests.some(r => r.status === 'pending');
+
+  // Districts to display: search results, filtered by query
+  const displayDistricts = searchResults;
 
   return (
     <DashboardLayout>
@@ -204,10 +260,25 @@ export default function LinkDistrictPage() {
           transition={{ delay: 0.1 }}
           className="card"
         >
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Search size={18} className="text-gray-400" />
-            Search Districts
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Globe size={18} className="text-blue-500" />
+              Available Districts
+              {allDistricts.length > 0 && (
+                <span className="text-xs font-normal bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                  {allDistricts.length} total
+                </span>
+              )}
+            </h2>
+            {initialLoaded && (
+              <button
+                onClick={loadAllDistricts}
+                className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition"
+              >
+                <RefreshCw size={12} /> Refresh
+              </button>
+            )}
+          </div>
 
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -216,81 +287,98 @@ export default function LinkDistrictPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="input-field pl-10"
-              placeholder="Type your school or district name..."
+              placeholder="Filter by name, city, or state..."
             />
             {searching && (
               <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-500 animate-spin" />
             )}
           </div>
-          {searchQuery.length < 2 && searchResults.length === 0 && (
-            <button
-              onClick={() => searchDistricts('', true)}
-              className="mt-3 text-sm text-primary-600 hover:text-primary-800 font-medium flex items-center gap-1.5 transition"
-            >
-              <Building2 size={14} /> Browse all available districts
-            </button>
+
+          {/* Error State */}
+          {searchError && (
+            <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
+              <AlertTriangle size={16} className="text-red-500 flex-shrink-0" />
+              <p className="text-sm text-red-700">{searchError}</p>
+              <button
+                onClick={loadAllDistricts}
+                className="ml-auto text-xs text-red-600 hover:text-red-800 underline font-medium"
+              >
+                Retry
+              </button>
+            </div>
           )}
 
-          {/* Search Results */}
-          <AnimatePresence>
-            {searchResults.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-3 space-y-2"
-              >
-                {searchResults.map(district => {
-                  const alreadyRequested = myRequests.some(
-                    r => r.districtId === district.id && r.status === 'pending'
-                  );
-                  return (
-                    <button
-                      key={district.id}
-                      onClick={() => !alreadyRequested && setSelectedDistrict(district)}
-                      disabled={alreadyRequested}
-                      className={cn(
-                        'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition text-left',
-                        selectedDistrict?.id === district.id
-                          ? 'border-primary-500 bg-primary-50'
-                          : alreadyRequested
-                          ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
-                          : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
-                      )}
-                    >
-                      <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Building2 size={18} className="text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">{district.name}</p>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          {(district.city || district.state) && (
-                            <span className="flex items-center gap-1">
-                              <MapPin size={10} />
-                              {[district.city, district.state].filter(Boolean).join(', ')}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <Users size={10} /> {district.memberCount} members
-                          </span>
-                        </div>
-                      </div>
-                      {alreadyRequested ? (
-                        <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-lg">Pending</span>
-                      ) : (
-                        <ArrowRight size={16} className="text-gray-300" />
-                      )}
-                    </button>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Loading State */}
+          {!initialLoaded && !searchError && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="animate-spin text-primary-500 mr-2" size={20} />
+              <span className="text-sm text-gray-500">Loading districts...</span>
+            </div>
+          )}
 
-          {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
+          {/* District List */}
+          {displayDistricts.length > 0 && (
+            <div className="mt-3 space-y-2 max-h-[400px] overflow-y-auto">
+              {displayDistricts.map(district => {
+                const alreadyRequested = myRequests.some(
+                  r => r.districtId === district.id && r.status === 'pending'
+                );
+                return (
+                  <button
+                    key={district.id}
+                    onClick={() => !alreadyRequested && setSelectedDistrict(district)}
+                    disabled={alreadyRequested}
+                    className={cn(
+                      'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition text-left',
+                      selectedDistrict?.id === district.id
+                        ? 'border-primary-500 bg-primary-50'
+                        : alreadyRequested
+                        ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
+                        : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
+                    )}
+                  >
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Building2 size={18} className="text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">{district.name}</p>
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        {(district.city || district.state) && (
+                          <span className="flex items-center gap-1">
+                            <MapPin size={10} />
+                            {[district.city, district.state].filter(Boolean).join(', ')}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Users size={10} /> {district.memberCount} members
+                        </span>
+                      </div>
+                    </div>
+                    {alreadyRequested ? (
+                      <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-lg">Pending</span>
+                    ) : (
+                      <ArrowRight size={16} className="text-gray-300" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Empty search results */}
+          {initialLoaded && searchQuery.length >= 2 && !searching && displayDistricts.length === 0 && !searchError && (
             <p className="text-sm text-gray-400 mt-3 text-center py-4">
               No districts found for &quot;{searchQuery}&quot;. Ask your school administrator to register on Limud.
             </p>
+          )}
+
+          {/* No districts at all */}
+          {initialLoaded && allDistricts.length === 0 && !searchError && (
+            <div className="text-center py-8">
+              <Building2 size={32} className="mx-auto text-gray-300 mb-2" />
+              <p className="text-sm text-gray-400">No districts available yet.</p>
+              <p className="text-xs text-gray-300 mt-1">Ask your school administrator to register on Limud.</p>
+            </div>
           )}
         </motion.div>
 
@@ -381,7 +469,7 @@ export default function LinkDistrictPage() {
           ) : myRequests.length === 0 ? (
             <div className="text-center py-8">
               <Info size={32} className="mx-auto text-gray-300 mb-2" />
-              <p className="text-sm text-gray-400">No link requests yet. Search for a district above to get started.</p>
+              <p className="text-sm text-gray-400">No link requests yet. Select a district above to get started.</p>
             </div>
           ) : (
             <div className="space-y-3">

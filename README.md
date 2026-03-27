@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.6.1
+  v9.6.2
 </p>
 
 ---
@@ -922,6 +922,24 @@ Limud/
 ---
 
 ## Changelog
+
+### v9.6.2 (2026-03-27) — District Search UX Overhaul
+
+**Problem:** Students could not find any districts when searching, and the "Browse all" button did not work.
+
+**Root Cause & Fix:** Completely rewrote the student link-district page to eliminate all failure modes:
+
+- **Auto-loads all districts on page mount** — No button clicks or search queries required. All 30 districts appear immediately when the page loads.
+- **Client-side instant filtering** — Typing in the search box filters the already-loaded district list instantly (no API call or debounce delay needed for local filtering).
+- **API fallback** — If client-side filtering yields no results, falls back to a server-side API search.
+- **Visible error states** — If the API call fails (auth error, network error, etc.), a red error banner with the exact error message and a "Retry" button is shown. No more silent failures.
+- **Console logging** — Logs district load count and any errors to browser console for debugging.
+- **Loading state** — Shows a "Loading districts…" spinner while the initial fetch is in progress.
+- **Total count badge** — Shows "30 total" next to the heading.
+- **Scrollable list** — Max-height 400px with overflow scroll for long lists.
+- **Refresh button** — Allows manual re-fetch of the district list.
+
+---
 
 ### v9.6.1 (2026-03-27) — District Search Fix & District Seeding
 
