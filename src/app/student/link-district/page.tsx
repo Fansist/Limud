@@ -72,25 +72,30 @@ export default function LinkDistrictPage() {
   }
 
   // Search districts
+  async function searchDistricts(query: string, browse = false) {
+    setSearching(true);
+    try {
+      const params = new URLSearchParams();
+      if (query.length >= 2) params.set('q', query);
+      if (browse) params.set('browse', '1');
+      const res = await fetch(`/api/district-link/search?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data.districts || []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSearching(false);
+    }
+  }
+
   useEffect(() => {
     if (searchQuery.length < 2) {
       setSearchResults([]);
       return;
     }
-    const timer = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await fetch(`/api/district-link/search?q=${encodeURIComponent(searchQuery)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSearchResults(data.districts || []);
-        }
-      } catch {
-        // ignore
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
+    const timer = setTimeout(() => searchDistricts(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -217,6 +222,14 @@ export default function LinkDistrictPage() {
               <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-500 animate-spin" />
             )}
           </div>
+          {searchQuery.length < 2 && searchResults.length === 0 && (
+            <button
+              onClick={() => searchDistricts('', true)}
+              className="mt-3 text-sm text-primary-600 hover:text-primary-800 font-medium flex items-center gap-1.5 transition"
+            >
+              <Building2 size={14} /> Browse all available districts
+            </button>
+          )}
 
           {/* Search Results */}
           <AnimatePresence>

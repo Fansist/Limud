@@ -17,24 +17,38 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const query = url.searchParams.get('q')?.trim() || '';
+    const browse = url.searchParams.get('browse') === '1';
 
-    if (query.length < 2) {
+    // If no query and not browsing, return empty
+    if (query.length < 2 && !browse) {
       return NextResponse.json({ districts: [] });
     }
 
     const { default: prisma } = await import('@/lib/prisma');
 
-    // Search for real districts (not homeschool, not self-education micro-districts)
+    // Build search filter
+    const baseFilter: any = {
+      isHomeschool: false,
+      // Exclude self-education micro-districts and demo districts
+      NOT: [
+        { subdomain: { startsWith: 'self-edu-' } },
+        { subdomain: 'demo-district' },
+        { name: { startsWith: 'Demo School' } },
+      ],
+    };
+
+    // Add search query filter only when searching (not browsing all)
+    if (query.length >= 2) {
+      baseFilter.OR = [
+        { name: { contains: query, mode: 'insensitive' } },
+        { city: { contains: query, mode: 'insensitive' } },
+        { state: { contains: query, mode: 'insensitive' } },
+      ];
+    }
+
+    // Search for real districts (not homeschool, not self-education micro-districts, not demo)
     const districts = await prisma.schoolDistrict.findMany({
-      where: {
-        name: { contains: query, mode: 'insensitive' },
-        isHomeschool: false,
-        // Exclude self-education micro-districts and demo districts
-        NOT: [
-          { subdomain: { startsWith: 'self-edu-' } },
-          { id: 'demo-district' },
-        ],
-      },
+      where: baseFilter,
       select: {
         id: true,
         name: true,
@@ -42,7 +56,7 @@ export async function GET(req: Request) {
         state: true,
         _count: { select: { users: true } },
       },
-      take: 10,
+      take: browse ? 50 : 15,
       orderBy: { name: 'asc' },
     });
 

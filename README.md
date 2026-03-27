@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.6.0
+  v9.6.1
 </p>
 
 ---
@@ -922,6 +922,57 @@ Limud/
 ---
 
 ## Changelog
+
+### v9.6.1 (2026-03-27) — District Search Fix & District Seeding
+
+**Bug Fixes:**
+
+- **District Search Now Works** — Fixed critical bug where the district search API returned no results. Root cause: the `NOT` filter was checking `{ id: 'demo-district' }` but the actual ID is a cuid — the subdomain is "demo-district". Updated to filter by `subdomain` instead of `id`. Also added exclusion for `Demo School` districts by name.
+- **Search Now Covers City & State** — District search now matches against name, city, and state (previously name-only), making it easier to find districts by location.
+- **Browse All Districts** — Added a "Browse all available districts" button on the link-district page so students don't need to guess district names. Uses `?browse=1` query parameter.
+
+**Seeded Districts:**
+
+- **Limud-Academy** — Properly seeded into the database (was missing in v9.6.0). Superintendent: `Owner@limud.co` / `LimudRock2026!`, located in Tel Aviv, Israel, with PREMIUM subscription and up to 500 students.
+- **25 Additional Districts** — Created a diverse set of real-looking school districts across the US for testing the student→district linking flow. Each has a superintendent account (password: `District2026!`):
+
+| District | City | State |
+|---|---|---|
+| Maple Heights School District | Cleveland | Ohio |
+| Sunrise Valley Academy | Scottsdale | Arizona |
+| Lincoln Park Unified | Chicago | Illinois |
+| Harbor View Schools | San Francisco | California |
+| Cedar Ridge ISD | Austin | Texas |
+| Bright Horizons Charter | Denver | Colorado |
+| Riverside Prep Academy | Portland | Oregon |
+| Eagle Mountain District | Boise | Idaho |
+| Bayshore Learning Center | Miami | Florida |
+| Northern Lights School Network | Minneapolis | Minnesota |
+| Golden Gate Academy | Oakland | California |
+| Prairie Wind Schools | Omaha | Nebraska |
+| Summit Peak Education | Salt Lake City | Utah |
+| Coastal Breeze Academy | Charleston | South Carolina |
+| Blue Ridge Preparatory | Asheville | North Carolina |
+| Desert Rose Unified | Phoenix | Arizona |
+| Lakefront Schools | Milwaukee | Wisconsin |
+| Redwood Valley Charter | Sacramento | California |
+| Peachtree Academy Network | Atlanta | Georgia |
+| Mountain View ISD | El Paso | Texas |
+| Silver Creek Schools | Nashville | Tennessee |
+| Brookfield Learning District | Boston | Massachusetts |
+| Coral Springs Academy | Fort Lauderdale | Florida |
+| Emerald City Schools | Seattle | Washington |
+| Magnolia Park Prep | Houston | Texas |
+
+**New Files:**
+
+- `prisma/seed-districts.ts` — Seeding script for Limud-Academy + 25 extra districts with admin accounts
+
+**Database Sync:**
+
+- Ran `prisma db push` to sync schema with database (fixed `users.colorTheme` column mismatch)
+
+---
 
 ### v9.6.0 (2026-03-27) — District Linking, Standalone Students, App Logo
 
