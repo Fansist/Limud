@@ -40,13 +40,13 @@ export default function LinkDistrictPage() {
   const user = session?.user as any;
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<District[]>([]);
   const [allDistricts, setAllDistricts] = useState<District[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const [filteredDistricts, setFilteredDistricts] = useState<District[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [myRequests, setMyRequests] = useState<LinkRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
-  const [initialLoaded, setInitialLoaded] = useState(false);
 
   // Request form
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
@@ -54,104 +54,93 @@ export default function LinkDistrictPage() {
   const [gradeLevel, setGradeLevel] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch existing requests
-  useEffect(() => {
-    if (authStatus === 'authenticated') {
-      fetchMyRequests();
-      // Auto-load all districts on page mount
-      loadAllDistricts();
-    }
-  }, [authStatus]);
+  // Load all districts immediately (search endpoint is now public)
+  const loadDistricts = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await fetch('/api/district-link/search?browse=1', {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
+      });
 
-  async function fetchMyRequests() {
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}: ${text.slice(0, 200) || res.statusText}`);
+      }
+
+      const data = await res.json();
+      if (!data.districts || !Array.isArray(data.districts)) {
+        throw new Error('Invalid response format');
+      }
+
+      setAllDistricts(data.districts);
+      setFilteredDistricts(data.districts);
+      setLoadError(null);
+    } catch (err: any) {
+      console.error('[LinkDistrict] Load error:', err);
+      setLoadError(err.message || 'Failed to load districts');
+      setAllDistricts([]);
+      setFilteredDistricts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load requests (requires auth)
+  const fetchMyRequests = useCallback(async () => {
     try {
       const res = await fetch('/api/district-link/route');
       if (res.ok) {
         const data = await res.json();
         setMyRequests(data.requests || []);
-      } else {
-        console.warn('[LinkDistrict] Failed to fetch requests:', res.status);
       }
     } catch (err) {
       console.error('[LinkDistrict] Fetch requests error:', err);
     } finally {
       setLoadingRequests(false);
     }
-  }
+  }, []);
 
-  // Load all districts on page mount
-  async function loadAllDistricts() {
-    try {
-      const res = await fetch('/api/district-link/search?browse=1');
-      if (res.ok) {
-        const data = await res.json();
-        const districts = data.districts || [];
-        setAllDistricts(districts);
-        // Show all districts by default
-        setSearchResults(districts);
-        setInitialLoaded(true);
-        console.log(`[LinkDistrict] Loaded ${districts.length} districts`);
-      } else {
-        const errorText = await res.text();
-        console.error('[LinkDistrict] Browse failed:', res.status, errorText);
-        setSearchError(`Failed to load districts (${res.status})`);
-      }
-    } catch (err: any) {
-      console.error('[LinkDistrict] Browse error:', err);
-      setSearchError(`Connection error: ${err.message || 'Unknown error'}`);
-    }
-  }
-
-  // Search districts (filters from pre-loaded list or calls API)
-  const searchDistricts = useCallback(async (query: string) => {
-    setSearchError(null);
-
-    if (query.length < 2) {
-      // Show all pre-loaded districts when query is cleared
-      setSearchResults(allDistricts);
-      return;
-    }
-
-    // First, try client-side filtering from allDistricts (instant)
-    const lowerQuery = query.toLowerCase();
-    const localResults = allDistricts.filter(d =>
-      d.name.toLowerCase().includes(lowerQuery) ||
-      (d.city && d.city.toLowerCase().includes(lowerQuery)) ||
-      (d.state && d.state.toLowerCase().includes(lowerQuery))
-    );
-
-    if (localResults.length > 0) {
-      setSearchResults(localResults);
-      return;
-    }
-
-    // If local filter yields nothing, call the API (in case there are more than 50)
-    setSearching(true);
-    try {
-      const res = await fetch(`/api/district-link/search?q=${encodeURIComponent(query)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults(data.districts || []);
-      } else {
-        const errText = await res.text();
-        console.error('[LinkDistrict] Search API error:', res.status, errText);
-        setSearchError(`Search failed (${res.status}). Try again.`);
-        setSearchResults([]);
-      }
-    } catch (err: any) {
-      console.error('[LinkDistrict] Search fetch error:', err);
-      setSearchError(`Connection error: ${err.message}`);
-      setSearchResults([]);
-    } finally {
-      setSearching(false);
-    }
-  }, [allDistricts]);
-
-  // Debounced search
+  // Load districts on mount (don't wait for auth since search is public)
   useEffect(() => {
-    const timer = setTimeout(() => searchDistricts(searchQuery), 200);
-    return () => clearTimeout(timer);
-  }, [searchQuery, searchDistricts]);
+    loadDistricts();
+  }, [loadDistricts]);
+
+  // Load requests when authenticated
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      fetchMyRequests();
+    } else if (authStatus !== 'loading') {
+      setLoadingRequests(false);
+    }
+  }, [authStatus, fetchMyRequests]);
+
+  // Client-side filtering
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setFilteredDistricts(allDistricts);
+      return;
+    }
+    const q = searchQuery.toLowerCase();
+    const results = allDistricts.filter(d =>
+      d.name.toLowerCase().includes(q) ||
+      (d.city && d.city.toLowerCase().includes(q)) ||
+      (d.state && d.state.toLowerCase().includes(q))
+    );
+    setFilteredDistricts(results);
+  }, [searchQuery, allDistricts]);
+
+  // Auto-retry once on error
+  useEffect(() => {
+    if (loadError && retryCount < 1) {
+      const timer = setTimeout(() => {
+        setRetryCount(c => c + 1);
+        loadDistricts();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [loadError, retryCount, loadDistricts]);
 
   async function handleSubmitRequest() {
     if (!selectedDistrict) return;
@@ -197,9 +186,6 @@ export default function LinkDistrictPage() {
 
   const isLinked = !!user?.districtId && user?.accountType === 'DISTRICT';
   const hasPending = myRequests.some(r => r.status === 'pending');
-
-  // Districts to display: search results, filtered by query
-  const displayDistricts = searchResults;
 
   return (
     <DashboardLayout>
@@ -253,7 +239,7 @@ export default function LinkDistrictPage() {
           </motion.div>
         )}
 
-        {/* Search Section */}
+        {/* ═══════ DISTRICT LIST ═══════ */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -270,17 +256,17 @@ export default function LinkDistrictPage() {
                 </span>
               )}
             </h2>
-            {initialLoaded && (
-              <button
-                onClick={loadAllDistricts}
-                className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition"
-              >
-                <RefreshCw size={12} /> Refresh
-              </button>
-            )}
+            <button
+              onClick={() => { setRetryCount(0); loadDistricts(); }}
+              disabled={loading}
+              className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
+            </button>
           </div>
 
-          <div className="relative">
+          {/* Search/filter input */}
+          <div className="relative mb-3">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -289,37 +275,37 @@ export default function LinkDistrictPage() {
               className="input-field pl-10"
               placeholder="Filter by name, city, or state..."
             />
-            {searching && (
-              <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-500 animate-spin" />
-            )}
           </div>
 
           {/* Error State */}
-          {searchError && (
-            <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
-              <AlertTriangle size={16} className="text-red-500 flex-shrink-0" />
-              <p className="text-sm text-red-700">{searchError}</p>
-              <button
-                onClick={loadAllDistricts}
-                className="ml-auto text-xs text-red-600 hover:text-red-800 underline font-medium"
-              >
-                Retry
-              </button>
+          {loadError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+              <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800">Failed to load districts</p>
+                <p className="text-xs text-red-600 mt-1">{loadError}</p>
+                <button
+                  onClick={() => { setRetryCount(0); loadDistricts(); }}
+                  className="mt-2 text-xs font-medium text-red-700 hover:text-red-900 underline"
+                >
+                  Try again
+                </button>
+              </div>
             </div>
           )}
 
           {/* Loading State */}
-          {!initialLoaded && !searchError && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="animate-spin text-primary-500 mr-2" size={20} />
+          {loading && !loadError && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="animate-spin text-primary-500 mr-2" size={24} />
               <span className="text-sm text-gray-500">Loading districts...</span>
             </div>
           )}
 
           {/* District List */}
-          {displayDistricts.length > 0 && (
-            <div className="mt-3 space-y-2 max-h-[400px] overflow-y-auto">
-              {displayDistricts.map(district => {
+          {!loading && filteredDistricts.length > 0 && (
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {filteredDistricts.map(district => {
                 const alreadyRequested = myRequests.some(
                   r => r.districtId === district.id && r.status === 'pending'
                 );
@@ -366,14 +352,14 @@ export default function LinkDistrictPage() {
           )}
 
           {/* Empty search results */}
-          {initialLoaded && searchQuery.length >= 2 && !searching && displayDistricts.length === 0 && !searchError && (
+          {!loading && searchQuery.length >= 2 && filteredDistricts.length === 0 && !loadError && (
             <p className="text-sm text-gray-400 mt-3 text-center py-4">
               No districts found for &quot;{searchQuery}&quot;. Ask your school administrator to register on Limud.
             </p>
           )}
 
           {/* No districts at all */}
-          {initialLoaded && allDistricts.length === 0 && !searchError && (
+          {!loading && allDistricts.length === 0 && !loadError && (
             <div className="text-center py-8">
               <Building2 size={32} className="mx-auto text-gray-300 mb-2" />
               <p className="text-sm text-gray-400">No districts available yet.</p>
@@ -382,7 +368,7 @@ export default function LinkDistrictPage() {
           )}
         </motion.div>
 
-        {/* Request Form — shown when a district is selected */}
+        {/* ═══════ REQUEST FORM ═══════ */}
         <AnimatePresence>
           {selectedDistrict && (
             <motion.div
@@ -435,11 +421,13 @@ export default function LinkDistrictPage() {
                   </button>
                   <button
                     onClick={handleSubmitRequest}
-                    disabled={submitting}
+                    disabled={submitting || authStatus !== 'authenticated'}
                     className="btn-primary flex items-center gap-2"
                   >
                     {submitting ? (
                       <><Loader2 size={16} className="animate-spin" /> Sending...</>
+                    ) : authStatus !== 'authenticated' ? (
+                      <>Log in to send request</>
                     ) : (
                       <><Send size={16} /> Send Request</>
                     )}
@@ -450,7 +438,7 @@ export default function LinkDistrictPage() {
           )}
         </AnimatePresence>
 
-        {/* My Requests */}
+        {/* ═══════ MY REQUESTS ═══════ */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

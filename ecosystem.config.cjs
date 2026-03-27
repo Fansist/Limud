@@ -1,11 +1,14 @@
 module.exports = {
   apps: [{
     name: 'limud',
-    script: 'node_modules/.bin/next',
-    args: 'start -p 3000 -H 0.0.0.0',
+    // v9.6.3: Use server.js which auto-detects standalone build
+    // Fixes: "next start" does not work with "output: standalone"
+    script: 'server.js',
     cwd: '/home/user/webapp',
     env: {
       NODE_ENV: 'production',
+      PORT: '3000',
+      HOSTNAME: '0.0.0.0',
       NODE_OPTIONS: '--max-old-space-size=384',
     },
     watch: false,

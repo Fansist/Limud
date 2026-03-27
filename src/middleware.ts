@@ -46,6 +46,7 @@ const PUBLIC_API_PATHS = [
   '/api/health',
   '/api/auth',
   '/api/demo',
+  '/api/district-link/search',  // v9.6.3: District search is public so students can browse before login
 ];
 
 const ADMIN_PATHS = ['/admin'];
@@ -96,8 +97,8 @@ const MALICIOUS_PATH_PATTERNS = [
 
 const edgeRateStore = new Map<string, { count: number; start: number }>();
 const EDGE_RATE_WINDOW = 60_000;
-const EDGE_RATE_MAX = 200;        // 200 req/min per IP at edge level
-const EDGE_AUTH_RATE_MAX = 10;    // 10 auth req/min per IP at edge level
+const EDGE_RATE_MAX = 500;        // 500 req/min per IP at edge level (v9.6.3: increased from 200)
+const EDGE_AUTH_RATE_MAX = 30;    // 30 auth req/min per IP at edge level (v9.6.3: increased from 10)
 
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
@@ -300,7 +301,7 @@ export async function middleware(request: NextRequest) {
 
 function addSecurityHeaders(response: NextResponse, pathname: string) {
   response.headers.set('X-Request-Id', crypto.randomUUID());
-  response.headers.set('X-Limud-Version', '9.6.2');
+  response.headers.set('X-Limud-Version', '9.6.3');
   response.headers.set('X-Limud-Security', 'active');
 
   // Core OWASP headers

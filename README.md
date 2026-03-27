@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.6.2
+  v9.6.3
 </p>
 
 ---
@@ -922,6 +922,27 @@ Limud/
 ---
 
 ## Changelog
+
+### v9.6.3 (2026-03-27) — Server Fix & Public District Search
+
+**Problem:** Students reported the district search page "does nothing" — no districts loaded, search didn't work, and browse button was unresponsive.
+
+**Root Causes Found & Fixed:**
+
+1. **`next start` vs standalone conflict** — PM2 was running `next start` but the build uses `output: 'standalone'`, causing intermittent API route failures. Fixed PM2 to use `server.js` which auto-detects and uses the standalone server correctly. Startup time improved from ~700ms to ~120ms.
+
+2. **District search required authentication** — The `/api/district-link/search` endpoint required a valid session, but the middleware's auth flow could fail silently on the client. Made district search a **public endpoint** — students can now browse districts even before logging in.
+
+3. **Rate limiter too aggressive** — Edge rate limit was 200 req/min global and 10 auth req/min. During testing, users would hit 429 errors quickly. Increased to 500 req/min global and 30 auth req/min.
+
+4. **Client-side improvements** — Districts now load on page mount (not on auth), auto-retry on failure, visible error states, and the search input filters instantly from the pre-loaded list.
+
+**District Accounts** (all seeded in v9.6.1, 30 total):
+- **Limud-Academy** — `Owner@limud.co` / `LimudRock2026!` (Tel Aviv, Israel)
+- **25 US districts** — each with admin: `<contactEmail>` / `District2026!`
+- Original districts: Test District Alpha, Custom School District, Pine Valley Academy, PUSD
+
+---
 
 ### v9.6.2 (2026-03-27) — District Search UX Overhaul
 

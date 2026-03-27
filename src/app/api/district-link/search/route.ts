@@ -1,20 +1,16 @@
 /**
- * District Search API — v9.6
+ * District Search API — v9.6.3
  * Allows students to search for districts they can request to join.
- * GET /api/district-link/search?q=<query>
+ * GET /api/district-link/search?q=<query>&browse=1
+ * 
+ * v9.6.3: Search/browse is now publicly accessible (no auth required)
+ * so students can preview districts before logging in.
  * Returns non-demo, non-homeschool, non-self-education districts.
  */
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const url = new URL(req.url);
     const query = url.searchParams.get('q')?.trim() || '';
     const browse = url.searchParams.get('browse') === '1';
@@ -46,7 +42,7 @@ export async function GET(req: Request) {
       ];
     }
 
-    // Search for real districts (not homeschool, not self-education micro-districts, not demo)
+    // Search for real districts
     const districts = await prisma.schoolDistrict.findMany({
       where: baseFilter,
       select: {
@@ -56,7 +52,7 @@ export async function GET(req: Request) {
         state: true,
         _count: { select: { users: true } },
       },
-      take: browse ? 50 : 15,
+      take: browse ? 100 : 15,
       orderBy: { name: 'asc' },
     });
 
