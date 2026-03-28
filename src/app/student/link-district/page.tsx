@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import {
   Building2, Search, Send, Clock, CheckCircle2, XCircle,
   ArrowRight, Link2, MapPin, Users, Loader2, Info, Sparkles,
-  RefreshCw, AlertTriangle, Globe,
+  RefreshCw, AlertTriangle, Globe, Zap, Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -44,9 +44,12 @@ export default function LinkDistrictPage() {
   const [filteredDistricts, setFilteredDistricts] = useState<District[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadPhase, setLoadPhase] = useState<string>('Connecting...');
   const [retryCount, setRetryCount] = useState(0);
+  const [apiDiagnostics, setApiDiagnostics] = useState<any>(null);
   const [myRequests, setMyRequests] = useState<LinkRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
+  const loadAttemptRef = useRef(0);
 
   // Request form
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
@@ -54,34 +57,68 @@ export default function LinkDistrictPage() {
   const [gradeLevel, setGradeLevel] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Load all districts immediately (search endpoint is now public)
+  // ── Load all districts ──
+  // v9.6.4: Auto-retry up to 3 times with progressive delays if 0 districts returned.
+  // The server auto-seeds on the first call, so the second call should return data.
   const loadDistricts = useCallback(async () => {
+    const attempt = ++loadAttemptRef.current;
     setLoading(true);
     setLoadError(null);
+    setLoadPhase('Fetching districts...');
+
+    console.log(`[LinkDistrict] Load attempt #${attempt}`);
+
     try {
-      const res = await fetch('/api/district-link/search?browse=1', {
+      const res = await fetch(`/api/district-link/search?browse=1&debug=1&_t=${Date.now()}`, {
         cache: 'no-store',
         headers: { 'Accept': 'application/json' },
       });
 
+      setLoadPhase('Processing response...');
+
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new Error(`HTTP ${res.status}: ${text.slice(0, 200) || res.statusText}`);
+        let parsed: any = null;
+        try { parsed = JSON.parse(text); } catch {}
+        if (parsed?.diagnostics) setApiDiagnostics(parsed.diagnostics);
+        throw new Error(`HTTP ${res.status}: ${parsed?.error || parsed?.details || text.slice(0, 200) || res.statusText}`);
       }
 
       const data = await res.json();
+      if (data.diagnostics) setApiDiagnostics(data.diagnostics);
+
       if (!data.districts || !Array.isArray(data.districts)) {
-        throw new Error('Invalid response format');
+        throw new Error('Invalid response format: missing districts array');
+      }
+
+      console.log(`[LinkDistrict] Got ${data.districts.length} districts (attempt #${attempt})`, data.diagnostics || '');
+
+      // If 0 districts and we haven't retried too many times, auto-retry
+      // The server seeds on first call; second call should have results
+      if (data.districts.length === 0 && attempt <= 3) {
+        setLoadPhase(`Seeding database... retry #${attempt}`);
+        console.log(`[LinkDistrict] 0 districts, auto-retrying in ${attempt * 1500}ms (seed may be in progress)`);
+        setTimeout(() => loadDistricts(), attempt * 1500);
+        return;
       }
 
       setAllDistricts(data.districts);
       setFilteredDistricts(data.districts);
       setLoadError(null);
+      setLoadPhase('');
     } catch (err: any) {
-      console.error('[LinkDistrict] Load error:', err);
+      console.error(`[LinkDistrict] Load error (attempt #${attempt}):`, err);
       setLoadError(err.message || 'Failed to load districts');
       setAllDistricts([]);
       setFilteredDistricts([]);
+      setLoadPhase('');
+
+      // Auto-retry once on error
+      if (attempt <= 2) {
+        console.log(`[LinkDistrict] Auto-retrying after error in 2s`);
+        setTimeout(() => loadDistricts(), 2000);
+        return;
+      }
     } finally {
       setLoading(false);
     }
@@ -102,8 +139,9 @@ export default function LinkDistrictPage() {
     }
   }, []);
 
-  // Load districts on mount (don't wait for auth since search is public)
+  // Load districts on mount (public — no auth needed)
   useEffect(() => {
+    loadAttemptRef.current = 0;
     loadDistricts();
   }, [loadDistricts]);
 
@@ -130,17 +168,6 @@ export default function LinkDistrictPage() {
     );
     setFilteredDistricts(results);
   }, [searchQuery, allDistricts]);
-
-  // Auto-retry once on error
-  useEffect(() => {
-    if (loadError && retryCount < 1) {
-      const timer = setTimeout(() => {
-        setRetryCount(c => c + 1);
-        loadDistricts();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [loadError, retryCount, loadDistricts]);
 
   async function handleSubmitRequest() {
     if (!selectedDistrict) return;
@@ -172,6 +199,13 @@ export default function LinkDistrictPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleManualRefresh() {
+    loadAttemptRef.current = 0;
+    setRetryCount(0);
+    setApiDiagnostics(null);
+    loadDistricts();
   }
 
   if (authStatus === 'loading') {
@@ -257,7 +291,7 @@ export default function LinkDistrictPage() {
               )}
             </h2>
             <button
-              onClick={() => { setRetryCount(0); loadDistricts(); }}
+              onClick={handleManualRefresh}
               disabled={loading}
               className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition disabled:opacity-50"
             >
@@ -279,26 +313,41 @@ export default function LinkDistrictPage() {
 
           {/* Error State */}
           {loadError && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 mb-3">
               <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-red-800">Failed to load districts</p>
-                <p className="text-xs text-red-600 mt-1">{loadError}</p>
+                <p className="text-xs text-red-600 mt-1 break-all">{loadError}</p>
+                {apiDiagnostics && (
+                  <details className="mt-2">
+                    <summary className="text-xs text-red-500 cursor-pointer hover:underline">
+                      Show diagnostics
+                    </summary>
+                    <pre className="mt-1 text-[10px] text-red-400 bg-red-100 rounded p-2 overflow-x-auto max-h-32">
+                      {JSON.stringify(apiDiagnostics, null, 2)}
+                    </pre>
+                  </details>
+                )}
                 <button
-                  onClick={() => { setRetryCount(0); loadDistricts(); }}
-                  className="mt-2 text-xs font-medium text-red-700 hover:text-red-900 underline"
+                  onClick={handleManualRefresh}
+                  className="mt-2 text-xs font-medium text-red-700 hover:text-red-900 underline flex items-center gap-1"
                 >
-                  Try again
+                  <RefreshCw size={10} /> Try again
                 </button>
               </div>
             </div>
           )}
 
-          {/* Loading State */}
+          {/* Loading State — with phase info */}
           {loading && !loadError && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="animate-spin text-primary-500 mr-2" size={24} />
-              <span className="text-sm text-gray-500">Loading districts...</span>
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="animate-spin text-primary-500 mb-3" size={28} />
+              <span className="text-sm text-gray-500">{loadPhase || 'Loading districts...'}</span>
+              {loadAttemptRef.current > 1 && (
+                <span className="text-xs text-gray-400 mt-1">
+                  Attempt {loadAttemptRef.current} — setting up districts for first time...
+                </span>
+              )}
             </div>
           )}
 
@@ -352,18 +401,37 @@ export default function LinkDistrictPage() {
           )}
 
           {/* Empty search results */}
-          {!loading && searchQuery.length >= 2 && filteredDistricts.length === 0 && !loadError && (
+          {!loading && searchQuery.length >= 2 && filteredDistricts.length === 0 && allDistricts.length > 0 && !loadError && (
             <p className="text-sm text-gray-400 mt-3 text-center py-4">
               No districts found for &quot;{searchQuery}&quot;. Ask your school administrator to register on Limud.
             </p>
           )}
 
-          {/* No districts at all */}
+          {/* No districts at all — v9.6.4: Actionable state with retry */}
           {!loading && allDistricts.length === 0 && !loadError && (
             <div className="text-center py-8">
-              <Building2 size={32} className="mx-auto text-gray-300 mb-2" />
-              <p className="text-sm text-gray-400">No districts available yet.</p>
-              <p className="text-xs text-gray-300 mt-1">Ask your school administrator to register on Limud.</p>
+              <Database size={32} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-sm text-gray-500 font-medium">Setting up districts...</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Districts are being initialized for the first time. This only happens once.
+              </p>
+              <button
+                onClick={handleManualRefresh}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-xl hover:bg-blue-600 transition"
+              >
+                <Zap size={14} />
+                Load Districts Now
+              </button>
+              {apiDiagnostics && (
+                <details className="mt-3 text-left max-w-md mx-auto">
+                  <summary className="text-xs text-gray-400 cursor-pointer hover:underline text-center">
+                    Debug info
+                  </summary>
+                  <pre className="mt-1 text-[10px] text-gray-400 bg-gray-50 rounded p-2 overflow-x-auto max-h-24 border">
+                    {JSON.stringify(apiDiagnostics, null, 2)}
+                  </pre>
+                </details>
+              )}
             </div>
           )}
         </motion.div>

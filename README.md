@@ -923,6 +923,27 @@ Limud/
 
 ## Changelog
 
+### v9.6.4 (2026-03-28) — Auto-Seed Districts & Production Fix
+
+**Problem:** On fresh deployments (e.g., Render production), the database had no seeded districts. The search API returned an empty `{ districts: [] }` and the page showed "No districts available yet" with no way to recover.
+
+**Root cause:** The seed script only ran locally (`npx tsx prisma/seed-districts.ts`) and was never executed on production. The v9.6.3 auto-seed existed but only triggered on `browse` requests and lacked diagnostics.
+
+**Fixes:**
+1. **Auto-seed on ALL requests** — The `/api/district-link/search` endpoint now checks for empty districts on every request (not just browse), creating 26 districts automatically if none exist.
+2. **Diagnostic info** — API returns `diagnostics` object with version, seed status, DB state, and timing when `?debug=1` is appended.
+3. **Smart retry logic** — Page retries up to 3 times with progressive delays (1.5s, 3s, 4.5s) if 0 districts returned, giving the auto-seed time to complete.
+4. **Actionable empty state** — Instead of "No districts available yet", shows "Setting up districts..." with a "Load Districts Now" button.
+5. **Loading phase indicator** — Shows "Fetching districts...", "Processing response...", "Seeding database..." during load.
+6. **Error diagnostics panel** — Expandable debug info on error states for troubleshooting.
+
+**Changed files:**
+- `src/app/api/district-link/search/route.ts` — Auto-seed on all requests, detailed diagnostics, better error reporting
+- `src/app/student/link-district/page.tsx` — Smart retry, loading phases, actionable empty state, debug panel
+- Version bump to 9.6.4 across all files
+
+---
+
 ### v9.6.3 (2026-03-27) — Server Fix & Public District Search
 
 **Problem:** Students reported the district search page "does nothing" — no districts loaded, search didn't work, and browse button was unresponsive.
