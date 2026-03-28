@@ -149,17 +149,51 @@ export default function AIBuilderPage() {
     setGenerating(true);
     setStep(3);
 
-    // Simulate AI generation with a realistic delay
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    let assignments: any[] = [];
 
-    const assignments = selectedStyles.map(style =>
-      generateDemoAssignment(pastedContent, selectedSubject, selectedGrade, style)
-    );
+    // v9.7.2: Try real AI API first, fall back to local demo generator
+    if (!isDemo) {
+      try {
+        const res = await fetch('/api/teacher/ai-builder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: pastedContent,
+            subject: selectedSubject,
+            gradeLevel: selectedGrade,
+            styles: selectedStyles,
+            difficulties: selectedDifficulties,
+            additionalInstructions,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.assignments && data.assignments.length > 0) {
+            assignments = data.assignments;
+            toast.success(
+              data.aiGenerated
+                ? `AI generated ${assignments.length} differentiated assignments!`
+                : `Generated ${assignments.length} assignments (template mode)`
+            );
+          }
+        }
+      } catch (err) {
+        console.warn('[AI-BUILDER] API call failed, falling back to demo:', err);
+      }
+    }
+
+    // Fallback to local demo generation if API didn't return results
+    if (assignments.length === 0) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      assignments = selectedStyles.map(style =>
+        generateDemoAssignment(pastedContent, selectedSubject, selectedGrade, style)
+      );
+      toast.success(`Generated ${assignments.length} differentiated assignments!`);
+    }
 
     setGeneratedAssignments(assignments);
     setActiveTab(0);
     setGenerating(false);
-    toast.success(`Generated ${assignments.length} differentiated assignments!`);
   }
 
   function handleCopy(text: string) {

@@ -61,6 +61,8 @@ export async function requireAuth(): Promise<UserSession> {
 
 export async function requireRole(...roles: string[]): Promise<UserSession> {
   const user = await requireAuth();
+  // Master Demo has unrestricted access to all roles
+  if (user.isMasterDemo) return user;
   if (user.role === 'PARENT' && user.isHomeschoolParent && roles.includes('TEACHER')) {
     return user;
   }
@@ -71,7 +73,7 @@ export async function requireRole(...roles: string[]): Promise<UserSession> {
 }
 
 export function hasTeacherAccess(user: UserSession): boolean {
-  return user.role === 'TEACHER' || (user.role === 'PARENT' && user.isHomeschoolParent);
+  return user.role === 'TEACHER' || (user.role === 'PARENT' && user.isHomeschoolParent) || !!user.isMasterDemo;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

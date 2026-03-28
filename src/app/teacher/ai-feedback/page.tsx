@@ -213,10 +213,40 @@ export default function AIFeedbackPage() {
     setGeneratingFeedback(true);
     setFeedback(null);
 
-    // Simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 1800));
+    let generated: any = null;
 
-    const generated = generateFeedback(sub);
+    // v9.7.2: Try real AI API first
+    if (!isDemo) {
+      try {
+        const res = await fetch('/api/teacher/ai-feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentName: sub.studentName,
+            assignment: sub.assignment,
+            subject: sub.subject,
+            content: sub.content,
+            learningStyle: sub.learningStyle,
+            grade: sub.grade,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.feedback) {
+            generated = data.feedback;
+          }
+        }
+      } catch (err) {
+        console.warn('[AI-FEEDBACK] API call failed, falling back to demo:', err);
+      }
+    }
+
+    // Fallback to local generation
+    if (!generated) {
+      await new Promise(resolve => setTimeout(resolve, 1800));
+      generated = generateFeedback(sub);
+    }
+
     setFeedback(generated);
     setEditedFeedback(generated.detailedFeedback);
     setGeneratingFeedback(false);
@@ -231,6 +261,43 @@ export default function AIFeedbackPage() {
     setBulkGenerating(true);
     const pending = submissions.filter(s => s.status === 'pending');
 
+    // v9.7.2: Try bulk AI API first
+    if (!isDemo) {
+      try {
+        const res = await fetch('/api/teacher/ai-feedback', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            submissions: pending.map(s => ({
+              id: s.id,
+              studentName: s.studentName,
+              assignment: s.assignment,
+              subject: s.subject,
+              content: s.content,
+              learningStyle: s.learningStyle,
+              grade: s.grade,
+            })),
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.results && data.results.length > 0) {
+            for (const result of data.results) {
+              setSubmissions(prev => prev.map(s =>
+                s.id === result.id ? { ...s, feedback: result.feedback, score: result.feedback.score, status: 'reviewed' } : s
+              ));
+            }
+            setBulkGenerating(false);
+            toast.success(`Generated feedback for ${data.results.length} submissions!`);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('[AI-FEEDBACK BULK] API call failed, falling back to demo:', err);
+      }
+    }
+
+    // Fallback to local generation
     for (let i = 0; i < pending.length; i++) {
       await new Promise(resolve => setTimeout(resolve, 800));
       const generated = generateFeedback(pending[i]);

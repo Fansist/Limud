@@ -21,8 +21,9 @@ function generateSessionId() {
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireAuth();
 
-  // Allow STUDENT role, or PARENT role (for testing/previewing as homeschool parent)
-  if (user.role !== 'STUDENT' && !(user.role === 'PARENT' && user.isHomeschoolParent)) {
+  // Allow STUDENT role, PARENT role (homeschool), or Master Demo (unrestricted)
+  const isMasterDemo = (user as any).isMasterDemo === true;
+  if (user.role !== 'STUDENT' && !(user.role === 'PARENT' && user.isHomeschoolParent) && !isMasterDemo) {
     return NextResponse.json({ error: 'Only students can use the tutor' }, { status: 403 });
   }
 
@@ -150,7 +151,7 @@ export const POST = apiHandler(async (req: Request) => {
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
 
-  if (user.role !== 'STUDENT' && !(user.role === 'PARENT' && user.isHomeschoolParent)) {
+  if (user.role !== 'STUDENT' && !(user.role === 'PARENT' && user.isHomeschoolParent) && !(user as any).isMasterDemo) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

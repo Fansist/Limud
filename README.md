@@ -1196,6 +1196,38 @@ NODE_OPTIONS=--max-old-space-size=512
 
 ## Changelog
 
+### v9.7.2 (2026-03-28) — AI Features: Real Gemini Integration & Master Demo Fixes
+
+#### Root Cause
+AI features (Tutor, AI Builder, AI Feedback Engine, Quiz Generator) were stuck in demo mode for all users including the Master Demo account. Three separate issues:
+
+1. **AI Builder & Feedback Engine** were UI-only prototypes — they simulated AI with `setTimeout()` + hardcoded responses but never called any API endpoint
+2. **Tutor API** blocked the Master Demo account (role: TEACHER) with a 403 "Only students can use the tutor" error, causing the frontend to fall back to `/api/demo` static responses
+3. **`requireRole()` middleware** didn't check `isMasterDemo`, so any API with role restrictions blocked the Master Demo
+
+#### Fixes
+1. **New `/api/teacher/ai-builder` endpoint** — Real Gemini-powered assignment differentiation. Takes teacher content + config, returns learning-style-adapted assignments (visual, auditory, kinesthetic, reading). Falls back to template generation when no API key.
+2. **New `/api/teacher/ai-feedback` endpoint** — Real Gemini-powered student feedback generation. Single + bulk modes. Produces structured feedback (score, strengths, improvements, detailed feedback, encouragement). Falls back to heuristic scoring when no API key.
+3. **AI Builder page** now calls `/api/teacher/ai-builder` first, falls back to local demo generator only if API fails
+4. **AI Feedback page** now calls `/api/teacher/ai-feedback` (single & bulk), falls back to local generator only if API fails
+5. **Tutor API** now allows `isMasterDemo` users (bypasses STUDENT role check)
+6. **`requireRole()` middleware** now gives Master Demo unrestricted access to all role-gated endpoints
+7. **`hasTeacherAccess()` helper** now includes Master Demo
+
+#### How AI Mode Is Determined
+- If `GEMINI_API_KEY` is set (and not `demo-mode`) → **Real AI responses** from Google Gemini
+- If no API key → **Demo/template responses** (heuristic scoring, template assignments, static tutor chat)
+- The Master Demo account now correctly reaches the real AI path in all features
+
+#### Files Changed (8)
+- `src/app/api/teacher/ai-builder/route.ts` — **NEW** real Gemini AI endpoint
+- `src/app/api/teacher/ai-feedback/route.ts` — **NEW** real Gemini AI endpoint
+- `src/app/teacher/ai-builder/page.tsx` — Wired to real API
+- `src/app/teacher/ai-feedback/page.tsx` — Wired to real API (single + bulk)
+- `src/app/api/tutor/route.ts` — Master Demo role bypass
+- `src/lib/middleware.ts` — `requireRole()` + `hasTeacherAccess()` Master Demo support
+- Version bumped in: config.ts, middleware.ts, server.js, health/route.ts, package.json
+
 ### v9.7.1 (2026-03-28) — Bug Fixes: Navigation, Survey Steps & Assignment Flow
 
 #### Bug Fixes
