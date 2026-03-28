@@ -1,7 +1,7 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -58,7 +58,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
+
+  // v9.7: Remember Me — restore saved email on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('limud-remember-email');
+      if (saved) {
+        setEmail(saved);
+        setRememberMe(true);
+      }
+    } catch {}
+  }, []);
 
   /**
    * Core login handler — calls NextAuth signIn, then redirects based on:
@@ -86,6 +98,15 @@ export default function LoginPage() {
     if (result?.error) {
       return false; // Auth failed
     }
+
+    // v9.7: Remember Me — save or clear email
+    try {
+      if (rememberMe && !isDemo) {
+        localStorage.setItem('limud-remember-email', normalizedEmail);
+      } else if (!isDemo) {
+        localStorage.removeItem('limud-remember-email');
+      }
+    } catch {}
 
     // Master Demo: clear any stale demo-mode flag — it uses its own session path
     if (isMaster) {
@@ -304,6 +325,21 @@ export default function LoginPage() {
                   autoComplete="current-password"
                 />
               </div>
+
+              {/* v9.7: Remember Me checkbox */}
+              <div className="flex items-center gap-2">
+                <input
+                  id="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                />
+                <label htmlFor="remember-me" className="text-sm text-gray-600 cursor-pointer select-none">
+                  Remember my email
+                </label>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -403,6 +439,10 @@ export default function LoginPage() {
           <p className="text-center text-xs text-gray-400 mt-6">
             <Link href="/" className="text-primary-600 hover:text-primary-700 font-medium">
               &larr; Back to homepage
+            </Link>
+            <span className="mx-2">&middot;</span>
+            <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+              Wrong role? Start over &rarr;
             </Link>
           </p>
         </motion.div>

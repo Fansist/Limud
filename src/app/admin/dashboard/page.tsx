@@ -13,7 +13,69 @@ import {
   Building2, Users, GraduationCap, DollarSign, Upload, ArrowRight, Shield, TrendingUp, Calendar, CreditCard,
   UserCog, Megaphone, Settings, ClipboardList, BookOpen, BarChart3, AlertTriangle,
   CheckCircle, Activity, Database, FileSearch, Lock, Globe, Cpu, Zap,
+  TrendingDown, Flame, Eye, Star, MessageSquare, Brain, Clock,
 } from 'lucide-react';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TRENDING DATA — v9.7: Addresses admin pain "information overload"
+// Opportunity: "trending info summary" — curated, actionable insights
+// ═══════════════════════════════════════════════════════════════════════════
+
+const TRENDING_ALERTS = [
+  {
+    id: 't1',
+    type: 'warning' as const,
+    title: '12 students at risk of falling behind',
+    desc: 'Math scores dropped 8% this week across 3 classrooms',
+    icon: AlertTriangle,
+    color: 'text-amber-600 bg-amber-50 border-amber-200',
+    action: 'View Students',
+    href: '/admin/students',
+    time: '2h ago',
+  },
+  {
+    id: 't2',
+    type: 'success' as const,
+    title: 'AI Tutor usage up 34%',
+    desc: 'Students are spending more time with the AI tutor this week',
+    icon: Brain,
+    color: 'text-green-600 bg-green-50 border-green-200',
+    action: 'View Analytics',
+    href: '/admin/analytics',
+    time: '4h ago',
+  },
+  {
+    id: 't3',
+    type: 'info' as const,
+    title: '5 new teacher onboarding sessions completed',
+    desc: 'Ms. Rodriguez, Mr. Kim, and 3 others finished Quick Setup',
+    icon: CheckCircle,
+    color: 'text-blue-600 bg-blue-50 border-blue-200',
+    action: 'View Staff',
+    href: '/admin/employees',
+    time: '6h ago',
+  },
+  {
+    id: 't4',
+    type: 'warning' as const,
+    title: 'Student engagement dip on Fridays',
+    desc: 'Average session time drops 40% on Friday afternoons',
+    icon: TrendingDown,
+    color: 'text-orange-600 bg-orange-50 border-orange-200',
+    action: 'View Pattern',
+    href: '/admin/analytics',
+    time: '1d ago',
+  },
+];
+
+const TRENDING_METRICS = [
+  { label: 'Active Students Today', value: '189', change: '+12', trend: 'up' as const, icon: Users },
+  { label: 'Assignments Submitted', value: '47', change: '+8', trend: 'up' as const, icon: BookOpen },
+  { label: 'AI Tutor Sessions', value: '64', change: '+22', trend: 'up' as const, icon: Brain },
+  { label: 'Avg. Score This Week', value: '78%', change: '-2%', trend: 'down' as const, icon: Star },
+  { label: 'Teacher Logins', value: '14', change: '0', trend: 'stable' as const, icon: GraduationCap },
+  { label: 'Parent Check-ins', value: '23', change: '+5', trend: 'up' as const, icon: Eye },
+];
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -159,6 +221,89 @@ export default function AdminDashboard() {
                   <p className="text-xs text-gray-400">Tutor, grader, planner</p>
                 </div>
                 <span className="badge badge-success text-[10px]">Online</span>
+              </div>
+            </motion.div>
+
+            {/* ═══════ v9.7: TRENDING DASHBOARD ═══════ */}
+            {/* Addresses admin pain: "information overload" */}
+            {/* Opportunity: "trending info summary" — curated, actionable insights */}
+            
+            {/* Trending Metrics Row */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white">
+                  <Flame size={16} />
+                </div>
+                <h3 className="font-bold text-gray-900">Trending Today</h3>
+                <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">Live</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {TRENDING_METRICS.map((metric, i) => (
+                  <motion.div
+                    key={metric.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.18 + i * 0.03 }}
+                    className="card p-3 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <metric.icon size={14} className="text-gray-400" />
+                      <span className={cn(
+                        'text-[10px] font-bold flex items-center gap-0.5',
+                        metric.trend === 'up' ? 'text-green-600' : metric.trend === 'down' ? 'text-red-600' : 'text-gray-400'
+                      )}>
+                        {metric.trend === 'up' && <TrendingUp size={10} />}
+                        {metric.trend === 'down' && <TrendingDown size={10} />}
+                        {metric.change}
+                      </span>
+                    </div>
+                    <p className="text-xl font-bold text-gray-900">{metric.value}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">{metric.label}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Trending Alerts */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}
+              className="card">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                    <Zap size={16} className="text-amber-500" />
+                  </div>
+                  Alerts & Insights
+                </h3>
+                <span className="text-xs text-gray-400">{TRENDING_ALERTS.length} items</span>
+              </div>
+              <div className="space-y-2.5">
+                {TRENDING_ALERTS.map((alert, i) => (
+                  <motion.div
+                    key={alert.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.24 + i * 0.04 }}
+                  >
+                    <Link href={`${alert.href}${demoSuffix}`}
+                      className={cn(
+                        'flex items-center gap-3 p-3 rounded-xl border transition-all hover:shadow-sm group',
+                        alert.color
+                      )}
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-white/70 flex items-center justify-center flex-shrink-0">
+                        <alert.icon size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{alert.desc}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-[10px] text-gray-400">{alert.time}</span>
+                        <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
 

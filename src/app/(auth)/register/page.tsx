@@ -404,8 +404,8 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="flex justify-between items-center pt-2">
-                  <Link href="/login" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                    Already have an account?
+                  <Link href="/login" className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                    <ArrowLeft size={14} /> Already have an account?
                   </Link>
                   <button
                     onClick={() => setStep(2)}

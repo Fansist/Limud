@@ -54,6 +54,51 @@ const LEARNING_STYLES = [
   { id: 'structured', label: 'Structured Learner', desc: 'I prefer clear step-by-step instructions, checklists, and predictable routines', emoji: '📋', icon: ListChecks, color: 'from-slate-500 to-gray-600' },
 ];
 
+// v9.7: Scenario-based learning style discovery — simpler, more relatable questions
+// Pain point from UX research: "Don't understand the questions"
+const DISCOVERY_SCENARIOS = [
+  {
+    question: "Your teacher just explained something new. How do you remember it best?",
+    emoji: "🧠",
+    answers: [
+      { text: "Draw a picture or diagram of it", style: 'visual', emoji: '🎨' },
+      { text: "Say it out loud or explain it to a friend", style: 'auditory', emoji: '🗣️' },
+      { text: "Try it out myself — hands on!", style: 'kinesthetic', emoji: '🤲' },
+      { text: "Write notes about it", style: 'reading_writing', emoji: '📝' },
+    ],
+  },
+  {
+    question: "You need to study for a big test tomorrow. What do you do?",
+    emoji: "📖",
+    answers: [
+      { text: "Watch a YouTube video about the topic", style: 'visual', emoji: '📺' },
+      { text: "Record yourself and listen to it", style: 'auditory', emoji: '🎧' },
+      { text: "Make flashcards and quiz yourself (move around!)", style: 'kinesthetic', emoji: '🃏' },
+      { text: "Re-read my notes and textbook", style: 'reading_writing', emoji: '📚' },
+    ],
+  },
+  {
+    question: "When working on homework, what helps you focus most?",
+    emoji: "🎯",
+    answers: [
+      { text: "A clear checklist I can follow step by step", style: 'structured', emoji: '✅' },
+      { text: "Short tasks with breaks in between", style: 'adhd_friendly', emoji: '⏱️' },
+      { text: "Background music or someone nearby", style: 'auditory', emoji: '🎵' },
+      { text: "Colorful notes and highlighters", style: 'visual', emoji: '🌈' },
+    ],
+  },
+  {
+    question: "How would you rather learn about the solar system?",
+    emoji: "🚀",
+    answers: [
+      { text: "Watch a cool space documentary", style: 'visual', emoji: '🎬' },
+      { text: "Listen to a podcast about planets", style: 'auditory', emoji: '🎙️' },
+      { text: "Build a model of the solar system", style: 'kinesthetic', emoji: '🔧' },
+      { text: "Read an article and take notes", style: 'reading_writing', emoji: '📰' },
+    ],
+  },
+];
+
 // v9.4.0: Learning needs — additional support requirements
 const LEARNING_NEEDS = [
   { id: 'adhd', label: 'ADHD / Focus challenges', emoji: '⚡', desc: 'Shorter tasks, built-in breaks' },
@@ -119,8 +164,12 @@ export default function StudentSurveyPage() {
   const [challenges, setChallenges] = useState<string[]>([]);
   const [funFacts, setFunFacts] = useState('');
 
-  const totalSteps = 5;
-  const STEP_LABELS = ['Subjects', 'Hobbies', 'How You Learn', 'Your Needs', 'Fun Stuff'];
+  // v9.7: Scenario-based discovery
+  const [discoveryAnswers, setDiscoveryAnswers] = useState<Record<number, string>>({});
+  const [discoveryQuestion, setDiscoveryQuestion] = useState(0);
+
+  const totalSteps = 6;
+  const STEP_LABELS = ['Discover', 'Subjects', 'Hobbies', 'How You Learn', 'Your Needs', 'Fun Stuff'];
 
   useEffect(() => {
     if (!isDemo && status === 'authenticated' && (session?.user as any)?.role !== 'STUDENT' && !(session?.user as any)?.isMasterDemo) {
@@ -219,8 +268,105 @@ export default function StudentSurveyPage() {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* Step 1: Favorite Subjects */}
+          {/* Step 1: Discovery Scenarios (v9.7) — simpler, scenario-based questions */}
           {step === 1 && (
+            <motion.div key="s0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+              <div className="card p-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                  <Sparkles size={22} className="text-violet-600" /> Let's discover how you learn!
+                </h2>
+                <p className="text-sm text-gray-500 mb-1">Answer these fun questions — there are no wrong answers!</p>
+                <p className="text-xs text-violet-600 font-medium mb-4">
+                  We'll figure out your learning style together. Just pick what feels most like you.
+                </p>
+
+                <div className="space-y-6">
+                  {DISCOVERY_SCENARIOS.map((scenario, idx) => (
+                    <div key={idx} className={cn(
+                      'rounded-2xl border-2 p-5 transition-all',
+                      discoveryAnswers[idx] ? 'border-green-200 bg-green-50/50' : 'border-gray-100'
+                    )}>
+                      <p className="font-bold text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-2">
+                        <span className="text-xl">{scenario.emoji}</span>
+                        {scenario.question}
+                      </p>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        {scenario.answers.map((answer, aidx) => (
+                          <button
+                            key={aidx}
+                            onClick={() => {
+                              setDiscoveryAnswers(prev => ({ ...prev, [idx]: answer.style }));
+                            }}
+                            className={cn(
+                              'p-3 rounded-xl border-2 text-left text-sm transition-all flex items-center gap-2',
+                              discoveryAnswers[idx] === answer.style
+                                ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-200 shadow-sm'
+                                : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
+                            )}
+                          >
+                            <span className="text-lg flex-shrink-0">{answer.emoji}</span>
+                            <span className={cn(
+                              'font-medium',
+                              discoveryAnswers[idx] === answer.style ? 'text-primary-700' : 'text-gray-700'
+                            )}>{answer.text}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Show discovered style */}
+                {Object.keys(discoveryAnswers).length >= 3 && (() => {
+                  const counts: Record<string, number> = {};
+                  Object.values(discoveryAnswers).forEach(s => { counts[s] = (counts[s] || 0) + 1; });
+                  const topStyle = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+                  const styleInfo = LEARNING_STYLES.find(ls => ls.id === topStyle);
+                  if (!styleInfo) return null;
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="mt-6 bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-2xl p-5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-white flex-shrink-0', styleInfo.color)}>
+                          <styleInfo.icon size={24} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-violet-600 font-medium">Based on your answers, you seem to be a...</p>
+                          <p className="text-lg font-bold text-gray-900">{styleInfo.emoji} {styleInfo.label}</p>
+                          <p className="text-xs text-gray-500">{styleInfo.desc}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">You can change this in the next steps if you want!</p>
+                    </motion.div>
+                  );
+                })()}
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    // v9.7: Auto-set learning style from discovery answers
+                    if (Object.keys(discoveryAnswers).length >= 2) {
+                      const counts: Record<string, number> = {};
+                      Object.values(discoveryAnswers).forEach(s => { counts[s] = (counts[s] || 0) + 1; });
+                      const topStyle = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+                      if (topStyle) setLearningStyle(topStyle);
+                    }
+                    setStep(2);
+                  }}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  Next <ArrowRight size={16} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 2: Favorite Subjects */}
+          {step === 2 && (
             <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
               <div className="card p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
@@ -473,19 +619,19 @@ export default function StudentSurveyPage() {
               </div>
 
               <div className="flex justify-between">
-                <button onClick={() => setStep(3)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                <button onClick={() => setStep(4)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
                   <ArrowLeft size={14} /> Back
                 </button>
-                <button onClick={() => setStep(5)} className="btn-primary flex items-center gap-2">
+                <button onClick={() => setStep(6)} className="btn-primary flex items-center gap-2">
                   Next <ArrowRight size={16} />
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* Step 5: Fun Stuff */}
-          {step === 5 && (
-            <motion.div key="s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+          {/* Step 6: Fun Stuff */}
+          {step === 6 && (
+            <motion.div key="s6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
               <div className="card p-6 space-y-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Star size={22} className="text-yellow-500" /> Tell us the fun stuff!
@@ -548,7 +694,7 @@ export default function StudentSurveyPage() {
               </div>
 
               <div className="flex justify-between">
-                <button onClick={() => setStep(4)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                <button onClick={() => setStep(5)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
                   <ArrowLeft size={14} /> Back
                 </button>
                 <button

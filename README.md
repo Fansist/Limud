@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.6.3
+  v9.7.0
 </p>
 
 ---
@@ -34,8 +34,8 @@ Limud is **enterprise-grade**: FERPA-compliant, COPPA-compliant, and hardened ag
    - [AI Engine](#1-ai-engine)
    - [Adaptive Learning & Cognitive Science](#2-adaptive-learning--cognitive-science)
    - [Gamification System](#3-gamification-system)
-   - [Student Portal](#4-student-portal-15-pages)
-   - [Teacher Portal](#5-teacher-portal-12-pages)
+   - [Student Portal](#4-student-portal-16-pages)
+   - [Teacher Portal](#5-teacher-portal-15-pages)
    - [Admin / District Portal](#6-admin--district-portal-12-pages)
    - [Parent Portal](#7-parent-portal-3-pages)
    - [Homeschool Portal](#8-homeschool-portal-5-pages)
@@ -201,7 +201,7 @@ The gamification engine (`src/lib/gamification.ts`) drives student engagement th
 | **Season Pass** | Progressive seasonal rewards tracked via `SeasonPassProgress` model. |
 | **Daily Boosts** | Daily login bonuses tracked per user. |
 
-### 4. Student Portal (15 pages)
+### 4. Student Portal (16 pages)
 
 The student experience is a full-featured learning environment:
 
@@ -223,9 +223,9 @@ The student experience is a full-featured learning environment:
 | **Messages** | `/student/messages` | In-app messaging with teachers and classmates |
 | **My Platforms** | `/student/platforms` | Connected third-party platform integrations (Khan Academy, Google Classroom, etc.) |
 
-Additional student pages: **Survey** (`/student/survey`) for learning style assessment, **Study Groups** (`/student/study-groups`), **Growth** (`/student/growth`, redirects to Analytics).
+Additional student pages: **Survey** (`/student/survey`) for learning style assessment with v9.7 scenario-based discovery, **My Classrooms** (`/student/classrooms`) for classroom finder with assignment preview and learning method chooser, **Study Groups** (`/student/study-groups`), **Growth** (`/student/growth`, redirects to Analytics).
 
-### 5. Teacher Portal (12 pages)
+### 5. Teacher Portal (15 pages)
 
 Teachers get a comprehensive toolkit for managing classrooms and understanding students:
 
@@ -243,6 +243,9 @@ Teachers get a comprehensive toolkit for managing classrooms and understanding s
 | **My Students** | `/teacher/students` | Full student roster with performance data, learning DNA, and contact info |
 | **Game Control** | `/teacher/games` | Monitor and manage which games are available to students |
 | **Messages** | `/teacher/messages` | In-app messaging with students and parents |
+| **Quick Setup** | `/teacher/onboarding` | 3-step onboarding wizard: Subjects → Classes → AI Preferences (v9.7) |
+| **AI Builder** | `/teacher/ai-builder` | Upload content → AI generates differentiated assignments for every learning style (v9.7) |
+| **AI Feedback** | `/teacher/ai-feedback` | AI-generated structured feedback for student submissions with bulk processing (v9.7) |
 
 **Backward Compatibility**: Old URLs `/teacher/insights` and `/teacher/learning-insights` redirect to the corresponding Analytics tabs.
 
@@ -922,6 +925,33 @@ Limud/
 ---
 
 ## Changelog
+
+### v9.7.0 (2026-03-28) — User Journey Overhaul: Student, Teacher & Admin UX
+
+**Based on:** Limud user-journey research (PDF analysis of 3 personas: Student, Teacher, Administrator).
+Every feature below addresses a specific pain point or opportunity identified in the user-journey maps.
+
+#### Student Features
+1. **Remember Me** — Login page saves email when "Remember my email" checkbox is checked. Addresses: *"What is my password? Forgot my password."*
+2. **Learning-Style Discovery** — New Step 0 in the Student Survey with interactive scenario-based questions (not boring checkboxes). Students discover their style through situations. Addresses: *"Unclear learning-style questions."*
+3. **My Classrooms** (`/student/classrooms`) — Color-coded classroom grid with subject icons, upcoming assignments, teacher names, room numbers, and "due soon" badges. Addresses: *"Can't find the classroom."*
+4. **Smart Assignment Finder** — Each classroom card shows upcoming assignments sorted by urgency. Click to expand full assignment list with due dates and point values. Addresses: *"Won't find the assignment."*
+5. **Learning Method Chooser** — When starting an assignment, students pick their preferred method (Visual, Listen & Discuss, Do & Build, Read & Write, Play & Explore, Step by Step) with a confirmation dialog. Addresses: *"Choose wrong method by accident."*
+
+#### Teacher Features
+6. **Quick Setup Wizard** (`/teacher/onboarding`) — 3-step onboarding: Select Subjects → Set Up Classes → Configure AI Preferences. Completes in under 2 minutes. Addresses: *"Making a new account is so tedious and long."*
+7. **Teacher Onboarding API** (`POST /api/teacher/onboarding`) — Persists onboarding data and marks `onboardingComplete = true`.
+8. **AI Assignment Builder** (`/teacher/ai-builder`) — Upload or paste lesson content → select subject, grade, learning styles → AI generates differentiated assignments for Visual, Auditory, Kinesthetic, and Reading/Writing learners. Includes difficulty variations (Simplified, Standard, Advanced). Addresses: *"How to create lessons that work for everyone."*
+9. **AI Feedback Engine** (`/teacher/ai-feedback`) — AI analyzes student submissions and generates structured feedback: score, strengths, areas for growth, and an editable personalized message. Supports bulk "Auto-Grade All" for entire classes. Addresses: *"I have so many students to give feedback to."*
+
+#### Administrator Features
+10. **Trending Dashboard** — New section on admin dashboard with real-time metrics (Active Students Today, Assignments Submitted, AI Tutor Sessions, Avg Score, Teacher Logins, Parent Check-ins) and curated Alerts & Insights (at-risk students, engagement dips, AI usage trends, onboarding completions). Addresses: *"Information overload"* with opportunity: *"Trending info summary."*
+
+#### UX Improvements
+11. **Back Button / Role Switcher** — Login page now shows "Wrong role? Start over" link. Register page step 1 has a prominent back arrow to /login. Addresses: *"User accidentally selects student role"* with opportunity: *"Add a back button."*
+12. **Updated Sidebar Navigation** — Teacher nav now includes Quick Setup, AI Builder, and AI Feedback links.
+
+**Files changed:** 14 files, ~2000 lines added.
 
 ### v9.6.7 (2026-03-28) — Fix: District owner accounts now auto-created
 

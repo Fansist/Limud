@@ -27,6 +27,7 @@ type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?
 const NAV_ITEMS: Record<string, NavItem[]> = {
   STUDENT: [
     { href: '/student/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+    { href: '/student/classrooms', label: 'My Classrooms', icon: <GraduationCap size={20} /> },
     { href: '/student/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
     { href: '/student/tutor', label: 'AI Tutor', icon: <MessageCircle size={20} /> },
     { href: '/student/focus', label: 'Focus Mode', icon: <Focus size={20} /> },
@@ -45,8 +46,11 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
   TEACHER: [
     { href: '/teacher/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+    { href: '/teacher/onboarding', label: 'Quick Setup', icon: <Sparkles size={20} /> },
     { href: '/teacher/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
+    { href: '/teacher/ai-builder', label: 'AI Builder', icon: <Zap size={20} /> },
     { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
+    { href: '/teacher/ai-feedback', label: 'AI Feedback', icon: <MessageCircle size={20} /> },
     { href: '/teacher/intelligence', label: 'Intelligence', icon: <Brain size={20} /> },
     { href: '/teacher/quiz-generator', label: 'AI Quiz Generator', icon: <Lightbulb size={20} /> },
     { href: '/teacher/worksheets', label: 'Worksheet Builder', icon: <PenTool size={20} /> },
