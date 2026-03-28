@@ -1196,6 +1196,28 @@ NODE_OPTIONS=--max-old-space-size=512
 
 ## Changelog
 
+### v9.7.8 (2026-03-28) — Fix Auto-Differentiated Assignments: Toast Spam & Grammar Bugs
+
+#### Bugs Fixed
+
+1. **Toast spam on "Generate All"**: Clicking "Generate Auto-Differentiated Assignments for All" fired 5 simultaneous individual toasts (one per topic), stacking and obscuring the entire Weakest Skills section. Now fires a **single summary toast** (e.g., "Auto-differentiated assignments created for 5 topics across 7 students").
+
+2. **Grammar: "1 students"**: Three toasts and the Weakest Skills labels showed "1 students" instead of "1 student". Added `pluralize()` helper that handles singular/plural correctly throughout the page.
+
+3. **Button not disabled after click**: The "Generate All" button had no loading/disabled state, allowing duplicate clicks and duplicate assignment creation. Now shows:
+   - Default: "Generate Auto-Differentiated Assignments for All"
+   - Loading: spinner + "Generating Assignments..." (disabled)
+   - Done: checkmark + "Assignments Created" (green, disabled)
+
+4. **"X students struggling" label**: The Weakest Skills cards showed "1 students struggling" — now correctly shows "1 student struggling".
+
+#### Files Changed (12)
+
+| File | Change |
+|------|--------|
+| `src/app/teacher/intelligence/page.tsx` | Added `pluralize()` helper, `handleBulkAutoAssign()` with single summary toast, `bulkAssigning`/`bulkCompleted` states, disabled button states, fixed all pluralization |
+| Version bumped in 10 config files | 9.7.7 → 9.7.8 |
+
 ### v9.7.7 (2026-03-28) — Fix Master Demo: Empty Student Lists Across All Roles
 
 #### Root Cause

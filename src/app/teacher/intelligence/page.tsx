@@ -46,21 +46,32 @@ function EngagementBar({ score, size = 'md' }: { score: number; size?: 'sm' | 'm
   );
 }
 
+/** v9.7.8: Pluralize helper — fixes "1 students" → "1 student" */
+function pluralize(count: number, singular: string, plural?: string): string {
+  return count === 1 ? `1 ${singular}` : `${count} ${plural || singular + 's'}`;
+}
+
 export default function TeacherIntelligencePage() {
   const isDemo = useIsDemo();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'overview' | 'students' | 'risk'>('overview');
   const [autoAssigning, setAutoAssigning] = useState<string | null>(null);
+  // v9.7.8: Track bulk assign state to prevent duplicate clicks & show single summary toast
+  const [bulkAssigning, setBulkAssigning] = useState(false);
+  const [bulkCompleted, setBulkCompleted] = useState(false);
   const [interventionModal, setInterventionModal] = useState<any>(null);
   const [generatingIntervention, setGeneratingIntervention] = useState(false);
   const [interventionResult, setInterventionResult] = useState<any>(null);
 
-  async function handleAutoAssign(skill: any) {
+  async function handleAutoAssign(skill: any, { silent = false }: { silent?: boolean } = {}) {
     setAutoAssigning(skill.skill);
     if (isDemo) {
-      await new Promise(r => setTimeout(r, 1200));
-      toast.success(`Auto-differentiated assignments created for "${skill.skill}" (${skill.studentCount} students)`);
+      await new Promise(r => setTimeout(r, 800));
+      // v9.7.8: Only show individual toast when NOT in bulk mode
+      if (!silent) {
+        toast.success(`Auto-differentiated assignments created for "${skill.skill}" (${pluralize(skill.studentCount, 'student')})`);
+      }
       setAutoAssigning(null);
       return;
     }
@@ -72,12 +83,35 @@ export default function TeacherIntelligencePage() {
       });
       if (res.ok) {
         const data = await res.json();
-        toast.success(`Created ${data.tiers?.length || 0} tiered assignments for ${skill.skill}`);
-      } else {
+        if (!silent) {
+          toast.success(`Created ${data.tiers?.length || 0} tiered assignments for ${skill.skill}`);
+        }
+      } else if (!silent) {
         toast.error('Failed to auto-assign');
       }
-    } catch { toast.error('Error creating assignments'); }
+    } catch { if (!silent) toast.error('Error creating assignments'); }
     setAutoAssigning(null);
+  }
+
+  /** v9.7.8: Bulk assign all skills — single summary toast instead of spam */
+  async function handleBulkAutoAssign(skills: any[]) {
+    if (bulkAssigning || bulkCompleted) return;
+    setBulkAssigning(true);
+    let successCount = 0;
+    let totalStudents = 0;
+    for (const skill of skills) {
+      try {
+        await handleAutoAssign(skill, { silent: true });
+        successCount++;
+        totalStudents += skill.studentCount || 0;
+      } catch {}
+    }
+    setBulkAssigning(false);
+    setBulkCompleted(true);
+    toast.success(
+      `Auto-differentiated assignments created for ${pluralize(successCount, 'topic')} across ${pluralize(totalStudents, 'student')}`,
+      { duration: 4000 }
+    );
   }
 
   async function handleGenerateIntervention(student: any) {
@@ -223,7 +257,7 @@ export default function TeacherIntelligencePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">{skill.skill}</p>
-                      <p className="text-[10px] text-gray-400">{skill.subject} · {skill.studentCount} students struggling</p>
+                      <p className="text-[10px] text-gray-400">{skill.subject} · {pluralize(skill.studentCount, 'student')} struggling</p>
                     </div>
                     <button onClick={() => handleAutoAssign(skill)} disabled={autoAssigning === skill.skill}
                       className="text-xs text-indigo-600 font-medium hover:underline whitespace-nowrap flex items-center gap-1 disabled:opacity-50">
@@ -232,9 +266,24 @@ export default function TeacherIntelligencePage() {
                   </div>
                 ))}
               </div>
-              <button onClick={() => { weakestSkills.forEach((s: any) => handleAutoAssign(s)); }}
-                className="w-full mt-4 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-semibold hover:bg-indigo-100 transition flex items-center justify-center gap-2">
-                <Sparkles size={14} /> Generate Auto-Differentiated Assignments for All
+              {/* v9.7.8: Single bulk action with summary toast, disabled after completion */}
+              <button onClick={() => handleBulkAutoAssign(weakestSkills)}
+                disabled={bulkAssigning || bulkCompleted}
+                className={cn(
+                  'w-full mt-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2',
+                  bulkCompleted
+                    ? 'bg-green-50 text-green-700 cursor-default'
+                    : bulkAssigning
+                    ? 'bg-indigo-50 text-indigo-400 cursor-wait'
+                    : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                )}>
+                {bulkCompleted ? (
+                  <><CheckCircle size={14} /> Assignments Created</>
+                ) : bulkAssigning ? (
+                  <><Loader2 size={14} className="animate-spin" /> Generating Assignments...</>
+                ) : (
+                  <><Sparkles size={14} /> Generate Auto-Differentiated Assignments for All</>
+                )}
               </button>
             </motion.div>
           </div>
@@ -316,7 +365,7 @@ export default function TeacherIntelligencePage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => handleAutoAssign({ skill: 'Core Review', subject: 'Mixed', studentCount: 1 })}
+                      <button onClick={() => handleAutoAssign({ skill: 'Core Review', subject: 'Mixed', studentCount: 1 }, { silent: false })}
                         className="btn-secondary text-xs flex items-center gap-1">
                         <BookOpen size={12} /> Assign Review
                       </button>

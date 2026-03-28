@@ -92,7 +92,7 @@ interface DemoState {
   version: string;
 }
 
-const STATE_VERSION = '9.7.7';
+const STATE_VERSION = '9.7.8';
 
 function getDefaultState(): DemoState {
   return {
