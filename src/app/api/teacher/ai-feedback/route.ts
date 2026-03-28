@@ -1,5 +1,5 @@
 /**
- * AI Feedback Engine API — v9.7.2
+ * AI Feedback Engine API — v9.7.4
  *
  * POST: Generate AI-powered feedback for a student submission
  * PUT:  Bulk generate feedback for multiple submissions
@@ -108,39 +108,46 @@ export const POST = apiHandler(async (req: Request) => {
 
   // ── Attempt real AI generation ──
   if (hasApiKey()) {
+    const userPrompt = [
+      `Student: ${studentName || 'Anonymous'}`,
+      `Grade: ${grade || 'Unknown'}`,
+      `Learning Style: ${learningStyle || 'Not specified'}`,
+      `Assignment: ${assignment}`,
+      `Subject: ${subject || 'General'}`,
+      `Max Score: ${maxScore}`,
+      ``,
+      `--- STUDENT SUBMISSION ---`,
+      content.substring(0, 3000),
+      `--- END SUBMISSION ---`,
+      ``,
+      `Generate detailed, personalized feedback. Score out of ${maxScore}.`,
+      learningStyle ? `Frame improvement suggestions for a ${learningStyle} learner.` : '',
+      `Return ONLY valid JSON. No markdown fences, no extra text.`,
+    ].filter(Boolean).join('\n');
+
+    const messages = [
+      { role: 'system', content: FEEDBACK_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ];
+
     try {
-      const userPrompt = [
-        `Student: ${studentName || 'Anonymous'}`,
-        `Grade: ${grade || 'Unknown'}`,
-        `Learning Style: ${learningStyle || 'Not specified'}`,
-        `Assignment: ${assignment}`,
-        `Subject: ${subject || 'General'}`,
-        `Max Score: ${maxScore}`,
-        ``,
-        `--- STUDENT SUBMISSION ---`,
-        content.substring(0, 3000),
-        `--- END SUBMISSION ---`,
-        ``,
-        `Generate detailed, personalized feedback. Score out of ${maxScore}.`,
-        learningStyle ? `Frame improvement suggestions for a ${learningStyle} learner.` : '',
-      ].filter(Boolean).join('\n');
-
-      const messages = [
-        { role: 'system', content: FEEDBACK_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ];
-
-      const response = await callGemini(messages, { temperature: 0.4, maxTokens: 1500 });
+      console.log(`[AI-FEEDBACK] Calling Gemini for feedback on "${assignment}"...`);
+      const response = await callGemini(messages, { temperature: 0.4, maxTokens: 2000 });
       const jsonStr = extractJSON(response);
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
         if (parsed.score !== undefined && parsed.detailedFeedback) {
           feedback = parsed;
           aiGenerated = true;
+          console.log(`[AI-FEEDBACK] SUCCESS: AI feedback generated, score=${parsed.score}`);
+        } else {
+          console.warn('[AI-FEEDBACK] Parsed JSON missing required fields (score/detailedFeedback)');
         }
+      } else {
+        console.warn('[AI-FEEDBACK] extractJSON returned null. Preview:', response.substring(0, 300));
       }
     } catch (err) {
-      console.warn('[AI-FEEDBACK] AI generation failed, using heuristic:', (err as Error).message);
+      console.error('[AI-FEEDBACK] AI generation failed:', (err as Error).message);
     }
   }
 
@@ -186,7 +193,7 @@ export const PUT = apiHandler(async (req: Request) => {
           (sub.content || '').substring(0, 2000),
           `--- END ---`,
           ``,
-          `Generate feedback. Score out of 100.`,
+          `Generate feedback. Score out of 100. Return ONLY valid JSON.`,
         ].join('\n');
 
         const messages = [
@@ -194,7 +201,7 @@ export const PUT = apiHandler(async (req: Request) => {
           { role: 'user', content: userPrompt },
         ];
 
-        const response = await callGemini(messages, { temperature: 0.4, maxTokens: 1200 });
+        const response = await callGemini(messages, { temperature: 0.4, maxTokens: 1500 });
         const jsonStr = extractJSON(response);
         if (jsonStr) {
           const parsed = JSON.parse(jsonStr);

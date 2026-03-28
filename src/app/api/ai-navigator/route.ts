@@ -275,10 +275,12 @@ export const POST = apiHandler(async (req: Request) => {
         { role: 'user', content: message.trim() },
       ];
 
+      console.log('[AI-NAV] Calling Gemini for navigation help...');
       const content = await callGemini(messages, { temperature: 0.5, maxTokens: 500 });
+      console.log(`[AI-NAV] SUCCESS: ${content.length} chars`);
       return NextResponse.json({ message: content });
     } catch (e) {
-      console.error('Gemini navigator error, falling back to demo:', e);
+      console.error('[AI-NAV] Gemini navigator error, falling back to demo:', (e as Error).message);
     }
   }
 

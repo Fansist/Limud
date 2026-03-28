@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
-import { callGemini, hasApiKey } from '@/lib/ai';
+import { callGemini, hasApiKey, extractJSON } from '@/lib/ai';
 import { updateSkillRecord } from '@/lib/cognitive-engine';
 
 function generateDemoExam(subject: string, gradeLevel: string, questionCount: number) {
@@ -88,12 +88,22 @@ export const POST = apiHandler(async (req: Request) => {
   if (hasApiKey()) {
     try {
       const prompt = `Generate ${questionCount} multiple-choice exam questions for a ${level} grade ${subject} exam. Each question should have 4 options.
-Return JSON array: [{"question":"...","options":["A","B","C","D"],"correctAnswer":"...","skill":"...","explanation":"..."}]`;
-      const response = await callGemini(prompt, 0.7, 2048);
-      const parsed = JSON.parse(response || '[]');
-      if (Array.isArray(parsed) && parsed.length > 0) questions = parsed;
-    } catch {
-      // Fallback to demo
+Return ONLY a JSON array, no markdown fences, no extra text:
+[{"question":"...","options":["A","B","C","D"],"correctAnswer":"...","skill":"...","explanation":"..."}]`;
+      console.log(`[EXAM-SIM] Calling Gemini for ${questionCount} ${subject} exam questions...`);
+      const response = await callGemini(prompt, 0.7, 4000);
+      const jsonStr = extractJSON(response);
+      if (jsonStr) {
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          questions = parsed;
+          console.log(`[EXAM-SIM] SUCCESS: ${parsed.length} AI-generated exam questions`);
+        }
+      } else {
+        console.warn('[EXAM-SIM] extractJSON returned null. Preview:', response.substring(0, 300));
+      }
+    } catch (err) {
+      console.error('[EXAM-SIM] AI generation failed:', (err as Error).message);
     }
   }
 

@@ -83,7 +83,8 @@ export default function QuizGeneratorPage() {
         if (data.quiz.aiGenerated) {
           toast.success('Quiz generated with AI-powered questions!');
         } else if (data.aiError) {
-          toast.success('Quiz generated from template bank (AI unavailable)');
+          toast('Quiz generated from template bank. AI error: ' + (data.aiError.length > 80 ? data.aiError.substring(0, 80) + '...' : data.aiError), { icon: '\u26a0\ufe0f', duration: 5000 });
+          console.warn('[Quiz] AI error:', data.aiError);
         } else {
           toast.success('Quiz generated with specialized questions!');
         }

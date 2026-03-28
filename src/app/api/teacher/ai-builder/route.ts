@@ -1,5 +1,5 @@
 /**
- * AI Assignment Builder API — v9.7.2
+ * AI Assignment Builder API — v9.7.4
  *
  * POST: Generate differentiated assignments using real Gemini AI
  *
@@ -62,35 +62,43 @@ export const POST = apiHandler(async (req: Request) => {
   let assignments: any[] | null = null;
   let aiGenerated = false;
 
+  let aiError: string | null = null;
+
   // ── Attempt real AI generation ──
   if (hasApiKey()) {
+    const userPrompt = [
+      `Create differentiated assignments for the following content:`,
+      ``,
+      `Subject: ${subject}`,
+      `Grade Level: ${gradeLevel}`,
+      `Learning Styles to create for: ${styles.join(', ')}`,
+      `Difficulty Level: ${difficulties.join(', ')}`,
+      additionalInstructions ? `\nAdditional Teacher Instructions: ${additionalInstructions}` : '',
+      ``,
+      `--- TEACHER CONTENT ---`,
+      content.substring(0, 4000),
+      `--- END CONTENT ---`,
+      ``,
+      `Generate exactly ${styles.length} assignment(s), one for each learning style: ${styles.join(', ')}.`,
+      `Each assignment should be at ${difficulties[0] || 'standard'} difficulty level.`,
+      `Return ONLY a valid JSON array with ${styles.length} objects. No markdown, no extra text.`,
+    ].filter(Boolean).join('\n');
+
+    const messages = [
+      { role: 'system', content: BUILDER_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ];
+
     try {
-      const userPrompt = [
-        `Create differentiated assignments for the following content:`,
-        ``,
-        `Subject: ${subject}`,
-        `Grade Level: ${gradeLevel}`,
-        `Learning Styles to create for: ${styles.join(', ')}`,
-        `Difficulty Level: ${difficulties.join(', ')}`,
-        additionalInstructions ? `\nAdditional Teacher Instructions: ${additionalInstructions}` : '',
-        ``,
-        `--- TEACHER CONTENT ---`,
-        content.substring(0, 4000),
-        `--- END CONTENT ---`,
-        ``,
-        `Generate exactly ${styles.length} assignment(s), one for each learning style: ${styles.join(', ')}.`,
-        `Each assignment should be at ${difficulties[0] || 'standard'} difficulty level.`,
-        `Return a JSON array with ${styles.length} objects.`,
-      ].filter(Boolean).join('\n');
+      console.log(`[AI-BUILDER] Calling Gemini for ${styles.length} ${styles.join(',')} assignments...`);
+      const response = await callGemini(messages, { temperature: 0.7, maxTokens: 8000 });
+      console.log(`[AI-BUILDER] Gemini response length: ${response.length} chars`);
 
-      const messages = [
-        { role: 'system', content: BUILDER_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ];
-
-      const response = await callGemini(messages, { temperature: 0.7, maxTokens: 4000 });
       const jsonStr = extractJSON(response);
-      if (jsonStr) {
+      if (!jsonStr) {
+        aiError = 'AI responded but JSON extraction failed';
+        console.error('[AI-BUILDER] extractJSON returned null. Preview:', response.substring(0, 300));
+      } else {
         const parsed = JSON.parse(jsonStr);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const valid = parsed.filter((a: any) =>
@@ -99,17 +107,31 @@ export const POST = apiHandler(async (req: Request) => {
           if (valid.length > 0) {
             assignments = valid;
             aiGenerated = true;
+            console.log(`[AI-BUILDER] SUCCESS: ${valid.length} AI-generated assignments`);
+          } else {
+            aiError = 'AI returned array but no valid assignments';
+            console.error('[AI-BUILDER] No valid assignments. Sample:', JSON.stringify(parsed[0]).substring(0, 200));
           }
+        } else {
+          aiError = 'AI returned non-array or empty response';
         }
       }
     } catch (err) {
-      console.warn('[AI-BUILDER] AI generation failed, using fallback:', (err as Error).message);
+      aiError = (err as Error).message;
+      console.error('[AI-BUILDER] AI generation failed:', aiError);
     }
+  } else {
+    aiError = getAIStatus().reason || 'No API key configured';
+  }
+
+  if (!assignments && aiError) {
+    console.log(`[AI-BUILDER] Using empty fallback. Reason: ${aiError}`);
   }
 
   return NextResponse.json({
     assignments: assignments || [],
     aiGenerated,
+    aiError,
     subject,
     gradeLevel,
     styles,

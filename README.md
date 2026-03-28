@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.7.3
+  v9.7.4
 </p>
 
 ---
@@ -1196,19 +1196,50 @@ NODE_OPTIONS=--max-old-space-size=512
 
 ## Changelog
 
-### v9.7.3 (2026-03-28) — AI Pipeline Hardening: Eliminate Silent Demo-Mode Fallbacks
+### v9.7.4 (2026-03-28) — Fix AI Always Using Template Despite Valid Key
 
 #### Root Cause
-Even after v9.7.2 wired AI features to real API endpoints, all AI features continued returning demo/template mode responses. Three compounding issues:
+Despite v9.7.3 hardening, AI features continued falling back to template/demo mode even with a valid GEMINI_API_KEY. Multiple compounding issues:
 
-1. **Placeholder API key not rejected** — The `.env` file (which gets copied into the standalone build) contained `GEMINI_API_KEY="your-gemini-api-key-here"` from an older version. `isGeminiConfigured()` accepted this as valid, so `callGemini()` was called with a fake key, the Gemini API returned an authentication error, the `catch` block silently fell back to demo mode.
-2. **Silent error swallowing** — `callGemini()` threw on API auth failures, but every caller wrapped it in `try { ... } catch { /* fallback to demo */ }` with no logging or user-visible feedback. Users had zero way to know AI was failing.
-3. **Quiz Generator used top-level `import prisma`** — The quiz generator imported Prisma at the module level, which crashes when the DB is unavailable (e.g., master demo). This prevented the entire route from loading.
+1. **`callGemini()` used `'demo-mode'` as fallback API key** — Line 213: `const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || 'demo-mode'`. When `hasApiKey()` returned true (because the env var existed), `callGemini()` would be called, but if for any reason the env var wasn't accessible at call time (e.g., `.env` file shadowing), it fell back to `'demo-mode'` which triggered a 400 `API_KEY_INVALID` error from Google.
+2. **Silent JSON extraction failures** — When `callGemini()` succeeded, `extractJSON()` sometimes returned `null` on valid responses with markdown fencing. The code silently fell through to template without logging, and `aiError` stayed `null`.
+3. **Insufficient `maxTokens`** — Quiz generation used `maxTokens: 4000` which could truncate large quiz responses, producing malformed JSON that failed parsing.
+4. **Error code mismatch** — The Gemini API returns `400` (not `401`/`403`) for invalid API keys, but the error handler only checked for `401` and `403`.
+5. **No validation in `extractJSON`** — The function extracted a substring between `[` and `]` but never verified it was valid JSON, so corrupted extractions were passed to `JSON.parse()` which threw.
 
-#### Fixes
-1. **`isGeminiConfigured()` hardened** — Now rejects 11 placeholder patterns including `your-`, `api-key-here`, `placeholder`, `change-me`, `test-key`, etc. Keys shorter than 10 chars are also rejected.
-2. **`callGemini()` surfaces auth errors** — API key authentication failures (`401`, `403`, `API_KEY_INVALID`, `PERMISSION_DENIED`) and quota exhaustion (`429`, `RESOURCE_EXHAUSTED`) are now caught explicitly with descriptive error messages instead of generic throws.
-3. **`getAIStatus()` helper** — New function returns `{ configured: boolean, model: string, reason?: string }` for API routes to include in responses.
+#### Fixes (13 files changed)
+1. **`callGemini()` no longer uses 'demo-mode' fallback** — Now uses empty string and throws immediately if key is missing/invalid. No bad keys ever reach Google's API.
+2. **`callGemini()` validates key before calling** — Runs the same `INVALID_KEY_PATTERNS` check and throws a clear error instead of making a doomed API call.
+3. **`extractJSON()` hardened** — Now tries direct `JSON.parse()` first, validates extracted substrings, fixes trailing commas, and logs diagnostic info on failure.
+4. **Error handler catches `400`/`INVALID_ARGUMENT`** — Matches the actual Gemini API error codes.
+5. **All AI routes log explicitly** — Every call to `callGemini()` now logs `[FEATURE] Calling Gemini...` before and `[FEATURE] SUCCESS: N chars` after. Failures log the exact error message.
+6. **Quiz generator tracks ALL failure modes** — `aiError` is set for: extractJSON returning null, non-array response, empty array, validation failures, and parse errors. No more silent fallbacks.
+7. **Increased `maxTokens`** — Quiz generator: 4000→8000. AI Builder: 4000→8000. Feedback: 1500→2000. Exam sim: 2048→4000. Adaptive: 2048→4000.
+8. **New `callGeminiSafe()` wrapper** — Returns `{ ok: true, data }` or `{ ok: false, error }` for callers that prefer result objects.
+9. **`/api/ai-status` enhanced** — Now returns key prefix, key length, key source, and supports `?test=true` to make a live API test call.
+10. **Toast shows actual error** — Quiz generator toast now displays the specific AI error instead of generic "template bank" message.
+11. **Exam simulator uses `extractJSON()`** — Previously did raw `JSON.parse(response || '[]')` which always failed on markdown-wrapped responses.
+
+#### Verification (on Render)
+1. Set `GEMINI_API_KEY` in Render Dashboard → redeploy
+2. Visit `/api/ai-status?test=true` — should show `testResult: "success"`
+3. Generate quiz → toast should say "Quiz generated with AI-powered questions!"
+4. Check Render logs for `[GEMINI] Calling gemini-2.0-flash with valid API key...`
+
+#### Files Changed
+- `src/lib/ai.ts` — Core fixes: removed demo-mode fallback, added key validation, hardened extractJSON, added callGeminiSafe, added logging to all AI functions
+- `src/app/api/quiz-generator/route.ts` — Comprehensive error tracking, increased maxTokens
+- `src/app/api/teacher/ai-builder/route.ts` — Added error tracking and logging
+- `src/app/api/teacher/ai-feedback/route.ts` — Added logging, increased maxTokens
+- `src/app/api/exam-sim/route.ts` — Use extractJSON instead of raw JSON.parse
+- `src/app/api/adaptive/route.ts` — Increased maxTokens, added logging
+- `src/app/api/ai-navigator/route.ts` — Added logging
+- `src/app/api/parent/ai-checkin/route.ts` — Added logging
+- `src/app/api/ai-status/route.ts` — Enhanced with diagnostics and test mode
+- `src/app/teacher/quiz-generator/page.tsx` — Toast shows actual AI error
+- Version bumps: config.ts, middleware.ts, server.js, health route, package.json
+
+### v9.7.3 (2026-03-28) — AI Pipeline Hardening: Eliminate Silent Demo-Mode Fallbacks
 4. **Quiz Generator route rewritten** — Dynamic Prisma import (never crashes on DB unavailable), returns `aiStatus` and `aiError` in all responses, gracefully handles DB-save failures.
 5. **Quiz Generator page AI indicator** — Shows green dot "AI Active (gemini-2.0-flash)" or amber dot "AI Offline — Using Template Bank" next to the page header. Toast messages now differentiate between AI-generated and template-bank quizzes.
 6. **AI Builder & Feedback APIs** — Now return `aiStatus` in responses for frontend transparency.

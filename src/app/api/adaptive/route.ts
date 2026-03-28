@@ -170,7 +170,8 @@ Return JSON:
   "difficultyAdjustment": "simplified|standard|enriched"
 }`;
 
-        const raw = await callGemini(prompt, 0.6, 2048);
+        console.log(`[Adaptive] Calling Gemini for student ${student.id} (${effectiveStyle})...`);
+        const raw = await callGemini(prompt, 0.6, 4000);
         const jsonStr = extractJSON(raw);
         if (jsonStr) {
           const parsed = JSON.parse(jsonStr);

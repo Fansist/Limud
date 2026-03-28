@@ -1,11 +1,15 @@
 /**
- * Teacher AI Quiz Generator API — v9.7.3
+ * Teacher AI Quiz Generator API — v9.7.4
  * GET: List saved quiz templates
  * POST: Generate a new quiz with real AI (fallback to specialized template bank)
  * DELETE: Delete a quiz template
  *
- * v9.7.3: Dynamic Prisma import (DB-unavailable safe), returns aiStatus
- *         for frontend transparency, and detailed aiError messages.
+ * v9.7.4: Fix AI always falling back to template
+ *   - Use callGeminiSafe() for explicit error tracking
+ *   - Add JSON response format instruction to system prompt
+ *   - Log extraction failures so we know exactly WHERE the pipeline breaks
+ *   - Track aiError for ALL failure modes (not just catch-block)
+ *   - Increased maxTokens to prevent truncation
  */
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
@@ -14,7 +18,7 @@ import { generateSpecializedQuiz } from '@/lib/ai-generators';
 
 export const maxDuration = 60;
 
-const QUIZ_SYSTEM_PROMPT = `You are an expert K-12 educator and quiz creator. You generate high-quality, curriculum-aligned quiz questions.
+const QUIZ_SYSTEM_PROMPT = `You are an expert K-12 educator and quiz creator. Generate high-quality, curriculum-aligned quiz questions.
 
 RULES:
 - Create questions appropriate for the specified grade level and difficulty
@@ -25,18 +29,29 @@ RULES:
 - Difficulty levels: EASY (recall/basic), MEDIUM (application/analysis), HARD (synthesis/evaluation)
 - Questions should be educationally sound and aligned with common standards
 
-RESPOND WITH ONLY a JSON array. No markdown fences, no explanation text.
+OUTPUT FORMAT: You MUST respond with ONLY a JSON array. No markdown fences, no explanation, no extra text.
 
-Each question object:
-{
-  "question": "The question text",
-  "type": "MULTIPLE_CHOICE" | "SHORT_ANSWER",
-  "options": ["A", "B", "C", "D"] or [],
-  "correctAnswer": "exact correct answer text",
-  "explanation": "clear explanation of why this is correct",
-  "skill": "specific skill being tested",
-  "difficulty": "EASY" | "MEDIUM" | "HARD"
-}`;
+Example format:
+[
+  {
+    "question": "Question text here",
+    "type": "MULTIPLE_CHOICE",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctAnswer": "Option A",
+    "explanation": "Why this is correct",
+    "skill": "Specific skill",
+    "difficulty": "MEDIUM"
+  },
+  {
+    "question": "Another question",
+    "type": "SHORT_ANSWER",
+    "options": [],
+    "correctAnswer": "The answer",
+    "explanation": "Why this is correct",
+    "skill": "Another skill",
+    "difficulty": "EASY"
+  }
+]`;
 
 // Helper: safely import Prisma (may fail if DB unavailable)
 async function getPrisma(): Promise<any | null> {
@@ -84,47 +99,79 @@ export const POST = apiHandler(async (req: Request) => {
 
   // ── Attempt real AI generation ──────────────────────────────────
   if (hasApiKey()) {
+    const userPrompt = [
+      `Generate exactly ${questionCount} quiz questions.`,
+      `Subject: ${subject}`,
+      `Grade Level: ${gradeLevel}`,
+      `Overall Difficulty: ${difficulty}`,
+      topic ? `Topic/Focus: ${topic}` : '',
+      standards ? `Align to standards: ${standards}` : '',
+      '',
+      `Create a mix of difficulties around the ${difficulty} level:`,
+      difficulty === 'EASY' || difficulty === 'BEGINNER'
+        ? '- 60% EASY, 30% MEDIUM, 10% HARD'
+        : difficulty === 'HARD' || difficulty === 'ADVANCED'
+          ? '- 10% EASY, 30% MEDIUM, 60% HARD'
+          : '- 20% EASY, 60% MEDIUM, 20% HARD',
+      '',
+      `Return ONLY a valid JSON array of exactly ${questionCount} question objects. No markdown, no extra text.`,
+    ].filter(Boolean).join('\n');
+
+    const messages = [
+      { role: 'system', content: QUIZ_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ];
+
     try {
-      const userPrompt = [
-        `Generate exactly ${questionCount} quiz questions.`,
-        `Subject: ${subject}`,
-        `Grade Level: ${gradeLevel}`,
-        `Overall Difficulty: ${difficulty}`,
-        topic ? `Topic/Focus: ${topic}` : '',
-        standards ? `Align to standards: ${standards}` : '',
-        '',
-        `Create a mix of difficulties around the ${difficulty} level:`,
-        difficulty === 'EASY' || difficulty === 'BEGINNER'
-          ? '- 60% EASY, 30% MEDIUM, 10% HARD'
-          : difficulty === 'HARD' || difficulty === 'ADVANCED'
-            ? '- 10% EASY, 30% MEDIUM, 60% HARD'
-            : '- 20% EASY, 60% MEDIUM, 20% HARD',
-        '',
-        `Return exactly ${questionCount} questions as a JSON array.`,
-      ].filter(Boolean).join('\n');
+      console.log(`[QUIZ-GEN] Calling Gemini for ${questionCount} ${difficulty} ${subject} questions...`);
+      const response = await callGemini(messages, { temperature: 0.7, maxTokens: 8000 });
+      console.log(`[QUIZ-GEN] Gemini response length: ${response.length} chars`);
 
-      const messages = [
-        { role: 'system', content: QUIZ_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ];
-
-      const response = await callGemini(messages, { temperature: 0.7, maxTokens: 4000 });
       const jsonStr = extractJSON(response);
-      if (jsonStr) {
-        const parsed = JSON.parse(jsonStr);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const valid = parsed.filter((q: any) =>
-            q.question && q.type && q.correctAnswer && q.explanation
-          );
-          if (valid.length >= Math.min(3, questionCount)) {
-            questions = valid.slice(0, questionCount);
-            aiGenerated = true;
+      if (!jsonStr) {
+        // extractJSON failed — log what we got so we can debug
+        aiError = 'AI responded but JSON extraction failed';
+        console.error('[QUIZ-GEN] extractJSON returned null. Raw response preview:', response.substring(0, 500));
+      } else {
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (!Array.isArray(parsed)) {
+            aiError = 'AI returned JSON but it was not an array';
+            console.error('[QUIZ-GEN] Parsed JSON is not an array:', typeof parsed);
+          } else if (parsed.length === 0) {
+            aiError = 'AI returned an empty array';
+            console.error('[QUIZ-GEN] Parsed array is empty');
+          } else {
+            // Validate questions — be lenient (only require question + correctAnswer)
+            const valid = parsed.filter((q: any) => q.question && q.correctAnswer);
+            console.log(`[QUIZ-GEN] Parsed ${parsed.length} questions, ${valid.length} passed validation`);
+
+            if (valid.length >= Math.min(2, questionCount)) {
+              // Ensure all questions have required fields with defaults
+              questions = valid.slice(0, questionCount).map((q: any) => ({
+                question: q.question,
+                type: q.type || (q.options?.length > 0 ? 'MULTIPLE_CHOICE' : 'SHORT_ANSWER'),
+                options: q.options || [],
+                correctAnswer: q.correctAnswer,
+                explanation: q.explanation || '',
+                skill: q.skill || subject,
+                difficulty: q.difficulty || difficulty,
+              }));
+              aiGenerated = true;
+              console.log(`[QUIZ-GEN] SUCCESS: ${questions.length} AI-generated questions`);
+            } else {
+              aiError = `Only ${valid.length} questions passed validation (need at least ${Math.min(2, questionCount)})`;
+              console.error('[QUIZ-GEN] Not enough valid questions. Sample invalid:', JSON.stringify(parsed[0]).substring(0, 200));
+            }
           }
+        } catch (parseErr) {
+          aiError = `JSON parse failed: ${(parseErr as Error).message}`;
+          console.error('[QUIZ-GEN] JSON.parse failed:', (parseErr as Error).message, 'Extracted:', jsonStr.substring(0, 200));
         }
       }
     } catch (err) {
       aiError = (err as Error).message;
-      console.warn('[QUIZ-GEN] AI generation failed, using template fallback:', aiError);
+      console.error('[QUIZ-GEN] callGemini threw:', aiError);
     }
   } else {
     const status = getAIStatus();
@@ -134,6 +181,7 @@ export const POST = apiHandler(async (req: Request) => {
 
   // ── Fallback to specialized template bank ───────────────────────
   if (!questions || questions.length === 0) {
+    console.log(`[QUIZ-GEN] Using template fallback. Reason: ${aiError || 'unknown'}`);
     questions = generateSpecializedQuiz(subject, gradeLevel, topic || '', questionCount, difficulty);
   }
 
