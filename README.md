@@ -924,6 +924,276 @@ Limud/
 
 ---
 
+## Deploying to Render — Complete Guide
+
+This is a step-by-step guide to deploy Limud on **Render.com**. You should not need to generate anything yourself except API keys — every other value is provided below or auto-detected.
+
+---
+
+### Prerequisites
+
+| What | Where to get it |
+|---|---|
+| A free **Render** account | [render.com](https://render.com) — sign up with GitHub |
+| A **GitHub** repository with the Limud code pushed | Already done — `https://github.com/Fansist/Limud` |
+| A **Google Gemini API key** (free) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) — click "Create API Key", copy it |
+
+That's it. Render provides the PostgreSQL database and everything else is either embedded or auto-detected.
+
+---
+
+### Step 1 — Create the PostgreSQL Database
+
+1. Log in to [dashboard.render.com](https://dashboard.render.com)
+2. Click **New +** → **PostgreSQL**
+3. Fill in:
+
+| Field | Value |
+|---|---|
+| Name | `limud-db` |
+| Database | `limud` |
+| User | `limud` |
+| Region | Pick the one closest to your users (e.g., `Oregon (US West)`) |
+| PostgreSQL Version | `16` |
+| Instance Type | **Free** (for testing) or **Starter $7/mo** (for production) |
+
+4. Click **Create Database**
+5. Wait for it to spin up (1-2 minutes), then go to the database's **Info** tab
+6. Find **Internal Database URL** — it looks like:
+   ```
+   postgresql://limud:XXXXXXXXXXXX@dpg-xxxxxxxxxxxxx-a/limud
+   ```
+7. **Copy this URL.** You will paste it as `DATABASE_URL` in Step 2.
+
+> **Important:** Use the **Internal Database URL** (not External) — it's faster and free of egress charges when both the database and web service are in the same Render region.
+
+---
+
+### Step 2 — Create the Web Service
+
+1. Click **New +** → **Web Service**
+2. Connect your GitHub repo: `Fansist/Limud`
+3. Fill in the settings:
+
+| Field | Value |
+|---|---|
+| Name | `limud` (or whatever you want — this becomes `limud.onrender.com`) |
+| Region | **Same region** as your database |
+| Branch | `main` |
+| Root Directory | *(leave blank)* |
+| Runtime | **Node** |
+| Build Command | `npm install && npx prisma generate && npx prisma db push --skip-generate --accept-data-loss && npm run build` |
+| Start Command | `node server.js` |
+| Instance Type | **Free** (for testing) or **Starter $7/mo** (for production) |
+| Node Version | Go to **Environment** tab → add key `NODE_VERSION` = `20` |
+
+> **Why this Build Command?** It installs dependencies, generates the Prisma client, pushes the schema to the database (creates all tables), and builds the Next.js standalone output.
+
+---
+
+### Step 3 — Set Environment Variables
+
+Go to the web service's **Environment** tab → **Add Environment Variable** for each row below.
+
+#### Required Variables (3)
+
+| Key | Value | Where to find it |
+|---|---|---|
+| `DATABASE_URL` | `postgresql://limud:XXXX@dpg-xxxxx-a/limud` | Render dashboard → your PostgreSQL database → **Info** tab → **Internal Database URL**. Copy the full URL. |
+| `NEXTAUTH_SECRET` | `limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB` | **Use this exact value.** This is the embedded secret used by the app. If you change it, all existing sessions will be invalidated. You can generate your own with `openssl rand -base64 32` but then you must use the same value everywhere. |
+| `NEXTAUTH_URL` | `https://limud.onrender.com` | Replace `limud` with whatever **Name** you chose in Step 2. This is your Render public URL. Format: `https://<your-service-name>.onrender.com` |
+
+#### Recommended Variables (3)
+
+| Key | Value | Where to find it |
+|---|---|---|
+| `GEMINI_API_KEY` | `AIzaSy...your-key` | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) → Create API Key → copy. **This is the only key you need to generate.** Without it, AI features (tutor, grading, quiz generation, feedback engine) run in demo mode with mock responses. |
+| `NODE_VERSION` | `20` | Just type `20`. Render uses this to select the Node.js version. The app requires Node 20.x. |
+| `NODE_OPTIONS` | `--max-old-space-size=512` | Just type this value. Prevents out-of-memory crashes during build on free-tier instances (512 MB RAM). |
+
+#### Optional Variables (5) — only set these if you need to override defaults
+
+| Key | Default (embedded) | When to set it |
+|---|---|---|
+| `NEXT_PUBLIC_APP_URL` | Same as `NEXTAUTH_URL` | Only if you're using a custom domain (e.g., `https://limud.co`). Set it to your custom domain URL. |
+| `NEXT_PUBLIC_APP_NAME` | `Limud` | Only if you want to white-label the app with a different name. |
+| `AI_MODEL` | `gemini-2.0-flash` | Only if you want to use a different Gemini model. Options: `gemini-2.0-flash` (fast, recommended), `gemini-2.5-flash` (better quality), `gemini-2.5-pro` (best, slower). |
+| `PII_ENCRYPTION_KEY` | Falls back to `NEXTAUTH_SECRET` | Only if you want a separate key for AES-256-GCM PII field encryption. Must be a long random string. |
+| `GOOGLE_API_KEY` | Not set | Alternative to `GEMINI_API_KEY`. If both are set, `GEMINI_API_KEY` takes priority. They do the same thing. |
+
+#### Auto-Detected Variables (do NOT set these)
+
+| Key | Set by | Notes |
+|---|---|---|
+| `RENDER` | Render (automatically) | The app detects this to know it's running on Render. You will see `[Limud] Platform: Render` in the logs. |
+| `PORT` | Render (automatically, always `10000`) | Render assigns the port. The `server.js` reads it automatically. Never set this manually. |
+| `NODE_ENV` | Render (automatically, `production`) | Render sets this for all web services. |
+
+---
+
+### Step 4 — Deploy
+
+1. After adding all environment variables, click **Manual Deploy** → **Deploy latest commit** (or just push to `main` and Render auto-deploys).
+2. Watch the build logs. A successful build looks like:
+
+```
+==> Building...
+[Limud] Prisma Client generated
+[Limud] Database schema pushed
+Route (app)                                Size
+┌ ƒ /                                      ...
+├ ƒ /login                                 ...
+├ ƒ /student/dashboard                     ...
+...
+==> Build successful
+==> Deploying...
+==> Starting service with 'node server.js'
+[Limud v9.7.1] Platform: Render
+[Limud] Node.js v20.x.x
+[Limud] Standalone build: YES
+[Limud] PORT: 10000
+```
+
+3. First deploy takes **3-5 minutes** (npm install + prisma + next build). Subsequent deploys take **2-3 minutes**.
+
+---
+
+### Step 5 — Seed the Database (First Deploy Only)
+
+After the first successful deploy, you need to seed the database with the initial district and admin account.
+
+**Option A — Use the public seed endpoint (easiest):**
+
+Open your browser and visit:
+```
+https://limud.onrender.com/api/district-link/seed
+```
+
+This creates:
+- **Ofer Academy** district (and 5 other demo districts)
+- **Admin account:** `owner@limud.co` / `LimudRock2026!`
+
+**Option B — Use the Render Shell:**
+
+1. Go to your web service → **Shell** tab
+2. Run:
+   ```bash
+   npx tsx prisma/seed.ts
+   ```
+
+This creates:
+- **Limud-Academy** district (enterprise tier)
+- **Superintendent account:** `owner@limud.co` / `LimudRock2026!`
+
+---
+
+### Step 6 — Verify
+
+Test these URLs (replace `limud` with your service name):
+
+| URL | Expected |
+|---|---|
+| `https://limud.onrender.com/api/health` | `{"status":"ok","version":"9.7.1","platform":"Render",...}` |
+| `https://limud.onrender.com/login` | Login page loads with Limud branding |
+| `https://limud.onrender.com/demo` | Demo mode selector (Student, Teacher, Admin, Parent) |
+| `https://limud.onrender.com/register` | Registration page |
+
+Log in with:
+- **Admin:** `owner@limud.co` / `LimudRock2026!`
+- **Master Demo (all roles):** `master@limud.edu` / `LimudMaster2026!`
+- **Demo accounts** (no password needed — use buttons on login page)
+
+---
+
+### Custom Domain (Optional)
+
+1. In Render dashboard → your web service → **Settings** → **Custom Domains**
+2. Add your domain (e.g., `limud.co`)
+3. Render gives you a CNAME record — add it to your DNS provider
+4. Update your environment variables:
+   - `NEXTAUTH_URL` = `https://limud.co`
+   - `NEXT_PUBLIC_APP_URL` = `https://limud.co`
+5. Render auto-provisions an SSL certificate
+
+---
+
+### Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| **Build fails with OOM** | Add `NODE_OPTIONS` = `--max-old-space-size=512` to environment variables. If still failing, upgrade to Starter plan ($7/mo, 1 GB RAM). |
+| **"Invalid prisma client"** | Make sure `DATABASE_URL` is set correctly in environment variables. It must start with `postgresql://`. |
+| **Login redirects in a loop** | Check that `NEXTAUTH_URL` exactly matches your Render URL (including `https://`). No trailing slash. |
+| **AI features return mock data** | Set `GEMINI_API_KEY` in environment variables. Get a free key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey). |
+| **"CSRF token mismatch"** | This happens when `NEXTAUTH_URL` doesn't match the actual URL. Fix it in environment variables. |
+| **Free plan spins down after 15 min** | Normal — Render free tier spins down after inactivity. First request takes ~30s to wake up. Upgrade to Starter ($7/mo) for always-on. |
+| **Database connection refused** | Make sure you're using the **Internal** Database URL (not External) and the database is in the **same region** as your web service. |
+| **Styles/CSS look broken** | Clear browser cache. The standalone build copies static assets; if an old deployment cached them, they may be stale. |
+
+---
+
+### Environment Variables Summary (Copy-Paste Ready)
+
+```env
+# ══════════════════════════════════════════════════════
+# Render Dashboard → Web Service → Environment
+# ══════════════════════════════════════════════════════
+
+# REQUIRED — paste your Render Internal Database URL
+DATABASE_URL=postgresql://limud:YOUR_PASSWORD@dpg-XXXX-a/limud
+
+# REQUIRED — the embedded JWT secret (use this exact value)
+NEXTAUTH_SECRET=limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB
+
+# REQUIRED — your Render public URL (no trailing slash)
+NEXTAUTH_URL=https://YOUR-SERVICE-NAME.onrender.com
+
+# RECOMMENDED — get from https://aistudio.google.com/apikey
+GEMINI_API_KEY=AIzaSy...your-key-here
+
+# RECOMMENDED — Node.js version
+NODE_VERSION=20
+
+# RECOMMENDED — prevent OOM on free tier
+NODE_OPTIONS=--max-old-space-size=512
+```
+
+---
+
+### Architecture on Render
+
+```
+┌─────────────────────────────────────────────────┐
+│  Render Web Service (Node.js 20)                │
+│  ┌───────────────────────────────────────────┐  │
+│  │  server.js (entry point)                  │  │
+│  │  → Detects RENDER env var                 │  │
+│  │  → Reads PORT=10000 automatically         │  │
+│  │  → Loads .next/standalone/server.js       │  │
+│  │  → Serves Next.js app                     │  │
+│  ├───────────────────────────────────────────┤  │
+│  │  Next.js 14 (standalone output)           │  │
+│  │  ├── Pages (React SSR)                    │  │
+│  │  ├── API Routes (/api/*)                  │  │
+│  │  ├── Edge Middleware (auth, security)      │  │
+│  │  └── Static Assets (/public/*)            │  │
+│  ├───────────────────────────────────────────┤  │
+│  │  Prisma ORM → PostgreSQL                  │  │
+│  │  NextAuth.js (JWT sessions)               │  │
+│  │  Google Gemini AI (@google/genai)         │  │
+│  └───────────────────────────────────────────┘  │
+└──────────────────────┬──────────────────────────┘
+                       │ Internal Network
+┌──────────────────────▼──────────────────────────┐
+│  Render PostgreSQL Database                      │
+│  ├── 60+ tables (users, districts, assignments)  │
+│  ├── FERPA audit logs (7-year retention)         │
+│  └── COPPA parental consent records              │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
 ## Changelog
 
 ### v9.7.1 (2026-03-28) — Bug Fixes: Navigation, Survey Steps & Assignment Flow
