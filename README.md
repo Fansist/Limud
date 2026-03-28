@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.7.0
+  v9.7.1
 </p>
 
 ---
@@ -925,6 +925,28 @@ Limud/
 ---
 
 ## Changelog
+
+### v9.7.1 (2026-03-28) — Bug Fixes: Navigation, Survey Steps & Assignment Flow
+
+#### Bug Fixes
+1. **Learning Method Chooser** — Selecting a learning method and confirming now navigates to the assignment page (`/student/assignments?id=...&method=...`) instead of only showing a toast notification. Previously, students would see "Starting with X method!" but stay on the same screen.
+2. **Survey Step Navigation** — Fixed multiple broken step transitions in the Student Learning Survey:
+   - Step 2 previously rendered *both* "Favorite Subjects" and "Hobbies" sections simultaneously (duplicate `step === 2` checks)
+   - Subjects "Next" button was pointing to `setStep(2)` (itself) instead of the next step
+   - Learning Needs "Back" button pointed to itself (`setStep(4)`)
+   - Learning Needs "Next" skipped from step 4 to step 6, missing step 5 entirely
+   - Consolidated Subjects + Hobbies + Dream Job into a single "Interests" step
+   - Survey now flows: Discover → Interests → How You Learn → Your Needs → Fun Stuff (5 steps instead of broken 6)
+3. **Sidebar Navigation** — Fixed broken `NAV_ITEMS` reference that was replaced by `GROUPED_NAV` in v9.7.0. The sidebar now renders grouped sections with labeled categories (Learning, Rewards & Social, Account, AI Tools, Classroom, People, Organization, etc.) for a cleaner, more organized navigation experience.
+
+#### UX Improvements
+4. **Grouped Sidebar Sections** — Navigation items are now organized into collapsible labeled groups:
+   - **Student:** Dashboard + Classrooms + Tutor | Learning (Assignments, Focus, Study Planner, Exam Sim, Analytics) | Rewards & Social | Account
+   - **Teacher:** Dashboard + Quick Setup | Assignments | AI Tools (Grading, Feedback, Quiz Gen, Reports, Intelligence) | Classroom (Students, Analytics, Worksheets, Exchange, Games, Messages)
+   - **Admin:** Dashboard | People | Organization | Insights & Settings
+5. **Reduced visual clutter** — Sidebar items use slightly tighter spacing (`py-2.5` instead of `py-3`) for better density with grouped sections.
+
+**Files changed:** 4 files (DashboardLayout.tsx, classrooms/page.tsx, survey/page.tsx, version files).
 
 ### v9.7.0 (2026-03-28) — User Journey Overhaul: Student, Teacher & Admin UX
 

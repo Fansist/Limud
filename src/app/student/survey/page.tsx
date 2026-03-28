@@ -166,10 +166,10 @@ export default function StudentSurveyPage() {
 
   // v9.7: Scenario-based discovery
   const [discoveryAnswers, setDiscoveryAnswers] = useState<Record<number, string>>({});
-  const [discoveryQuestion, setDiscoveryQuestion] = useState(0);
+  // discoveryQuestion state removed in v9.7.1 — no longer needed
 
-  const totalSteps = 6;
-  const STEP_LABELS = ['Discover', 'Subjects', 'Hobbies', 'How You Learn', 'Your Needs', 'Fun Stuff'];
+  const totalSteps = 5;
+  const STEP_LABELS = ['Discover', 'Interests', 'How You Learn', 'Your Needs', 'Fun Stuff'];
 
   useEffect(() => {
     if (!isDemo && status === 'authenticated' && (session?.user as any)?.role !== 'STUDENT' && !(session?.user as any)?.isMasterDemo) {
@@ -365,9 +365,9 @@ export default function StudentSurveyPage() {
             </motion.div>
           )}
 
-          {/* Step 2: Favorite Subjects */}
+          {/* Step 2: Subjects, Challenges, Hobbies & Dream Job (v9.7.1 combined) */}
           {step === 2 && (
-            <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+            <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
               <div className="card p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                   <BookOpen size={22} className="text-primary-600" /> What subjects do you enjoy?
@@ -415,17 +415,6 @@ export default function StudentSurveyPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <button onClick={() => setStep(2)} className="btn-primary flex items-center gap-2">
-                  Next <ArrowRight size={16} />
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Step 2: Hobbies & Interests */}
-          {step === 2 && (
-            <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
               <div className="card p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                   <Heart size={22} className="text-pink-500" /> What are your hobbies?
@@ -561,7 +550,7 @@ export default function StudentSurveyPage() {
             </motion.div>
           )}
 
-          {/* Step 4: Learning Needs & Preferred Formats (NEW in v9.4.0) */}
+          {/* Step 4: Learning Needs & Preferred Formats */}
           {step === 4 && (
             <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
               <div className="card p-6">
@@ -619,19 +608,19 @@ export default function StudentSurveyPage() {
               </div>
 
               <div className="flex justify-between">
-                <button onClick={() => setStep(4)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                <button onClick={() => setStep(3)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
                   <ArrowLeft size={14} /> Back
                 </button>
-                <button onClick={() => setStep(6)} className="btn-primary flex items-center gap-2">
+                <button onClick={() => setStep(5)} className="btn-primary flex items-center gap-2">
                   Next <ArrowRight size={16} />
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* Step 6: Fun Stuff */}
-          {step === 6 && (
-            <motion.div key="s6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+          {/* Step 5: Fun Stuff */}
+          {step === 5 && (
+            <motion.div key="s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
               <div className="card p-6 space-y-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Star size={22} className="text-yellow-500" /> Tell us the fun stuff!
@@ -694,7 +683,7 @@ export default function StudentSurveyPage() {
               </div>
 
               <div className="flex justify-between">
-                <button onClick={() => setStep(5)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                <button onClick={() => setStep(4)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
                   <ArrowLeft size={14} /> Back
                 </button>
                 <button

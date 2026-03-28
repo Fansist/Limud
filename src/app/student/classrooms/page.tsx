@@ -10,6 +10,7 @@
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -105,6 +106,7 @@ function daysUntil(dateStr: string): number {
 export default function MyClassroomsPage() {
   const { data: session, status } = useSession();
   const isDemo = useIsDemo();
+  const router = useRouter();
   const [classrooms, setClassrooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,10 +165,14 @@ export default function MyClassroomsPage() {
     if (!selectedAssignment || !selectedMethod) return;
     const methodLabel = LEARNING_METHODS.find(m => m.id === selectedMethod)?.label;
     toast.success(`Starting "${selectedAssignment.title}" with ${methodLabel} method!`);
+    // Close modals
     setConfirmingMethod(false);
     setSelectedAssignment(null);
     setSelectedMethod(null);
     setSelectedClassroom(null);
+    // v9.7.1: Navigate to assignment page with method context
+    const demoSuffix = isDemo ? '&demo=true' : '';
+    router.push(`/student/assignments?id=${selectedAssignment.id}&method=${selectedMethod}${demoSuffix}`);
   }
 
   if (loading) {

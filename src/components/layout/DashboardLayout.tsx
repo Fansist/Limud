@@ -23,72 +23,107 @@ import {
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?: React.ReactNode; };
+type NavSection = { label?: string; items: NavItem[] };
 
-const NAV_ITEMS: Record<string, NavItem[]> = {
+// v9.7.1: Grouped navigation — related pages combined into sections
+const GROUPED_NAV: Record<string, NavSection[]> = {
   STUDENT: [
-    { href: '/student/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { href: '/student/classrooms', label: 'My Classrooms', icon: <GraduationCap size={20} /> },
-    { href: '/student/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
-    { href: '/student/tutor', label: 'AI Tutor', icon: <MessageCircle size={20} /> },
-    { href: '/student/focus', label: 'Focus Mode', icon: <Focus size={20} /> },
-    { href: '/student/knowledge', label: 'Analytics', icon: <BarChart3 size={20} /> },
-    { href: '/student/study-planner', label: 'Study Planner', icon: <Calendar size={20} /> },
-    { href: '/student/exam-sim', label: 'Exam Simulator', icon: <FileText size={20} /> },
-    { href: '/student/rewards', label: 'Rewards', icon: <Trophy size={20} /> },
-    { href: '/student/games', label: 'Game Store', icon: <Gamepad2 size={20} /> },
-    { href: '/student/daily-challenge', label: 'Daily Challenge', icon: <Zap size={20} /> },
-    { href: '/student/leaderboard', label: 'Leaderboard', icon: <Swords size={20} /> },
-    { href: '/student/badges', label: 'Badges', icon: <Award size={20} /> },
-    { href: '/student/certificates', label: 'Certificates', icon: <Award size={20} /> },
-    { href: '/student/messages', label: 'Messages', icon: <Mail size={20} /> },
-    { href: '/student/platforms', label: 'My Platforms', icon: <Link2 size={20} /> },
-    { href: '/student/link-district', label: 'Join District', icon: <Building2 size={20} /> },
+    { items: [
+      { href: '/student/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+      { href: '/student/classrooms', label: 'My Classrooms', icon: <GraduationCap size={20} /> },
+      { href: '/student/tutor', label: 'AI Tutor', icon: <MessageCircle size={20} /> },
+    ]},
+    { label: 'Learning', items: [
+      { href: '/student/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
+      { href: '/student/focus', label: 'Focus Mode', icon: <Focus size={20} /> },
+      { href: '/student/study-planner', label: 'Study Planner', icon: <Calendar size={20} /> },
+      { href: '/student/exam-sim', label: 'Exam Simulator', icon: <FileText size={20} /> },
+      { href: '/student/knowledge', label: 'Analytics', icon: <BarChart3 size={20} /> },
+    ]},
+    { label: 'Rewards & Social', items: [
+      { href: '/student/rewards', label: 'Rewards', icon: <Trophy size={20} /> },
+      { href: '/student/games', label: 'Game Store', icon: <Gamepad2 size={20} /> },
+      { href: '/student/daily-challenge', label: 'Daily Challenge', icon: <Zap size={20} /> },
+      { href: '/student/leaderboard', label: 'Leaderboard', icon: <Swords size={20} /> },
+      { href: '/student/badges', label: 'Badges', icon: <Award size={20} /> },
+      { href: '/student/certificates', label: 'Certificates', icon: <Award size={20} /> },
+    ]},
+    { label: 'Account', items: [
+      { href: '/student/messages', label: 'Messages', icon: <Mail size={20} /> },
+      { href: '/student/platforms', label: 'My Platforms', icon: <Link2 size={20} /> },
+      { href: '/student/link-district', label: 'Join District', icon: <Building2 size={20} /> },
+    ]},
   ],
   TEACHER: [
-    { href: '/teacher/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { href: '/teacher/onboarding', label: 'Quick Setup', icon: <Sparkles size={20} /> },
-    { href: '/teacher/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
-    { href: '/teacher/ai-builder', label: 'AI Builder', icon: <Zap size={20} /> },
-    { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
-    { href: '/teacher/ai-feedback', label: 'AI Feedback', icon: <MessageCircle size={20} /> },
-    { href: '/teacher/intelligence', label: 'Intelligence', icon: <Brain size={20} /> },
-    { href: '/teacher/quiz-generator', label: 'AI Quiz Generator', icon: <Lightbulb size={20} /> },
-    { href: '/teacher/worksheets', label: 'Worksheet Builder', icon: <PenTool size={20} /> },
-    { href: '/teacher/exchange', label: 'Teacher Exchange', icon: <Globe2 size={20} /> },
-    { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
-    { href: '/teacher/reports', label: 'AI Reports', icon: <FileText size={20} /> },
-    { href: '/teacher/students', label: 'My Students', icon: <Users size={20} /> },
-    { href: '/teacher/games', label: 'Game Control', icon: <Gamepad2 size={20} /> },
-    { href: '/teacher/messages', label: 'Messages', icon: <Mail size={20} /> },
+    { items: [
+      { href: '/teacher/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+      { href: '/teacher/onboarding', label: 'Quick Setup', icon: <Sparkles size={20} /> },
+    ]},
+    { label: 'Assignments', items: [
+      { href: '/teacher/assignments', label: 'My Assignments', icon: <BookOpen size={20} /> },
+      { href: '/teacher/ai-builder', label: 'AI Builder', icon: <Zap size={20} /> },
+    ]},
+    { label: 'AI Tools', items: [
+      { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
+      { href: '/teacher/ai-feedback', label: 'AI Feedback', icon: <MessageCircle size={20} /> },
+      { href: '/teacher/quiz-generator', label: 'Quiz Generator', icon: <Lightbulb size={20} /> },
+      { href: '/teacher/reports', label: 'AI Reports', icon: <FileText size={20} /> },
+      { href: '/teacher/intelligence', label: 'Intelligence', icon: <Brain size={20} /> },
+    ]},
+    { label: 'Classroom', items: [
+      { href: '/teacher/students', label: 'My Students', icon: <Users size={20} /> },
+      { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+      { href: '/teacher/worksheets', label: 'Worksheets', icon: <PenTool size={20} /> },
+      { href: '/teacher/exchange', label: 'Teacher Exchange', icon: <Globe2 size={20} /> },
+      { href: '/teacher/games', label: 'Game Control', icon: <Gamepad2 size={20} /> },
+      { href: '/teacher/messages', label: 'Messages', icon: <Mail size={20} /> },
+    ]},
   ],
   ADMIN: [
-    { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { href: '/admin/employees', label: 'Employees', icon: <UserCog size={20} /> },
-    { href: '/admin/students', label: 'Students', icon: <Users size={20} /> },
-    { href: '/admin/schools', label: 'Schools', icon: <Building2 size={20} /> },
-    { href: '/admin/classrooms', label: 'Classrooms', icon: <BookOpen size={20} /> },
-    { href: '/admin/link-requests', label: 'Link Requests', icon: <UserPlus size={20} /> },
-    { href: '/admin/announcements', label: 'Announcements', icon: <Megaphone size={20} /> },
-    { href: '/admin/provision', label: 'Bulk Import', icon: <Upload size={20} /> },
-    { href: '/admin/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
-    { href: '/admin/payments', label: 'Billing', icon: <CreditCard size={20} /> },
-    { href: '/admin/settings', label: 'Settings', icon: <Settings size={20} /> },
-    { href: '/admin/audit', label: 'Audit Log', icon: <ClipboardList size={20} /> },
-    { href: '/admin/security', label: 'Security', icon: <Shield size={20} /> },
+    { items: [
+      { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+    ]},
+    { label: 'People', items: [
+      { href: '/admin/employees', label: 'Employees', icon: <UserCog size={20} /> },
+      { href: '/admin/students', label: 'Students', icon: <Users size={20} /> },
+      { href: '/admin/link-requests', label: 'Link Requests', icon: <UserPlus size={20} /> },
+    ]},
+    { label: 'Organization', items: [
+      { href: '/admin/schools', label: 'Schools', icon: <Building2 size={20} /> },
+      { href: '/admin/classrooms', label: 'Classrooms', icon: <BookOpen size={20} /> },
+      { href: '/admin/announcements', label: 'Announcements', icon: <Megaphone size={20} /> },
+      { href: '/admin/provision', label: 'Bulk Import', icon: <Upload size={20} /> },
+    ]},
+    { label: 'Insights & Settings', items: [
+      { href: '/admin/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+      { href: '/admin/payments', label: 'Billing', icon: <CreditCard size={20} /> },
+      { href: '/admin/settings', label: 'Settings', icon: <Settings size={20} /> },
+      { href: '/admin/audit', label: 'Audit Log', icon: <ClipboardList size={20} /> },
+      { href: '/admin/security', label: 'Security', icon: <Shield size={20} /> },
+    ]},
   ],
   PARENT: [
-    { href: '/parent/dashboard', label: 'Dashboard', icon: <Eye size={20} /> },
-    { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
-    { href: '/parent/reports', label: 'Growth Reports', icon: <TrendingUp size={20} /> },
+    { items: [
+      { href: '/parent/dashboard', label: 'Dashboard', icon: <Eye size={20} /> },
+      { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
+      { href: '/parent/reports', label: 'Growth Reports', icon: <TrendingUp size={20} /> },
+    ]},
   ],
   HOMESCHOOL_PARENT: [
-    { href: '/parent/dashboard', label: 'My Children', icon: <Users size={20} /> },
-    { href: '/parent/children', label: 'Manage Children', icon: <Home size={20} /> },
-    { href: '/teacher/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
-    { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
-    { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+    { items: [
+      { href: '/parent/dashboard', label: 'My Children', icon: <Users size={20} /> },
+      { href: '/parent/children', label: 'Manage Children', icon: <Home size={20} /> },
+      { href: '/teacher/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
+      { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
+      { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+    ]},
   ],
 };
+
+// Flat list for breadcrumbs and page title lookup
+function flatNavItems(sections: NavSection[]): NavItem[] {
+  return sections.flatMap(s => s.items);
+}
 
 // Mobile bottom nav: up to 5 items
 const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.ReactNode }[]> = {
@@ -229,7 +264,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const demoUser = isDemo ? getDemoUser(role) : null;
   const userName = isDemo ? demoUser?.name : session?.user?.name;
   const userEmail = isDemo ? demoUser?.email : session?.user?.email;
-  const navItems = NAV_ITEMS[navKey] || NAV_ITEMS[role] || [];
+  const navSections = GROUPED_NAV[navKey] || GROUPED_NAV[role] || [];
+  const navItems = flatNavItems(navSections); // flat for breadcrumbs/title lookup
   const mobileNavItems = MOBILE_NAV[navKey] || MOBILE_NAV[role] || [];
   const userAvatar = isDemo ? (demoUser?.selectedAvatar || 'default') : ((session?.user as any)?.selectedAvatar || 'default');
   const avatarEmoji = AVATAR_OPTIONS.find(a => a.id === userAvatar)?.emoji || '👤';
@@ -373,36 +409,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-1 min-h-0">
-          {navItems.map(item => {
-            const href = buildHref(item.href);
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            return (
-              <Link key={item.href} href={href}
-                className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative',
-                  isActive
-                    ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-                )}
-                onClick={() => setSidebarOpen(false)}
-              >
-                {isActive && enableAnimations && (
-                  <motion.div layoutId="activeTab"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-600 rounded-r-full"
-                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                  />
-                )}
-                {isActive && !enableAnimations && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-600 rounded-r-full" />
-                )}
-                <span className={cn(isActive ? 'text-primary-600' : 'text-gray-400')}>{item.icon}</span>
-                <span>{item.label}</span>
-                {isActive && <ChevronRight size={14} className="ml-auto text-primary-400" />}
-              </Link>
-            );
-          })}
+        {/* Nav — v9.7.1 grouped sections */}
+        <nav className="flex-1 overflow-y-auto custom-scrollbar px-4 py-3 space-y-1 min-h-0">
+          {navSections.map((section, sIdx) => (
+            <div key={sIdx} className={section.label ? 'mt-3 first:mt-0' : ''}>
+              {section.label && (
+                <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{section.label}</p>
+              )}
+              {section.items.map(item => {
+                const href = buildHref(item.href);
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                return (
+                  <Link key={item.href} href={href}
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative',
+                      isActive
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                    )}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    {isActive && enableAnimations && (
+                      <motion.div layoutId="activeTab"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 bg-primary-600 rounded-r-full"
+                        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                      />
+                    )}
+                    {isActive && !enableAnimations && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 bg-primary-600 rounded-r-full" />
+                    )}
+                    <span className={cn(isActive ? 'text-primary-600' : 'text-gray-400')}>{item.icon}</span>
+                    <span>{item.label}</span>
+                    {isActive && <ChevronRight size={14} className="ml-auto text-primary-400" />}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Bottom section — compact utility row + user profile */}
