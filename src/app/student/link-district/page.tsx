@@ -69,7 +69,7 @@ export default function LinkDistrictPage() {
     console.log(`[LinkDistrict] Load attempt #${attempt}`);
 
     try {
-      const res = await fetch(`/api/district-link/search?browse=1&debug=1&_t=${Date.now()}`, {
+      const res = await fetch(`/api/district-link/search?browse=1&_t=${Date.now()}`, {
         cache: 'no-store',
         headers: { 'Accept': 'application/json' },
       });
@@ -80,18 +80,18 @@ export default function LinkDistrictPage() {
         const text = await res.text().catch(() => '');
         let parsed: any = null;
         try { parsed = JSON.parse(text); } catch {}
-        if (parsed?.diagnostics) setApiDiagnostics(parsed.diagnostics);
+        if (parsed?._diag) setApiDiagnostics(parsed._diag);
         throw new Error(`HTTP ${res.status}: ${parsed?.error || parsed?.details || text.slice(0, 200) || res.statusText}`);
       }
 
       const data = await res.json();
-      if (data.diagnostics) setApiDiagnostics(data.diagnostics);
+      if (data._diag) setApiDiagnostics(data._diag);
 
       if (!data.districts || !Array.isArray(data.districts)) {
         throw new Error('Invalid response format: missing districts array');
       }
 
-      console.log(`[LinkDistrict] Got ${data.districts.length} districts (attempt #${attempt})`, data.diagnostics || '');
+      console.log(`[LinkDistrict] Got ${data.districts.length} districts (attempt #${attempt})`, data._diag || '');
 
       // If 0 districts and we haven't retried too many times, auto-retry
       // The server seeds on first call; second call should have results

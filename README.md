@@ -923,6 +923,32 @@ Limud/
 
 ## Changelog
 
+### v9.6.5 (2026-03-28) — Bulletproof District Search for Production
+
+**Problem:** Production at limud.co (Render) returned `{ districts: [] }` even with v9.6.3 deployed. The auto-seed was silently failing and errors were swallowed, leaving the page permanently empty.
+
+**Root cause:** Multiple production issues compounded:
+1. Schema not synced — `prisma db push` was never run on production after v9.6 schema changes
+2. Auto-seed errors were caught but only logged to server logs (invisible to frontend)
+3. No fallback — if DB queries failed, the page showed nothing
+
+**Fixes:**
+1. **Build script now runs `prisma db push`** — schema auto-syncs on every Render deploy
+2. **Triple fallback strategy**: filtered query → unfiltered query → raw SQL → hardcoded districts
+3. **Always returns districts** — even if the entire DB is broken, returns 26 hardcoded districts
+4. **Diagnostic trail** — every API response includes `_diag` with step-by-step trace of what happened
+5. **Visible errors** — seed failures, query failures, and Prisma errors all surface in the response
+6. **Version 9.6.5 pushed to GitHub** — Render auto-deploys from main branch
+
+**Changed files:**
+- `src/app/api/district-link/search/route.ts` — Complete rewrite with triple fallback + diagnostics
+- `src/app/student/link-district/page.tsx` — Read `_diag` field, show diagnostics on errors
+- `package.json` — Build script now includes `prisma db push`
+- Version bump to 9.6.5 across all files
+- **Pushed to GitHub** → Render auto-deploys
+
+---
+
 ### v9.6.4 (2026-03-28) — Auto-Seed Districts & Production Fix
 
 **Problem:** On fresh deployments (e.g., Render production), the database had no seeded districts. The search API returned an empty `{ districts: [] }` and the page showed "No districts available yet" with no way to recover.
