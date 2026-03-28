@@ -12,34 +12,33 @@ import {
   PenSquare, Inbox, X, ChevronDown,
 } from 'lucide-react';
 
-// ─── Demo Data ───────────────────────────────────────────────────
+// ─── Demo Data v9.7.5: Use Ofer Academy contacts ────────────────
 const DEMO_CONTACTS = [
-  { id: 't1', name: 'Dr. Sarah Chen', role: 'TEACHER', email: 'sarah.chen@school.edu' },
-  { id: 't2', name: 'Mr. James Wright', role: 'TEACHER', email: 'james.wright@school.edu' },
-  { id: 't3', name: 'Ms. Emily Rodriguez', role: 'TEACHER', email: 'emily.rodriguez@school.edu' },
-  { id: 's1', name: 'Alex Martinez', role: 'STUDENT', email: 'alex.m@school.edu' },
-  { id: 'a1', name: 'Michael Torres', role: 'ADMIN', email: 'michael.t@school.edu' },
+  { id: 'demo-teacher', name: 'Gregory Strachen', role: 'TEACHER', email: 'strachen@ofer-academy.edu' },
+  { id: 'demo-teacher-2', name: 'Rachel Kim', role: 'TEACHER', email: 'kim@ofer-academy.edu' },
+  { id: 'demo-student-lior', name: 'Lior Betzalel', role: 'STUDENT', email: 'lior@ofer-academy.edu' },
+  { id: 'demo-admin', name: 'Erez Ofer', role: 'ADMIN', email: 'erez@ofer-academy.edu' },
 ];
 
 const DEMO_CONVERSATIONS = [
-  { id: 'c1', otherUser: { id: 't1', name: 'Dr. Sarah Chen', role: 'TEACHER' }, lastMessage: 'Alex is doing great in math this week! His algebra scores improved significantly.', lastDate: '2026-03-11T10:30:00', unread: 2, subject: 'Math Progress Update' },
-  { id: 'c2', otherUser: { id: 't2', name: 'Mr. James Wright', role: 'TEACHER' }, lastMessage: 'The science fair project is due next Friday. Alex chose volcanoes.', lastDate: '2026-03-10T14:15:00', unread: 0, subject: 'Science Fair Project' },
-  { id: 'c3', otherUser: { id: 's1', name: 'Alex Martinez', role: 'STUDENT' }, lastMessage: 'Mom, I finished my homework! Can I play games now?', lastDate: '2026-03-09T17:30:00', unread: 1, subject: 'Homework' },
-  { id: 'c4', otherUser: { id: 'a1', name: 'Michael Torres', role: 'ADMIN' }, lastMessage: 'Welcome to our district! Let us know if you need anything.', lastDate: '2026-03-07T09:00:00', unread: 0, subject: 'Welcome' },
+  { id: 'c1', otherUser: { id: 'demo-teacher', name: 'Gregory Strachen', role: 'TEACHER' }, lastMessage: 'Lior is doing great in Biology this week! His lab report showed excellent critical thinking.', lastDate: '2026-03-27T10:30:00', unread: 2, subject: 'Lior\'s Biology Progress' },
+  { id: 'c2', otherUser: { id: 'demo-teacher-2', name: 'Rachel Kim', role: 'TEACHER' }, lastMessage: 'The science fair project sign-ups are now open. Lior is very interested!', lastDate: '2026-03-26T14:15:00', unread: 0, subject: 'Science Fair' },
+  { id: 'c3', otherUser: { id: 'demo-student-lior', name: 'Lior Betzalel', role: 'STUDENT' }, lastMessage: 'Dad, I finished my homework! Got a 91 on the Gatsby essay!', lastDate: '2026-03-25T17:30:00', unread: 1, subject: 'Daily Update' },
+  { id: 'c4', otherUser: { id: 'demo-admin', name: 'Erez Ofer', role: 'ADMIN' }, lastMessage: 'Welcome to Ofer Academy! Let us know if you need anything.', lastDate: '2026-03-20T09:00:00', unread: 0, subject: 'Welcome' },
 ];
 
 const DEMO_THREAD: Record<string, any[]> = {
-  't1': [
-    { id: 'm1', senderId: 't1', senderName: 'Dr. Sarah Chen', content: 'Hi Jessica! I wanted to update you on Alex\'s progress in math. He scored 92% on the latest algebra test!', createdAt: '2026-03-11T09:00:00', isRead: true, subject: 'Math Progress Update' },
-    { id: 'm2', senderId: 'parent', senderName: 'You', content: 'That\'s wonderful! He\'s been talking about how the AI tutor helps him.', createdAt: '2026-03-11T09:15:00', isRead: true, subject: 'Math Progress Update' },
-    { id: 'm3', senderId: 't1', senderName: 'Dr. Sarah Chen', content: 'Alex is doing great in math this week! His algebra scores improved significantly. I\'d recommend he spends a bit more time on geometry.', createdAt: '2026-03-11T10:30:00', isRead: false, subject: 'Math Progress Update' },
+  'demo-teacher': [
+    { id: 'm1', senderId: 'demo-teacher', senderName: 'Gregory Strachen', content: 'Hi David! I wanted to update you on Lior\'s progress in Biology. He scored 91% on the Gatsby Character Analysis — outstanding work!', createdAt: '2026-03-27T09:00:00', isRead: true, subject: 'Lior\'s Biology Progress' },
+    { id: 'm2', senderId: 'parent', senderName: 'You', content: 'That\'s wonderful! He\'s been talking about how the AI tutor helps him with complex concepts.', createdAt: '2026-03-27T09:15:00', isRead: true, subject: 'Lior\'s Biology Progress' },
+    { id: 'm3', senderId: 'demo-teacher', senderName: 'Gregory Strachen', content: 'Lior is doing great in Biology this week! His lab report showed excellent critical thinking. I\'d recommend encouraging his reading on photosynthesis.', createdAt: '2026-03-27T10:30:00', isRead: false, subject: 'Lior\'s Biology Progress' },
   ],
-  't2': [
-    { id: 'm4', senderId: 't2', senderName: 'Mr. James Wright', content: 'Hi Jessica! Quick update — the science fair project is due next Friday. Alex chose volcanoes and is doing a great job with the research.', createdAt: '2026-03-10T14:15:00', isRead: true, subject: 'Science Fair Project' },
+  'demo-teacher-2': [
+    { id: 'm4', senderId: 'demo-teacher-2', senderName: 'Rachel Kim', content: 'Hi David! Quick update — the science fair project sign-ups are now open. Lior is very interested and I think he\'d do great with a biology-related project.', createdAt: '2026-03-26T14:15:00', isRead: true, subject: 'Science Fair' },
   ],
-  's1': [
-    { id: 'm5', senderId: 'parent', senderName: 'You', content: 'Hey sweetheart! How was school today?', createdAt: '2026-03-09T17:00:00', isRead: true, subject: 'Homework' },
-    { id: 'm6', senderId: 's1', senderName: 'Alex Martinez', content: 'It was good! We had a fun science experiment. Also, I finished my homework! Can I play games now?', createdAt: '2026-03-09T17:30:00', isRead: false, subject: 'Homework' },
+  'demo-student-lior': [
+    { id: 'm5', senderId: 'parent', senderName: 'You', content: 'Hey Lior! How was school today?', createdAt: '2026-03-25T17:00:00', isRead: true, subject: 'Daily Update' },
+    { id: 'm6', senderId: 'demo-student-lior', senderName: 'Lior Betzalel', content: 'Dad, I finished my homework! Got a 91 on the Gatsby essay! Can I use the AI tutor for some extra biology practice?', createdAt: '2026-03-25T17:30:00', isRead: false, subject: 'Daily Update' },
   ],
 };
 

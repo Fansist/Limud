@@ -26,17 +26,18 @@ function getTier(xp: number) {
   return RANK_TIERS[0];
 }
 
+// v9.7.5: Include Ofer Academy students in leaderboard
 const DEMO_LEADERBOARD = [
-  { id: '1', name: 'Sophia Chen', xp: 12500, level: 25, streak: 42, avatar: '🧑‍🚀', assignmentsCompleted: 89 },
-  { id: '2', name: 'Marcus Johnson', xp: 11200, level: 22, streak: 38, avatar: '🦁', assignmentsCompleted: 82 },
-  { id: '3', name: 'Aisha Patel', xp: 10800, level: 21, streak: 35, avatar: '🦋', assignmentsCompleted: 78 },
-  { id: '4', name: 'Alex Rivera', xp: 9500, level: 19, streak: 28, avatar: '🚀', assignmentsCompleted: 72 },
-  { id: '5', name: 'Emma Thompson', xp: 8900, level: 18, streak: 25, avatar: '🌟', assignmentsCompleted: 68 },
-  { id: '6', name: 'Liam O\'Brien', xp: 8200, level: 16, streak: 22, avatar: '🐺', assignmentsCompleted: 65 },
-  { id: '7', name: 'Yuki Tanaka', xp: 7600, level: 15, streak: 20, avatar: '🎮', assignmentsCompleted: 60 },
-  { id: '8', name: 'Noah Williams', xp: 6900, level: 14, streak: 18, avatar: '🦅', assignmentsCompleted: 55 },
-  { id: '9', name: 'Isabella Garcia', xp: 6200, level: 12, streak: 15, avatar: '🌸', assignmentsCompleted: 50 },
-  { id: '10', name: 'Ethan Kim', xp: 5800, level: 11, streak: 12, avatar: '⚡', assignmentsCompleted: 48 },
+  { id: 'demo-student-noam', name: 'Noam Elgarisi', xp: 4100, level: 17, streak: 26, avatar: '🧙', assignmentsCompleted: 61 },
+  { id: 'demo-student-lior', name: 'Lior Betzalel', xp: 3200, level: 14, streak: 18, avatar: '🚀', assignmentsCompleted: 52 },
+  { id: 'demo-student-eitan', name: 'Eitan Balan', xp: 2100, level: 9, streak: 7, avatar: '🤖', assignmentsCompleted: 38 },
+  { id: '4', name: 'Sarah Cohen', xp: 3800, level: 16, streak: 22, avatar: '🌟', assignmentsCompleted: 49 },
+  { id: '5', name: 'Maya Levy', xp: 3500, level: 15, streak: 20, avatar: '🦋', assignmentsCompleted: 45 },
+  { id: '6', name: 'Yonatan Katz', xp: 3100, level: 13, streak: 16, avatar: '🦅', assignmentsCompleted: 42 },
+  { id: '7', name: 'Shira Goldstein', xp: 2800, level: 12, streak: 14, avatar: '🌸', assignmentsCompleted: 39 },
+  { id: '8', name: 'Omer Peretz', xp: 2500, level: 11, streak: 12, avatar: '⚡', assignmentsCompleted: 36 },
+  { id: '9', name: 'Noa Aharoni', xp: 2200, level: 10, streak: 10, avatar: '🎮', assignmentsCompleted: 33 },
+  { id: '10', name: 'Daniel Mizrahi', xp: 1900, level: 8, streak: 8, avatar: '🐺', assignmentsCompleted: 30 },
 ];
 
 type Period = 'weekly' | 'monthly' | 'alltime';

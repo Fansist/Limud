@@ -11,34 +11,30 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// Demo data
+// v9.7.5: Use Ofer Academy students
 const DEMO_INTELLIGENCE = {
   classMastery: [
-    { subject: 'English', avgMastery: 58, studentCount: 24 },
-    { subject: 'Math', avgMastery: 65, studentCount: 28 },
-    { subject: 'Science', avgMastery: 72, studentCount: 22 },
-    { subject: 'History', avgMastery: 74, studentCount: 20 },
+    { subject: 'Biology', avgMastery: 72, studentCount: 3 },
+    { subject: 'Math', avgMastery: 65, studentCount: 3 },
+    { subject: 'English', avgMastery: 82, studentCount: 3 },
+    { subject: 'History', avgMastery: 74, studentCount: 3 },
   ],
   weakestSkills: [
-    { skill: 'Fractions', subject: 'Math', avgMastery: 42, studentCount: 18 },
-    { skill: 'Essay Writing', subject: 'English', avgMastery: 48, studentCount: 15 },
-    { skill: 'Vocabulary', subject: 'English', avgMastery: 51, studentCount: 20 },
-    { skill: 'Cell Biology', subject: 'Science', avgMastery: 55, studentCount: 12 },
-    { skill: 'Algebra', subject: 'Math', avgMastery: 58, studentCount: 16 },
+    { skill: 'Quadratic Equations', subject: 'Math', avgMastery: 52, studentCount: 2 },
+    { skill: 'Chemical Bonding', subject: 'Biology', avgMastery: 58, studentCount: 1 },
+    { skill: 'Essay Structure', subject: 'English', avgMastery: 61, studentCount: 1 },
+    { skill: 'Photosynthesis', subject: 'Biology', avgMastery: 65, studentCount: 1 },
+    { skill: 'World War II', subject: 'History', avgMastery: 68, studentCount: 2 },
   ],
   students: [
-    { id: '1', name: 'Alex Johnson', gradeLevel: '8', avgScore: 45, engagementScore: 22, streakDays: 0, studyMinutes: 30, riskLevel: 'high', daysSinceActive: 8 },
-    { id: '2', name: 'Emma Davis', gradeLevel: '8', avgScore: 52, engagementScore: 35, streakDays: 1, studyMinutes: 60, riskLevel: 'high', daysSinceActive: 5 },
-    { id: '3', name: 'Marcus Lee', gradeLevel: '7', avgScore: 62, engagementScore: 48, streakDays: 2, studyMinutes: 90, riskLevel: 'medium', daysSinceActive: 3 },
-    { id: '4', name: 'Sofia Martinez', gradeLevel: '8', avgScore: 78, engagementScore: 72, streakDays: 5, studyMinutes: 180, riskLevel: 'low', daysSinceActive: 0 },
-    { id: '5', name: 'James Wilson', gradeLevel: '7', avgScore: 88, engagementScore: 85, streakDays: 12, studyMinutes: 320, riskLevel: 'low', daysSinceActive: 0 },
-    { id: '6', name: 'Olivia Brown', gradeLevel: '8', avgScore: 92, engagementScore: 91, streakDays: 18, studyMinutes: 450, riskLevel: 'low', daysSinceActive: 0 },
+    { id: 'demo-student-eitan', name: 'Eitan Balan', gradeLevel: '9', avgScore: 73, engagementScore: 55, streakDays: 7, studyMinutes: 120, riskLevel: 'medium', daysSinceActive: 1 },
+    { id: 'demo-student-lior', name: 'Lior Betzalel', gradeLevel: '10', avgScore: 89, engagementScore: 82, streakDays: 18, studyMinutes: 280, riskLevel: 'low', daysSinceActive: 0 },
+    { id: 'demo-student-noam', name: 'Noam Elgarisi', gradeLevel: '10', avgScore: 95, engagementScore: 91, streakDays: 26, studyMinutes: 420, riskLevel: 'low', daysSinceActive: 0 },
   ],
   atRisk: [
-    { id: '1', name: 'Alex Johnson', gradeLevel: '8', avgScore: 45, engagementScore: 22, riskLevel: 'high', daysSinceActive: 8 },
-    { id: '2', name: 'Emma Davis', gradeLevel: '8', avgScore: 52, engagementScore: 35, riskLevel: 'high', daysSinceActive: 5 },
+    { id: 'demo-student-eitan', name: 'Eitan Balan', gradeLevel: '9', avgScore: 73, engagementScore: 55, riskLevel: 'medium', daysSinceActive: 1 },
   ],
-  summary: { totalStudents: 28, avgEngagement: 59, atRiskCount: 2, classAvgScore: 67 },
+  summary: { totalStudents: 3, avgEngagement: 76, atRiskCount: 0, classAvgScore: 86 },
 };
 
 function EngagementBar({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' }) {

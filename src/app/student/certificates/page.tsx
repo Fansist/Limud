@@ -55,7 +55,7 @@ export default function CertificatesPage() {
   const [selectedCert, setSelectedCert] = useState<any>(null);
 
   const certificates = DEMO_CERTIFICATES;
-  const studentName = isDemo ? 'Alex Rivera' : (session?.user?.name || 'Student');
+  const studentName = isDemo ? 'Lior Betzalel' : (session?.user?.name || 'Student');
 
   return (
     <DashboardLayout>

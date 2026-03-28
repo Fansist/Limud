@@ -231,7 +231,7 @@ export default function GradingPage() {
                     <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="font-semibold text-gray-900">{sub.student?.name}</span>
+                          <span className="font-semibold text-gray-900">{sub.studentName || sub.student?.name || 'Student'}</span>
                           <span className={cn(
                             'badge',
                             sub.status === 'GRADED' ? 'badge-success' :

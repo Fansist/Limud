@@ -12,39 +12,47 @@ import {
   PenSquare, Inbox, X, ChevronDown,
 } from 'lucide-react';
 
-// ─── Demo Data ───────────────────────────────────────────────────
+// ─── Demo Data v9.7.5: Use Ofer Academy contacts ─────────────────
 const DEMO_CONTACTS = [
-  { id: 's1', name: 'Alex Martinez', role: 'STUDENT', email: 'alex.m@school.edu' },
-  { id: 's2', name: 'Emma Wilson', role: 'STUDENT', email: 'emma.w@school.edu' },
-  { id: 's3', name: 'Liam Johnson', role: 'STUDENT', email: 'liam.j@school.edu' },
-  { id: 'p1', name: 'Jessica Martinez', role: 'PARENT', email: 'jessica.m@email.com' },
-  { id: 'p2', name: 'David Wilson', role: 'PARENT', email: 'david.w@email.com' },
-  { id: 't2', name: 'Mr. James Wright', role: 'TEACHER', email: 'james.wright@school.edu' },
-  { id: 'a1', name: 'Michael Torres', role: 'ADMIN', email: 'michael.t@school.edu' },
+  { id: 'demo-student-lior', name: 'Lior Betzalel', role: 'STUDENT', email: 'lior@ofer-academy.edu' },
+  { id: 'demo-student-eitan', name: 'Eitan Balan', role: 'STUDENT', email: 'eitan@ofer-academy.edu' },
+  { id: 'demo-student-noam', name: 'Noam Elgarisi', role: 'STUDENT', email: 'noam@ofer-academy.edu' },
+  { id: 'demo-parent', name: 'David Betzalel', role: 'PARENT', email: 'david@ofer-academy.edu' },
+  { id: 'demo-teacher-2', name: 'Rachel Kim', role: 'TEACHER', email: 'kim@ofer-academy.edu' },
+  { id: 'demo-admin', name: 'Erez Ofer', role: 'ADMIN', email: 'erez@ofer-academy.edu' },
 ];
 
 const DEMO_CONVERSATIONS = [
-  { id: 'c1', otherUser: { id: 'p1', name: 'Jessica Martinez', role: 'PARENT' }, lastMessage: 'Thank you for the update on Alex\'s progress! We\'ll make sure he practices more at home.', lastDate: '2026-03-11T15:30:00', unread: 1, subject: 'Alex\'s Math Progress' },
-  { id: 'c2', otherUser: { id: 's1', name: 'Alex Martinez', role: 'STUDENT' }, lastMessage: 'Dr. Chen, I finished the extra practice problems you recommended!', lastDate: '2026-03-11T14:00:00', unread: 1, subject: 'Extra Practice' },
-  { id: 'c3', otherUser: { id: 'p2', name: 'David Wilson', role: 'PARENT' }, lastMessage: 'Could we schedule a meeting to discuss Emma\'s performance?', lastDate: '2026-03-10T09:30:00', unread: 0, subject: 'Parent Conference Request' },
-  { id: 'c4', otherUser: { id: 't2', name: 'Mr. James Wright', role: 'TEACHER' }, lastMessage: 'The cross-department project proposal looks great!', lastDate: '2026-03-09T16:00:00', unread: 0, subject: 'Science-Math Collaboration' },
-  { id: 'c5', otherUser: { id: 's2', name: 'Emma Wilson', role: 'STUDENT' }, lastMessage: 'Thank you for the extra help during office hours!', lastDate: '2026-03-08T12:00:00', unread: 0, subject: 'Office Hours Follow-up' },
+  { id: 'c1', otherUser: { id: 'demo-parent', name: 'David Betzalel', role: 'PARENT' }, lastMessage: 'Thank you for the update on Lior\'s progress! We\'ll make sure he practices more at home.', lastDate: '2026-03-27T15:30:00', unread: 1, subject: 'Lior\'s Biology Progress' },
+  { id: 'c2', otherUser: { id: 'demo-student-lior', name: 'Lior Betzalel', role: 'STUDENT' }, lastMessage: 'Mr. Strachen, I finished the extra practice problems you recommended!', lastDate: '2026-03-27T14:00:00', unread: 1, subject: 'Extra Practice' },
+  { id: 'c3', otherUser: { id: 'demo-student-eitan', name: 'Eitan Balan', role: 'STUDENT' }, lastMessage: 'I\'m having trouble with the quadratic equations, can you help?', lastDate: '2026-03-26T09:30:00', unread: 0, subject: 'Algebra Help' },
+  { id: 'c4', otherUser: { id: 'demo-admin', name: 'Erez Ofer', role: 'ADMIN' }, lastMessage: 'The curriculum review meeting is confirmed for next Thursday.', lastDate: '2026-03-25T16:00:00', unread: 0, subject: 'Curriculum Review Meeting' },
+  { id: 'c5', otherUser: { id: 'demo-student-noam', name: 'Noam Elgarisi', role: 'STUDENT' }, lastMessage: 'Thank you for the feedback on my essay, I\'ll revise the conclusion!', lastDate: '2026-03-24T12:00:00', unread: 0, subject: 'Gatsby Essay Feedback' },
 ];
 
 const DEMO_THREAD: Record<string, any[]> = {
-  'p1': [
-    { id: 'm1', senderId: 'teacher', senderName: 'You', content: 'Hi Jessica! I wanted to update you on Alex\'s progress in algebra. He scored 92% on the latest test — a big improvement!', createdAt: '2026-03-11T10:00:00', isRead: true, subject: "Alex's Math Progress" },
-    { id: 'm2', senderId: 'p1', senderName: 'Jessica Martinez', content: 'That\'s wonderful news! He\'s been talking about how the AI tutor helps him.', createdAt: '2026-03-11T14:00:00', isRead: true, subject: "Alex's Math Progress" },
-    { id: 'm3', senderId: 'p1', senderName: 'Jessica Martinez', content: 'Thank you for the update on Alex\'s progress! We\'ll make sure he practices more at home.', createdAt: '2026-03-11T15:30:00', isRead: false, subject: "Alex's Math Progress" },
+  'demo-parent': [
+    { id: 'm1', senderId: 'teacher', senderName: 'You', content: 'Hi David! I wanted to update you on Lior\'s progress in Biology. He scored 91% on the Gatsby Character Analysis — excellent critical thinking!', createdAt: '2026-03-27T10:00:00', isRead: true, subject: "Lior's Biology Progress" },
+    { id: 'm2', senderId: 'demo-parent', senderName: 'David Betzalel', content: 'That\'s wonderful news! He\'s been talking about how the AI tutor helps him understand complex concepts.', createdAt: '2026-03-27T14:00:00', isRead: true, subject: "Lior's Biology Progress" },
+    { id: 'm3', senderId: 'demo-parent', senderName: 'David Betzalel', content: 'Thank you for the update on Lior\'s progress! We\'ll make sure he practices more at home.', createdAt: '2026-03-27T15:30:00', isRead: false, subject: "Lior's Biology Progress" },
   ],
-  's1': [
-    { id: 'm4', senderId: 's1', senderName: 'Alex Martinez', content: 'Dr. Chen, can you recommend some extra practice for quadratics?', createdAt: '2026-03-11T12:00:00', isRead: true, subject: 'Extra Practice' },
-    { id: 'm5', senderId: 'teacher', senderName: 'You', content: 'Of course! Try problems 15-25 in the textbook, and use the AI Tutor for step-by-step help. Focus on factoring.', createdAt: '2026-03-11T12:30:00', isRead: true, subject: 'Extra Practice' },
-    { id: 'm6', senderId: 's1', senderName: 'Alex Martinez', content: 'Dr. Chen, I finished the extra practice problems you recommended!', createdAt: '2026-03-11T14:00:00', isRead: false, subject: 'Extra Practice' },
+  'demo-student-lior': [
+    { id: 'm4', senderId: 'demo-student-lior', senderName: 'Lior Betzalel', content: 'Mr. Strachen, can you recommend some extra practice for the photosynthesis lab report?', createdAt: '2026-03-27T12:00:00', isRead: true, subject: 'Extra Practice' },
+    { id: 'm5', senderId: 'teacher', senderName: 'You', content: 'Of course! Review chapters 8-9 in the textbook, and try the AI Tutor for step-by-step explanations. Focus on the Calvin Cycle.', createdAt: '2026-03-27T12:30:00', isRead: true, subject: 'Extra Practice' },
+    { id: 'm6', senderId: 'demo-student-lior', senderName: 'Lior Betzalel', content: 'Mr. Strachen, I finished the extra practice problems you recommended!', createdAt: '2026-03-27T14:00:00', isRead: false, subject: 'Extra Practice' },
   ],
-  'p2': [
-    { id: 'm7', senderId: 'p2', senderName: 'David Wilson', content: 'Hello Dr. Chen. Could we schedule a meeting to discuss Emma\'s performance? She seems to be struggling with some concepts.', createdAt: '2026-03-10T09:30:00', isRead: true, subject: 'Parent Conference Request' },
-    { id: 'm8', senderId: 'teacher', senderName: 'You', content: 'Absolutely, Mr. Wilson. I have availability this Thursday at 3pm or Friday at 2pm. Which works better for you?', createdAt: '2026-03-10T10:00:00', isRead: true, subject: 'Parent Conference Request' },
+  'demo-student-eitan': [
+    { id: 'm7', senderId: 'demo-student-eitan', senderName: 'Eitan Balan', content: 'Mr. Strachen, I\'m having trouble with solving quadratic equations using the quadratic formula. Can you help?', createdAt: '2026-03-26T09:30:00', isRead: true, subject: 'Algebra Help' },
+    { id: 'm8', senderId: 'teacher', senderName: 'You', content: 'Sure, Eitan! Let\'s break it down: first identify a, b, and c in your equation. Try using the AI Tutor for interactive step-by-step practice. I\'ve also adapted your next assignment to use shorter micro-tasks.', createdAt: '2026-03-26T10:00:00', isRead: true, subject: 'Algebra Help' },
+  ],
+  'demo-admin': [
+    { id: 'm9', senderId: 'demo-admin', senderName: 'Erez Ofer', content: 'Hi Gregory, I\'d like to schedule a meeting to discuss the upcoming curriculum review for Q2. Your Biology and English courses have shown excellent student outcomes.', createdAt: '2026-03-25T16:00:00', isRead: true, subject: 'Curriculum Review Meeting' },
+    { id: 'm10', senderId: 'teacher', senderName: 'You', content: 'Thanks Erez! Thursday afternoon works for me. I\'ll prepare the student performance data and AI adaptation metrics.', createdAt: '2026-03-25T17:00:00', isRead: true, subject: 'Curriculum Review Meeting' },
+    { id: 'm11', senderId: 'demo-admin', senderName: 'Erez Ofer', content: 'The curriculum review meeting is confirmed for next Thursday.', createdAt: '2026-03-25T18:00:00', isRead: true, subject: 'Curriculum Review Meeting' },
+  ],
+  'demo-student-noam': [
+    { id: 'm12', senderId: 'teacher', senderName: 'You', content: 'Noam, your Gatsby essay was outstanding — 96/100! The way you analyzed the symbolism of the green light was incredibly mature.', createdAt: '2026-03-24T10:00:00', isRead: true, subject: 'Gatsby Essay Feedback' },
+    { id: 'm13', senderId: 'demo-student-noam', senderName: 'Noam Elgarisi', content: 'Thank you for the feedback on my essay, I\'ll revise the conclusion!', createdAt: '2026-03-24T12:00:00', isRead: true, subject: 'Gatsby Essay Feedback' },
   ],
 };
 

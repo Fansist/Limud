@@ -7,6 +7,7 @@ import { XPBar } from '@/components/gamification/RewardComponents';
 import { motion } from 'framer-motion';
 import { cn, daysUntil, getLetterGrade, AVATAR_OPTIONS } from '@/lib/utils';
 import { DEMO_STUDENT, DEMO_ASSIGNMENTS, DEMO_REWARD_STATS_DEFAULT as DEMO_REWARD_STATS } from '@/lib/demo-data';
+import { getStudentAssignments } from '@/lib/demo-state';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -29,7 +30,8 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     if (isDemo) {
-      setAssignments(DEMO_ASSIGNMENTS);
+      // v9.7.5: Use shared state for cross-role assignment visibility
+      setAssignments(getStudentAssignments());
       setRewards(DEMO_REWARD_STATS);
       setLoading(false);
       return;

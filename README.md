@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.7.4
+  v9.7.5
 </p>
 
 ---
@@ -721,7 +721,7 @@ npx tsx prisma/seed.ts       # (Optional) Seed with demo data
 
 ```bash
 curl https://your-app.onrender.com/api/health
-# Expected: {"status":"ok","version":"9.5.8","platform":"Render","uptime":42.5,...}
+# Expected: {"status":"ok","version":"9.7.5","platform":"Render","uptime":42.5,...}
 ```
 
 ### Updating the App
@@ -1195,6 +1195,60 @@ NODE_OPTIONS=--max-old-space-size=512
 ---
 
 ## Changelog
+
+### v9.7.5 (2026-03-28) — Master Demo Overhaul: Fully Connected Cross-Role Experience
+
+#### What Changed
+
+The Master Demo (master@limud.edu) now provides a fully interconnected, realistic demonstration where all roles share the same data universe. Previously, the teacher portal showed placeholder students (Alex Rivera, Sophia Chen) and had no connection to the student portal data, making it impossible to demonstrate the full workflow.
+
+#### Key Fixes
+
+1. **Cross-Role Shared State** — New `demo-state.ts` module uses localStorage to share data between teacher, student, admin, and parent portals. When a teacher creates an assignment, the student can see and submit it. When admin creates an announcement, all roles see it.
+
+2. **Ofer Academy Consistency** — All demo pages now use the canonical Ofer Academy cast:
+   - **Students**: Lior Betzalel (10th), Eitan Balan (9th), Noam Elgarisi (10th)
+   - **Teacher**: Gregory Strachen
+   - **Admin**: Erez Ofer (Superintendent)
+   - **Parent**: David Betzalel (Lior's parent)
+   - Removed all placeholder names (Alex Rivera, Sophia Chen, Dr. Sarah Chen, Michael Torres, etc.)
+
+3. **Teacher Students Page** — Now shows the three Ofer Academy students with real data (XP, streaks, grades, learning styles, courses, risk levels) derived from the canonical `demo-data.ts`.
+
+4. **Teacher Messages** — Conversations are now with actual demo students (Lior, Eitan, Noam), parent (David Betzalel), and admin (Erez Ofer) instead of generic placeholders.
+
+5. **Student Messages** — Student sees messages from their actual teachers (Gregory Strachen, Rachel Kim), parent (David Betzalel), and admin (Erez Ofer).
+
+6. **Parent Messages** — Parent (David Betzalel) sees messages from Lior's teachers, Lior himself, and the district admin.
+
+7. **Teacher Grading** — Fixed student name display bug where `sub.student?.name` was undefined (submissions use `studentName` field).
+
+8. **Teacher Intelligence** — AI-powered class insights now show Ofer Academy students instead of generic placeholders.
+
+9. **Teacher Reports** — AI report generator lists the three Ofer Academy students.
+
+10. **Student Leaderboard** — Features Ofer Academy students at the top with correct XP/level data.
+
+11. **Student Certificates** — Uses student's actual name (Lior Betzalel) instead of placeholder.
+
+12. **Admin Announcements** — Authors are now Erez Ofer/Gregory Strachen instead of Michael Torres/Dr. Sarah Chen. Announcements created by admin are visible to other roles via shared state.
+
+#### Files Changed (20+)
+- `src/lib/demo-state.ts` (NEW) — Cross-role shared state manager
+- `src/app/teacher/students/page.tsx` — Rebuilt with Ofer Academy data
+- `src/app/teacher/messages/page.tsx` — Ofer Academy contacts
+- `src/app/teacher/grading/page.tsx` — Fixed studentName display
+- `src/app/teacher/assignments/page.tsx` — Shared state integration
+- `src/app/teacher/reports/page.tsx` — Ofer Academy students
+- `src/app/teacher/intelligence/page.tsx` — Ofer Academy students
+- `src/app/student/assignments/page.tsx` — Shared state integration
+- `src/app/student/dashboard/page.tsx` — Shared state integration
+- `src/app/student/messages/page.tsx` — Ofer Academy contacts
+- `src/app/student/leaderboard/page.tsx` — Ofer Academy students
+- `src/app/student/certificates/page.tsx` — Correct name
+- `src/app/admin/announcements/page.tsx` — Ofer Academy authors + shared state
+- `src/app/parent/messages/page.tsx` — Ofer Academy contacts
+- Version bumped in: config.ts, middleware.ts, server.js, health route, package.json
 
 ### v9.7.4 (2026-03-28) — Fix AI Always Using Template Despite Valid Key
 

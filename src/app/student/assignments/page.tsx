@@ -7,6 +7,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, daysUntil, formatDate } from '@/lib/utils';
 import { DEMO_ASSIGNMENTS } from '@/lib/demo-data';
+import { getStudentAssignments, submitStudentAssignment } from '@/lib/demo-state';
 import toast from 'react-hot-toast';
 import {
   BookOpen, Clock, Send, X, FileText, Upload, Paperclip, Trash2, Link2, Mic, Video, Code2, PenTool, Globe, Star, ExternalLink, Download,
@@ -33,8 +34,9 @@ export default function StudentAssignments() {
   async function fetchAssignments() {
     try {
       if (isDemo) {
-        // Enhance demo assignments with attachments and extra credit
-        const enhanced = DEMO_ASSIGNMENTS.map((a, i) => ({
+        // v9.7.5: Merge built-in with teacher-created (shared state) assignments
+        const allAssignments = getStudentAssignments();
+        const enhanced = allAssignments.map((a: any, i: number) => ({
           ...a,
           category: i === 0 ? 'classwork' : i === 1 ? 'homework' : i === 2 ? 'test' : i === 3 ? 'project' : 'quiz',
           isExtraCredit: false,
@@ -90,11 +92,14 @@ export default function StudentAssignments() {
     try {
       if (isDemo) {
         await new Promise(r => setTimeout(r, 1000));
+        const submission = { id: `demo-sub-${Date.now()}`, status: 'SUBMITTED', score: null, maxScore: a.totalPoints, submittedAt: new Date().toISOString(), aiFeedback: null, studentId: 'demo-student-lior', studentName: 'Lior Betzalel', assignmentTitle: a.title };
         setAssignments(prev => prev.map(a =>
           a.id === assignmentId
-            ? { ...a, submissions: [{ id: `demo-sub-${Date.now()}`, status: 'SUBMITTED', score: null, maxScore: a.totalPoints, submittedAt: new Date().toISOString(), aiFeedback: null }] }
+            ? { ...a, submissions: [submission] }
             : a
         ));
+        // v9.7.5: Save submission to shared state so teacher can see it
+        submitStudentAssignment(assignmentId, submission);
         toast.success('Assignment submitted! (Demo)');
         setSelectedAssignment(null);
         setSubmissionText('');

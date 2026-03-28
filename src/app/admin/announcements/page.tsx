@@ -7,6 +7,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn, formatDate } from '@/lib/utils';
+import { addAnnouncement as addSharedAnnouncement, getAnnouncementsForRole } from '@/lib/demo-state';
 import {
   Megaphone, Plus, X, Send, Eye, Pin, Clock, Users, Building2,
   GraduationCap, Edit3, Trash2, AlertTriangle, CheckCircle2,
@@ -18,16 +19,15 @@ const DEMO_ANNOUNCEMENTS = [
     id: 'ann1', title: 'Spring Break Schedule Update',
     content: 'Please note that Spring Break has been extended by one day. School will resume on Monday, April 7th instead of the originally scheduled Friday, April 4th. All extracurricular activities scheduled for that Friday are cancelled.',
     priority: 'high', audience: ['ALL'], isPinned: true,
-    author: { name: 'Michael Torres', role: 'ADMIN' },
+    author: { name: 'Erez Ofer', role: 'ADMIN' },
     schools: [], createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
     readCount: 245, totalRecipients: 420, isActive: true,
   },
   {
     id: 'ann2', title: 'State Testing - Important Dates',
     content: 'State standardized testing will be conducted from March 24-28. Please ensure all students get adequate rest and arrive on time. No field trips or special assemblies will be scheduled during this week. Teachers should review testing protocols at the faculty meeting on March 20.',
     priority: 'high', audience: ['TEACHER', 'PARENT'], isPinned: true,
-    author: { name: 'Amanda Taylor', role: 'ADMIN' },
+    author: { name: 'Erez Ofer', role: 'ADMIN' },
     schools: [], createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     expiresAt: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
     readCount: 98, totalRecipients: 156, isActive: true,
@@ -36,7 +36,7 @@ const DEMO_ANNOUNCEMENTS = [
     id: 'ann3', title: 'New AI Tutoring Feature Available',
     content: 'We are excited to announce that all students now have access to our AI-powered tutoring system! Students can access the tutor from their dashboard. The AI tutor adapts to each student\'s learning style and can help with homework, test prep, and concept review. Teachers can monitor usage from their analytics dashboard.',
     priority: 'normal', audience: ['ALL'], isPinned: false,
-    author: { name: 'Patricia Green', role: 'ADMIN' },
+    author: { name: 'Erez Ofer', role: 'ADMIN' },
     schools: [], createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     expiresAt: null, readCount: 380, totalRecipients: 420, isActive: true,
   },
@@ -44,7 +44,7 @@ const DEMO_ANNOUNCEMENTS = [
     id: 'ann4', title: 'Professional Development Day - March 15',
     content: 'Reminder: March 15th is a professional development day. No students will be in attendance. All teachers should report to their assigned PD sessions by 8:00 AM. Lunch will be provided. Please review the session catalog sent via email.',
     priority: 'normal', audience: ['TEACHER'], isPinned: false,
-    author: { name: 'Michael Torres', role: 'ADMIN' },
+    author: { name: 'Erez Ofer', role: 'ADMIN' },
     schools: [], createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
     expiresAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     readCount: 86, totalRecipients: 86, isActive: false,
@@ -53,7 +53,7 @@ const DEMO_ANNOUNCEMENTS = [
     id: 'ann5', title: 'Lincoln Elementary - Science Fair Registration Open',
     content: 'Science Fair registration is now open for grades 3-5. Students can sign up through their homeroom teacher. Projects are due April 15th. Judges from the local university will be evaluating projects on April 18th. Prizes will be awarded for the top 3 projects in each grade level.',
     priority: 'normal', audience: ['STUDENT', 'PARENT'], isPinned: false,
-    author: { name: 'Dr. Sarah Chen', role: 'TEACHER' },
+    author: { name: 'Gregory Strachen', role: 'TEACHER' },
     schools: ['Lincoln Elementary'], createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     readCount: 120, totalRecipients: 200, isActive: true,
@@ -62,7 +62,7 @@ const DEMO_ANNOUNCEMENTS = [
     id: 'ann6', title: 'Cafeteria Menu Update',
     content: 'Starting next week, the cafeteria will be adding new healthy options to the lunch menu including a salad bar and fresh fruit station. Allergy-friendly options will be clearly labeled. Please review the updated menu on the district website.',
     priority: 'low', audience: ['ALL'], isPinned: false,
-    author: { name: 'Michael Torres', role: 'ADMIN' },
+    author: { name: 'Erez Ofer', role: 'ADMIN' },
     schools: [], createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
     expiresAt: null, readCount: 310, totalRecipients: 420, isActive: true,
   },
@@ -111,12 +111,14 @@ export default function AdminAnnouncementsPage() {
       const newAnn = {
         id: 'new-' + Date.now(), title: form.title, content: form.content,
         priority: form.priority, audience: form.audience, isPinned: form.isPinned,
-        author: { name: 'Michael Torres', role: 'ADMIN' }, schools: form.schools,
+        author: { name: 'Erez Ofer', role: 'ADMIN' }, schools: form.schools,
         createdAt: new Date().toISOString(),
         expiresAt: form.expiresIn ? new Date(Date.now() + parseInt(form.expiresIn) * 24 * 60 * 60 * 1000).toISOString() : null,
         readCount: 0, totalRecipients: 420, isActive: true,
       };
       setAnnouncements(prev => [newAnn, ...prev]);
+      // v9.7.5: Save to shared state so other roles can see it
+      addSharedAnnouncement(newAnn);
       toast.success('Announcement published (Demo)');
       setShowCreate(false); resetForm(); return;
     }

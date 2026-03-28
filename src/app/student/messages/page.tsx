@@ -13,41 +13,42 @@ import {
   Plus, Inbox, PenSquare, Users, X, ChevronDown,
 } from 'lucide-react';
 
-// ─── Demo Data ───────────────────────────────────────────────────
+// ─── Demo Data v9.7.5: Use Ofer Academy contacts ────────────────
 const DEMO_CONTACTS = [
-  { id: 't1', name: 'Dr. Sarah Chen', role: 'TEACHER', email: 'sarah.chen@school.edu' },
-  { id: 't2', name: 'Mr. James Wright', role: 'TEACHER', email: 'james.wright@school.edu' },
-  { id: 't3', name: 'Ms. Emily Rodriguez', role: 'TEACHER', email: 'emily.rodriguez@school.edu' },
-  { id: 'p1', name: 'Jessica Martinez', role: 'PARENT', email: 'jessica.m@email.com' },
+  { id: 'demo-teacher', name: 'Gregory Strachen', role: 'TEACHER', email: 'strachen@ofer-academy.edu' },
+  { id: 'demo-teacher-2', name: 'Rachel Kim', role: 'TEACHER', email: 'kim@ofer-academy.edu' },
+  { id: 'demo-parent', name: 'David Betzalel', role: 'PARENT', email: 'david@ofer-academy.edu' },
+  { id: 'demo-admin', name: 'Erez Ofer', role: 'ADMIN', email: 'erez@ofer-academy.edu' },
 ];
 
 const DEMO_CONVERSATIONS = [
-  { id: 'c1', otherUser: { id: 't1', name: 'Dr. Sarah Chen', role: 'TEACHER' }, lastMessage: 'Great job on your algebra test! Keep up the excellent work.', lastDate: '2026-03-11T10:30:00', unread: 2, subject: 'Algebra Test Results' },
-  { id: 'c2', otherUser: { id: 't2', name: 'Mr. James Wright', role: 'TEACHER' }, lastMessage: 'Don\'t forget to submit your lab report by Friday!', lastDate: '2026-03-10T14:15:00', unread: 1, subject: 'Science Lab Report' },
-  { id: 'c3', otherUser: { id: 'p1', name: 'Jessica Martinez', role: 'PARENT' }, lastMessage: 'Remember to study for your history test tomorrow!', lastDate: '2026-03-09T18:00:00', unread: 0, subject: 'Study Reminder' },
-  { id: 'c4', otherUser: { id: 't3', name: 'Ms. Emily Rodriguez', role: 'TEACHER' }, lastMessage: 'Your essay draft shows great improvement. See my comments.', lastDate: '2026-03-08T11:45:00', unread: 0, subject: 'Essay Feedback' },
+  { id: 'c1', otherUser: { id: 'demo-teacher', name: 'Gregory Strachen', role: 'TEACHER' }, lastMessage: 'Great job on your Gatsby essay! Your analysis of the green light was outstanding.', lastDate: '2026-03-27T10:30:00', unread: 2, subject: 'Gatsby Essay Feedback' },
+  { id: 'c2', otherUser: { id: 'demo-teacher-2', name: 'Rachel Kim', role: 'TEACHER' }, lastMessage: 'Don\'t forget to submit your lab report by Friday!', lastDate: '2026-03-26T14:15:00', unread: 1, subject: 'Biology Lab Report' },
+  { id: 'c3', otherUser: { id: 'demo-parent', name: 'David Betzalel', role: 'PARENT' }, lastMessage: 'How was school today? Don\'t forget to study for your Biology quiz!', lastDate: '2026-03-25T18:00:00', unread: 0, subject: 'Daily Check-in' },
+  { id: 'c4', otherUser: { id: 'demo-admin', name: 'Erez Ofer', role: 'ADMIN' }, lastMessage: 'Congratulations on your academic achievement award!', lastDate: '2026-03-24T11:45:00', unread: 0, subject: 'Achievement Award' },
 ];
 
 const DEMO_THREAD: Record<string, any[]> = {
-  't1': [
-    { id: 'm1', senderId: 't1', senderName: 'Dr. Sarah Chen', content: 'Hi! I wanted to let you know that you scored 92% on the algebra test. That\'s a significant improvement! 🎉', createdAt: '2026-03-11T09:00:00', isRead: true, subject: 'Algebra Test Results' },
-    { id: 'm2', senderId: 'student', senderName: 'You', content: 'Thank you, Dr. Chen! I\'ve been using the AI tutor a lot for practice.', createdAt: '2026-03-11T09:15:00', isRead: true, subject: 'Algebra Test Results' },
-    { id: 'm3', senderId: 't1', senderName: 'Dr. Sarah Chen', content: 'That\'s wonderful to hear! The AI tutor data shows you\'ve been practicing quadratic equations.', createdAt: '2026-03-11T10:00:00', isRead: false, subject: 'Algebra Test Results' },
-    { id: 'm4', senderId: 't1', senderName: 'Dr. Sarah Chen', content: 'Great job on your algebra test! Keep up the excellent work. Next week we\'ll start on polynomials.', createdAt: '2026-03-11T10:30:00', isRead: false, subject: 'Algebra Test Results' },
+  'demo-teacher': [
+    { id: 'm1', senderId: 'demo-teacher', senderName: 'Gregory Strachen', content: 'Hi Lior! I wanted to let you know that you scored 91% on the Gatsby Character Analysis. Outstanding work! 🎉', createdAt: '2026-03-27T09:00:00', isRead: true, subject: 'Gatsby Essay Feedback' },
+    { id: 'm2', senderId: 'student', senderName: 'You', content: 'Thank you, Mr. Strachen! I really enjoyed analyzing the symbolism of the green light.', createdAt: '2026-03-27T09:15:00', isRead: true, subject: 'Gatsby Essay Feedback' },
+    { id: 'm3', senderId: 'demo-teacher', senderName: 'Gregory Strachen', content: 'I can tell! Your connection between the green light and Gatsby\'s aspirations was very insightful.', createdAt: '2026-03-27T10:00:00', isRead: false, subject: 'Gatsby Essay Feedback' },
+    { id: 'm4', senderId: 'demo-teacher', senderName: 'Gregory Strachen', content: 'Great job on your Gatsby essay! Your analysis of the green light was outstanding. Keep this level of critical thinking!', createdAt: '2026-03-27T10:30:00', isRead: false, subject: 'Gatsby Essay Feedback' },
   ],
-  't2': [
-    { id: 'm5', senderId: 't2', senderName: 'Mr. James Wright', content: 'Hi there! Quick reminder about the lab report on photosynthesis.', createdAt: '2026-03-10T13:00:00', isRead: true, subject: 'Science Lab Report' },
-    { id: 'm6', senderId: 'student', senderName: 'You', content: 'Got it! I\'m almost done with it. Should I include the extra diagrams?', createdAt: '2026-03-10T13:30:00', isRead: true, subject: 'Science Lab Report' },
-    { id: 'm7', senderId: 't2', senderName: 'Mr. James Wright', content: 'Don\'t forget to submit your lab report by Friday! Yes, include the diagrams — they\'ll earn you extra credit.', createdAt: '2026-03-10T14:15:00', isRead: false, subject: 'Science Lab Report' },
+  'demo-teacher-2': [
+    { id: 'm5', senderId: 'demo-teacher-2', senderName: 'Rachel Kim', content: 'Hi Lior! Quick reminder about the photosynthesis lab report due this Friday.', createdAt: '2026-03-26T13:00:00', isRead: true, subject: 'Biology Lab Report' },
+    { id: 'm6', senderId: 'student', senderName: 'You', content: 'Got it! I\'m almost done with the diagrams. Should I include the color-coded flowchart?', createdAt: '2026-03-26T13:30:00', isRead: true, subject: 'Biology Lab Report' },
+    { id: 'm7', senderId: 'demo-teacher-2', senderName: 'Rachel Kim', content: 'Don\'t forget to submit your lab report by Friday! Yes, the visual aids will really strengthen your report.', createdAt: '2026-03-26T14:15:00', isRead: false, subject: 'Biology Lab Report' },
   ],
-  'p1': [
-    { id: 'm8', senderId: 'p1', senderName: 'Jessica Martinez', content: 'Hey sweetheart, how was school today?', createdAt: '2026-03-09T17:00:00', isRead: true, subject: 'Study Reminder' },
-    { id: 'm9', senderId: 'student', senderName: 'You', content: 'It was good! We had a fun science experiment.', createdAt: '2026-03-09T17:30:00', isRead: true, subject: 'Study Reminder' },
-    { id: 'm10', senderId: 'p1', senderName: 'Jessica Martinez', content: 'Remember to study for your history test tomorrow!', createdAt: '2026-03-09T18:00:00', isRead: true, subject: 'Study Reminder' },
+  'demo-parent': [
+    { id: 'm8', senderId: 'demo-parent', senderName: 'David Betzalel', content: 'Hey Lior, how was school today?', createdAt: '2026-03-25T17:00:00', isRead: true, subject: 'Daily Check-in' },
+    { id: 'm9', senderId: 'student', senderName: 'You', content: 'It was great! We did an experiment on chemical bonding in Biology. Also got a 91 on my Gatsby essay!', createdAt: '2026-03-25T17:30:00', isRead: true, subject: 'Daily Check-in' },
+    { id: 'm10', senderId: 'demo-parent', senderName: 'David Betzalel', content: 'How was school today? Don\'t forget to study for your Biology quiz!', createdAt: '2026-03-25T18:00:00', isRead: true, subject: 'Daily Check-in' },
   ],
-  't3': [
-    { id: 'm11', senderId: 'student', senderName: 'You', content: 'Ms. Rodriguez, I submitted my essay draft. Could you take a look?', createdAt: '2026-03-08T10:00:00', isRead: true, subject: 'Essay Feedback' },
-    { id: 'm12', senderId: 't3', senderName: 'Ms. Emily Rodriguez', content: 'Your essay draft shows great improvement. See my comments. Your thesis statement is much stronger now, and I love how you incorporated the primary sources we discussed in class.', createdAt: '2026-03-08T11:45:00', isRead: true, subject: 'Essay Feedback' },
+  'demo-admin': [
+    { id: 'm11', senderId: 'demo-admin', senderName: 'Erez Ofer', content: 'Lior, I\'m pleased to inform you that you\'ve been selected for the Academic Excellence Award for the spring semester!', createdAt: '2026-03-24T10:00:00', isRead: true, subject: 'Achievement Award' },
+    { id: 'm12', senderId: 'student', senderName: 'You', content: 'Thank you so much, Mr. Ofer! This is really exciting!', createdAt: '2026-03-24T10:30:00', isRead: true, subject: 'Achievement Award' },
+    { id: 'm13', senderId: 'demo-admin', senderName: 'Erez Ofer', content: 'Congratulations on your academic achievement award! The ceremony will be next Friday at 2pm.', createdAt: '2026-03-24T11:45:00', isRead: true, subject: 'Achievement Award' },
   ],
 };
 

@@ -10,13 +10,11 @@ import {
   FileText, Sparkles, Users, BarChart3, BookOpen, Download, Loader2, TrendingUp, AlertTriangle, Star, Send, Printer, Brain, PenLine, GraduationCap, Target, CheckCircle,
 } from 'lucide-react';
 
+// v9.7.5: Use Ofer Academy students
 const DEMO_STUDENTS = [
-  { id: 's1', name: 'Alex Johnson', gradeLevel: '8', avgScore: 78, engagement: 72, streak: 5 },
-  { id: 's2', name: 'Emma Davis', gradeLevel: '8', avgScore: 52, engagement: 35, streak: 1 },
-  { id: 's3', name: 'Marcus Lee', gradeLevel: '7', avgScore: 88, engagement: 85, streak: 12 },
-  { id: 's4', name: 'Sofia Martinez', gradeLevel: '8', avgScore: 95, engagement: 91, streak: 18 },
-  { id: 's5', name: 'James Wilson', gradeLevel: '7', avgScore: 62, engagement: 48, streak: 2 },
-  { id: 's6', name: 'Olivia Brown', gradeLevel: '8', avgScore: 73, engagement: 60, streak: 3 },
+  { id: 'demo-student-lior', name: 'Lior Betzalel', gradeLevel: '10', avgScore: 89, engagement: 82, streak: 18 },
+  { id: 'demo-student-eitan', name: 'Eitan Balan', gradeLevel: '9', avgScore: 73, engagement: 55, streak: 7 },
+  { id: 'demo-student-noam', name: 'Noam Elgarisi', gradeLevel: '10', avgScore: 95, engagement: 91, streak: 26 },
 ];
 
 type ReportType = 'student' | 'curriculum' | 'writing';

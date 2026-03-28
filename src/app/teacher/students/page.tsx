@@ -6,47 +6,91 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
+import {
+  DEMO_ALL_STUDENTS, DEMO_ANALYTICS, DEMO_REWARD_STATS,
+  DEMO_TEACHER_ASSIGNMENTS, DEMO_LEARNING_INSIGHTS,
+} from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import {
   Users, Search, User, TrendingUp, BookOpen, Brain, Flame, ArrowLeft, BarChart3, Clock, Star,
 } from 'lucide-react';
 
-const DEMO_STUDENTS = [
-  { id: 's1', name: 'Alex Rivera', email: 'alex@demo.com', gradeLevel: '8th', avatar: '🚀',
-    stats: { totalXP: 9500, level: 19, streak: 28, assignmentsCompleted: 72, avgScore: 85, tutorSessions: 45, focusMinutes: 890, lastActive: '2026-02-26' },
-    skills: [{ name: 'Algebra', mastery: 88 }, { name: 'Geometry', mastery: 72 }, { name: 'Fractions', mastery: 95 }, { name: 'Word Problems', mastery: 65 }],
-    recentGrades: [{ title: 'Chapter 5 Quiz', score: 88, max: 100, date: '2026-02-25' }, { title: 'Homework Set 12', score: 45, max: 50, date: '2026-02-23' }, { title: 'Midterm Exam', score: 82, max: 100, date: '2026-02-20' }],
-    risk: 'low' },
-  { id: 's2', name: 'Sophia Chen', email: 'sophia@demo.com', gradeLevel: '8th', avatar: '🧑‍🚀',
-    stats: { totalXP: 12500, level: 25, streak: 42, assignmentsCompleted: 89, avgScore: 94, tutorSessions: 62, focusMinutes: 1200, lastActive: '2026-02-27' },
-    skills: [{ name: 'Algebra', mastery: 97 }, { name: 'Geometry', mastery: 91 }, { name: 'Fractions', mastery: 99 }, { name: 'Word Problems', mastery: 88 }],
-    recentGrades: [{ title: 'Chapter 5 Quiz', score: 97, max: 100, date: '2026-02-25' }, { title: 'Homework Set 12', score: 50, max: 50, date: '2026-02-23' }],
-    risk: 'low' },
-  { id: 's3', name: 'Marcus Johnson', email: 'marcus@demo.com', gradeLevel: '8th', avatar: '🦁',
-    stats: { totalXP: 4200, level: 8, streak: 3, assignmentsCompleted: 38, avgScore: 62, tutorSessions: 12, focusMinutes: 340, lastActive: '2026-02-24' },
-    skills: [{ name: 'Algebra', mastery: 45 }, { name: 'Geometry', mastery: 58 }, { name: 'Fractions', mastery: 52 }, { name: 'Word Problems', mastery: 38 }],
-    recentGrades: [{ title: 'Chapter 5 Quiz', score: 58, max: 100, date: '2026-02-25' }, { title: 'Homework Set 12', score: 28, max: 50, date: '2026-02-23' }],
-    risk: 'high' },
-  { id: 's4', name: 'Aisha Patel', email: 'aisha@demo.com', gradeLevel: '8th', avatar: '🦋',
-    stats: { totalXP: 7800, level: 15, streak: 14, assignmentsCompleted: 65, avgScore: 78, tutorSessions: 35, focusMinutes: 720, lastActive: '2026-02-26' },
-    skills: [{ name: 'Algebra', mastery: 75 }, { name: 'Geometry', mastery: 82 }, { name: 'Fractions', mastery: 70 }, { name: 'Word Problems', mastery: 68 }],
-    recentGrades: [{ title: 'Chapter 5 Quiz', score: 78, max: 100, date: '2026-02-25' }, { title: 'Homework Set 12', score: 38, max: 50, date: '2026-02-23' }],
-    risk: 'medium' },
-];
+/**
+ * v9.7.5: Teacher Students page now uses Ofer Academy demo students
+ * (Lior, Eitan, Noam) instead of generic placeholder names.
+ * This ensures the Master Demo is fully connected across roles.
+ */
+
+// Build rich student data from existing demo data
+const DEMO_STUDENTS = DEMO_ANALYTICS.students.map(student => {
+  const rewards = DEMO_REWARD_STATS[student.id] || {};
+  const learningData = DEMO_LEARNING_INSIGHTS.students.find(s => s.id === student.id);
+  const submissions = DEMO_TEACHER_ASSIGNMENTS.flatMap(a =>
+    (a.submissions || []).filter((s: any) => s.studentId === student.id).map((s: any) => ({
+      title: a.title,
+      score: s.score,
+      max: a.totalPoints,
+      date: new Date(Date.now() - Math.random() * 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    }))
+  ).filter(s => s.score !== null);
+
+  const avatarMap: Record<string, string> = {
+    'demo-student-lior': '🚀',
+    'demo-student-eitan': '🤖',
+    'demo-student-noam': '🧙',
+  };
+
+  return {
+    id: student.id,
+    name: student.name,
+    email: student.email,
+    gradeLevel: student.gradeLevel,
+    avatar: avatarMap[student.id] || '👤',
+    stats: {
+      totalXP: rewards.totalXP || student.totalXP,
+      level: rewards.level || student.level,
+      streak: rewards.currentStreak || student.currentStreak,
+      assignmentsCompleted: rewards.assignmentsCompleted || student.totalSubmissions,
+      avgScore: student.averageScore,
+      tutorSessions: rewards.tutorSessionsCount || 0,
+      focusMinutes: Math.round((rewards.totalXP || 3000) * 0.15),
+      lastActive: new Date(Date.now() - Math.random() * 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    },
+    skills: learningData?.recentMethods?.map(m => ({
+      name: m.assignment.split(' ')[0],
+      mastery: m.score,
+    })) || [
+      { name: 'Biology', mastery: Math.round(student.averageScore + (Math.random() - 0.5) * 10) },
+      { name: 'Algebra', mastery: Math.round(student.averageScore + (Math.random() - 0.5) * 15) },
+      { name: 'English', mastery: Math.round(student.averageScore + (Math.random() - 0.5) * 8) },
+      { name: 'History', mastery: Math.round(student.averageScore + (Math.random() - 0.5) * 12) },
+    ],
+    recentGrades: submissions.length > 0 ? submissions.slice(0, 4) : [
+      { title: 'Ecosystem Research', score: Math.round(student.averageScore * 2 * 0.01 * 200), max: 200, date: '2026-03-25' },
+      { title: 'Quadratic Equations Test', score: Math.round(student.averageScore * 0.01 * 80), max: 80, date: '2026-03-23' },
+      { title: 'Great Gatsby Analysis', score: Math.round(student.averageScore * 0.01 * 100), max: 100, date: '2026-03-20' },
+    ],
+    risk: student.riskLevel || 'low',
+    learningStyle: learningData?.learningStyle || 'visual',
+    learningNeeds: learningData?.learningNeeds || [],
+    courses: student.courses,
+  };
+});
 
 export default function TeacherStudentsPage() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
+  const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
-  useEffect(() => { fetchStudents(); }, [isDemo]);
+  useEffect(() => { fetchStudents(); }, [isDemo, isMasterDemo]);
 
   async function fetchStudents() {
-    if (isDemo) { setStudents(DEMO_STUDENTS); setLoading(false); return; }
+    if (isDemo || isMasterDemo) { setStudents(DEMO_STUDENTS); setLoading(false); return; }
     try {
       const res = await fetch('/api/teacher/insights?action=students');
       if (res.ok) { const data = await res.json(); setStudents(data.students?.length ? data.students : DEMO_STUDENTS); }
@@ -79,6 +123,12 @@ export default function TeacherStudentsPage() {
               <div>
                 <h1 className="text-2xl font-bold">{selectedStudent.name}</h1>
                 <p className="text-white/70">{selectedStudent.gradeLevel} Grade • {selectedStudent.email}</p>
+                {selectedStudent.learningStyle && (
+                  <p className="text-white/60 text-xs mt-1">
+                    Learning Style: {selectedStudent.learningStyle.replace('_', ' ')}
+                    {selectedStudent.learningNeeds?.length > 0 && ` • Needs: ${selectedStudent.learningNeeds.join(', ')}`}
+                  </p>
+                )}
               </div>
               <div className="ml-auto text-right hidden sm:block">
                 <span className={cn('px-3 py-1 rounded-full text-sm font-bold',
@@ -155,6 +205,21 @@ export default function TeacherStudentsPage() {
             </div>
           </div>
 
+          {/* Enrolled Courses */}
+          {selectedStudent.courses && (
+            <div className="card">
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><BookOpen size={18} /> Enrolled Courses</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {selectedStudent.courses.map((course: any, i: number) => (
+                  <div key={i} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl text-center">
+                    <p className="font-medium text-gray-900 dark:text-white text-sm">{course.name}</p>
+                    <p className="text-xs text-gray-400">{course.subject}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Activity Summary */}
           <div className="card">
             <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><TrendingUp size={18} /> Activity Summary</h3>
@@ -189,7 +254,7 @@ export default function TeacherStudentsPage() {
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
             <Users size={28} /> My Students
           </h1>
-          <p className="text-gray-500 mt-1">View detailed progress for each student</p>
+          <p className="text-gray-500 mt-1">View detailed progress for each student in your classes</p>
         </motion.div>
 
         {/* Filters */}

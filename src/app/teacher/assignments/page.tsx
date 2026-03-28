@@ -7,7 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
-import { DEMO_TEACHER_ASSIGNMENTS } from '@/lib/demo-data';
+import { DEMO_TEACHER_ASSIGNMENTS, DEMO_COURSES } from '@/lib/demo-data';
+import { addTeacherAssignment, getTeacherAssignments } from '@/lib/demo-state';
 import toast from 'react-hot-toast';
 import {
   BookOpen, Plus, X, Clock, Users, Paperclip, Link2, FileText, Upload, Star, Scale, Tag, Trash2, ExternalLink,
@@ -103,17 +104,13 @@ export default function TeacherAssignments() {
   async function fetchAssignments() {
     try {
       if (isDemo) {
-        // Enhance demo assignments with categories and attachments
-        const enhanced = DEMO_TEACHER_ASSIGNMENTS.map((a, i) => ({
+        // v9.7.5: Merge shared state (teacher-created) assignments with built-in
+        const shared = getTeacherAssignments();
+        const enhanced = shared.map((a: any, i: number) => ({
           ...a,
-          category: i === 0 ? 'classwork' : i === 1 ? 'homework' : 'project',
-          isExtraCredit: false,
-          attachments: i === 1 ? [
-            { id: 'att-1', name: 'Cell Division Worksheet.pdf', type: 'file', url: '#', size: 245000 },
-            { id: 'att-2', name: 'Mitosis Animation', type: 'link', url: 'https://www.cellsalive.com/mitosis.htm' },
-          ] : i === 0 ? [
-            { id: 'att-3', name: 'Lab Report Template.docx', type: 'file', url: '#', size: 52000 },
-          ] : [],
+          category: a.category || (i === 0 ? 'classwork' : i === 1 ? 'homework' : 'project'),
+          isExtraCredit: a.isExtraCredit || false,
+          attachments: a.attachments || [],
         }));
         // Add an extra credit assignment
         enhanced.push({
@@ -134,10 +131,7 @@ export default function TeacherAssignments() {
           ],
         } as any);
         setAssignments(enhanced);
-        setCourses([
-          { id: 'demo-c1', name: 'Biology 101', subject: 'Science' },
-          { id: 'demo-c2', name: 'Chemistry 201', subject: 'Science' },
-        ]);
+        setCourses(DEMO_COURSES.map(c => ({ id: c.id, name: c.name, subject: c.subject })));
         setLoading(false);
         return;
       }
@@ -225,6 +219,8 @@ export default function TeacherAssignments() {
           createdAt: new Date().toISOString(),
         };
         setAssignments(prev => [newAssignment, ...prev]);
+        // v9.7.5: Save to shared state so students can see it
+        addTeacherAssignment(newAssignment as any);
         toast.success('Assignment created with attachments! (Demo)');
         setShowCreate(false);
         resetForm();
