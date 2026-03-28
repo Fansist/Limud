@@ -1,13 +1,12 @@
 /**
- * LIMUD v9.3.5 — AI Service
+ * LIMUD v9.7.3 — AI Service
  * Google Gemini API via @google/genai with robust error handling & demo fallback
  *
- * v9.3.5: Migrated from OpenAI SDK to Google Gemini (@google/genai)
- *   - Uses GoogleGenAI + models.generateContent()
- *   - Env var: GEMINI_API_KEY (or GOOGLE_API_KEY)
- *   - Model: gemini-2.0-flash (configurable via AI_MODEL)
- *   - Robust JSON extraction from markdown-fenced or prefixed responses
- *   - All env vars have embedded defaults — works with zero config
+ * v9.7.3: Hardened AI pipeline to eliminate silent demo-mode fallbacks
+ *   - isGeminiConfigured() rejects placeholder/invalid keys
+ *   - callGemini() logs auth errors explicitly (no silent swallow)
+ *   - All AI functions return { aiGenerated } flag for frontend transparency
+ *   - getAIStatus() helper for API routes to expose AI config state
  */
 
 const TUTOR_SYSTEM_PROMPT = `You are Limud AI, a friendly and encouraging educational tutor for K-12 students. Follow these guidelines strictly:
@@ -108,11 +107,29 @@ const GRADER_SYSTEM_PROMPT = `You are an expert educational grading assistant. Y
 
 // ═══════════════════════════════════════════════════════════════════
 // AI CONFIGURATION CHECK
+// v9.7.3: Reject placeholder / obviously-invalid keys to prevent
+//         silent failures that fall through to demo mode.
 // ═══════════════════════════════════════════════════════════════════
 
+const INVALID_KEY_PATTERNS = [
+  'demo-mode',
+  'your-',
+  'xxx',
+  'placeholder',
+  'change-me',
+  'insert-',
+  'replace-',
+  'sk-xxx',
+  'test-key',
+  'your_api',
+  'api-key-here',
+];
+
 export function isGeminiConfigured(): boolean {
-  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-  return !!(key && key !== 'demo-mode');
+  const key = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
+  if (!key || key.length < 10) return false;
+  const lower = key.toLowerCase();
+  return !INVALID_KEY_PATTERNS.some(p => lower.includes(p));
 }
 
 /** @deprecated Use isGeminiConfigured() — kept for backward compat */
@@ -120,6 +137,28 @@ export const isOpenAIConfigured = isGeminiConfigured;
 
 export function hasApiKey(): boolean {
   return isGeminiConfigured();
+}
+
+/**
+ * Return a structured AI status object for API responses.
+ * Helps frontend display accurate AI status to the user.
+ */
+export function getAIStatus(): {
+  configured: boolean;
+  model: string;
+  reason?: string;
+} {
+  const key = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
+  const model = process.env.AI_MODEL || 'gemini-2.0-flash';
+
+  if (!key || key.length < 10) {
+    return { configured: false, model, reason: 'No API key configured' };
+  }
+  const lower = key.toLowerCase();
+  if (INVALID_KEY_PATTERNS.some(p => lower.includes(p))) {
+    return { configured: false, model, reason: `API key appears to be a placeholder (contains invalid pattern)` };
+  }
+  return { configured: true, model };
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -211,15 +250,33 @@ export async function callGemini(
     }));
   }
 
-  const response = await ai.models.generateContent({
-    model,
-    contents,
-    config: {
-      temperature: temp,
-      maxOutputTokens: tokens,
-      ...(systemInstruction ? { systemInstruction } : {}),
-    },
-  });
+  let response: any;
+  try {
+    response = await ai.models.generateContent({
+      model,
+      contents,
+      config: {
+        temperature: temp,
+        maxOutputTokens: tokens,
+        ...(systemInstruction ? { systemInstruction } : {}),
+      },
+    });
+  } catch (apiError: any) {
+    // Surface auth errors clearly instead of swallowing them
+    const msg = apiError?.message || String(apiError);
+    if (msg.includes('API_KEY_INVALID') || msg.includes('PERMISSION_DENIED') ||
+        msg.includes('401') || msg.includes('403') || msg.includes('invalid API key') ||
+        msg.includes('API key not valid')) {
+      console.error('[GEMINI] Authentication failed — API key is invalid or expired:', msg);
+      throw new Error(`Gemini API key authentication failed: ${msg.substring(0, 150)}`);
+    }
+    if (msg.includes('RESOURCE_EXHAUSTED') || msg.includes('429') || msg.includes('quota')) {
+      console.error('[GEMINI] Rate limit / quota exceeded:', msg);
+      throw new Error(`Gemini API quota exceeded: ${msg.substring(0, 150)}`);
+    }
+    console.error('[GEMINI] API call error:', msg);
+    throw apiError;
+  }
 
   const content = response.text || '';
 
@@ -340,7 +397,7 @@ export async function chatWithTutor(
   messages: { role: string; content: string }[],
   subject?: string,
   surveyData?: any
-): Promise<{ content: string; tokensUsed: number }> {
+): Promise<{ content: string; tokensUsed: number; aiGenerated: boolean }> {
   if (isGeminiConfigured()) {
     try {
       const systemPrompt = buildPersonalizedPrompt(surveyData || null, subject);
@@ -349,7 +406,7 @@ export async function chatWithTutor(
         ...messages,
       ];
       const content = await callGemini(fullMessages, { temperature: 0.7, maxTokens: 800 });
-      return { content, tokensUsed: content.split(' ').length * 2 };
+      return { content, tokensUsed: content.split(' ').length * 2, aiGenerated: true };
     } catch (e) {
       console.error('Gemini tutor error, falling back to demo:', e);
     }
@@ -358,7 +415,7 @@ export async function chatWithTutor(
   // Demo mode - personalized fallback
   const lastUserMessage = messages.filter(m => m.role === 'user').pop();
   const content = getDemoTutorResponse(lastUserMessage?.content || '', surveyData);
-  return { content, tokensUsed: 0 };
+  return { content, tokensUsed: 0, aiGenerated: false };
 }
 
 export async function gradeSubmission(

@@ -1,13 +1,15 @@
 /**
- * Teacher AI Quiz Generator API — v9.3.5
+ * Teacher AI Quiz Generator API — v9.7.3
  * GET: List saved quiz templates
  * POST: Generate a new quiz with real AI (fallback to specialized template bank)
  * DELETE: Delete a quiz template
+ *
+ * v9.7.3: Dynamic Prisma import (DB-unavailable safe), returns aiStatus
+ *         for frontend transparency, and detailed aiError messages.
  */
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
-import prisma from '@/lib/prisma';
-import { callGemini, hasApiKey, extractJSON } from '@/lib/ai';
+import { callGemini, hasApiKey, extractJSON, getAIStatus } from '@/lib/ai';
 import { generateSpecializedQuiz } from '@/lib/ai-generators';
 
 export const maxDuration = 60;
@@ -36,8 +38,23 @@ Each question object:
   "difficulty": "EASY" | "MEDIUM" | "HARD"
 }`;
 
+// Helper: safely import Prisma (may fail if DB unavailable)
+async function getPrisma(): Promise<any | null> {
+  try {
+    return (await import('@/lib/prisma')).default;
+  } catch (e) {
+    console.warn('[QUIZ-GEN] Could not import Prisma:', (e as Error).message);
+    return null;
+  }
+}
+
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
+
+  const prisma = await getPrisma();
+  if (!prisma) {
+    return NextResponse.json({ quizzes: [], aiStatus: getAIStatus() });
+  }
 
   try {
     const quizzes = await prisma.quizTemplate.findMany({
@@ -45,10 +62,10 @@ export const GET = apiHandler(async (req: Request) => {
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
-    return NextResponse.json({ quizzes });
+    return NextResponse.json({ quizzes, aiStatus: getAIStatus() });
   } catch (e) {
     console.warn('[QUIZ-GEN GET] DB query failed:', (e as Error).message);
-    return NextResponse.json({ quizzes: [] });
+    return NextResponse.json({ quizzes: [], aiStatus: getAIStatus() });
   }
 });
 
@@ -63,6 +80,7 @@ export const POST = apiHandler(async (req: Request) => {
   const title = `${subject}${topic ? ' - ' + topic : ''} Quiz (${gradeLevel} Grade)`;
   let questions: any[] | null = null;
   let aiGenerated = false;
+  let aiError: string | null = null;
 
   // ── Attempt real AI generation ──────────────────────────────────
   if (hasApiKey()) {
@@ -95,7 +113,6 @@ export const POST = apiHandler(async (req: Request) => {
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Validate each question has required fields
           const valid = parsed.filter((q: any) =>
             q.question && q.type && q.correctAnswer && q.explanation
           );
@@ -106,8 +123,13 @@ export const POST = apiHandler(async (req: Request) => {
         }
       }
     } catch (err) {
-      console.warn('[QUIZ-GEN] AI generation failed, using template fallback:', (err as Error).message);
+      aiError = (err as Error).message;
+      console.warn('[QUIZ-GEN] AI generation failed, using template fallback:', aiError);
     }
+  } else {
+    const status = getAIStatus();
+    aiError = status.reason || 'No API key configured';
+    console.warn('[QUIZ-GEN] AI not configured:', aiError);
   }
 
   // ── Fallback to specialized template bank ───────────────────────
@@ -116,37 +138,48 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   // ── Save to DB (or return without saving) ───────────────────────
-  try {
-    const quiz = await prisma.quizTemplate.create({
-      data: {
-        teacherId: user.id,
-        title,
-        subject,
-        gradeLevel,
-        difficulty: difficulty as any,
-        questionCount: questions.length,
-        questions: JSON.stringify(questions),
-        standards: standards ? JSON.stringify(standards) : null,
-      },
-    });
-    return NextResponse.json({ quiz: { ...quiz, aiGenerated } });
-  } catch (e) {
-    console.warn('[QUIZ-GEN POST] DB save failed:', (e as Error).message);
-    return NextResponse.json({
-      quiz: {
-        id: `temp-${Date.now()}`,
-        title,
-        subject,
-        gradeLevel,
-        difficulty,
-        questionCount: questions.length,
-        questions: JSON.stringify(questions),
-        aiGenerated,
-        isFavorite: false,
-        createdAt: new Date().toISOString(),
-      },
-    });
+  const prisma = await getPrisma();
+  if (prisma) {
+    try {
+      const quiz = await prisma.quizTemplate.create({
+        data: {
+          teacherId: user.id,
+          title,
+          subject,
+          gradeLevel,
+          difficulty: difficulty as any,
+          questionCount: questions.length,
+          questions: JSON.stringify(questions),
+          standards: standards ? JSON.stringify(standards) : null,
+        },
+      });
+      return NextResponse.json({
+        quiz: { ...quiz, aiGenerated },
+        aiStatus: getAIStatus(),
+        aiError,
+      });
+    } catch (e) {
+      console.warn('[QUIZ-GEN POST] DB save failed:', (e as Error).message);
+    }
   }
+
+  // DB unavailable or save failed — return quiz without persistence
+  return NextResponse.json({
+    quiz: {
+      id: `temp-${Date.now()}`,
+      title,
+      subject,
+      gradeLevel,
+      difficulty,
+      questionCount: questions.length,
+      questions: JSON.stringify(questions),
+      aiGenerated,
+      isFavorite: false,
+      createdAt: new Date().toISOString(),
+    },
+    aiStatus: getAIStatus(),
+    aiError,
+  });
 });
 
 export const DELETE = apiHandler(async (req: Request) => {
@@ -156,12 +189,15 @@ export const DELETE = apiHandler(async (req: Request) => {
 
   if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
 
-  try {
-    await prisma.quizTemplate.deleteMany({
-      where: { id, teacherId: user.id },
-    });
-  } catch (e) {
-    console.warn('[QUIZ-GEN DELETE] DB delete failed:', (e as Error).message);
+  const prisma = await getPrisma();
+  if (prisma) {
+    try {
+      await prisma.quizTemplate.deleteMany({
+        where: { id, teacherId: user.id },
+      });
+    } catch (e) {
+      console.warn('[QUIZ-GEN DELETE] DB delete failed:', (e as Error).message);
+    }
   }
 
   return NextResponse.json({ success: true });

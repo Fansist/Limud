@@ -110,7 +110,7 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   // ── Get AI response (always works — has built-in demo fallback) ──
-  const { content, tokensUsed } = await chatWithTutor(messages, subject, surveyData);
+  const { content, tokensUsed, aiGenerated } = await chatWithTutor(messages, subject, surveyData);
 
   // ── Save AI response to DB (best-effort) ──
   if (prisma) {
@@ -145,6 +145,7 @@ export const POST = apiHandler(async (req: Request) => {
     sessionId: chatSessionId,
     message: content,
     tokensUsed,
+    aiGenerated,
   });
 });
 

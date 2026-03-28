@@ -9,7 +9,7 @@
  */
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler, hasTeacherAccess } from '@/lib/middleware';
-import { callGemini, hasApiKey, extractJSON } from '@/lib/ai';
+import { callGemini, hasApiKey, extractJSON, getAIStatus } from '@/lib/ai';
 
 export const maxDuration = 60;
 
@@ -152,6 +152,7 @@ export const POST = apiHandler(async (req: Request) => {
   return NextResponse.json({
     feedback,
     aiGenerated,
+    aiStatus: getAIStatus(),
   });
 });
 

@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.7.1
+  v9.7.3
 </p>
 
 ---
@@ -1195,6 +1195,42 @@ NODE_OPTIONS=--max-old-space-size=512
 ---
 
 ## Changelog
+
+### v9.7.3 (2026-03-28) — AI Pipeline Hardening: Eliminate Silent Demo-Mode Fallbacks
+
+#### Root Cause
+Even after v9.7.2 wired AI features to real API endpoints, all AI features continued returning demo/template mode responses. Three compounding issues:
+
+1. **Placeholder API key not rejected** — The `.env` file (which gets copied into the standalone build) contained `GEMINI_API_KEY="your-gemini-api-key-here"` from an older version. `isGeminiConfigured()` accepted this as valid, so `callGemini()` was called with a fake key, the Gemini API returned an authentication error, the `catch` block silently fell back to demo mode.
+2. **Silent error swallowing** — `callGemini()` threw on API auth failures, but every caller wrapped it in `try { ... } catch { /* fallback to demo */ }` with no logging or user-visible feedback. Users had zero way to know AI was failing.
+3. **Quiz Generator used top-level `import prisma`** — The quiz generator imported Prisma at the module level, which crashes when the DB is unavailable (e.g., master demo). This prevented the entire route from loading.
+
+#### Fixes
+1. **`isGeminiConfigured()` hardened** — Now rejects 11 placeholder patterns including `your-`, `api-key-here`, `placeholder`, `change-me`, `test-key`, etc. Keys shorter than 10 chars are also rejected.
+2. **`callGemini()` surfaces auth errors** — API key authentication failures (`401`, `403`, `API_KEY_INVALID`, `PERMISSION_DENIED`) and quota exhaustion (`429`, `RESOURCE_EXHAUSTED`) are now caught explicitly with descriptive error messages instead of generic throws.
+3. **`getAIStatus()` helper** — New function returns `{ configured: boolean, model: string, reason?: string }` for API routes to include in responses.
+4. **Quiz Generator route rewritten** — Dynamic Prisma import (never crashes on DB unavailable), returns `aiStatus` and `aiError` in all responses, gracefully handles DB-save failures.
+5. **Quiz Generator page AI indicator** — Shows green dot "AI Active (gemini-2.0-flash)" or amber dot "AI Offline — Using Template Bank" next to the page header. Toast messages now differentiate between AI-generated and template-bank quizzes.
+6. **AI Builder & Feedback APIs** — Now return `aiStatus` in responses for frontend transparency.
+7. **New `/api/ai-status` endpoint** — Authenticated endpoint that returns AI configuration status for any page to check.
+8. **Standalone `.env` fixed** — `.env` now has `GEMINI_API_KEY="demo-mode"` which is correctly rejected by `isGeminiConfigured()`. On Render, the real API key from environment variables overrides this.
+
+#### How to Verify AI Is Working
+1. Set `GEMINI_API_KEY` in Render environment variables to your real Google Gemini API key
+2. Redeploy (push to main or manual deploy)
+3. Log in as master demo (`master@limud.edu` / `LimudMaster2026!`)
+4. Go to `/teacher/quiz-generator` — header should show green "AI Active"
+5. Generate a quiz — toast should say "Quiz generated with AI-powered questions!"
+6. If you see amber "AI Offline" or "template bank" toast, check Render logs for `[GEMINI]` errors
+
+#### Files Changed (10)
+- `src/lib/ai.ts` — Hardened `isGeminiConfigured()`, `callGemini()` error handling, new `getAIStatus()`
+- `src/app/api/quiz-generator/route.ts` — Dynamic Prisma import, `aiStatus`/`aiError` in responses
+- `src/app/api/teacher/ai-builder/route.ts` — Added `getAIStatus` to response
+- `src/app/api/teacher/ai-feedback/route.ts` — Added `getAIStatus` to response
+- `src/app/api/ai-status/route.ts` — **NEW** AI status check endpoint
+- `src/app/teacher/quiz-generator/page.tsx` — AI status indicator, improved toast messages
+- Version bumped in: config.ts, middleware.ts, server.js, health/route.ts, package.json
 
 ### v9.7.2 (2026-03-28) — AI Features: Real Gemini Integration & Master Demo Fixes
 
