@@ -923,6 +923,32 @@ Limud/
 
 ## Changelog
 
+### v9.6.7 (2026-03-28) — Fix: District owner accounts now auto-created
+
+**Issue:** After v9.6.6 seeded districts, users still couldn't log in as district owners
+(e.g., `owner@limud.co` / `LimudRock2026!`) because the auto-seed only created
+`SchoolDistrict` records — no `User` accounts were created.
+
+**Root cause:** The auto-seed in v9.6.5/6 called `prisma.schoolDistrict.create()` but
+never called `prisma.user.create()` for the superintendent accounts.
+
+**Fix:**
+- Auto-seed now creates BOTH district records AND superintendent `User` accounts
+  with bcrypt-hashed passwords, `role: ADMIN`, `accountType: DISTRICT`
+- Also creates `DistrictAdmin` records with `SUPERINTENDENT` access level
+- For existing deployments where districts already exist but users don't,
+  the API detects missing users and creates them on first browse request
+- New dedicated `/api/district-link/seed` endpoint for manual seed triggering
+- Seed endpoint is public (added to middleware `PUBLIC_API_PATHS`)
+
+**Credentials:**
+- Limud-Academy: `owner@limud.co` / `LimudRock2026!`
+- All other districts: `<contactEmail>` / `District2026!`
+
+**Verified:** All 26 district owner logins tested successfully locally.
+
+---
+
 ### v9.6.6 (2026-03-28) — Fix: Production had 6 districts but ALL filtered out
 
 **Root cause found via v9.6.5 diagnostics:**
