@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Limud v9.7.6 — server.js
+// Limud v9.7.7 — server.js
 // Universal entry point for Node.js hosting platforms:
 //   - Render.com (primary — PORT=10000, auto-detected via RENDER env)
 //   - cPanel / GoDaddy (Phusion Passenger)
@@ -17,7 +17,7 @@ const path = require('path');
 const fs = require('fs');
 
 // ─── Environment Setup ────────────────────────────────────────
-// v9.7.6: .env values are loaded ONLY if the key is NOT already set in the environment.
+// v9.7.7: .env values are loaded ONLY if the key is NOT already set in the environment.
 // This means production env vars (set in Render Dashboard) always take priority.
 const envPath = path.join(__dirname, '.env');
 if (fs.existsSync(envPath)) {
@@ -52,7 +52,7 @@ const isStandalone = fs.existsSync(standaloneServerPath);
 // ─── v9.5.0: Track startup time ──────────────────────────────
 const startTime = Date.now();
 
-console.log(`[Limud v9.7.6] Platform: ${platform}`);
+console.log(`[Limud v9.7.7] Platform: ${platform}`);
 console.log(`[Limud] Node.js ${process.version}`);
 console.log(`[Limud] Environment: ${process.env.NODE_ENV || 'production'}`);
 console.log(`[Limud] Standalone build: ${isStandalone ? 'YES' : 'NO'}`);
@@ -129,7 +129,7 @@ if (isStandalone) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               status: 'ok',
-              version: '9.7.6',
+              version: '9.7.7',
               platform,
               uptime: process.uptime(),
               memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',

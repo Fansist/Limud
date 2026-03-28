@@ -1,6 +1,6 @@
 'use client';
 
-import { useIsDemo } from '@/lib/hooks';
+import { useIsDemo, useNeedsDemoParam } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -71,7 +71,8 @@ export default function StudentMessagesPage() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
   const searchParams = useSearchParams();
-  const demoSuffix = isDemo ? '?demo=true' : '';
+  const needsDemoParam = useNeedsDemoParam();
+  const demoSuffix = needsDemoParam ? '?demo=true' : '';
 
   const [conversations, setConversations] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);

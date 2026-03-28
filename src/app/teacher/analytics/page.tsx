@@ -9,7 +9,7 @@
  *   3. Learning   — student learning styles, AI adaptations (was /teacher/learning-insights)
  *   4. Diff View  — side-by-side original vs AI-adapted assignment comparison
  */
-import { useIsDemo } from '@/lib/hooks';
+import { useIsDemo, useNeedsDemoParam } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
@@ -78,6 +78,7 @@ export default function AnalyticsPage() {
 
 function AnalyticsContent() {
   const isDemo = useIsDemo();
+  const needsDemoParam = useNeedsDemoParam();
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -98,6 +99,7 @@ function AnalyticsContent() {
 
   async function loadData() {
     try {
+      // v9.7.7: isDemo is true for both generic demo and master demo users
       if (isDemo) {
         setAnalyticsData(DEMO_ANALYTICS);
         setInsightsData(getDemoInsights());
@@ -108,16 +110,8 @@ function AnalyticsContent() {
 
       if (status !== 'authenticated') return;
       const user = session?.user as any;
-      if (user?.role !== 'TEACHER' && user?.role !== 'ADMIN' && !user?.isMasterDemo) {
+      if (user?.role !== 'TEACHER' && user?.role !== 'ADMIN') {
         router.push('/');
-        return;
-      }
-      // Master demo non-teacher: use demo data
-      if (user?.isMasterDemo && user?.role !== 'TEACHER' && user?.role !== 'ADMIN') {
-        setAnalyticsData(DEMO_ANALYTICS);
-        setInsightsData(getDemoInsights());
-        setLearningData(DEMO_LEARNING_INSIGHTS);
-        setLoading(false);
         return;
       }
 
@@ -459,7 +453,7 @@ function LearningTab({ data, isDemo }: { data: any; isDemo: boolean }) {
 
   const students = data?.students || [];
   const classStats = data?.classStats || {};
-  const demoSuffix = isDemo ? '?demo=true' : '';
+  const demoSuffix = needsDemoParam ? '?demo=true' : '';
 
   const filteredStudents = filterStyle === 'all'
     ? students

@@ -172,7 +172,8 @@ export default function StudentSurveyPage() {
   const STEP_LABELS = ['Discover', 'Interests', 'How You Learn', 'Your Needs', 'Fun Stuff'];
 
   useEffect(() => {
-    if (!isDemo && status === 'authenticated' && (session?.user as any)?.role !== 'STUDENT' && !(session?.user as any)?.isMasterDemo) {
+    // v9.7.7: isDemo is true for master demo too, so isMasterDemo check is no longer needed
+    if (!isDemo && status === 'authenticated' && (session?.user as any)?.role !== 'STUDENT') {
       router.push('/');
     }
   }, [status, isDemo]);

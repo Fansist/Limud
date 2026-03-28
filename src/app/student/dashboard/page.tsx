@@ -1,5 +1,5 @@
 'use client';
-import { useIsDemo } from '@/lib/hooks';
+import { useIsDemo, useNeedsDemoParam } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -18,6 +18,7 @@ export default function StudentDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const isDemo = useIsDemo();
+  const needsDemoParam = useNeedsDemoParam();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +31,7 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     if (isDemo) {
-      // v9.7.5: Use shared state for cross-role assignment visibility
+      // v9.7.7: isDemo is true for both generic demo and master demo users
       setAssignments(getStudentAssignments());
       setRewards(DEMO_REWARD_STATS);
       setLoading(false);
@@ -38,15 +39,8 @@ export default function StudentDashboard() {
     }
     if (status === 'authenticated') {
       const user = session?.user as any;
-      if (user?.role !== 'STUDENT' && !user?.isMasterDemo) {
+      if (user?.role !== 'STUDENT') {
         router.push('/'); return;
-      }
-      if (user?.isMasterDemo && user?.role !== 'STUDENT') {
-        // Master demo visiting student view — show demo data
-        setAssignments(DEMO_ASSIGNMENTS);
-        setRewards(DEMO_REWARD_STATS);
-        setLoading(false);
-        return;
       }
       fetchData();
     }
@@ -120,7 +114,7 @@ export default function StudentDashboard() {
   const avatarId = isDemo ? DEMO_STUDENT.selectedAvatar : ((session?.user as any)?.selectedAvatar || 'default');
   const avatarEmoji = AVATAR_OPTIONS.find(a => a.id === avatarId)?.emoji || '👤';
   const firstName = isDemo ? DEMO_STUDENT.name.split(' ')[0] : (session?.user?.name?.split(' ')[0] || 'Student');
-  const demoSuffix = isDemo ? '?demo=true' : '';
+  const demoSuffix = needsDemoParam ? '?demo=true' : '';
   const upcomingAssignments = assignments
     .filter(a => !a.submissions?.length || a.submissions[0]?.status === 'PENDING')
     .slice(0, 5);

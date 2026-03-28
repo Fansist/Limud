@@ -80,17 +80,17 @@ const DEMO_STUDENTS = DEMO_ANALYTICS.students.map(student => {
 export default function TeacherStudentsPage() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
-  const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
-  useEffect(() => { fetchStudents(); }, [isDemo, isMasterDemo]);
+  useEffect(() => { fetchStudents(); }, [isDemo]);
 
   async function fetchStudents() {
-    if (isDemo || isMasterDemo) { setStudents(DEMO_STUDENTS); setLoading(false); return; }
+    // v9.7.7: isDemo is true for both generic demo and master demo users
+    if (isDemo) { setStudents(DEMO_STUDENTS); setLoading(false); return; }
     try {
       const res = await fetch('/api/teacher/insights?action=students');
       if (res.ok) { const data = await res.json(); setStudents(data.students?.length ? data.students : DEMO_STUDENTS); }

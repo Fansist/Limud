@@ -31,6 +31,7 @@ export default function ParentDashboard() {
   const isHomeschoolParent = !isDemo && (session?.user as any)?.isHomeschoolParent === true;
 
   useEffect(() => {
+    // v9.7.7: isDemo is true for both generic demo and master demo users
     if (isDemo) {
       setChildren(DEMO_PARENT_CHILDREN);
       setLoading(false);
@@ -38,12 +39,7 @@ export default function ParentDashboard() {
     }
     if (status === 'authenticated') {
       const user = session?.user as any;
-      if (user?.role !== 'PARENT' && !user?.isMasterDemo) { router.push('/'); return; }
-      if (user?.isMasterDemo && user?.role !== 'PARENT') {
-        setChildren(DEMO_PARENT_CHILDREN);
-        setLoading(false);
-        return;
-      }
+      if (user?.role !== 'PARENT') { router.push('/'); return; }
       fetchChildData();
     }
   }, [status, isDemo]);

@@ -1196,6 +1196,53 @@ NODE_OPTIONS=--max-old-space-size=512
 
 ## Changelog
 
+### v9.7.7 (2026-03-28) — Fix Master Demo: Empty Student Lists Across All Roles
+
+#### Root Cause
+
+The `useIsDemo()` hook explicitly returned `false` for Master Demo users (the `master@limud.edu` account). This was an intentional design from v9.3.5 — the idea was that Master Demo would use its own `isMasterDemo` session flag and pages would handle it separately.
+
+**However**, out of 40+ pages across all roles, only 6 pages actually checked `isMasterDemo`:
+- `teacher/dashboard`, `teacher/analytics`, `teacher/students`
+- `student/dashboard`, `admin/dashboard`, `parent/dashboard`
+
+All other pages — teacher/grading, teacher/messages, teacher/reports, admin/employees, admin/students, parent/messages, parent/reports, and 25+ more — only checked `isDemo`, which returned `false` for Master Demo. This caused them to call real database APIs that failed with no database, resulting in **empty student lists, empty classrooms, missing messages, and blank analytics** across the entire Master Demo experience.
+
+#### Fix
+
+1. **`useIsDemo()` now returns `true` for Master Demo users** — all pages automatically use demo data
+2. **`useNeedsDemoParam()` hook added** — prevents Master Demo from adding `?demo=true` to URLs (which would trigger the generic demo banner in DashboardLayout)
+3. **Removed broken `isMasterDemo` checks** from 6 dashboard pages (redundant now)
+4. **DashboardLayout unchanged** — it has its own independent demo state management and still correctly shows the Master Demo role switcher (not the generic demo banner)
+
+#### Files Changed (17)
+
+| File | Change |
+|------|--------|
+| `src/lib/hooks.ts` | `useIsDemo()` returns true for isMasterDemo; added `useNeedsDemoParam()` |
+| `src/app/teacher/dashboard/page.tsx` | Removed broken isMasterDemo check; use `needsDemoParam` |
+| `src/app/student/dashboard/page.tsx` | Removed broken isMasterDemo check; use `needsDemoParam` |
+| `src/app/admin/dashboard/page.tsx` | Removed broken isMasterDemo check; use `needsDemoParam` |
+| `src/app/parent/dashboard/page.tsx` | Removed broken isMasterDemo check |
+| `src/app/teacher/analytics/page.tsx` | Removed broken isMasterDemo check; use `needsDemoParam` |
+| `src/app/teacher/students/page.tsx` | Simplified — removed explicit isMasterDemo check |
+| `src/app/student/survey/page.tsx` | Simplified role guard |
+| `src/app/student/messages/page.tsx` | Use `needsDemoParam` |
+| `src/app/student/classrooms/page.tsx` | Use `needsDemoParam` |
+| `src/lib/config.ts` | Version → 9.7.7 |
+| `package.json` | Version → 9.7.7 |
+| `server.js` | Version → 9.7.7 |
+| `src/middleware.ts` | Version → 9.7.7 |
+| `src/app/api/health/route.ts` | Version → 9.7.7 |
+| `src/app/api/ai-status/route.ts` | Version → 9.7.7 |
+| `src/lib/demo-state.ts` | STATE_VERSION → 9.7.7 |
+
+#### Impact
+
+**Before v9.7.7**: Master Demo users saw empty student lists, blank analytics, missing messages, and no data on 30+ pages.
+
+**After v9.7.7**: All 40+ pages across Student, Teacher, Admin, and Parent roles display full demo data (Lior, Eitan, Noam — Ofer Academy students) when accessed via Master Demo.
+
 ### v9.7.6 (2026-03-28) — Upgrade to Gemini 2.5 Flash (Paid Tier 1)
 
 #### What Changed

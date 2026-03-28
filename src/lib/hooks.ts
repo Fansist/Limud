@@ -7,9 +7,6 @@ import { useState, useEffect } from 'react';
 /**
  * Known demo email addresses — if a session email matches,
  * the user is in demo mode regardless of localStorage.
- *
- * v9.3.5: EXCLUDES master@limud.edu — the Master Demo uses its own
- * session flag (isMasterDemo) and should NOT enter the generic demo path.
  */
 const DEMO_EMAILS = new Set([
   'lior@ofer-academy.edu',
@@ -22,17 +19,21 @@ const DEMO_EMAILS = new Set([
   'teacher@limud.edu',
   'admin@limud.edu',
   'parent@limud.edu',
-  // master@limud.edu is intentionally NOT here — see comment above
+  'master@limud.edu',
 ]);
 
 /**
  * Hook to detect if we're in demo mode.
- * v9.6 FIX: If a real user is authenticated (non-demo email),
- * ALWAYS return false and clear stale localStorage flags.
- * This fixes the bug where a real student saw Lior's demo data.
+ * v9.7.7 FIX: Master Demo now returns TRUE so all pages use demo data.
+ * Previously master demo was excluded, causing pages to call real APIs
+ * that failed with no database, resulting in empty student lists.
+ *
+ * The DashboardLayout handles the visual distinction (role switcher vs
+ * demo banner) using its own isDemo/isMasterDemo state — it does NOT
+ * use this hook.
  *
  * Detection priority:
- * 1. Master Demo → always false (uses its own isMasterDemo flag)
+ * 1. Master Demo → true (uses demo data, DashboardLayout shows role switcher)
  * 2. Authenticated with real (non-demo) email → always false + clear stale flags
  * 3. URL ?demo=true → true
  * 4. Session email matches known demo account → true
@@ -42,9 +43,9 @@ export function useIsDemo(): boolean {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
 
-  // Master demo is NEVER generic demo mode
+  // v9.7.7: Master Demo now returns true — demo data for all pages
   const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
-  if (isMasterDemo) return false;
+  if (isMasterDemo) return true;
 
   const sessionEmail = session?.user?.email?.toLowerCase() || '';
   const isSessionDemo = DEMO_EMAILS.has(sessionEmail);
@@ -91,4 +92,24 @@ export function useIsDemo(): boolean {
   }, [isSessionDemo]);
 
   return urlDemo || storedDemo || isSessionDemo;
+}
+
+/**
+ * v9.7.7: Whether in-page links should append ?demo=true.
+ * Returns false for Master Demo (DashboardLayout manages master demo via
+ * session, not URL params — adding ?demo=true would trigger the generic
+ * demo banner incorrectly).
+ */
+export function useNeedsDemoParam(): boolean {
+  const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
+
+  const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
+  if (isMasterDemo) return false;
+
+  const sessionEmail = session?.user?.email?.toLowerCase() || '';
+  const isSessionDemo = DEMO_EMAILS.has(sessionEmail);
+  const urlDemo = searchParams.get('demo') === 'true';
+
+  return urlDemo || isSessionDemo;
 }

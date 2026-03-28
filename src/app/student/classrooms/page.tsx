@@ -7,7 +7,7 @@
  * 2. "Won't find the assignment" → Each classroom shows upcoming assignments
  * 3. "Choose wrong method by accident" → Learning method selector with confirmation
  */
-import { useIsDemo } from '@/lib/hooks';
+import { useIsDemo, useNeedsDemoParam } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -106,6 +106,7 @@ function daysUntil(dateStr: string): number {
 export default function MyClassroomsPage() {
   const { data: session, status } = useSession();
   const isDemo = useIsDemo();
+  const needsDemoParam = useNeedsDemoParam();
   const router = useRouter();
   const [classrooms, setClassrooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,7 +172,7 @@ export default function MyClassroomsPage() {
     setSelectedMethod(null);
     setSelectedClassroom(null);
     // v9.7.1: Navigate to assignment page with method context
-    const demoSuffix = isDemo ? '&demo=true' : '';
+    const demoSuffix = needsDemoParam ? '&demo=true' : '';
     router.push(`/student/assignments?id=${selectedAssignment.id}&method=${selectedMethod}${demoSuffix}`);
   }
 

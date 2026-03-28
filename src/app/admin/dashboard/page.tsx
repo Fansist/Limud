@@ -1,5 +1,5 @@
 'use client';
-import { useIsDemo } from '@/lib/hooks';
+import { useIsDemo, useNeedsDemoParam } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -81,10 +81,12 @@ export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const isDemo = useIsDemo();
+  const needsDemoParam = useNeedsDemoParam();
   const [districts, setDistricts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // v9.7.7: isDemo is true for both generic demo and master demo users
     if (isDemo) {
       setDistricts([DEMO_DISTRICT]);
       setLoading(false);
@@ -92,12 +94,7 @@ export default function AdminDashboard() {
     }
     if (status === 'authenticated') {
       const user = session?.user as any;
-      if (user?.role !== 'ADMIN' && !user?.isMasterDemo) { router.push('/'); return; }
-      if (user?.isMasterDemo && user?.role !== 'ADMIN') {
-        setDistricts([DEMO_DISTRICT]);
-        setLoading(false);
-        return;
-      }
+      if (user?.role !== 'ADMIN') { router.push('/'); return; }
       fetchDistricts();
     }
   }, [status, isDemo]);
@@ -131,7 +128,7 @@ export default function AdminDashboard() {
 
   const district = districts[0];
   const districtName = (session?.user as any)?.districtName || 'District';
-  const demoSuffix = isDemo ? '?demo=true' : '';
+  const demoSuffix = needsDemoParam ? '?demo=true' : '';
 
   return (
     <DashboardLayout>

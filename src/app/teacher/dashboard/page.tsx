@@ -1,5 +1,5 @@
 'use client';
-import { useIsDemo } from '@/lib/hooks';
+import { useIsDemo, useNeedsDemoParam } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -16,11 +16,13 @@ export default function TeacherDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const isDemo = useIsDemo();
+  const needsDemoParam = useNeedsDemoParam();
   const [analytics, setAnalytics] = useState<any>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // v9.7.7: isDemo is true for both generic demo and master demo users
     if (isDemo) {
       setAnalytics(DEMO_ANALYTICS);
       setAssignments(DEMO_TEACHER_ASSIGNMENTS);
@@ -29,14 +31,7 @@ export default function TeacherDashboard() {
     }
     if (status === 'authenticated') {
       const user = session?.user as any;
-      if (user?.role !== 'TEACHER' && !user?.isMasterDemo) { router.push('/'); return; }
-      if (user?.isMasterDemo && user?.role !== 'TEACHER') {
-        // Master demo visiting teacher view — show demo data
-        setAnalytics(DEMO_ANALYTICS);
-        setAssignments(DEMO_TEACHER_ASSIGNMENTS);
-        setLoading(false);
-        return;
-      }
+      if (user?.role !== 'TEACHER') { router.push('/'); return; }
       fetchData();
     }
   }, [status, isDemo]);
@@ -75,7 +70,7 @@ export default function TeacherDashboard() {
   const summary = analytics?.summary || { totalStudents: 0, atRisk: 0, averageScore: 0, pendingSubmissions: 0 };
   const students = analytics?.students || [];
   const firstName = isDemo ? DEMO_TEACHER.name.split(' ')[0] : (session?.user?.name?.split(' ')[0] || 'Teacher');
-  const demoSuffix = isDemo ? '?demo=true' : '';
+  const demoSuffix = needsDemoParam ? '?demo=true' : '';
 
   const getGreeting = () => {
     const hour = new Date().getHours();
