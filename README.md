@@ -923,6 +923,22 @@ Limud/
 
 ## Changelog
 
+### v9.6.6 (2026-03-28) — Fix: Production had 6 districts but ALL filtered out
+
+**Root cause found via v9.6.5 diagnostics:**
+```
+_diag: { steps: ["prisma:ok", "count:6", "filtered:0"] }
+```
+Production DB had 6 districts but ALL were demo/homeschool/self-edu → filtered to 0.
+Auto-seed checked **total count** (6 > 0) and skipped. Page showed 0 districts forever.
+
+**Fix:** Auto-seed now checks **searchable count** (after filter), not total count.
+When searchable=0 but total=6, it seeds 26 new non-demo districts alongside existing ones.
+
+Also: if everything fails, API returns 26 hardcoded districts (never empty).
+
+---
+
 ### v9.6.5 (2026-03-28) — Bulletproof District Search for Production
 
 **Problem:** Production at limud.co (Render) returned `{ districts: [] }` even with v9.6.3 deployed. The auto-seed was silently failing and errors were swallowed, leaving the page permanently empty.

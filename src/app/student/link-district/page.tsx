@@ -58,13 +58,13 @@ export default function LinkDistrictPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // ── Load all districts ──
-  // v9.6.4: Auto-retry up to 3 times with progressive delays if 0 districts returned.
-  // The server auto-seeds on the first call, so the second call should return data.
+  // v9.6.6: API guarantees non-empty response (hardcoded fallback).
+  // Simple fetch with one auto-retry on network error.
   const loadDistricts = useCallback(async () => {
     const attempt = ++loadAttemptRef.current;
     setLoading(true);
     setLoadError(null);
-    setLoadPhase('Fetching districts...');
+    setLoadPhase('Loading districts...');
 
     console.log(`[LinkDistrict] Load attempt #${attempt}`);
 
@@ -74,51 +74,42 @@ export default function LinkDistrictPage() {
         headers: { 'Accept': 'application/json' },
       });
 
-      setLoadPhase('Processing response...');
-
       if (!res.ok) {
         const text = await res.text().catch(() => '');
         let parsed: any = null;
         try { parsed = JSON.parse(text); } catch {}
         if (parsed?._diag) setApiDiagnostics(parsed._diag);
-        throw new Error(`HTTP ${res.status}: ${parsed?.error || parsed?.details || text.slice(0, 200) || res.statusText}`);
+        throw new Error(`HTTP ${res.status}: ${parsed?.error || text.slice(0, 200) || res.statusText}`);
       }
 
       const data = await res.json();
       if (data._diag) setApiDiagnostics(data._diag);
 
-      if (!data.districts || !Array.isArray(data.districts)) {
-        throw new Error('Invalid response format: missing districts array');
-      }
+      const list = Array.isArray(data.districts) ? data.districts : [];
+      console.log(`[LinkDistrict] Got ${list.length} districts`, data._diag?.steps || '');
 
-      console.log(`[LinkDistrict] Got ${data.districts.length} districts (attempt #${attempt})`, data._diag || '');
-
-      // If 0 districts and we haven't retried too many times, auto-retry
-      // The server seeds on first call; second call should have results
-      if (data.districts.length === 0 && attempt <= 3) {
-        setLoadPhase(`Seeding database... retry #${attempt}`);
-        console.log(`[LinkDistrict] 0 districts, auto-retrying in ${attempt * 1500}ms (seed may be in progress)`);
-        setTimeout(() => loadDistricts(), attempt * 1500);
+      // v9.6.6: If still 0 and first attempt, retry once (seed may need a moment)
+      if (list.length === 0 && attempt <= 1) {
+        console.log('[LinkDistrict] 0 districts, one retry in 2s');
+        setTimeout(() => loadDistricts(), 2000);
         return;
       }
 
-      setAllDistricts(data.districts);
-      setFilteredDistricts(data.districts);
+      setAllDistricts(list);
+      setFilteredDistricts(list);
       setLoadError(null);
       setLoadPhase('');
     } catch (err: any) {
-      console.error(`[LinkDistrict] Load error (attempt #${attempt}):`, err);
+      console.error(`[LinkDistrict] Load error:`, err);
+      // Auto-retry once on network error
+      if (attempt <= 1) {
+        setTimeout(() => loadDistricts(), 2000);
+        return;
+      }
       setLoadError(err.message || 'Failed to load districts');
       setAllDistricts([]);
       setFilteredDistricts([]);
       setLoadPhase('');
-
-      // Auto-retry once on error
-      if (attempt <= 2) {
-        console.log(`[LinkDistrict] Auto-retrying after error in 2s`);
-        setTimeout(() => loadDistricts(), 2000);
-        return;
-      }
     } finally {
       setLoading(false);
     }

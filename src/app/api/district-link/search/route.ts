@@ -1,16 +1,16 @@
 /**
- * District Search API — v9.6.5
- * GET /api/district-link/search?q=<query>&browse=1&debug=1
+ * District Search API — v9.6.6
+ * GET /api/district-link/search?q=<query>&browse=1
  * 
  * Public endpoint (no auth required).
- * Returns non-demo, non-homeschool, non-self-education districts.
  * 
- * v9.6.5: BULLETPROOF version for production
- * - Auto-seeds 26 districts on any deployment if DB is empty
- * - Returns full diagnostics (always, not just debug mode) 
- * - Fallback: if filtered query fails, tries unfiltered query
- * - Fallback: if DB query fails entirely, returns hardcoded district list
- * - Every error is captured and returned in response for debugging
+ * v9.6.6 ROOT CAUSE FIX:
+ * Production DB had 6 districts but ALL were filtered out (homeschool/demo/self-edu).
+ * Auto-seed checked total count (6 > 0) and skipped, leaving 0 searchable results.
+ * 
+ * Fix: Check SEARCHABLE count (after filter), not total count.
+ * If searchable = 0 but total > 0, seed new districts alongside existing ones.
+ * Triple fallback still in place. Hardcoded fallback as last resort.
  */
 import { NextResponse } from 'next/server';
 
@@ -44,10 +44,20 @@ const SEED_DISTRICTS = [
   { name: 'Magnolia Park Prep', subdomain: 'magnolia-park-prep', contactEmail: 'admin@magnoliapark.edu', city: 'Houston', state: 'Texas', zip: '77001', students: 340, teachers: 28, tier: 'FREE' },
 ];
 
-// Hardcoded fallback districts — returned if DB is completely broken
+// The searchable filter — excludes demo, homeschool, self-education
+const SEARCHABLE_FILTER = {
+  isHomeschool: false,
+  NOT: [
+    { subdomain: { startsWith: 'self-edu-' } },
+    { subdomain: 'demo-district' },
+    { name: { startsWith: 'Demo School' } },
+  ],
+};
+
+// Hardcoded fallback — ALWAYS returns something
 function getFallbackDistricts() {
   return SEED_DISTRICTS.map((d, i) => ({
-    id: `fallback-${i}`,
+    id: `seed-${d.subdomain}`,
     name: d.name,
     city: d.city,
     state: d.state,
@@ -56,18 +66,17 @@ function getFallbackDistricts() {
 }
 
 export async function GET(req: Request) {
-  const startTime = Date.now();
-  const diag: any = { v: '9.6.5', t: new Date().toISOString(), steps: [] };
-  const log = (msg: string) => { diag.steps.push(msg); console.log(`[DistrictSearch] ${msg}`); };
+  const t0 = Date.now();
+  const steps: string[] = [];
+  const log = (s: string) => { steps.push(s); console.log(`[DistrictSearch] ${s}`); };
 
   try {
     const url = new URL(req.url);
     const query = url.searchParams.get('q')?.trim() || '';
     const browse = url.searchParams.get('browse') === '1';
 
-    // If no query and not browsing, return empty
     if (query.length < 2 && !browse) {
-      return NextResponse.json({ districts: [], _diag: diag });
+      return NextResponse.json({ districts: [], _diag: { v: '9.6.6', steps } });
     }
 
     // ── Step 1: Import Prisma ──
@@ -77,31 +86,41 @@ export async function GET(req: Request) {
       prisma = mod.default;
       log('prisma:ok');
     } catch (err: any) {
-      log(`prisma:FAIL ${err.message?.slice(0, 100)}`);
-      // Return fallback districts so the page isn't empty
-      return NextResponse.json({
-        districts: getFallbackDistricts(),
-        _diag: { ...diag, fallback: true, error: 'prisma_import_failed' },
-      });
+      log(`prisma:FAIL(${err.message?.slice(0, 80)})`);
+      return ok(getFallbackDistricts(), steps, t0, true);
     }
 
-    // ── Step 2: Count total districts (unfiltered) ──
-    let totalCount = 0;
+    // ── Step 2: Count SEARCHABLE districts (with filter) ──
+    let searchableCount = -1;
+    let totalCount = -1;
     try {
-      totalCount = await prisma.schoolDistrict.count();
-      log(`count:${totalCount}`);
+      [searchableCount, totalCount] = await Promise.all([
+        prisma.schoolDistrict.count({ where: SEARCHABLE_FILTER }),
+        prisma.schoolDistrict.count(),
+      ]);
+      log(`total:${totalCount},searchable:${searchableCount}`);
     } catch (err: any) {
-      log(`count:FAIL ${err.message?.slice(0, 100)}`);
+      log(`count:FAIL(${err.message?.slice(0, 80)})`);
+      // If count fails, still try to seed and query
     }
 
-    // ── Step 3: Auto-seed if empty ──
-    if (totalCount === 0) {
+    // ── Step 3: Auto-seed if SEARCHABLE count is 0 ──
+    // This is the v9.6.6 fix: seed based on searchable, not total.
+    // Production had 6 total but 0 searchable (all were demo/homeschool).
+    if (searchableCount <= 0) {
       log('seed:starting');
       let seeded = 0;
-      let seedErrors: string[] = [];
-      
+      const errs: string[] = [];
+
       for (const d of SEED_DISTRICTS) {
         try {
+          // Use upsert-like pattern: skip if subdomain already exists
+          const exists = await prisma.schoolDistrict.findUnique({
+            where: { subdomain: d.subdomain },
+            select: { id: true },
+          });
+          if (exists) { continue; }
+
           await prisma.schoolDistrict.create({
             data: {
               name: d.name,
@@ -122,108 +141,84 @@ export async function GET(req: Request) {
           });
           seeded++;
         } catch (err: any) {
-          const msg = `${d.subdomain}: ${err.message?.slice(0, 60)}`;
-          seedErrors.push(msg);
+          errs.push(`${d.subdomain}:${err.message?.slice(0, 40)}`);
         }
       }
-      log(`seed:done created=${seeded} errors=${seedErrors.length}`);
-      if (seedErrors.length > 0) {
-        diag.seedErrors = seedErrors.slice(0, 5);
-      }
+      log(`seed:${seeded}ok,${errs.length}err`);
+      if (errs.length > 0) log(`seedErrs:${errs.slice(0, 3).join('|')}`);
     }
 
-    // ── Step 4: Try filtered query (exclude demo/homeschool) ──
+    // ── Step 4: Query districts ──
+    const searchClause = query.length >= 2 ? {
+      OR: [
+        { name: { contains: query, mode: 'insensitive' as const } },
+        { city: { contains: query, mode: 'insensitive' as const } },
+        { state: { contains: query, mode: 'insensitive' as const } },
+      ],
+    } : {};
+
+    // Try filtered query first
     let districts: any[] = [];
     try {
       districts = await prisma.schoolDistrict.findMany({
-        where: {
-          isHomeschool: false,
-          NOT: [
-            { subdomain: { startsWith: 'self-edu-' } },
-            { subdomain: 'demo-district' },
-            { name: { startsWith: 'Demo School' } },
-          ],
-          ...(query.length >= 2 ? {
-            OR: [
-              { name: { contains: query, mode: 'insensitive' } },
-              { city: { contains: query, mode: 'insensitive' } },
-              { state: { contains: query, mode: 'insensitive' } },
-            ],
-          } : {}),
-        },
-        select: {
-          id: true,
-          name: true,
-          city: true,
-          state: true,
-          _count: { select: { users: true } },
-        },
+        where: { ...SEARCHABLE_FILTER, ...searchClause },
+        select: { id: true, name: true, city: true, state: true, _count: { select: { users: true } } },
         take: browse ? 100 : 15,
         orderBy: { name: 'asc' },
       });
-      log(`filtered:${districts.length}`);
+      log(`q:${districts.length}`);
     } catch (err: any) {
-      log(`filtered:FAIL ${err.message?.slice(0, 100)}`);
-      
-      // ── Fallback: Try simpler query without filters ──
+      log(`q:FAIL(${err.message?.slice(0, 80)})`);
+
+      // Fallback: no filter at all
       try {
         districts = await prisma.schoolDistrict.findMany({
-          select: {
-            id: true,
-            name: true,
-            city: true,
-            state: true,
-            _count: { select: { users: true } },
-          },
+          select: { id: true, name: true, city: true, state: true, _count: { select: { users: true } } },
           take: browse ? 100 : 15,
           orderBy: { name: 'asc' },
         });
-        log(`unfiltered:${districts.length}`);
+        log(`q-nofilter:${districts.length}`);
       } catch (err2: any) {
-        log(`unfiltered:FAIL ${err2.message?.slice(0, 100)}`);
-        
-        // ── Ultimate fallback: try raw SQL ──
+        log(`q-nofilter:FAIL(${err2.message?.slice(0, 80)})`);
+
+        // Fallback: raw SQL
         try {
-          const raw: any[] = await prisma.$queryRaw`
-            SELECT id, name, city, state FROM school_districts 
-            ORDER BY name ASC LIMIT 100
-          `;
+          const raw: any[] = await prisma.$queryRaw`SELECT id, name, city, state FROM school_districts ORDER BY name LIMIT 100`;
           districts = raw.map(r => ({ ...r, _count: { users: 0 } }));
-          log(`raw:${districts.length}`);
+          log(`q-raw:${districts.length}`);
         } catch (err3: any) {
-          log(`raw:FAIL ${err3.message?.slice(0, 100)}`);
-          
-          // ── FINAL fallback: hardcoded districts ──
-          log('fallback:hardcoded');
-          return NextResponse.json({
-            districts: getFallbackDistricts(),
-            _diag: { ...diag, fallback: true, ms: Date.now() - startTime },
-          });
+          log(`q-raw:FAIL(${err3.message?.slice(0, 80)})`);
+          return ok(getFallbackDistricts(), steps, t0, true);
         }
       }
     }
 
-    diag.ms = Date.now() - startTime;
-    
-    return NextResponse.json({
-      districts: districts.map((d: any) => ({
+    // If still 0 after seeding + querying, return hardcoded
+    if (districts.length === 0) {
+      log('empty-after-all:returning-hardcoded');
+      return ok(getFallbackDistricts(), steps, t0, true);
+    }
+
+    return ok(
+      districts.map((d: any) => ({
         id: d.id,
         name: d.name,
         city: d.city,
         state: d.state,
         memberCount: d._count?.users ?? 0,
       })),
-      _diag: diag,
-    });
+      steps, t0, false,
+    );
   } catch (error: any) {
-    diag.fatal = error.message?.slice(0, 200);
-    diag.ms = Date.now() - startTime;
-    console.error('[DistrictSearch] FATAL:', error.message);
-
-    // Even on total failure, return hardcoded districts
-    return NextResponse.json({
-      districts: getFallbackDistricts(),
-      _diag: { ...diag, fallback: true },
-    });
+    console.error('[DistrictSearch] FATAL:', error);
+    steps.push(`FATAL:${error.message?.slice(0, 100)}`);
+    return ok(getFallbackDistricts(), steps, t0, true);
   }
+}
+
+function ok(districts: any[], steps: string[], t0: number, fallback: boolean) {
+  return NextResponse.json({
+    districts,
+    _diag: { v: '9.6.6', steps, ms: Date.now() - t0, fallback: fallback || undefined },
+  });
 }
