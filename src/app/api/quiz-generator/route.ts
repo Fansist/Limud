@@ -1,9 +1,10 @@
 /**
- * Teacher AI Quiz Generator API — v9.7.4
+ * Teacher AI Quiz Generator API — v9.7.6
  * GET: List saved quiz templates
  * POST: Generate a new quiz with real AI (fallback to specialized template bank)
  * DELETE: Delete a quiz template
  *
+ * v9.7.6: Uses Gemini 2.5 Flash (paid tier 1) — AI should always be active in production
  * v9.7.4: Fix AI always falling back to template
  *   - Use callGeminiSafe() for explicit error tracking
  *   - Add JSON response format instruction to system prompt

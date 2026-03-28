@@ -1,9 +1,10 @@
 /**
- * AI Feedback Engine API — v9.7.4
+ * AI Feedback Engine API — v9.7.6
  *
  * POST: Generate AI-powered feedback for a student submission
  * PUT:  Bulk generate feedback for multiple submissions
  *
+ * v9.7.6: Uses Gemini 2.5 Flash (paid tier 1)
  * Uses Gemini to produce structured, personalized feedback.
  * Falls back to heuristic-based feedback when AI is unavailable.
  */

@@ -1,8 +1,9 @@
 /**
- * AI Assignment Builder API — v9.7.4
+ * AI Assignment Builder API — v9.7.6
  *
  * POST: Generate differentiated assignments using real Gemini AI
  *
+ * v9.7.6: Uses Gemini 2.5 Flash (paid tier 1)
  * Accepts teacher content + configuration, returns learning-style-adapted
  * assignment variants. Falls back to template-based generation when AI is unavailable.
  */

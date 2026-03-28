@@ -328,7 +328,7 @@ async function aiSearchWorksheets(query: string, subject?: string, grade?: strin
   try {
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey });
-    const model = process.env.AI_MODEL || 'gemini-2.0-flash';
+    const model = process.env.AI_MODEL || 'gemini-2.5-flash';
 
     // Use AbortController for timeout
     const controller = new AbortController();

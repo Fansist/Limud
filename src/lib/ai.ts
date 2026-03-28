@@ -1,6 +1,11 @@
 /**
- * LIMUD v9.7.4 — AI Service
+ * LIMUD v9.7.6 — AI Service
  * Google Gemini API via @google/genai with robust error handling & demo fallback
+ *
+ * v9.7.6: Upgraded to Gemini 2.5 Flash (paid tier 1)
+ *   - Default model changed from gemini-2.0-flash to gemini-2.5-flash
+ *   - Paid API key means AI should ALWAYS be active in production
+ *   - Improved error messages for quota/billing issues
  *
  * v9.7.4: Fix AI always falling back to template despite valid key
  *   - callGemini() no longer uses 'demo-mode' as fallback API key
@@ -156,7 +161,7 @@ export function getAIStatus(): {
   reason?: string;
 } {
   const key = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
-  const model = process.env.AI_MODEL || 'gemini-2.0-flash';
+  const model = process.env.AI_MODEL || 'gemini-2.5-flash';
 
   if (!key || key.length < 10) {
     return { configured: false, model, reason: 'No API key configured' };
@@ -254,10 +259,10 @@ export async function callGemini(
   temperatureOrOptions?: number | { temperature?: number; maxTokens?: number },
   maxTokens?: number
 ): Promise<string> {
-  // v9.7.4: Get the API key and VALIDATE it before calling the API.
+  // v9.7.6: Get the API key and VALIDATE it before calling the API.
   // Never send an invalid key to Google — fail fast with a clear message.
   const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
-  const model = process.env.AI_MODEL || 'gemini-2.0-flash';
+  const model = process.env.AI_MODEL || 'gemini-2.5-flash';
 
   if (!apiKey || apiKey.length < 10) {
     throw new Error('GEMINI_API_KEY not configured — set it in environment variables');
@@ -329,8 +334,8 @@ export async function callGemini(
         msg.includes('invalid API key') || msg.includes('API key not valid')) {
       throw new Error(`Gemini auth error: ${msg.substring(0, 200)}`);
     }
-    if (msg.includes('RESOURCE_EXHAUSTED') || msg.includes('429') || msg.includes('quota')) {
-      throw new Error(`Gemini quota exceeded: ${msg.substring(0, 200)}`);
+    if (msg.includes('RESOURCE_EXHAUSTED') || msg.includes('429') || msg.includes('quota') || msg.includes('RATE_LIMIT')) {
+      throw new Error(`Gemini quota/rate limit exceeded (paid tier 1): ${msg.substring(0, 200)}`);
     }
     if (msg.includes('SAFETY') || msg.includes('blocked') || msg.includes('HARM_CATEGORY')) {
       throw new Error(`Gemini safety filter: ${msg.substring(0, 200)}`);

@@ -1,9 +1,10 @@
 /**
- * LIMUD v9.5.8 — Centralized Application Configuration
+ * LIMUD v9.7.6 — Centralized Application Configuration
  * ALL defaults are embedded so the app runs with ZERO env vars.
  * Environment variables, when present, override the embedded defaults.
  *
  * v9.4.0: Migrated from OpenAI to Google Gemini (@google/genai)
+ * v9.7.6: Upgraded to Gemini 2.5 Flash (paid tier 1)
  */
 
 // ═══════════════════════════════════════════════════════════════════
@@ -71,6 +72,7 @@ export const COOKIE_SECURE = IS_HTTPS;
 /**
  * Google Gemini API key.
  * Priority: GEMINI_API_KEY -> GOOGLE_API_KEY -> 'demo-mode'
+ * v9.7.6: User has a paid Gemini 2.5 Flash key (tier 1) set in Render.
  */
 export const GEMINI_API_KEY =
   process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || 'demo-mode';
@@ -78,8 +80,9 @@ export const GEMINI_API_KEY =
 /**
  * AI model to use for all completions.
  * Supported: gemini-2.0-flash, gemini-2.5-flash, gemini-2.5-pro, etc.
+ * v9.7.6: Default changed to gemini-2.5-flash (paid tier 1)
  */
-export const AI_MODEL = process.env.AI_MODEL || 'gemini-2.0-flash';
+export const AI_MODEL = process.env.AI_MODEL || 'gemini-2.5-flash';
 
 /** True if the AI system has a real Gemini API key configured */
 export function isAIConfigured(): boolean {
@@ -91,4 +94,4 @@ export function isAIConfigured(): boolean {
 // ═══════════════════════════════════════════════════════════════════
 
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Limud';
-export const APP_VERSION = '9.7.5';
+export const APP_VERSION = '9.7.6';

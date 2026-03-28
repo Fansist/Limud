@@ -696,7 +696,7 @@ In the Render web service settings -> **Environment**:
 | `NODE_VERSION` | `20.19.0` | **Recommended** (prevents Prisma 7.x issues) |
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` | No (stable default embedded) |
 | `NEXTAUTH_URL` | `https://your-app.onrender.com` | No (auto-derived from request) |
-| `AI_MODEL` | `gemini-2.0-flash` | No (this is the default) |
+| `AI_MODEL` | `gemini-2.5-flash` | No (this is the default since v9.7.6) |
 | `PII_ENCRYPTION_KEY` | `openssl rand -base64 32` | No (falls back to auth secret) |
 
 ### Step 4: Initialize the Database
@@ -721,7 +721,7 @@ npx tsx prisma/seed.ts       # (Optional) Seed with demo data
 
 ```bash
 curl https://your-app.onrender.com/api/health
-# Expected: {"status":"ok","version":"9.7.5","platform":"Render","uptime":42.5,...}
+# Expected: {"status":"ok","version":"9.7.6","platform":"Render","uptime":42.5,...}
 ```
 
 ### Updating the App
@@ -801,7 +801,7 @@ databases:
 | `NEXTAUTH_URL` | No | Auto-derived from request | Canonical URL for NextAuth callbacks. Only set for custom domains. |
 | `NEXT_PUBLIC_APP_URL` | No | `http://localhost:3000` | Public-facing URL (fallback for `NEXTAUTH_URL`) |
 | `NEXT_PUBLIC_APP_NAME` | No | `Limud` | App name displayed in UI |
-| `AI_MODEL` | No | `gemini-2.0-flash` | AI model identifier. Options: `gemini-2.5-flash`, `gemini-2.5-pro`, etc. |
+| `AI_MODEL` | No | `gemini-2.5-flash` | AI model identifier (v9.7.6 default). Options: `gemini-2.0-flash`, `gemini-2.5-flash`, `gemini-2.5-pro`, etc. |
 | `PII_ENCRYPTION_KEY` | No | Falls back to `AUTH_SECRET` | AES-256-GCM encryption key for PII data |
 | `GOOGLE_API_KEY` | No | — | Alternative to `GEMINI_API_KEY` |
 
@@ -1017,7 +1017,7 @@ Go to the web service's **Environment** tab → **Add Environment Variable** for
 |---|---|---|
 | `NEXT_PUBLIC_APP_URL` | Same as `NEXTAUTH_URL` | Only if you're using a custom domain (e.g., `https://limud.co`). Set it to your custom domain URL. |
 | `NEXT_PUBLIC_APP_NAME` | `Limud` | Only if you want to white-label the app with a different name. |
-| `AI_MODEL` | `gemini-2.0-flash` | Only if you want to use a different Gemini model. Options: `gemini-2.0-flash` (fast, recommended), `gemini-2.5-flash` (better quality), `gemini-2.5-pro` (best, slower). |
+| `AI_MODEL` | `gemini-2.5-flash` | Only if you want to use a different Gemini model. Options: `gemini-2.0-flash` (fast, cheapest), `gemini-2.5-flash` (great quality, default since v9.7.6), `gemini-2.5-pro` (best, slowest). |
 | `PII_ENCRYPTION_KEY` | Falls back to `NEXTAUTH_SECRET` | Only if you want a separate key for AES-256-GCM PII field encryption. Must be a long random string. |
 | `GOOGLE_API_KEY` | Not set | Alternative to `GEMINI_API_KEY`. If both are set, `GEMINI_API_KEY` takes priority. They do the same thing. |
 
@@ -1093,7 +1093,7 @@ Test these URLs (replace `limud` with your service name):
 
 | URL | Expected |
 |---|---|
-| `https://limud.onrender.com/api/health` | `{"status":"ok","version":"9.7.1","platform":"Render",...}` |
+| `https://limud.onrender.com/api/health` | `{"status":"ok","version":"9.7.6","platform":"Render",...}` |
 | `https://limud.onrender.com/login` | Login page loads with Limud branding |
 | `https://limud.onrender.com/demo` | Demo mode selector (Student, Teacher, Admin, Parent) |
 | `https://limud.onrender.com/register` | Registration page |
@@ -1196,6 +1196,54 @@ NODE_OPTIONS=--max-old-space-size=512
 
 ## Changelog
 
+### v9.7.6 (2026-03-28) — Upgrade to Gemini 2.5 Flash (Paid Tier 1)
+
+#### What Changed
+
+The AI backend has been upgraded from `gemini-2.0-flash` (free) to `gemini-2.5-flash` (paid tier 1). This ensures all AI features — quiz generation, tutoring, grading, feedback, adaptive assignments, exam simulation, AI navigator, parent check-ins, curriculum analysis, and writing feedback — use the higher-quality model with paid API key guarantees.
+
+#### Changes
+
+1. **Default model updated globally** — All 11 AI-consuming routes now default to `gemini-2.5-flash`:
+   - `src/lib/ai.ts` — Core `callGemini()` function and `getAIStatus()` helper
+   - `src/lib/config.ts` — `AI_MODEL` constant
+   - `src/app/api/worksheet-search/route.ts` — Direct Gemini API call (was hardcoded to `gemini-2.0-flash`)
+2. **Error handling improved for paid tier** — Rate limit (429) errors now include "paid tier 1" context in error messages for faster debugging
+3. **Environment config updated** — `.env`, `.env.example` comments reflect `gemini-2.5-flash` as the new default
+4. **server.js hardened** — Added explicit comment that production env vars always take priority over `.env` file values (`.env` GEMINI_API_KEY="demo-mode" will NOT override the Render Dashboard value)
+5. **Version bumped to 9.7.6** — config.ts, middleware.ts, server.js, health route, package.json, ai-status route, demo-state.ts
+
+#### AI Routes Using Gemini 2.5 Flash
+
+| Route | Feature | Fallback |
+|---|---|---|
+| `/api/tutor` | AI Tutor (personalized chat) | Demo topic-based responses |
+| `/api/grade` | AI Auto-Grader | Heuristic-based scoring |
+| `/api/quiz-generator` | Quiz Generation | Template question bank |
+| `/api/exam-sim` | Exam Simulation | Static question set |
+| `/api/ai-navigator` | Platform Navigator | Pattern-matched responses |
+| `/api/adaptive` | Assignment Adaptation | Basic style-flagged version |
+| `/api/teacher/ai-builder` | Assignment Builder | Empty fallback |
+| `/api/teacher/ai-feedback` | Submission Feedback | Heuristic-based feedback |
+| `/api/teacher/reports` | Student/Curriculum Reports | Template reports |
+| `/api/parent/ai-checkin` | Parent Check-In Reports | Template reports |
+| `/api/worksheet-search` | Worksheet Discovery | Google fallback only |
+
+#### Render Environment
+
+Set in Render Dashboard → **Environment**:
+```
+GEMINI_API_KEY=your-paid-api-key
+AI_MODEL=gemini-2.5-flash    # (optional — this is now the default)
+```
+
+#### Verification
+
+1. Deploy to Render
+2. Visit `/api/ai-status?test=true` → should show `testResult: "success"`, `model: "gemini-2.5-flash"`
+3. Generate a quiz → toast should say "Quiz generated with AI-powered questions!"
+4. Check Render logs for `[GEMINI] Calling gemini-2.5-flash with valid API key...`
+
 ### v9.7.5 (2026-03-28) — Master Demo Overhaul: Fully Connected Cross-Role Experience
 
 #### What Changed
@@ -1278,7 +1326,7 @@ Despite v9.7.3 hardening, AI features continued falling back to template/demo mo
 1. Set `GEMINI_API_KEY` in Render Dashboard → redeploy
 2. Visit `/api/ai-status?test=true` — should show `testResult: "success"`
 3. Generate quiz → toast should say "Quiz generated with AI-powered questions!"
-4. Check Render logs for `[GEMINI] Calling gemini-2.0-flash with valid API key...`
+4. Check Render logs for `[GEMINI] Calling gemini-2.5-flash with valid API key...`
 
 #### Files Changed
 - `src/lib/ai.ts` — Core fixes: removed demo-mode fallback, added key validation, hardened extractJSON, added callGeminiSafe, added logging to all AI functions
@@ -1295,7 +1343,7 @@ Despite v9.7.3 hardening, AI features continued falling back to template/demo mo
 
 ### v9.7.3 (2026-03-28) — AI Pipeline Hardening: Eliminate Silent Demo-Mode Fallbacks
 4. **Quiz Generator route rewritten** — Dynamic Prisma import (never crashes on DB unavailable), returns `aiStatus` and `aiError` in all responses, gracefully handles DB-save failures.
-5. **Quiz Generator page AI indicator** — Shows green dot "AI Active (gemini-2.0-flash)" or amber dot "AI Offline — Using Template Bank" next to the page header. Toast messages now differentiate between AI-generated and template-bank quizzes.
+5. **Quiz Generator page AI indicator** — Shows green dot "AI Active (gemini-2.5-flash)" or amber dot "AI Offline — Using Template Bank" next to the page header. Toast messages now differentiate between AI-generated and template-bank quizzes.
 6. **AI Builder & Feedback APIs** — Now return `aiStatus` in responses for frontend transparency.
 7. **New `/api/ai-status` endpoint** — Authenticated endpoint that returns AI configuration status for any page to check.
 8. **Standalone `.env` fixed** — `.env` now has `GEMINI_API_KEY="demo-mode"` which is correctly rejected by `isGeminiConfigured()`. On Render, the real API key from environment variables overrides this.
