@@ -7,8 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
-import { DEMO_TEACHER_ASSIGNMENTS, DEMO_COURSES } from '@/lib/demo-data';
-import { addTeacherAssignment, getTeacherAssignments } from '@/lib/demo-state';
+import { DEMO_TEACHER_ASSIGNMENTS } from '@/lib/demo-data';
+import { addTeacherAssignment, getTeacherAssignments, getDemoCourses } from '@/lib/demo-state';
 import toast from 'react-hot-toast';
 import {
   BookOpen, Plus, X, Clock, Users, Paperclip, Link2, FileText, Upload, Star, Scale, Tag, Trash2, ExternalLink,
@@ -131,7 +131,8 @@ export default function TeacherAssignments() {
           ],
         } as any);
         setAssignments(enhanced);
-        setCourses(DEMO_COURSES.map(c => ({ id: c.id, name: c.name, subject: c.subject })));
+        // v9.7.9: Use getDemoCourses() to include onboarding-created courses
+        setCourses(getDemoCourses().map(c => ({ id: c.id, name: c.name, subject: c.subject })));
         setLoading(false);
         return;
       }

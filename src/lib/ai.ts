@@ -1,8 +1,8 @@
 /**
- * LIMUD v9.7.8 — AI Service
+ * LIMUD v9.7.9 — AI Service
  * Google Gemini API via @google/genai with robust error handling & demo fallback
  *
- * v9.7.8: Upgraded to Gemini 2.5 Flash (paid tier 1)
+ * v9.7.9: Upgraded to Gemini 2.5 Flash (paid tier 1)
  *   - Default model changed from gemini-2.0-flash to gemini-2.5-flash
  *   - Paid API key means AI should ALWAYS be active in production
  *   - Improved error messages for quota/billing issues
@@ -259,7 +259,7 @@ export async function callGemini(
   temperatureOrOptions?: number | { temperature?: number; maxTokens?: number },
   maxTokens?: number
 ): Promise<string> {
-  // v9.7.8: Get the API key and VALIDATE it before calling the API.
+  // v9.7.9: Get the API key and VALIDATE it before calling the API.
   // Never send an invalid key to Google — fail fast with a clear message.
   const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
   const model = process.env.AI_MODEL || 'gemini-2.5-flash';

@@ -16,6 +16,8 @@ import {
   ArrowRight, ArrowLeft, CheckCircle2, BookOpen, Users, Sparkles,
   GraduationCap, Clock, Plus, X, Wand2, School,
 } from 'lucide-react';
+import { saveOnboardingCourses } from '@/lib/demo-state';
+import type { DemoCourse, DemoClassroom } from '@/lib/demo-state';
 
 const SUBJECTS = [
   { id: 'math', label: 'Mathematics', emoji: '🔢', color: 'bg-blue-100 text-blue-700 border-blue-200' },
@@ -97,26 +99,61 @@ export default function TeacherOnboardingPage() {
   async function handleFinish() {
     setSaving(true);
     try {
-      // Save onboarding data
-      const res = await fetch('/api/teacher/onboarding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subjects: selectedSubjects,
-          gradeRange,
-          classes: classes.filter(c => c.name),
-          aiPreferences: aiPrefs,
-        }),
+      // v9.7.9: Save onboarding courses to shared demo state so they persist
+      // across all pages (assignments, analytics, classrooms, etc.)
+      const validClasses = classes.filter(c => c.name.trim());
+      
+      const customCourses: DemoCourse[] = validClasses.map((cls, i) => {
+        const subjectInfo = SUBJECTS.find(s => s.id === cls.subject);
+        return {
+          id: `onboard-c${i + 1}-${Date.now()}`,
+          name: cls.name,
+          subject: subjectInfo?.label || cls.subject || 'General',
+          gradeLevel: gradeRange === 'elementary' ? 'K-5' : gradeRange === 'middle' ? '6-8' : '9-12',
+          teacherId: session?.user?.id || 'demo-teacher',
+        };
       });
 
-      if (res.ok) {
-        toast.success('Setup complete! Welcome to Limud!');
-        router.push('/teacher/dashboard');
-      } else {
-        // Still redirect even if save fails — demo mode
-        toast.success('Setup complete! (Preview mode)');
-        router.push('/teacher/dashboard');
+      const customClassrooms: DemoClassroom[] = validClasses.map((cls, i) => {
+        const subjectInfo = SUBJECTS.find(s => s.id === cls.subject);
+        const courseId = customCourses[i]?.id || `onboard-c${i + 1}`;
+        return {
+          id: `onboard-cl${i + 1}-${Date.now()}`,
+          name: `${cls.name} — ${cls.period}`,
+          subject: subjectInfo?.label || cls.subject || 'General',
+          gradeLevel: gradeRange === 'elementary' ? 'K-5' : gradeRange === 'middle' ? '6-8' : '9-12',
+          teacherId: session?.user?.id || 'demo-teacher',
+          teacherName: session?.user?.name || 'Gregory Strachen',
+          courseId,
+          period: cls.period,
+          studentCount: 3,
+          students: ['demo-student-lior', 'demo-student-eitan', 'demo-student-noam'],
+        };
+      });
+
+      // Save to localStorage-based shared demo state
+      if (customCourses.length > 0) {
+        saveOnboardingCourses(customCourses, customClassrooms);
       }
+
+      // Also attempt server-side save (will gracefully fail in demo)
+      try {
+        await fetch('/api/teacher/onboarding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subjects: selectedSubjects,
+            gradeRange,
+            classes: validClasses,
+            aiPreferences: aiPrefs,
+          }),
+        });
+      } catch {
+        // Expected to fail in demo mode — courses already saved to demo state
+      }
+
+      toast.success(`Setup complete! ${customCourses.length} course${customCourses.length !== 1 ? 's' : ''} created.`);
+      router.push('/teacher/dashboard');
     } catch {
       toast.success('Setup complete! (Preview mode)');
       router.push('/teacher/dashboard');

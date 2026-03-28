@@ -10,6 +10,7 @@
 import { useIsDemo, useNeedsDemoParam } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { getDemoClassrooms } from '@/lib/demo-state';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -49,7 +50,7 @@ const LEARNING_METHODS = [
 ];
 
 // Demo classrooms for demo/unlinked users
-const DEMO_CLASSROOMS = [
+const DEFAULT_STUDENT_CLASSROOMS = [
   {
     id: 'c1', name: 'Biology 101', subject: 'Science', teacher: 'Mr. Strachen',
     period: '1st Period', room: 'Room 204', studentCount: 28,
@@ -123,7 +124,19 @@ export default function MyClassroomsPage() {
   async function loadClassrooms() {
     try {
       if (isDemo) {
-        setClassrooms(DEMO_CLASSROOMS);
+        // v9.7.9: Merge onboarding-created classrooms with student defaults
+        const onboardingClassrooms = getDemoClassrooms().map((c, i) => ({
+          id: c.id, name: c.name, subject: c.subject,
+          teacher: c.teacherName || 'Mr. Strachen',
+          period: c.period || `${i + 1}${['st','nd','rd'][i] || 'th'} Period`,
+          room: `Room ${200 + i}`,
+          studentCount: c.studentCount || 3,
+          assignments: [],
+        }));
+        const combined = onboardingClassrooms.length > 0
+          ? [...onboardingClassrooms, ...DEFAULT_STUDENT_CLASSROOMS]
+          : DEFAULT_STUDENT_CLASSROOMS;
+        setClassrooms(combined);
         setLoading(false);
         return;
       }
@@ -134,13 +147,13 @@ export default function MyClassroomsPage() {
         if (data.classrooms?.length > 0) {
           setClassrooms(data.classrooms);
         } else {
-          setClassrooms(DEMO_CLASSROOMS);
+          setClassrooms(DEFAULT_STUDENT_CLASSROOMS);
         }
       } else {
-        setClassrooms(DEMO_CLASSROOMS);
+        setClassrooms(DEFAULT_STUDENT_CLASSROOMS);
       }
     } catch {
-      setClassrooms(DEMO_CLASSROOMS);
+      setClassrooms(DEFAULT_STUDENT_CLASSROOMS);
     } finally {
       setLoading(false);
     }

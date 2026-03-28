@@ -7,8 +7,9 @@ import toast from 'react-hot-toast';
 import { Gamepad2, Shield, ToggleLeft, ToggleRight, Users, Clock, AlertTriangle, BarChart3, TrendingUp, Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { getDemoClassrooms } from '@/lib/demo-state';
 
-const DEMO_CLASSROOMS = [
+const DEFAULT_GAME_CLASSROOMS = [
   { id: 'c1', name: 'Math 101 - Period 1', subject: 'Math', gradeLevel: '6th', gamesDisabledDuringClass: false, schedule: '8:00 AM - 8:50 AM', _count: { students: 24 } },
   { id: 'c2', name: 'Science 201 - Period 3', subject: 'Science', gradeLevel: '7th', gamesDisabledDuringClass: true, schedule: '10:00 AM - 10:50 AM', _count: { students: 28 } },
   { id: 'c3', name: 'English 102 - Period 5', subject: 'English', gradeLevel: '6th', gamesDisabledDuringClass: false, schedule: '1:00 PM - 1:50 PM', _count: { students: 22 } },
@@ -39,7 +40,23 @@ export default function TeacherGameControlPage() {
   useEffect(() => { fetchClassrooms(); }, [isDemo]);
 
   async function fetchClassrooms() {
-    if (isDemo) { setClassrooms(DEMO_CLASSROOMS); setLoading(false); return; }
+    if (isDemo) {
+      // v9.7.9: Merge onboarding classrooms with defaults for game control
+      const onboardingClassrooms = getDemoClassrooms().map(c => ({
+        id: c.id,
+        name: c.name,
+        subject: c.subject,
+        gradeLevel: c.gradeLevel,
+        gamesDisabledDuringClass: false,
+        schedule: `${c.period || 'Scheduled'}`,
+        _count: { students: c.studentCount || 3 },
+      }));
+      // Use onboarding classrooms if available, otherwise defaults
+      const combined = onboardingClassrooms.length > 0 ? onboardingClassrooms : DEFAULT_GAME_CLASSROOMS;
+      setClassrooms(combined);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch('/api/district/classrooms');
       if (res.ok) { const data = await res.json(); setClassrooms(data.classrooms || []); }

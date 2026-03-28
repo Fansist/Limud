@@ -1,9 +1,9 @@
 /**
- * AI Status API — v9.7.8
+ * AI Status API — v9.7.9
  * GET: Returns the current AI configuration status
  *
  * Used by frontend to display whether AI features are active or in template/demo mode.
- * v9.7.8: Updated for Gemini 2.5 Flash (paid tier 1)
+ * v9.7.9: Updated for Gemini 2.5 Flash (paid tier 1)
  * v9.7.4: Added key prefix diagnostic, env source tracking, and test call option
  */
 import { NextResponse } from 'next/server';
@@ -23,7 +23,7 @@ export const GET = apiHandler(async (req: Request) => {
     keyLength: key.length,
     keySource: process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : process.env.GOOGLE_API_KEY ? 'GOOGLE_API_KEY' : 'none',
     hasApiKeyResult: hasApiKey(),
-    version: '9.7.8',
+    version: '9.7.9',
   };
 
   // Optional: test the actual API connection with ?test=true

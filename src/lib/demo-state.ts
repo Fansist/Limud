@@ -75,6 +75,27 @@ export interface DemoNotification {
   forRole?: string; // 'ALL' | 'STUDENT' | 'TEACHER' | 'ADMIN'
 }
 
+export interface DemoCourse {
+  id: string;
+  name: string;
+  subject: string;
+  gradeLevel: string;
+  teacherId: string;
+}
+
+export interface DemoClassroom {
+  id: string;
+  name: string;
+  subject: string;
+  gradeLevel: string;
+  teacherId: string;
+  teacherName: string;
+  courseId: string;
+  period: string;
+  studentCount: number;
+  students: string[];
+}
+
 interface DemoState {
   // Assignments created by teacher (visible to students)
   teacherCreatedAssignments: DemoAssignment[];
@@ -88,11 +109,14 @@ interface DemoState {
   notifications: DemoNotification[];
   // Graded results (visible to student after teacher grades)
   gradedSubmissions: Record<string, any>; // submissionId -> grade data
+  // v9.7.9: Custom courses/classrooms from onboarding Quick Setup
+  customCourses: DemoCourse[];
+  customClassrooms: DemoClassroom[];
   // Version to track if state needs reset
   version: string;
 }
 
-const STATE_VERSION = '9.7.8';
+const STATE_VERSION = '9.7.9';
 
 function getDefaultState(): DemoState {
   return {
@@ -102,6 +126,8 @@ function getDefaultState(): DemoState {
     messages: [],
     notifications: [],
     gradedSubmissions: {},
+    customCourses: [],
+    customClassrooms: [],
     version: STATE_VERSION,
   };
 }
@@ -303,6 +329,43 @@ export function getNotificationsForRole(role: string): DemoNotification[] {
 export function getSharedMessages(): DemoMessage[] {
   const state = loadDemoState();
   return [...DEMO_MESSAGES, ...state.messages];
+}
+
+/**
+ * v9.7.9: Save custom courses & classrooms from onboarding Quick Setup.
+ * Courses created in onboarding are merged with built-in DEMO_COURSES
+ * on every page that shows a course list.
+ */
+export function saveOnboardingCourses(courses: DemoCourse[], classrooms: DemoClassroom[]): void {
+  const state = loadDemoState();
+  // Replace (not append) — onboarding is a one-time setup
+  state.customCourses = courses;
+  state.customClassrooms = classrooms;
+  saveDemoState(state);
+}
+
+/**
+ * v9.7.9: Get all courses (built-in + custom from onboarding).
+ * Custom courses appear first so the teacher sees their own courses at the top.
+ */
+export function getDemoCourses(): DemoCourse[] {
+  const state = loadDemoState();
+  const custom = state.customCourses || [];
+  // Deduplicate by id (custom overrides built-in if same id)
+  const ids = new Set(custom.map(c => c.id));
+  const builtIn = DEMO_COURSES.filter(c => !ids.has(c.id));
+  return [...custom, ...builtIn];
+}
+
+/**
+ * v9.7.9: Get all classrooms (built-in + custom from onboarding).
+ */
+export function getDemoClassrooms(): DemoClassroom[] {
+  const state = loadDemoState();
+  const custom = state.customClassrooms || [];
+  const ids = new Set(custom.map(c => c.id));
+  const builtIn = (DEMO_CLASSROOMS as DemoClassroom[]).filter(c => !ids.has(c.id));
+  return [...custom, ...builtIn];
 }
 
 /**

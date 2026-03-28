@@ -1196,6 +1196,38 @@ NODE_OPTIONS=--max-old-space-size=512
 
 ## Changelog
 
+### v9.7.9 (2026-03-28) — Fix Quick Setup: Custom Courses Not Persisting
+
+#### Root Cause
+
+When a teacher completed the **Quick Setup (onboarding) wizard** and created custom courses/classes, the data was sent to `/api/teacher/onboarding` which doesn't exist. The API call silently failed, the wizard redirected to the dashboard with a "Preview mode" toast, and **all created courses were lost**. Every page (Assignments, Games, Classrooms) then fell back to the 4 hardcoded demo courses (Biology 101, Algebra II, English Literature, World History).
+
+#### Fix
+
+1. **Added `customCourses` and `customClassrooms` to shared demo state** (`demo-state.ts`): New fields in the localStorage-persisted `DemoState` object, with `saveOnboardingCourses()`, `getDemoCourses()`, and `getDemoClassrooms()` functions.
+
+2. **Updated onboarding wizard** (`teacher/onboarding/page.tsx`): `handleFinish()` now builds proper `DemoCourse[]` and `DemoClassroom[]` objects from the wizard inputs and saves them to shared demo state before redirecting. Toast now confirms "Setup complete! N courses created."
+
+3. **Updated all pages that display courses/classrooms**:
+   - `teacher/assignments` — course dropdown now uses `getDemoCourses()` (shows onboarding courses + built-in defaults)
+   - `teacher/games` — game control classrooms merged from `getDemoClassrooms()`
+   - `admin/classrooms` — classroom management includes onboarding-created classrooms
+   - `student/classrooms` — My Classrooms page includes onboarding-created classrooms
+
+4. **Deduplication**: `getDemoCourses()` and `getDemoClassrooms()` deduplicate by ID so custom courses override matching built-in ones. Custom courses appear first in lists.
+
+#### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/lib/demo-state.ts` | Added `DemoCourse`, `DemoClassroom` interfaces; `customCourses`/`customClassrooms` fields; `saveOnboardingCourses()`, `getDemoCourses()`, `getDemoClassrooms()` functions |
+| `src/app/teacher/onboarding/page.tsx` | `handleFinish()` builds course/classroom objects and saves to demo state |
+| `src/app/teacher/assignments/page.tsx` | Replaced `DEMO_COURSES` with `getDemoCourses()` for course dropdown |
+| `src/app/teacher/games/page.tsx` | Replaced local `DEMO_CLASSROOMS` with `getDemoClassrooms()` merge |
+| `src/app/admin/classrooms/page.tsx` | Replaced local `DEMO_CLASSROOMS` with `getDemoClassrooms()` merge |
+| `src/app/student/classrooms/page.tsx` | Replaced local `DEMO_CLASSROOMS` with `getDemoClassrooms()` merge |
+| Version bumped in 10 config files | 9.7.8 → 9.7.9 |
+
 ### v9.7.8 (2026-03-28) — Fix Auto-Differentiated Assignments: Toast Spam & Grammar Bugs
 
 #### Bugs Fixed

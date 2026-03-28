@@ -14,8 +14,9 @@ import {
   Search, Filter, LayoutGrid, List, Star, Zap, Shield,
   Copy, MoreVertical, UserPlus, CheckCircle2, AlertTriangle,
 } from 'lucide-react';
+import { getDemoClassrooms } from '@/lib/demo-state';
 
-const DEMO_CLASSROOMS = [
+const DEFAULT_ADMIN_CLASSROOMS = [
   {
     id: 'dc1', name: 'Math 101', subject: 'Mathematics', gradeLevel: '6th', period: 'Period 1',
     gamesDisabledDuringClass: false, school: { name: 'Lincoln Elementary' },
@@ -136,7 +137,25 @@ export default function AdminClassroomsPageEnhanced() {
   useEffect(() => { fetchClassrooms(); }, [isDemo]);
 
   async function fetchClassrooms() {
-    if (isDemo) { setClassrooms(DEMO_CLASSROOMS); setLoading(false); return; }
+    if (isDemo) {
+      // v9.7.9: Merge onboarding-created classrooms with admin defaults
+      const onboardingClassrooms = getDemoClassrooms().map(c => ({
+        id: c.id, name: c.name, subject: c.subject, gradeLevel: c.gradeLevel,
+        period: c.period || 'Period 1',
+        gamesDisabledDuringClass: false, school: { name: 'Ofer Academy' },
+        teacher: { id: c.teacherId, name: c.teacherName || 'Gregory Strachen' },
+        _count: { students: c.studentCount || 3 }, maxCapacity: 30,
+        schedule: { days: ['Mon', 'Wed', 'Fri'], startTime: '08:00', endTime: '08:50' },
+        curriculum: '', description: `${c.subject} class`,
+        learningObjectives: [], difficultyLevel: 'Standard',
+        allowAITutor: true, requireDailyChallenge: false,
+        color: '#3B82F6', isActive: true, createdAt: new Date().toISOString().split('T')[0],
+      }));
+      const combined = [...onboardingClassrooms, ...DEFAULT_ADMIN_CLASSROOMS];
+      setClassrooms(combined);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch('/api/district/classrooms');
       if (res.ok) { const data = await res.json(); setClassrooms(data.classrooms || []); }
