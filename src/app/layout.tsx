@@ -15,7 +15,12 @@ export const metadata: Metadata = {
   authors: [{ name: 'Limud Education Inc.' }],
   icons: { icon: '/favicon.ico' },
   manifest: '/manifest.json',
-  metadataBase: new URL(process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://limud.co'),
+  metadataBase: (() => {
+    const raw = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://limud.co';
+    // Ensure URL always has a protocol — fixes "Invalid URL" on Render when env var lacks https://
+    const url = raw.startsWith('http') ? raw : `https://${raw}`;
+    try { return new URL(url); } catch { return new URL('https://limud.co'); }
+  })(),
   openGraph: {
     title: 'Limud — The All-in-One AI Learning Platform for K–12',
     description: 'Stop juggling 6 apps. Limud replaces Khan Academy, Google Classroom, Quizlet, ClassDojo, IXL and more. AI tutoring, auto-grading, gamification, and analytics in one platform. Free forever plan.',

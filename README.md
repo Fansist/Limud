@@ -1001,7 +1001,7 @@ Go to the web service's **Environment** tab → **Add Environment Variable** for
 |---|---|---|
 | `DATABASE_URL` | `postgresql://limud:XXXX@dpg-xxxxx-a/limud` | Render dashboard → your PostgreSQL database → **Info** tab → **Internal Database URL**. Copy the full URL. |
 | `NEXTAUTH_SECRET` | `limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB` | **Use this exact value.** This is the embedded secret used by the app. If you change it, all existing sessions will be invalidated. You can generate your own with `openssl rand -base64 32` but then you must use the same value everywhere. |
-| `NEXTAUTH_URL` | `https://limud.onrender.com` | Replace `limud` with whatever **Name** you chose in Step 2. This is your Render public URL. Format: `https://<your-service-name>.onrender.com` |
+| `NEXTAUTH_URL` | `https://limud.onrender.com` | Replace `limud` with whatever **Name** you chose in Step 2. This is your Render public URL. Format: `https://<your-service-name>.onrender.com`. **⚠️ MUST include `https://` — bare hostnames like `limud.onrender.com` will cause a build crash (Invalid URL).** |
 
 #### Recommended Variables (3)
 

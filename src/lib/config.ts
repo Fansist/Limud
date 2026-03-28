@@ -42,11 +42,14 @@ export const DATABASE_URL =
 /**
  * Canonical origin used by NextAuth for callback URLs.
  * Priority: NEXTAUTH_URL -> NEXT_PUBLIC_APP_URL -> localhost default
+ * v9.7.1: Auto-prefix https:// if env var is bare hostname (fixes Render deploys)
  */
-export const APP_URL =
-  process.env.NEXTAUTH_URL ||
-  process.env.NEXT_PUBLIC_APP_URL ||
-  'http://localhost:3000';
+function resolveAppUrl(): string {
+  const raw = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || '';
+  if (!raw) return 'http://localhost:3000';
+  return raw.startsWith('http') ? raw : `https://${raw}`;
+}
+export const APP_URL = resolveAppUrl();
 
 /** Whether the app is running behind HTTPS */
 export const IS_HTTPS = APP_URL.startsWith('https');
