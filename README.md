@@ -1196,6 +1196,43 @@ NODE_OPTIONS=--max-old-space-size=512
 
 ## Changelog
 
+### v9.7.11 (2026-03-29) — Add AI Lesson Planner
+
+#### What's New
+
+A full **AI Lesson Planner** for teachers — generate complete, standards-aligned lesson plans in seconds.
+
+**Features:**
+1. **Configure wizard** — pick subject (12 options), grade level (K-12 + AP/IB), topic, class duration (30-90 min), lesson format (6 styles: Direct Instruction, Inquiry-Based, Workshop Model, Flipped Classroom, Collaborative, Project-Based), and Bloom's Taxonomy focus level.
+2. **AI generation** — produces a complete lesson plan with:
+   - Learning objectives (editable, add/remove inline)
+   - Standards alignment (auto-generated CCSS references)
+   - Essential question & key vocabulary
+   - **Timed lesson flow** — 5 sections (Warm-Up, Introduction, Main Activity, Independent Practice, Closure) each with minute-level timing, teacher actions, student actions, materials, and tips
+   - Visual **timeline bar** showing time allocation across sections
+   - Formative & summative assessment strategies
+   - **3-tier differentiation** (struggling / on-level / advanced)
+   - Homework assignment
+   - Materials checklist (with checkboxes)
+   - Post-lesson teacher reflection prompts
+3. **Save / Load** — save plans to local storage, load them back, delete old ones
+4. **Copy / Print** — copy full plan as formatted text, or print directly from browser
+5. **Course integration** — links to courses created in Quick Setup (v9.7.9)
+6. **Expandable sections** — click any lesson section to see detailed teacher & student action steps
+
+**Navigation:**
+- Added to **AI Tools** section in teacher sidebar (first item, with CalendarDays icon)
+- Added as a **quick action card** on the Teacher Dashboard (4-column grid)
+
+#### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/app/teacher/lesson-planner/page.tsx` | **New** — 530+ line full AI Lesson Planner page |
+| `src/components/layout/DashboardLayout.tsx` | Added Lesson Planner to teacher sidebar nav (AI Tools section) |
+| `src/app/teacher/dashboard/page.tsx` | Added Lesson Planner quick action card, expanded grid to 4 columns |
+| Version bumped in 10 config files | 9.7.9 → 9.7.11 |
+
 ### v9.7.9 (2026-03-28) — Fix Quick Setup: Custom Courses Not Persisting
 
 #### Root Cause

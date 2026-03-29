@@ -109,14 +109,14 @@ interface DemoState {
   notifications: DemoNotification[];
   // Graded results (visible to student after teacher grades)
   gradedSubmissions: Record<string, any>; // submissionId -> grade data
-  // v9.7.9: Custom courses/classrooms from onboarding Quick Setup
+  // v9.7.11: Custom courses/classrooms from onboarding Quick Setup
   customCourses: DemoCourse[];
   customClassrooms: DemoClassroom[];
   // Version to track if state needs reset
   version: string;
 }
 
-const STATE_VERSION = '9.7.9';
+const STATE_VERSION = '9.7.11';
 
 function getDefaultState(): DemoState {
   return {
@@ -332,7 +332,7 @@ export function getSharedMessages(): DemoMessage[] {
 }
 
 /**
- * v9.7.9: Save custom courses & classrooms from onboarding Quick Setup.
+ * v9.7.11: Save custom courses & classrooms from onboarding Quick Setup.
  * Courses created in onboarding are merged with built-in DEMO_COURSES
  * on every page that shows a course list.
  */
@@ -345,7 +345,7 @@ export function saveOnboardingCourses(courses: DemoCourse[], classrooms: DemoCla
 }
 
 /**
- * v9.7.9: Get all courses (built-in + custom from onboarding).
+ * v9.7.11: Get all courses (built-in + custom from onboarding).
  * Custom courses appear first so the teacher sees their own courses at the top.
  */
 export function getDemoCourses(): DemoCourse[] {
@@ -358,7 +358,7 @@ export function getDemoCourses(): DemoCourse[] {
 }
 
 /**
- * v9.7.9: Get all classrooms (built-in + custom from onboarding).
+ * v9.7.11: Get all classrooms (built-in + custom from onboarding).
  */
 export function getDemoClassrooms(): DemoClassroom[] {
   const state = loadDemoState();

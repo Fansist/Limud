@@ -16,7 +16,7 @@ import {
   LayoutDashboard, BookOpen, MessageCircle, Trophy, BarChart3,
   GraduationCap, LogOut, Bell, Menu, X, Upload, Eye, Accessibility,
   ChevronRight, Mail, Award, Play, Sparkles, ArrowLeft, Users,
-  Home, Brain, FileText, Calendar, TrendingUp, Swords, Sun, Moon,
+  Home, Brain, FileText, Calendar, CalendarDays, TrendingUp, Swords, Sun, Moon,
   Lightbulb, Focus, Zap, Target, ChevronDown, Settings, Gamepad2,
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
   Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList, Clipboard, Palette,
@@ -64,6 +64,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/teacher/ai-builder', label: 'AI Builder', icon: <Zap size={20} /> },
     ]},
     { label: 'AI Tools', items: [
+      { href: '/teacher/lesson-planner', label: 'Lesson Planner', icon: <CalendarDays size={20} /> },
       { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
       { href: '/teacher/ai-feedback', label: 'AI Feedback', icon: <MessageCircle size={20} /> },
       { href: '/teacher/quiz-generator', label: 'Quiz Generator', icon: <Lightbulb size={20} /> },

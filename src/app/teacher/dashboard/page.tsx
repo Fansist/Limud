@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { DEMO_ANALYTICS, DEMO_TEACHER_ASSIGNMENTS, DEMO_TEACHER } from '@/lib/demo-data';
 import {
-  BookOpen, GraduationCap, BarChart3, Users, AlertTriangle, Clock, ArrowRight, TrendingUp, FileText, Sparkles,
+  BookOpen, GraduationCap, BarChart3, Users, AlertTriangle, Clock, ArrowRight, TrendingUp, FileText, Sparkles, CalendarDays,
 } from 'lucide-react';
 
 export default function TeacherDashboard() {
@@ -164,7 +164,7 @@ export default function TeacherDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               href: `/teacher/assignments${demoSuffix}`,
@@ -173,6 +173,14 @@ export default function TeacherDashboard() {
               desc: `${assignments.length} total assignments`,
               color: 'bg-blue-100 text-blue-600',
               hoverColor: 'group-hover:bg-blue-200',
+            },
+            {
+              href: `/teacher/lesson-planner${demoSuffix}`,
+              icon: <CalendarDays size={22} />,
+              title: 'Lesson Planner',
+              desc: 'AI-powered lesson plans',
+              color: 'bg-teal-100 text-teal-600',
+              hoverColor: 'group-hover:bg-teal-200',
             },
             {
               href: `/teacher/grading${demoSuffix}`,
