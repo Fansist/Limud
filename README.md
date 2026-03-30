@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.8.0
+  v9.9.0
 </p>
 
 ---
@@ -1158,6 +1158,51 @@ NODE_OPTIONS=--max-old-space-size=512
 ---
 
 ## Changelog
+
+### v9.9.0 (2026-03-30) — "The Four Pillars" Blueprint Update
+
+#### What Changed
+
+**Major UI/UX overhaul implementing the "Four Pillars" product blueprint.** Every portal now tells a cohesive story aligned to the company mission: *Eliminate the one-size-fits-all classroom using cognitive science & generative AI.*
+
+#### Landing Page — "The Four Pillars"
+- Complete rewrite with mission-driven hero: "Eliminate the one-size-fits-all classroom"
+- Four Pillars narrative: Student (Sylvester), Teacher (Mrs. Osher), Admin (Supt. Ofer), Parent (David Betzalel)
+- Core Engine section: The Brain (Gemini 2.5 Flash), The Science (SM-2, Learning DNA), The Security (AES-256-GCM)
+- Self-Reinforcing Loop value proposition + "Works alongside tools you love" comparison section
+- Streamlined pricing: Free / Standard $6 / Enterprise
+- Interactive mini-dashboard preview showing Sylvester's student view
+
+#### Student Dashboard — "The Sylvester Experience"
+- XP, daily streak, and level restored in welcome banner (Blueprint: "Instant Gratification")
+- Learning DNA badge displayed (e.g., "Auditory Learner")
+- Quick actions: Adaptive Assignments, Socratic AI Tutor, Focus Mode, Growth Analytics
+- Stats strip: Total Assignments, Completed, Avg Score, Level
+
+#### Teacher Dashboard — "The Mrs. Osher Experience"
+- New gradient welcome banner with classroom stats (Students, Class Avg, To Grade)
+- At-risk student alert banner linking to Intelligence Dashboard
+- Core workflow cards: Upload & Adapt → AI Quiz Generator → One-Click Auto-Grade → Intelligence Dashboard
+- Secondary actions: AI Lesson Planner, My Students, Performance Analytics, Worksheet Finder
+
+#### Admin Dashboard — "The Superintendent Ofer Command Center"
+- Renamed to "Command Center" with dark-gradient hero KPI banner
+- Blueprint KPIs front-and-center: Active Students, Teachers, Annual Cost, Per Student/Year
+- Compliance widget with colored left-border indicators (System Status, FERPA/COPPA/WCAG, AI Features)
+- Trending Today live metrics + Alerts & Insights feed
+- Quick actions: Announcements (cross-role broadcasts), Bulk Import (CSV), Compliance Reports
+
+#### Parent Dashboard — "The David Betzalel Experience"
+- AI Check-In promoted to hero action: prominent white button with shadow on gradient banner
+- Homeschool Teacher Tools section: Create Assignment, AI Quiz Gen, 87+ Worksheets, AI Auto-Grade (all free)
+- Demo check-in report now includes Study Habits section
+- Cleaner stat grid: XP Earned, Best Streak, Tutor Chats, Completed assignments
+- Rose-to-violet gradient on child hero cards
+
+#### Version Bump
+- All 7 config files updated: package.json, config.ts, middleware.ts, server.js, health/route.ts, ai-status/route.ts, demo-state.ts
+
+---
 
 ### v9.8.0 (2026-03-30) — Remove Gamification System
 

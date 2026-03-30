@@ -16,10 +16,12 @@ import {
   TrendingDown, Flame, Eye, Star, MessageSquare, Brain, Clock,
 } from 'lucide-react';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TRENDING DATA — v9.7: Addresses admin pain "information overload"
-// Opportunity: "trending info summary" — curated, actionable insights
-// ═══════════════════════════════════════════════════════════════════════════
+/*
+ * Admin Dashboard v9.9.0 — "The Superintendent Ofer Command Center"
+ * Blueprint: High-level analytics, compliance, and ROI.
+ * Key KPIs: 247 active students, 18 teachers, $12,000 annual cost.
+ * Widgets: Cost/ROI, Compliance, Bulk Management, Announcements.
+ */
 
 const TRENDING_ALERTS = [
   {
@@ -86,7 +88,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // v9.7.7: isDemo is true for both generic demo and master demo users
     if (isDemo) {
       setDistricts([DEMO_DISTRICT]);
       setLoading(false);
@@ -119,7 +120,7 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
-            <p className="text-sm text-gray-400">Loading district data...</p>
+            <p className="text-sm text-gray-400">Loading command center...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -133,30 +134,33 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-6">
+
+        {/* ═══ COMMAND CENTER HEADER ═══ */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">District Administration</h1>
-            <p className="text-gray-500 mt-1">{districtName} Management Console</p>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-gray-800 rounded-xl flex items-center justify-center text-white">
+              <Building2 size={24} />
+            </div>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Command Center</h1>
+              <p className="text-gray-500 mt-0.5">{districtName} &mdash; One dashboard, zero confusion</p>
+            </div>
           </div>
         </motion.div>
 
         {district && (
           <>
-            {/* Subscription Card */}
+            {/* ═══ HERO KPI BANNER — Blueprint: "247 active students, 18 teachers, $12,000 annual cost" ═══ */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 rounded-3xl p-6 lg:p-8 text-white overflow-hidden">
+              className="relative bg-gradient-to-br from-slate-700 via-slate-800 to-gray-900 rounded-3xl p-6 lg:p-8 text-white overflow-hidden">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJILTEweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50" />
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
 
               <div className="relative">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                      <Building2 size={24} />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold">{district.name}</h2>
-                      <p className="text-white/60 text-sm">ID: {district.subdomain}</p>
-                    </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold">{district.name}</h2>
+                    <p className="text-white/50 text-sm">ID: {district.subdomain}</p>
                   </div>
                   <span className={cn(
                     'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold self-start',
@@ -168,15 +172,15 @@ export default function AdminDashboard() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { icon: <CreditCard size={18} />, value: `$${district.pricePerYear.toLocaleString()}`, label: 'Annual Cost' },
-                    { icon: <Users size={18} />, value: district.studentCount, label: `Students (max ${district.maxStudents})` },
-                    { icon: <GraduationCap size={18} />, value: district.teacherCount, label: `Teachers (max ${district.maxTeachers})` },
-                    { icon: <DollarSign size={18} />, value: `$${district.costPerStudent > 0 ? district.costPerStudent.toFixed(2) : '\u2014'}`, label: 'Per Student / Year' },
+                    { icon: <Users size={18} />, value: district.studentCount, label: `Active Students (max ${district.maxStudents})`, accent: 'text-blue-300' },
+                    { icon: <GraduationCap size={18} />, value: district.teacherCount, label: `Teachers (max ${district.maxTeachers})`, accent: 'text-green-300' },
+                    { icon: <DollarSign size={18} />, value: `$${district.pricePerYear.toLocaleString()}`, label: 'Annual Cost', accent: 'text-amber-300' },
+                    { icon: <CreditCard size={18} />, value: `$${district.costPerStudent > 0 ? district.costPerStudent.toFixed(2) : '\u2014'}`, label: 'Per Student / Year', accent: 'text-purple-300' },
                   ].map(stat => (
                     <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2 text-white/60">{stat.icon}</div>
+                      <div className={cn('flex items-center gap-2 mb-2', stat.accent)}>{stat.icon}</div>
                       <p className="text-2xl font-bold">{stat.value}</p>
                       <p className="text-xs text-white/50 mt-0.5">{stat.label}</p>
                     </div>
@@ -192,10 +196,10 @@ export default function AdminDashboard() {
               </div>
             </motion.div>
 
-            {/* System Health & Compliance Quick Status */}
+            {/* ═══ COMPLIANCE + SYSTEM STATUS — Blueprint: "confirms FERPA, COPPA, WCAG AA" ═══ */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
               className="grid sm:grid-cols-3 gap-4">
-              <div className="card flex items-center gap-4">
+              <div className="card flex items-center gap-4 border-l-4 border-l-green-500">
                 <div className="p-3 bg-green-100 rounded-xl"><Activity size={22} className="text-green-600" /></div>
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 text-sm">System Status</h4>
@@ -203,29 +207,25 @@ export default function AdminDashboard() {
                 </div>
                 <span className="badge badge-success text-[10px]">Healthy</span>
               </div>
-              <div className="card flex items-center gap-4">
+              <div className="card flex items-center gap-4 border-l-4 border-l-blue-500">
                 <div className="p-3 bg-blue-100 rounded-xl"><Shield size={22} className="text-blue-600" /></div>
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 text-sm">Compliance</h4>
-                  <p className="text-xs text-gray-400">FERPA, COPPA, WCAG AA</p>
+                  <p className="text-xs text-gray-400">FERPA · COPPA · WCAG AA</p>
                 </div>
                 <span className="badge badge-success text-[10px]">Active</span>
               </div>
-              <div className="card flex items-center gap-4">
+              <div className="card flex items-center gap-4 border-l-4 border-l-purple-500">
                 <div className="p-3 bg-purple-100 rounded-xl"><Cpu size={22} className="text-purple-600" /></div>
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 text-sm">AI Features</h4>
-                  <p className="text-xs text-gray-400">Tutor, grader, planner</p>
+                  <p className="text-xs text-gray-400">Tutor · Grader · Planner</p>
                 </div>
                 <span className="badge badge-success text-[10px]">Online</span>
               </div>
             </motion.div>
 
-            {/* ═══════ v9.7: TRENDING DASHBOARD ═══════ */}
-            {/* Addresses admin pain: "information overload" */}
-            {/* Opportunity: "trending info summary" — curated, actionable insights */}
-            
-            {/* Trending Metrics Row */}
+            {/* ═══ TRENDING METRICS — Live data ═══ */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white">
@@ -261,7 +261,7 @@ export default function AdminDashboard() {
               </div>
             </motion.div>
 
-            {/* Trending Alerts */}
+            {/* ═══ ALERTS & INSIGHTS ═══ */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}
               className="card">
               <div className="flex items-center justify-between mb-4">
@@ -269,7 +269,7 @@ export default function AdminDashboard() {
                   <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
                     <Zap size={16} className="text-amber-500" />
                   </div>
-                  Alerts & Insights
+                  Alerts &amp; Insights
                 </h3>
                 <span className="text-xs text-gray-400">{TRENDING_ALERTS.length} items</span>
               </div>
@@ -304,15 +304,15 @@ export default function AdminDashboard() {
               </div>
             </motion.div>
 
-            {/* Quick Actions — expanded */}
+            {/* ═══ QUICK ACTIONS — Blueprint: bulk import, announcements, analytics ═══ */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { href: `/admin/employees${demoSuffix}`, icon: <UserCog className="text-indigo-600" size={24} />, bg: 'bg-indigo-100 group-hover:bg-indigo-200', title: 'Employee Directory', desc: 'Manage teachers, staff, and admin roles' },
                 { href: `/admin/students${demoSuffix}`, icon: <Users className="text-blue-600" size={24} />, bg: 'bg-blue-100 group-hover:bg-blue-200', title: 'Student Accounts', desc: 'Create students with auto parent accounts' },
                 { href: `/admin/schools${demoSuffix}`, icon: <Building2 className="text-emerald-600" size={24} />, bg: 'bg-emerald-100 group-hover:bg-emerald-200', title: 'Schools', desc: 'Manage schools & transfer users' },
                 { href: `/admin/classrooms${demoSuffix}`, icon: <BookOpen className="text-violet-600" size={24} />, bg: 'bg-violet-100 group-hover:bg-violet-200', title: 'Classrooms', desc: 'Configure classes, schedules & curriculum' },
-                { href: `/admin/announcements${demoSuffix}`, icon: <Megaphone className="text-pink-600" size={24} />, bg: 'bg-pink-100 group-hover:bg-pink-200', title: 'Announcements', desc: 'District-wide communications' },
-                { href: `/admin/provision${demoSuffix}`, icon: <Upload className="text-green-600" size={24} />, bg: 'bg-green-100 group-hover:bg-green-200', title: 'Bulk Provisioning', desc: 'CSV upload for students & teachers' },
+                { href: `/admin/announcements${demoSuffix}`, icon: <Megaphone className="text-pink-600" size={24} />, bg: 'bg-pink-100 group-hover:bg-pink-200', title: 'Announcements', desc: 'Cross-role broadcasts to all portals' },
+                { href: `/admin/provision${demoSuffix}`, icon: <Upload className="text-green-600" size={24} />, bg: 'bg-green-100 group-hover:bg-green-200', title: 'Bulk Import (CSV)', desc: 'Provision students & teachers at scale' },
                 { href: `/admin/analytics${demoSuffix}`, icon: <BarChart3 className="text-cyan-600" size={24} />, bg: 'bg-cyan-100 group-hover:bg-cyan-200', title: 'District Analytics', desc: 'Performance, engagement & AI usage data' },
                 { href: `/admin/payments${demoSuffix}`, icon: <CreditCard className="text-amber-600" size={24} />, bg: 'bg-amber-100 group-hover:bg-amber-200', title: 'Billing & Payments', desc: 'Subscription & payment history' },
                 { href: `/admin/settings${demoSuffix}`, icon: <Settings className="text-gray-600" size={24} />, bg: 'bg-gray-100 group-hover:bg-gray-200', title: 'District Settings', desc: 'Policies, branding, security & feature flags' },
@@ -333,7 +333,7 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            {/* Capacity Overview */}
+            {/* ═══ CAPACITY OVERVIEW ═══ */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="card">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2">

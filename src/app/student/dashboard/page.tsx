@@ -5,13 +5,19 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn, daysUntil, getLetterGrade, AVATAR_OPTIONS } from '@/lib/utils';
-import { DEMO_STUDENT, DEMO_ASSIGNMENTS } from '@/lib/demo-data';
+import { DEMO_STUDENT, DEMO_ASSIGNMENTS, DEMO_REWARD_STATS } from '@/lib/demo-data';
 import { getStudentAssignments } from '@/lib/demo-state';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen, MessageCircle, AlertTriangle, ArrowRight, TrendingUp, Calendar, Target, Building2, BarChart3,
+  Zap, Flame, Brain, Sparkles,
 } from 'lucide-react';
+
+/*
+ * Student Dashboard v9.9.0 — "The Sylvester Experience"
+ * Blueprint: Learning DNA + Adaptive Assignments + Focus Mode + Socratic Tutor + Instant Gratification (XP/Streak)
+ */
 
 export default function StudentDashboard() {
   const { data: session, status } = useSession();
@@ -19,10 +25,9 @@ export default function StudentDashboard() {
   const isDemo = useIsDemo();
   const needsDemoParam = useNeedsDemoParam();
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [rewards, setRewards] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // v9.6: Unlinked students (INDIVIDUAL/SELF_EDUCATION without district courses)
-  // get demo-like capabilities but are NOT flagged as isDemo
   const isUnlinked = status === 'authenticated' && !isDemo &&
     (session?.user as any)?.role === 'STUDENT' &&
     (!(session?.user as any)?.districtId || (session?.user as any)?.accountType === 'INDIVIDUAL');
@@ -30,6 +35,10 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (isDemo) {
       setAssignments(getStudentAssignments());
+      // Load demo reward stats for the current student
+      const studentId = (session?.user as any)?.id || 'demo-student-lior';
+      const stats = (DEMO_REWARD_STATS as any)?.[studentId] || Object.values(DEMO_REWARD_STATS)[0];
+      setRewards(stats);
       setLoading(false);
       return;
     }
@@ -44,9 +53,10 @@ export default function StudentDashboard() {
 
   async function fetchData() {
     try {
-      const [assignRes, surveyRes] = await Promise.all([
+      const [assignRes, surveyRes, rewardRes] = await Promise.all([
         fetch('/api/assignments'),
         fetch('/api/survey'),
+        fetch('/api/rewards').catch(() => null),
       ]);
       if (assignRes.ok) {
         const data = await assignRes.json();
@@ -55,7 +65,10 @@ export default function StudentDashboard() {
       } else if (isUnlinked) {
         setAssignments(DEMO_ASSIGNMENTS);
       }
-      // Check if student needs to complete survey
+      if (rewardRes?.ok) {
+        const data = await rewardRes.json();
+        setRewards(data);
+      }
       if (surveyRes.ok) {
         const surveyData = await surveyRes.json();
         if (!surveyData.surveyCompleted) {
@@ -111,7 +124,6 @@ export default function StudentDashboard() {
     return days >= 0 && days <= 1 && (!a.submissions?.length || a.submissions[0]?.status === 'PENDING');
   });
 
-  // Compute stats from assignments
   const completedCount = assignments.filter(a => a.submissions?.length && a.submissions[0]?.status === 'GRADED').length;
   const pendingCount = upcomingAssignments.length;
   const avgScore = gradedSubmissions.length > 0
@@ -121,6 +133,11 @@ export default function StudentDashboard() {
       }, 0) / gradedSubmissions.length)
     : 0;
 
+  // XP and streak from rewards (blueprint: "Instant Gratification")
+  const totalXP = rewards?.totalXP || 0;
+  const currentStreak = rewards?.currentStreak || 0;
+  const level = rewards?.level || 1;
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -128,10 +145,13 @@ export default function StudentDashboard() {
     return 'Good evening';
   };
 
+  // Determine learning style label
+  const learningStyle = isDemo ? 'Auditory Learner' : ((session?.user as any)?.learningStyle || null);
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-7xl mx-auto">
-        {/* Welcome Banner */}
+        {/* Welcome Banner — with XP, Streak, Level (Blueprint: Instant Gratification) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -156,16 +176,25 @@ export default function StudentDashboard() {
                 <p className="text-white/70 mt-1">
                   Ready to learn something awesome today?
                 </p>
+                {learningStyle && (
+                  <span className="inline-flex items-center gap-1 mt-1.5 bg-white/15 backdrop-blur-sm text-white/90 text-xs font-medium px-2.5 py-1 rounded-full">
+                    <Brain size={12} /> {learningStyle}
+                  </span>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
-                <p className="text-2xl font-bold">{completedCount}</p>
-                <p className="text-[10px] text-white/60 font-medium">Completed</p>
+                <p className="text-2xl font-bold flex items-center justify-center gap-1">
+                  <Zap size={16} className="text-purple-300" />{totalXP.toLocaleString()}
+                </p>
+                <p className="text-[10px] text-white/60 font-medium">XP</p>
               </div>
               <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
-                <p className="text-2xl font-bold">{pendingCount}</p>
-                <p className="text-[10px] text-white/60 font-medium">Pending</p>
+                <p className="text-2xl font-bold flex items-center justify-center gap-1">
+                  <Flame size={16} className="text-orange-300" />{currentStreak}
+                </p>
+                <p className="text-[10px] text-white/60 font-medium">Day Streak</p>
               </div>
               {avgScore > 0 && (
                 <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
@@ -226,22 +255,22 @@ export default function StudentDashboard() {
           </motion.div>
         )}
 
-        {/* Quick Actions */}
+        {/* Quick Actions — Blueprint: Adaptive Assignments, Focus Mode, Socratic Tutor, Analytics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             {
               href: '/student/assignments',
-              icon: <BookOpen size={22} />,
-              title: 'Assignments',
-              desc: `${upcomingAssignments.length} pending`,
+              icon: <Sparkles size={22} />,
+              title: 'Adaptive Assignments',
+              desc: `${upcomingAssignments.length} adapted for you`,
               color: 'from-blue-500 to-blue-600',
               shadow: 'shadow-blue-500/20',
             },
             {
               href: '/student/tutor',
               icon: <MessageCircle size={22} />,
-              title: 'AI Tutor',
-              desc: 'Ask anything',
+              title: 'Socratic AI Tutor',
+              desc: 'Guided discovery',
               color: 'from-violet-500 to-purple-600',
               shadow: 'shadow-purple-500/20',
             },
@@ -249,14 +278,14 @@ export default function StudentDashboard() {
               href: '/student/focus',
               icon: <Target size={22} />,
               title: 'Focus Mode',
-              desc: 'Distraction-free',
+              desc: 'ADHD-friendly',
               color: 'from-indigo-500 to-cyan-500',
               shadow: 'shadow-indigo-500/20',
             },
             {
               href: '/student/knowledge',
               icon: <BarChart3 size={22} />,
-              title: 'Analytics',
+              title: 'Growth Analytics',
               desc: 'Track your progress',
               color: 'from-emerald-500 to-teal-600',
               shadow: 'shadow-emerald-500/20',
@@ -297,7 +326,7 @@ export default function StudentDashboard() {
             { icon: <BookOpen size={18} />, label: 'Total Assignments', value: `${assignments.length}`, color: 'bg-blue-50 text-blue-600' },
             { icon: <Target size={18} />, label: 'Completed', value: `${completedCount}`, color: 'bg-green-50 text-green-600' },
             { icon: <TrendingUp size={18} />, label: 'Avg Score', value: avgScore > 0 ? `${avgScore}%` : '--', color: 'bg-violet-50 text-violet-600' },
-            { icon: <MessageCircle size={18} />, label: 'Due Soon', value: `${dueToday.length}`, color: 'bg-amber-50 text-amber-600' },
+            { icon: <Zap size={18} />, label: 'Level', value: `${level}`, color: 'bg-purple-50 text-purple-600' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}

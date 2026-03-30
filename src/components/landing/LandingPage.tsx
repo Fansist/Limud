@@ -7,10 +7,10 @@ import {
   BookOpen, BarChart3, GraduationCap,
   Shield, Users, Brain, Sparkles, ArrowRight,
   Check, Play, Heart, TrendingUp,
-  Lightbulb, Calendar, Eye,
-  FileText, Target, LayoutDashboard,
+  Lightbulb, Eye, FileText, Target, LayoutDashboard,
   ChevronDown, ChevronUp, MessageCircle, DollarSign,
   Award, Link2, Lock, Zap, Home, Building2, Cpu,
+  Flame, Upload, Star, Headphones, Hand, Focus, Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -49,8 +49,8 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ============================================================
-   LANDING PAGE v9.4.3 — Diverse Learning Styles & Self Education
-   Slogan: "Every mind learns differently."
+   LANDING PAGE v9.9.0 — "The Four Pillars" Blueprint
+   Mission: Eliminate the one-size-fits-all classroom
    ============================================================ */
 
 export default function LandingPage() {
@@ -69,7 +69,7 @@ export default function LandingPage() {
     setMobileMenu(false);
   }
 
-  const NAV_ITEMS = ['Features', 'For Who', 'Pricing', 'FAQ'];
+  const NAV_ITEMS = ['How It Works', 'Pillars', 'Pricing', 'FAQ'];
 
   return (
     <div className="bg-white overflow-x-hidden">
@@ -82,7 +82,7 @@ export default function LandingPage() {
             <Link href="/" className="flex items-center gap-2">
               <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg shadow-md object-cover" />
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
-              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.6</span>
+              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v9.9</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -128,16 +128,17 @@ export default function LandingPage() {
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <div className="inline-flex items-center gap-2 bg-primary-50 border border-primary-200 text-primary-700 px-3 py-1 rounded-full text-sm font-medium mb-6">
-              <Sparkles size={14} /> AI-Powered Adaptive Learning
+              <Brain size={14} /> Cognitive Science + Generative AI
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1]">
-              Every mind learns
-              <span className="bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent"> differently </span>
+              Eliminate the
+              <span className="bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent"> one-size-fits-all </span>
+              classroom
             </h1>
 
             <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-              AI that adapts to each student&apos;s unique learning style &mdash; visual, auditory, ADHD-friendly, and more. Built for self-learners, homeschool families, and school districts.
+              AI that adapts curriculum to every individual&apos;s <strong className="text-gray-700">Learning DNA</strong> &mdash; reducing stress for students and workload for teachers. Visual, auditory, kinesthetic, ADHD-friendly &mdash; all first-class citizens.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
@@ -162,7 +163,7 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Mini dashboard preview */}
+          {/* Mini dashboard preview — Sylvester's view */}
           <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }} className="mt-14 max-w-3xl mx-auto">
             <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-200/60 overflow-hidden">
@@ -173,17 +174,17 @@ export default function LandingPage() {
                   <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
                 </div>
                 <div className="flex-1 mx-4">
-                  <div className="bg-white rounded px-3 py-0.5 text-[11px] text-gray-400 border border-gray-200 max-w-xs mx-auto text-center">limud.co/dashboard</div>
+                  <div className="bg-white rounded px-3 py-0.5 text-[11px] text-gray-400 border border-gray-200 max-w-xs mx-auto text-center">limud.co/student/dashboard</div>
                 </div>
               </div>
               <div className="p-4 bg-gradient-to-br from-gray-50 to-white">
                 <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-xl p-4 text-white mb-3">
                   <div className="flex items-center justify-between">
-                    <div><p className="text-sm opacity-80">Welcome back!</p><p className="text-lg font-bold">Hey, Alex!</p></div>
+                    <div><p className="text-sm opacity-80">Welcome back!</p><p className="text-lg font-bold">Hey, Sylvester! <span className="text-xs opacity-60 ml-1">Auditory Learner</span></p></div>
                     <div className="flex gap-3 text-center">
-                      <div><p className="text-lg font-bold">12</p><p className="text-[9px] opacity-60">Level</p></div>
-                      <div><p className="text-lg font-bold">14</p><p className="text-[9px] opacity-60">Streak</p></div>
-                      <div><p className="text-lg font-bold">485</p><p className="text-[9px] opacity-60">Coins</p></div>
+                      <div><p className="text-lg font-bold">3,200</p><p className="text-[9px] opacity-60">XP</p></div>
+                      <div><p className="text-lg font-bold flex items-center gap-0.5"><span className="text-orange-300">&#128293;</span>14</p><p className="text-[9px] opacity-60">Streak</p></div>
+                      <div><p className="text-lg font-bold">92%</p><p className="text-[9px] opacity-60">Avg</p></div>
                     </div>
                   </div>
                 </div>
@@ -191,8 +192,8 @@ export default function LandingPage() {
                   {[
                     { label: 'Assignments', icon: '📝', color: 'bg-blue-50 text-blue-600' },
                     { label: 'AI Tutor', icon: '🤖', color: 'bg-purple-50 text-purple-600' },
-                    { label: 'Games', icon: '🎮', color: 'bg-green-50 text-green-600' },
-                    { label: 'Rewards', icon: '🏆', color: 'bg-amber-50 text-amber-600' },
+                    { label: 'Focus Mode', icon: '🎯', color: 'bg-indigo-50 text-indigo-600' },
+                    { label: 'Analytics', icon: '📊', color: 'bg-emerald-50 text-emerald-600' },
                   ].map(card => (
                     <div key={card.label} className={cn('rounded-lg p-2 text-center', card.color)}>
                       <span className="text-lg">{card.icon}</span>
@@ -206,87 +207,192 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ QUICK VALUE PROPS ════════════════════════════════ */}
-      <Section className="py-14 bg-gray-50 border-y border-gray-100">
+      {/* ═══ THE CORE ENGINE ═══════════════════════════════════ */}
+      <Section id="how-it-works" className="py-14 bg-gray-50 border-y border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">The Core Engine</h2>
+            <p className="mt-3 text-gray-500 max-w-xl mx-auto">A <strong className="text-gray-700">Shared State Architecture</strong> where teacher actions instantly reflect in the student&apos;s tailored UI, the parent&apos;s reporting, and the admin&apos;s analytics.</p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-6">
             {[
-              { icon: <Brain size={24} className="text-purple-500" />, label: 'Adaptive Learning', sub: 'Visual, auditory, ADHD & more' },
-              { icon: <Sparkles size={24} className="text-cyan-500" />, label: 'Self Education', sub: 'Learn at your own pace' },
-              { icon: <Home size={24} className="text-amber-500" />, label: 'Homeschool Ready', sub: 'Free forever' },
-              { icon: <Shield size={24} className="text-green-500" />, label: 'FERPA & COPPA', sub: 'Fully compliant' },
+              { icon: <Brain size={28} className="text-purple-500" />, title: 'The Brain', sub: 'Google Gemini 2.5 Flash powers Socratic tutoring, auto-grading, and assignment adaptation.', bg: 'bg-purple-50 border-purple-200' },
+              { icon: <Lightbulb size={28} className="text-amber-500" />, title: 'The Science', sub: 'SM-2 spaced repetition, adaptive difficulty targeting, and a proprietary "Learning DNA" profiler.', bg: 'bg-amber-50 border-amber-200' },
+              { icon: <Shield size={28} className="text-green-500" />, title: 'The Security', sub: 'Enterprise-grade AES-256-GCM encryption. Strict FERPA, COPPA, and WCAG AA compliance.', bg: 'bg-green-50 border-green-200' },
             ].map(item => (
-              <div key={item.label} className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100">{item.icon}</div>
-                <p className="text-sm font-bold text-gray-900">{item.label}</p>
-                <p className="text-xs text-gray-400">{item.sub}</p>
+              <div key={item.title} className={cn('rounded-xl p-6 border text-center', item.bg)}>
+                <div className="flex justify-center mb-3">{item.icon}</div>
+                <h3 className="text-base font-bold text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">{item.sub}</p>
               </div>
             ))}
           </div>
         </div>
       </Section>
 
-      {/* ═══ FEATURES ═════════════════════════════════════════ */}
-      <Section id="features" className="py-20 lg:py-24">
+      {/* ═══ THE FOUR PILLARS ══════════════════════════════════ */}
+      <Section id="pillars" className="py-20 lg:py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Personalized for every learner</h2>
-            <p className="mt-3 text-gray-500 max-w-xl mx-auto">AI adapts assignments and tutoring to each student&apos;s learning style. Visual diagrams, audio explanations, ADHD-friendly micro-tasks, and more.</p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">The Four Pillars</h2>
+            <p className="mt-3 text-gray-500 max-w-xl mx-auto">Four interconnected user flows that create a self-reinforcing loop of personalized learning.</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Pillar 1: Student (Sylvester) */}
+          <div className="mb-16">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white">
+                <GraduationCap size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900">Pillar 1: The Student Experience</h3>
+                <p className="text-sm text-gray-500">Meet <strong>Sylvester</strong> &mdash; Neurodiversity, Engagement &amp; Cognitive Load Reduction</p>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { icon: <Brain size={20} />, title: '"Learning DNA" Onboarding', desc: 'A frictionless survey about hobbies, interests, and learning preferences (auditory, visual, physical). Builds a cognitive profile that improves over time.', color: 'bg-purple-100 text-purple-600' },
+                { icon: <Sparkles size={20} />, title: 'Adaptive Assignments', desc: 'Opens a history assignment and the AI has already adapted it into an auditory, interactive lesson tailored to their profile. No two students see the same thing.', color: 'bg-blue-100 text-blue-600' },
+                { icon: <Target size={20} />, title: 'ADHD-Friendly Focus Mode', desc: 'Distractions vanish. The UI presents a single question at a time using progressive disclosure. Designed to prevent overwhelm.', color: 'bg-indigo-100 text-indigo-600' },
+                { icon: <MessageCircle size={20} />, title: 'Socratic AI Tutor', desc: 'When stuck, the AI uses analogies based on their favorite video games to guide them to the solution. Never gives direct answers.', color: 'bg-violet-100 text-violet-600' },
+                { icon: <Zap size={20} />, title: 'Instant Gratification', desc: 'Upon submission, the AI Auto-Grader immediately awards XP and provides constructive feedback, updating their daily streak.', color: 'bg-amber-100 text-amber-600' },
+                { icon: <BarChart3 size={20} />, title: 'Growth Analytics', desc: 'Track mastery across subjects with radar charts, predicted grades, study heatmaps, and personalized learning paths.', color: 'bg-emerald-100 text-emerald-600' },
+              ].map(f => (
+                <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
+                  <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
+                  <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pillar 2: Teacher (Mrs. Osher) */}
+          <div className="mb-16">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-white">
+                <BookOpen size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900">Pillar 2: The Teacher Experience</h3>
+                <p className="text-sm text-gray-500">Meet <strong>Mrs. Osher</strong> &mdash; Automation, Universal Differentiation &amp; Intervention</p>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { icon: <Upload size={20} />, title: 'Single-Source Uploading', desc: 'Upload one standard baseline assignment. Limud auto-generates individualized versions for auditory, visual, and kinesthetic learners.', color: 'bg-green-100 text-green-600' },
+                { icon: <Lightbulb size={20} />, title: 'AI Quiz Generation', desc: 'Instantly generate curriculum-aligned quizzes using built-in topic banks for quick knowledge checks.', color: 'bg-amber-100 text-amber-600' },
+                { icon: <GraduationCap size={20} />, title: 'One-Click Auto-Grading', desc: 'AI evaluates essays against your rubric. Review suggested feedback, make quick edits, and approve.', color: 'bg-blue-100 text-blue-600' },
+                { icon: <BarChart3 size={20} />, title: 'Intelligence Dashboard', desc: 'Real-time aggregated data. AI flags at-risk students based on engagement trends, telling you exactly who needs human intervention.', color: 'bg-red-100 text-red-600' },
+              ].map(f => (
+                <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
+                  <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
+                  <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pillar 3: Admin (Superintendent Ofer) */}
+          <div className="mb-16">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-gray-800 rounded-xl flex items-center justify-center text-white">
+                <Building2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900">Pillar 3: The Administrator Experience</h3>
+                <p className="text-sm text-gray-500">Meet <strong>Superintendent Ofer</strong> &mdash; High-Level Analytics, Compliance &amp; ROI</p>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              {[
+                { icon: <LayoutDashboard size={20} />, title: 'The Command Center', desc: 'See district health at a glance: 247 active students, 18 teachers, $12,000 annual cost. One dashboard, zero confusion.', color: 'bg-slate-100 text-slate-600' },
+                { icon: <Users size={20} />, title: 'Frictionless Management', desc: 'Bulk-import users via CSV and broadcast cross-role announcements that instantly ping teacher, student, and parent portals.', color: 'bg-blue-100 text-blue-600' },
+                { icon: <Shield size={20} />, title: 'Compliance at a Glance', desc: 'A dedicated widget confirms all systems are operational and actively maintaining FERPA, COPPA, and WCAG AA compliance.', color: 'bg-green-100 text-green-600' },
+              ].map(f => (
+                <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
+                  <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
+                  <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pillar 4: Parent (David Betzalel) */}
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center text-white">
+                <Eye size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900">Pillar 4: The Parent Experience</h3>
+                <p className="text-sm text-gray-500">Meet <strong>David Betzalel</strong> &mdash; Transparency &amp; Digestible Reporting</p>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {[
+                { icon: <Sparkles size={20} />, title: 'The AI Check-In', desc: 'Instead of deciphering complex grade books, David clicks one button and receives a plain-English, conversational summary of his son\'s academic performance, emotional engagement, and study habits.', color: 'bg-rose-100 text-rose-600' },
+                { icon: <Home size={20} />, title: 'Homeschool Expansion', desc: 'If David is a homeschool parent, his free account expands to include Teacher tools: generate quizzes, search 87+ worksheets, and actively manage curriculum.', color: 'bg-amber-100 text-amber-600' },
+              ].map(f => (
+                <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
+                  <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
+                  <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ═══ THE SELF-REINFORCING LOOP ═════════════════════════ */}
+      <Section className="py-16 bg-gradient-to-br from-primary-50 via-white to-accent-50/30">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-8">The Self-Reinforcing Loop</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: <Brain size={22} />, title: 'Adaptive AI Tutor', desc: 'Adapts to each student\'s learning style. Visual learners get diagrams, auditory learners get explanations, ADHD students get shorter interactive tasks.', color: 'bg-purple-100 text-purple-600' },
-              { icon: <GraduationCap size={22} />, title: 'AI Auto-Grader', desc: 'One-click rubric-based grading for essays, short answers, and projects. No more midnight grading.', color: 'bg-green-100 text-green-600' },
-              { icon: <BarChart3 size={22} />, title: 'Deep Analytics', desc: 'Drill-down analytics with clickable metrics, score distributions, at-risk alerts, and detailed student performance breakdowns.', color: 'bg-amber-100 text-amber-600' },
-              { icon: <Calendar size={22} />, title: 'Study Planning', desc: 'AI-powered study planner, focus mode, exam simulator, and personalized learning paths for every student.', color: 'bg-pink-100 text-pink-600' },
-              { icon: <Lightbulb size={22} />, title: 'AI Quiz Generator', desc: 'Curriculum-aligned quizzes with multiple choice and short answer. AI-generated and verified.', color: 'bg-amber-100 text-amber-600' },
-              { icon: <Eye size={22} />, title: 'Parent Portal + AI', desc: 'Real-time grades, AI-powered check-ins on your child\'s progress, safety monitoring, and goal tracking.', color: 'bg-rose-100 text-rose-600' },
-              { icon: <LayoutDashboard size={22} />, title: 'Admin Dashboard', desc: 'District management, CSV provisioning, compliance dashboards, billing, and usage analytics.', color: 'bg-slate-100 text-slate-600' },
-              { icon: <Link2 size={22} />, title: '16+ Integrations', desc: 'Connect Khan Academy, Google Classroom, Canvas, IXL, Quizlet, Clever, and more.', color: 'bg-cyan-100 text-cyan-600' },
-              { icon: <BarChart3 size={22} />, title: 'Method Insights for Teachers', desc: 'See how each student solved their work: visual, step-by-step, audio, or simplified reasoning. Inform your teaching adjustments.', color: 'bg-emerald-100 text-emerald-600' },
-              { icon: <FileText size={22} />, title: 'Worksheet Finder', desc: 'Search 87+ curated worksheets filtered by subject, grade, and topic.', color: 'bg-teal-100 text-teal-600' },
-              { icon: <Cpu size={22} />, title: 'AI Safety Monitor', desc: 'Parents can use AI to check in on their children\'s learning, emotional state, and academic wellbeing.', color: 'bg-violet-100 text-violet-600' },
-            ].map(f => (
-              <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
-                <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
+              { emoji: '👩‍🏫', text: 'Teachers save hours on differentiation and grading', color: 'bg-green-50 border-green-200' },
+              { emoji: '🧠', text: 'Students learn faster because content speaks their language', color: 'bg-blue-50 border-blue-200' },
+              { emoji: '👨‍👩‍👦', text: 'Parents stay effortlessly informed', color: 'bg-rose-50 border-rose-200' },
+              { emoji: '📈', text: 'Districts see improved scores tied to funding', color: 'bg-amber-50 border-amber-200' },
+            ].map(item => (
+              <div key={item.text} className={cn('rounded-xl p-5 border', item.color)}>
+                <div className="text-3xl mb-3">{item.emoji}</div>
+                <p className="text-sm text-gray-700 font-medium leading-relaxed">{item.text}</p>
               </div>
             ))}
           </div>
         </div>
       </Section>
 
-      {/* ═══ HOW IT COMPARES ══════════════════════════════════ */}
+      {/* ═══ WORKS ALONGSIDE ═══════════════════════════════════ */}
       <Section className="py-20 bg-gray-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Works alongside tools you love</h2>
-            <p className="mt-3 text-gray-500 max-w-xl mx-auto">Every platform has strengths. Limud doesn&apos;t replace them all &mdash; it fills the gaps and ties everything together.</p>
+            <p className="mt-3 text-gray-500 max-w-xl mx-auto">Limud doesn&apos;t replace them &mdash; it fills the gaps and ties everything together.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-5">
             {[
               {
-                name: 'Khan Academy',
-                emoji: '🎓',
+                name: 'Khan Academy', emoji: '🎓',
                 good: 'World-class free content with thousands of videos and exercises.',
-                limud: 'Limud integrates with Khan and adds AI auto-grading, adaptive learning, and parent dashboards.',
+                limud: 'Limud integrates with Khan and adds AI auto-grading, adaptive Learning DNA, and parent dashboards.',
                 color: 'bg-green-50 border-green-200',
               },
               {
-                name: 'Google Classroom',
-                emoji: '📚',
-                good: 'Seamless Google Workspace integration, massive adoption, free for all schools.',
-                limud: 'Limud syncs with Classroom and adds AI tutoring, grading, and deep analytics.',
+                name: 'Google Classroom', emoji: '📚',
+                good: 'Seamless Google Workspace integration, massive adoption, free for schools.',
+                limud: 'Limud syncs with Classroom and adds AI tutoring, one-click grading, and deep intelligence analytics.',
                 color: 'bg-blue-50 border-blue-200',
               },
               {
-                name: 'Quizlet + ClassDojo + Nearpod',
-                emoji: '✨',
+                name: 'Quizlet + ClassDojo + Nearpod', emoji: '✨',
                 good: 'Each excels in its niche: flashcards, parent comms, and interactive lessons.',
-                limud: 'Limud combines quizzes, adaptive learning, AI tutoring, and more. One login, one price.',
+                limud: 'Limud combines quizzes, adaptive assignments, AI tutoring, and more. One login, one price.',
                 color: 'bg-purple-50 border-purple-200',
               },
             ].map(item => (
@@ -309,59 +415,8 @@ export default function LandingPage() {
         </div>
       </Section>
 
-      {/* ═══ WHO IS IT FOR ════════════════════════════════════ */}
-      <Section id="for-who" className="py-20 lg:py-24">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Built for everyone in education</h2>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              {
-                icon: <Sparkles size={22} />, title: 'Self Learners', color: 'from-teal-400 to-emerald-500',
-                features: ['Free forever', 'AI adapts to your style', 'Learning style survey', 'Self-paced progress', 'Gamification'],
-                cta: 'Start Learning Free', link: '/register',
-              },
-              {
-                icon: <Home size={22} />, title: 'Homeschool Families', color: 'from-amber-400 to-orange-500',
-                features: ['Free forever', 'Gamification', 'Parent AI check-ins', 'Progress tracking'],
-                cta: 'Start Free', link: '/register',
-              },
-              {
-                icon: <Building2 size={22} />, title: 'School Districts', color: 'from-blue-500 to-indigo-600',
-                features: ['From $2/student/mo', 'AI auto-grading', 'Adaptive assignments', 'Method insights for teachers'],
-                cta: 'Create Admin Account', link: '/register',
-              },
-              {
-                icon: <GraduationCap size={22} />, title: 'Students', color: 'from-green-400 to-emerald-500',
-                features: ['AI adapts to you', 'Focus mode', 'Study planner', 'Exam simulator', 'Visual/audio/ADHD modes'],
-                cta: 'Try Demo', link: '/login',
-              },
-            ].map(item => (
-              <div key={item.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow flex flex-col">
-                <div className={cn('w-11 h-11 bg-gradient-to-br rounded-xl flex items-center justify-center text-white mb-4', item.color)}>
-                  {item.icon}
-                </div>
-                <h3 className="text-sm font-bold text-gray-900 mb-3">{item.title}</h3>
-                <ul className="space-y-1.5 flex-1 mb-4">
-                  {item.features.map(f => (
-                    <li key={f} className="flex items-center gap-1.5 text-xs text-gray-600">
-                      <Check size={12} className="text-green-500 flex-shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href={item.link} className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1">
-                  {item.cta} <ArrowRight size={12} />
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Section>
-
       {/* ═══ PRICING ══════════════════════════════════════════ */}
-      <Section id="pricing" className="py-20 bg-gray-50">
+      <Section id="pricing" className="py-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Simple, transparent pricing</h2>
@@ -371,13 +426,13 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {[
               {
-                name: 'Free', price: '$0', period: '/forever', desc: 'Homeschool families',
-                features: ['Up to 5 students', 'AI Tutor (50/mo)', 'Adaptive learning', 'Parent dashboard', 'AI check-ins'],
+                name: 'Free', price: '$0', period: '/forever', desc: 'Self-learners & homeschool',
+                features: ['Up to 5 students', 'AI Tutor (50/mo)', 'Learning DNA profiler', 'XP & daily streaks', 'Parent dashboard + AI check-in', 'Homeschool: full teacher tools'],
                 cta: 'Get Started Free', link: '/register', highlight: false,
               },
               {
                 name: 'Standard', price: '$6', period: '/student/mo', desc: 'Most popular for schools',
-                features: ['Up to 500 students', 'Unlimited AI features', 'All 16+ integrations', 'District analytics', 'AI Safety Monitor', 'Priority support'],
+                features: ['Up to 500 students', 'Unlimited AI features', 'All 16+ integrations', 'Intelligence dashboard', 'AI Safety Monitor', 'Priority support'],
                 cta: 'Start Free Trial', link: '/onboard?plan=STANDARD', highlight: true,
               },
               {
@@ -422,7 +477,7 @@ export default function LandingPage() {
       </Section>
 
       {/* ═══ FAQ ═══════════════════════════════════════════════ */}
-      <Section id="faq" className="py-20">
+      <Section id="faq" className="py-20 bg-gray-50">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-extrabold text-gray-900">Frequently asked questions</h2>
@@ -430,12 +485,14 @@ export default function LandingPage() {
 
           <div className="bg-white rounded-xl border border-gray-100 p-6">
             {[
-              { q: 'Is Limud really free for homeschool families?', a: 'Yes! The Free plan is free forever for up to 5 students with no credit card required. It includes AI tutoring, adaptive learning, and the full parent dashboard including AI check-ins.' },
-              { q: 'How does the AI tutor work?', a: 'Unlike ChatGPT which gives direct answers, Limud\'s AI tutor uses Socratic questioning to guide students to discover answers themselves. All conversations are logged for parent/teacher review. It\'s grade-level appropriate and builds critical thinking.' },
-              { q: 'Do I need to leave Google Classroom or Khan Academy?', a: 'Not at all! Limud integrates with both. Keep everything you love — Limud adds AI grading, adaptive analytics, and parent dashboards that those platforms don\'t offer.' },
-              { q: 'What is the AI parent check-in?', a: 'Parents can ask Limud\'s AI to generate a summary of their child\'s recent academic performance, emotional engagement, study habits, and areas needing attention. It analyzes grades, streaks, tutor usage, and more to give you a comprehensive check-in report.' },
-              { q: 'Is it FERPA and COPPA compliant?', a: 'Yes, fully. We never sell student data, all data is encrypted, and we undergo annual security audits. Compliance is built-in from day one.' },
-              { q: 'How long does setup take?', a: 'Most families are ready in under 5 minutes. Districts can provision teachers and students via CSV upload in under 30 minutes.' },
+              { q: 'What is "Learning DNA"?', a: 'Learning DNA is Limud\'s proprietary cognitive profiler. Through a quick onboarding survey and ongoing analysis of how a student interacts with content, it builds a profile that captures their learning modality (visual, auditory, kinesthetic, reading), cognitive speed, retention rate, and peak study hours. Every piece of content is then adapted to match.' },
+              { q: 'Is Limud really free for homeschool families?', a: 'Yes! The Free plan is free forever for up to 5 students. Homeschool parents also get expanded Teacher tools: create assignments, generate quizzes, search 87+ worksheets, and use AI auto-grading — all included in the free plan.' },
+              { q: 'How does the Socratic AI tutor work?', a: 'Unlike ChatGPT which gives direct answers, Limud\'s AI tutor uses Socratic questioning to guide students to discover answers themselves. It uses analogies based on the student\'s interests (from their Learning DNA profile) to make concepts relatable. All conversations are logged for parent/teacher review.' },
+              { q: 'How does a teacher upload one assignment for all students?', a: 'Teachers upload a single baseline assignment. Limud\'s AI Assignment Adapter automatically generates individualized versions for different learning styles — visual learners get diagrams, auditory learners get discussion prompts, kinesthetic learners get hands-on activities. Teachers review and approve the adaptations.' },
+              { q: 'What is the AI parent check-in?', a: 'Parents click one button and receive a plain-English, conversational summary of their child\'s recent academic performance, emotional engagement, study habits, and areas needing attention. No more deciphering complex grade books.' },
+              { q: 'Do I need to leave Google Classroom or Khan Academy?', a: 'Not at all! Limud integrates with both and 14+ other platforms. Keep everything you love — Limud adds the AI grading, adaptive Learning DNA, and intelligence dashboards that those platforms don\'t offer.' },
+              { q: 'Is it FERPA and COPPA compliant?', a: 'Yes, fully. All data is encrypted with AES-256-GCM. We never sell student data. Compliance is built into every layer — from field-level PII encryption to brute-force lockout, audit logging, and 7-year data retention per FERPA.' },
+              { q: 'How long does setup take?', a: 'Most families are ready in under 5 minutes with the Learning DNA onboarding survey. Districts can provision teachers and students via CSV upload in under 30 minutes. The 3-step Quick Setup wizard for teachers takes about 2 minutes.' },
             ].map(faq => <FAQItem key={faq.q} q={faq.q} a={faq.a} />)}
           </div>
         </div>
@@ -446,7 +503,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-10 lg:p-14 text-center text-white">
             <h2 className="text-3xl sm:text-4xl font-extrabold">Every mind learns differently</h2>
-            <p className="mt-3 text-white/70 max-w-lg mx-auto">AI that adapts to visual, auditory, ADHD-friendly, and structured learning styles &mdash; personalized for every student.</p>
+            <p className="mt-3 text-white/70 max-w-lg mx-auto">Cognitive science + generative AI, adapted to every student&apos;s Learning DNA. Free forever for families.</p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/register" className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-7 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg">
                 Start Free Now <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
@@ -472,7 +529,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-2 mb-3">
                 <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg object-cover" />
                 <span className="text-base font-bold text-white">Limud</span>
-                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.6</span>
+                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v9.9</span>
               </div>
               <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for self-learners, homeschool families, and school districts.</p>
               <div className="flex gap-2 mt-3">
@@ -484,8 +541,8 @@ export default function LandingPage() {
             <div>
               <h4 className="text-xs font-semibold text-white mb-3 uppercase tracking-wider">Product</h4>
               <ul className="space-y-2">
-                {['Features', 'Pricing', 'AI Tutor', 'Gamification', 'Integrations'].map(l => (
-                  <li key={l}><a href={`#${l.toLowerCase()}`} className="text-xs hover:text-white transition">{l}</a></li>
+                {['Features', 'Pricing', 'AI Tutor', 'Learning DNA', 'Integrations'].map(l => (
+                  <li key={l}><a href={`#${l.toLowerCase().replace(/\s+/g, '-')}`} className="text-xs hover:text-white transition">{l}</a></li>
                 ))}
               </ul>
             </div>

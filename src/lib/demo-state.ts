@@ -116,7 +116,7 @@ interface DemoState {
   version: string;
 }
 
-const STATE_VERSION = '9.8.0';
+const STATE_VERSION = '9.9.0';
 
 function getDefaultState(): DemoState {
   return {
