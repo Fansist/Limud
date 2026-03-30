@@ -218,7 +218,7 @@ const PLATFORMS = [
     icon: '💡',
     color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
     activeColor: 'bg-yellow-500',
-    description: 'Interactive lesson platform with VR field trips, gamified quizzes, collaborative activities, and real-time formative assessments.',
+    description: 'Interactive lesson platform with VR field trips, interactive quizzes, collaborative activities, and real-time formative assessments.',
     category: 'Interactive',
     features: ['Interactive slides', 'VR field trips', 'Gamification', 'Polls & quizzes', 'Drawing boards', 'Audio responses'],
     url: 'https://nearpod.com',

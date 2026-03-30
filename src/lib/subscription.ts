@@ -13,12 +13,12 @@ export type SubscriptionInfo = {
 
 // Feature access by tier
 const TIER_FEATURES: Record<string, string[]> = {
-  FREE: ['ai-tutor-limited', 'basic-gamification', 'parent-dashboard', 'assignments'],
-  STARTER: ['ai-tutor', 'ai-grader', 'gamification', 'game-store', 'file-uploads', 'parent-dashboard', 'assignments', 'rewards'],
-  CUSTOM: ['ai-tutor', 'ai-grader', 'gamification', 'game-store', 'file-uploads', 'parent-dashboard', 'assignments', 'rewards', 'priority-support'],
-  STANDARD: ['ai-tutor', 'ai-grader', 'gamification', 'game-store', 'file-uploads', 'parent-dashboard', 'assignments', 'rewards', 'analytics', 'lms-integration', 'certificates', 'multi-school'],
-  PREMIUM: ['ai-tutor', 'ai-grader', 'gamification', 'game-store', 'file-uploads', 'parent-dashboard', 'assignments', 'rewards', 'analytics', 'lms-integration', 'certificates', 'multi-school', 'custom-branding', 'api-access', 'bulk-import'],
-  ENTERPRISE: ['ai-tutor', 'ai-grader', 'gamification', 'game-store', 'file-uploads', 'parent-dashboard', 'assignments', 'rewards', 'analytics', 'lms-integration', 'certificates', 'multi-school', 'custom-branding', 'api-access', 'bulk-import', 'sso', 'custom-ai', 'sla'],
+  FREE: ['ai-tutor-limited', 'adaptive-learning', 'parent-dashboard', 'assignments'],
+  STARTER: ['ai-tutor', 'ai-grader', 'adaptive-learning', 'file-uploads', 'parent-dashboard', 'assignments', 'study-planner'],
+  CUSTOM: ['ai-tutor', 'ai-grader', 'adaptive-learning', 'file-uploads', 'parent-dashboard', 'assignments', 'study-planner', 'priority-support'],
+  STANDARD: ['ai-tutor', 'ai-grader', 'adaptive-learning', 'file-uploads', 'parent-dashboard', 'assignments', 'study-planner', 'analytics', 'lms-integration', 'multi-school'],
+  PREMIUM: ['ai-tutor', 'ai-grader', 'adaptive-learning', 'file-uploads', 'parent-dashboard', 'assignments', 'study-planner', 'analytics', 'lms-integration', 'multi-school', 'custom-branding', 'api-access', 'bulk-import'],
+  ENTERPRISE: ['ai-tutor', 'ai-grader', 'adaptive-learning', 'file-uploads', 'parent-dashboard', 'assignments', 'study-planner', 'analytics', 'lms-integration', 'multi-school', 'custom-branding', 'api-access', 'bulk-import', 'sso', 'custom-ai', 'sla'],
 };
 
 export function hasFeatureAccess(tier: string, feature: string): boolean {

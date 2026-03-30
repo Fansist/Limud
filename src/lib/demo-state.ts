@@ -12,7 +12,7 @@
 
 import {
   DEMO_ASSIGNMENTS, DEMO_TEACHER_ASSIGNMENTS, DEMO_NOTIFICATIONS,
-  DEMO_MESSAGES, DEMO_ALL_STUDENTS, DEMO_REWARD_STATS,
+  DEMO_MESSAGES, DEMO_ALL_STUDENTS,
   DEMO_COURSES, DEMO_CLASSROOMS, DEMO_TEACHER, DEMO_ADMIN,
 } from './demo-data';
 
@@ -116,7 +116,7 @@ interface DemoState {
   version: string;
 }
 
-const STATE_VERSION = '9.7.11';
+const STATE_VERSION = '9.8.0';
 
 function getDefaultState(): DemoState {
   return {

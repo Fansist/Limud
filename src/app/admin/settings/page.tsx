@@ -50,11 +50,9 @@ const DEMO_SETTINGS = {
     coppaCompliant: true,
   },
   features: {
-    gamificationEnabled: true,
+    adaptiveLearningEnabled: true,
     aiTutorEnabled: true,
-    dailyChallengeEnabled: true,
-    leaderboardEnabled: true,
-    certificatesEnabled: true,
+    studyPlannerEnabled: true,
     studyGroupsEnabled: true,
     messagingEnabled: true,
     parentPortalEnabled: true,
@@ -349,15 +347,13 @@ export default function AdminSettingsPage() {
 
               <div className="space-y-3">
                 {[
-                  { key: 'gamificationEnabled', label: 'Gamification (XP, Levels, Streaks)', icon: <Target size={16} />, desc: 'Reward students with XP and levels for completing work' },
+                  { key: 'adaptiveLearningEnabled', label: 'Adaptive Learning', icon: <Target size={16} />, desc: 'AI adapts assignments to each student\'s learning style' },
                   { key: 'aiTutorEnabled', label: 'AI Tutor', icon: <Brain size={16} />, desc: 'Allow students to use the AI-powered tutoring system' },
-                  { key: 'dailyChallengeEnabled', label: 'Daily Challenges', icon: <Zap size={16} />, desc: 'Daily practice challenges for bonus XP' },
-                  { key: 'leaderboardEnabled', label: 'Leaderboards', icon: <Target size={16} />, desc: 'Show competitive rankings among students' },
-                  { key: 'certificatesEnabled', label: 'Certificates', icon: <CheckCircle2 size={16} />, desc: 'Award certificates for achievements' },
+                  { key: 'studyPlannerEnabled', label: 'Study Planner', icon: <Zap size={16} />, desc: 'AI-powered study scheduling and planning' },
                   { key: 'studyGroupsEnabled', label: 'Study Groups', icon: <Users size={16} />, desc: 'Allow students to form and join study groups' },
                   { key: 'messagingEnabled', label: 'Internal Messaging', icon: <Mail size={16} />, desc: 'Enable messaging between users' },
                   { key: 'parentPortalEnabled', label: 'Parent Portal', icon: <Eye size={16} />, desc: 'Allow parents to view student progress' },
-                  { key: 'gameStoreEnabled', label: 'Game Store', icon: <Gamepad2 size={16} />, desc: 'Allow students to spend coins on games' },
+                  { key: 'examSimEnabled', label: 'Exam Simulator', icon: <BookOpen size={16} />, desc: 'AI-powered exam practice with timed tests' },
                   { key: 'focusModeEnabled', label: 'Focus Mode', icon: <Clock size={16} />, desc: 'Pomodoro-style focus timer for students' },
                   { key: 'requireSurvey', label: 'Require Student Survey', icon: <BookOpen size={16} />, desc: 'New students must complete learning style survey' },
                 ].map(feature => (

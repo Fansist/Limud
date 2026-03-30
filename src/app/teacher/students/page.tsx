@@ -7,12 +7,12 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn, formatDate } from '@/lib/utils';
 import {
-  DEMO_ALL_STUDENTS, DEMO_ANALYTICS, DEMO_REWARD_STATS,
+  DEMO_ALL_STUDENTS, DEMO_ANALYTICS,
   DEMO_TEACHER_ASSIGNMENTS, DEMO_LEARNING_INSIGHTS,
 } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import {
-  Users, Search, User, TrendingUp, BookOpen, Brain, Flame, ArrowLeft, BarChart3, Clock, Star,
+  Users, Search, User, TrendingUp, BookOpen, Brain, ArrowLeft, BarChart3, Clock,
 } from 'lucide-react';
 
 /**
@@ -23,7 +23,6 @@ import {
 
 // Build rich student data from existing demo data
 const DEMO_STUDENTS = DEMO_ANALYTICS.students.map(student => {
-  const rewards = DEMO_REWARD_STATS[student.id] || {};
   const learningData = DEMO_LEARNING_INSIGHTS.students.find(s => s.id === student.id);
   const submissions = DEMO_TEACHER_ASSIGNMENTS.flatMap(a =>
     (a.submissions || []).filter((s: any) => s.studentId === student.id).map((s: any) => ({
@@ -47,13 +46,10 @@ const DEMO_STUDENTS = DEMO_ANALYTICS.students.map(student => {
     gradeLevel: student.gradeLevel,
     avatar: avatarMap[student.id] || '👤',
     stats: {
-      totalXP: rewards.totalXP || student.totalXP,
-      level: rewards.level || student.level,
-      streak: rewards.currentStreak || student.currentStreak,
-      assignmentsCompleted: rewards.assignmentsCompleted || student.totalSubmissions,
+      assignmentsCompleted: student.totalSubmissions || 38,
       avgScore: student.averageScore,
-      tutorSessions: rewards.tutorSessionsCount || 0,
-      focusMinutes: Math.round((rewards.totalXP || 3000) * 0.15),
+      tutorSessions: Math.round(Math.random() * 20 + 10),
+      focusMinutes: Math.round(Math.random() * 300 + 120),
       lastActive: new Date(Date.now() - Math.random() * 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     },
     skills: learningData?.recentMethods?.map(m => ({
@@ -144,10 +140,10 @@ export default function TeacherStudentsPage() {
           {/* Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: 'Total XP', value: selectedStudent.stats.totalXP.toLocaleString(), icon: <Star size={18} />, color: 'text-yellow-500 bg-yellow-50' },
               { label: 'Avg Score', value: `${selectedStudent.stats.avgScore}%`, icon: <BarChart3 size={18} />, color: 'text-blue-500 bg-blue-50' },
-              { label: 'Streak', value: `${selectedStudent.stats.streak}d`, icon: <Flame size={18} />, color: 'text-orange-500 bg-orange-50' },
-              { label: 'Focus Time', value: `${Math.round(selectedStudent.stats.focusMinutes / 60)}h`, icon: <Clock size={18} />, color: 'text-purple-500 bg-purple-50' },
+              { label: 'Assignments', value: selectedStudent.stats.assignmentsCompleted, icon: <BookOpen size={18} />, color: 'text-green-500 bg-green-50' },
+              { label: 'Tutor Sessions', value: selectedStudent.stats.tutorSessions, icon: <Brain size={18} />, color: 'text-purple-500 bg-purple-50' },
+              { label: 'Focus Time', value: `${Math.round(selectedStudent.stats.focusMinutes / 60)}h`, icon: <Clock size={18} />, color: 'text-orange-500 bg-orange-50' },
             ].map((stat, i) => (
               <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className="card text-center">
@@ -233,8 +229,8 @@ export default function TeacherStudentsPage() {
                 <p className="text-xs text-gray-500">Tutor Sessions</p>
               </div>
               <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                <p className="text-2xl font-bold text-green-600">Lv.{selectedStudent.stats.level}</p>
-                <p className="text-xs text-gray-500">Current Level</p>
+                <p className="text-2xl font-bold text-green-600">{selectedStudent.stats.focusMinutes}m</p>
+                <p className="text-xs text-gray-500">Focus Minutes</p>
               </div>
               <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
                 <p className="text-2xl font-bold text-amber-600">{selectedStudent.stats.lastActive}</p>
@@ -301,12 +297,12 @@ export default function TeacherStudentsPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
-                    <p className="font-bold text-gray-900 dark:text-white text-sm">{student.stats.totalXP.toLocaleString()}</p>
-                    <p className="text-[10px] text-gray-400">XP</p>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm">{student.stats.avgScore}%</p>
+                    <p className="text-[10px] text-gray-400">Avg</p>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
-                    <p className="font-bold text-gray-900 dark:text-white text-sm">{student.stats.streak}🔥</p>
-                    <p className="text-[10px] text-gray-400">Streak</p>
+                    <p className="font-bold text-gray-900 dark:text-white text-sm">{student.stats.tutorSessions}</p>
+                    <p className="text-[10px] text-gray-400">Tutor</p>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
                     <p className="font-bold text-gray-900 dark:text-white text-sm">{student.stats.assignmentsCompleted}</p>

@@ -397,7 +397,7 @@ export const POST = apiHandler(async (req: Request) => {
 function getTierFeatures(tier: string): string[] {
   const base = ['AI Tutoring', 'Gamification', 'Progress Tracking', 'Parent Portal'];
   switch (tier) {
-    case 'FREE': return ['Up to 5 students', 'AI Tutor (50 sessions/mo)', 'Basic gamification', 'Parent dashboard'];
+    case 'FREE': return ['Up to 5 students', 'AI Tutor (50 sessions/mo)', 'Adaptive learning', 'Parent dashboard'];
     case 'STARTER': return [...base, 'Up to 100 students', '1 school', 'AI Auto-Grader', 'Game Store'];
     case 'CUSTOM': return [...base, '101-499 students', 'Up to 3 schools', 'Volume pricing', 'AI Auto-Grader', 'Game Store', 'Priority Support'];
     case 'STANDARD': return [...base, 'Up to 500 students', '5 schools', 'Advanced Analytics', 'LMS Integration'];

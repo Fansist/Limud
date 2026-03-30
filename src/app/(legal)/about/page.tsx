@@ -14,7 +14,7 @@ export default function AboutPage() {
           <strong>Limud</strong> (Hebrew for &quot;learning&quot;) was founded with a simple mission: make every child&apos;s education personal, engaging, and effective. We believe that every student learns differently, and that technology should adapt to the student — not the other way around.
         </p>
         <p>
-          Our platform replaces the app fatigue that plagues modern classrooms. Instead of juggling 6+ different tools, teachers, students, and parents use one unified platform that combines AI tutoring, intelligent grading, adaptive learning, gamification, and real-time analytics.
+          Our platform replaces the app fatigue that plagues modern classrooms. Instead of juggling 6+ different tools, teachers, students, and parents use one unified platform that combines AI tutoring, intelligent grading, adaptive learning, and real-time analytics.
         </p>
       </div>
 

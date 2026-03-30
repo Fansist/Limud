@@ -3,15 +3,14 @@ import { useIsDemo, useNeedsDemoParam } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { XPBar } from '@/components/gamification/RewardComponents';
 import { motion } from 'framer-motion';
 import { cn, daysUntil, getLetterGrade, AVATAR_OPTIONS } from '@/lib/utils';
-import { DEMO_STUDENT, DEMO_ASSIGNMENTS, DEMO_REWARD_STATS_DEFAULT as DEMO_REWARD_STATS } from '@/lib/demo-data';
+import { DEMO_STUDENT, DEMO_ASSIGNMENTS } from '@/lib/demo-data';
 import { getStudentAssignments } from '@/lib/demo-state';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  BookOpen, MessageCircle, Trophy, AlertTriangle, ArrowRight, TrendingUp, Calendar, Zap, Flame, Target, Building2,
+  BookOpen, MessageCircle, AlertTriangle, ArrowRight, TrendingUp, Calendar, Target, Building2, BarChart3,
 } from 'lucide-react';
 
 export default function StudentDashboard() {
@@ -20,7 +19,6 @@ export default function StudentDashboard() {
   const isDemo = useIsDemo();
   const needsDemoParam = useNeedsDemoParam();
   const [assignments, setAssignments] = useState<any[]>([]);
-  const [rewards, setRewards] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   // v9.6: Unlinked students (INDIVIDUAL/SELF_EDUCATION without district courses)
@@ -31,9 +29,7 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     if (isDemo) {
-      // v9.7.7: isDemo is true for both generic demo and master demo users
       setAssignments(getStudentAssignments());
-      setRewards(DEMO_REWARD_STATS);
       setLoading(false);
       return;
     }
@@ -48,40 +44,29 @@ export default function StudentDashboard() {
 
   async function fetchData() {
     try {
-      const [assignRes, rewardRes, surveyRes] = await Promise.all([
+      const [assignRes, surveyRes] = await Promise.all([
         fetch('/api/assignments'),
-        fetch('/api/rewards'),
         fetch('/api/survey'),
       ]);
       if (assignRes.ok) {
         const data = await assignRes.json();
         const fetched = data.assignments || [];
-        // v9.6: Unlinked students with no real assignments get demo data as samples
         setAssignments(fetched.length > 0 ? fetched : (isUnlinked ? DEMO_ASSIGNMENTS : []));
       } else if (isUnlinked) {
         setAssignments(DEMO_ASSIGNMENTS);
-      }
-      if (rewardRes.ok) {
-        const data = await rewardRes.json();
-        setRewards(data.stats || (isUnlinked ? DEMO_REWARD_STATS : null));
-      } else if (isUnlinked) {
-        setRewards(DEMO_REWARD_STATS);
       }
       // Check if student needs to complete survey
       if (surveyRes.ok) {
         const surveyData = await surveyRes.json();
         if (!surveyData.surveyCompleted) {
-          // Redirect to survey if first time
           router.push('/student/survey?first=true');
           return;
         }
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
-      // v9.6: Fallback to demo data for unlinked students on error
       if (isUnlinked) {
         setAssignments(DEMO_ASSIGNMENTS);
-        setRewards(DEMO_REWARD_STATS);
       }
     } finally {
       setLoading(false);
@@ -126,6 +111,16 @@ export default function StudentDashboard() {
     return days >= 0 && days <= 1 && (!a.submissions?.length || a.submissions[0]?.status === 'PENDING');
   });
 
+  // Compute stats from assignments
+  const completedCount = assignments.filter(a => a.submissions?.length && a.submissions[0]?.status === 'GRADED').length;
+  const pendingCount = upcomingAssignments.length;
+  const avgScore = gradedSubmissions.length > 0
+    ? Math.round(gradedSubmissions.reduce((sum, a) => {
+        const sub = a.submissions[0];
+        return sum + (sub.maxScore ? (sub.score / sub.maxScore) * 100 : 0);
+      }, 0) / gradedSubmissions.length)
+    : 0;
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -142,7 +137,6 @@ export default function StudentDashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 rounded-3xl p-6 lg:p-8 text-white overflow-hidden"
         >
-          {/* Decorative background pattern */}
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdjJILTEweiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50" />
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl" />
           
@@ -160,37 +154,27 @@ export default function StudentDashboard() {
                   {getGreeting()}, {firstName}!
                 </h1>
                 <p className="text-white/70 mt-1">
-                  {rewards?.currentStreak > 0
-                    ? `🔥 ${rewards.currentStreak}-day streak! Keep the momentum going!`
-                    : "Ready to learn something awesome today?"}
+                  Ready to learn something awesome today?
                 </p>
               </div>
             </div>
-            {rewards && (
-              <div className="flex items-center gap-4 sm:gap-6">
-                <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
-                  <p className="text-2xl font-bold">{rewards.level}</p>
-                  <p className="text-[10px] text-white/60 font-medium">Level</p>
-                </div>
-                <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
-                  <p className="text-2xl font-bold flex items-center gap-1">
-                    {rewards.currentStreak}
-                    <Flame size={16} className="text-orange-300" />
-                  </p>
-                  <p className="text-[10px] text-white/60 font-medium">Streak</p>
-                </div>
-                <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
-                  <p className="text-2xl font-bold">{rewards.virtualCoins}</p>
-                  <p className="text-[10px] text-white/60 font-medium">Coins</p>
-                </div>
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
+                <p className="text-2xl font-bold">{completedCount}</p>
+                <p className="text-[10px] text-white/60 font-medium">Completed</p>
               </div>
-            )}
-          </div>
-          {rewards && (
-            <div className="relative mt-6">
-              <XPBar xp={rewards.totalXP} level={rewards.level} />
+              <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
+                <p className="text-2xl font-bold">{pendingCount}</p>
+                <p className="text-[10px] text-white/60 font-medium">Pending</p>
+              </div>
+              {avgScore > 0 && (
+                <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
+                  <p className="text-2xl font-bold">{avgScore}%</p>
+                  <p className="text-[10px] text-white/60 font-medium">Avg Score</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </motion.div>
 
         {/* Unlinked Student Banner */}
@@ -270,12 +254,12 @@ export default function StudentDashboard() {
               shadow: 'shadow-indigo-500/20',
             },
             {
-              href: '/student/rewards',
-              icon: <Trophy size={22} />,
-              title: 'Rewards',
-              desc: 'Shop & badges',
-              color: 'from-amber-500 to-orange-600',
-              shadow: 'shadow-orange-500/20',
+              href: '/student/knowledge',
+              icon: <BarChart3 size={22} />,
+              title: 'Analytics',
+              desc: 'Track your progress',
+              color: 'from-emerald-500 to-teal-600',
+              shadow: 'shadow-emerald-500/20',
             },
           ].map((action, i) => (
             <motion.div
@@ -308,28 +292,26 @@ export default function StudentDashboard() {
         </div>
 
         {/* Stats strip */}
-        {rewards && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { icon: <Zap size={18} />, label: 'Total XP', value: rewards.totalXP.toLocaleString(), color: 'bg-purple-50 text-purple-600' },
-              { icon: <Target size={18} />, label: 'Completed', value: `${rewards.assignmentsCompleted}`, color: 'bg-green-50 text-green-600' },
-              { icon: <Flame size={18} />, label: 'Best Streak', value: `${rewards.longestStreak} days`, color: 'bg-orange-50 text-orange-600' },
-              { icon: <MessageCircle size={18} />, label: 'Tutor Chats', value: `${rewards.tutorSessionsCount}`, color: 'bg-blue-50 text-blue-600' },
-            ].map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.05 }}
-                className={cn('rounded-2xl p-4', stat.color)}
-              >
-                <div className="flex items-center gap-2 mb-1">{stat.icon}</div>
-                <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-                <p className="text-xs text-gray-500">{stat.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { icon: <BookOpen size={18} />, label: 'Total Assignments', value: `${assignments.length}`, color: 'bg-blue-50 text-blue-600' },
+            { icon: <Target size={18} />, label: 'Completed', value: `${completedCount}`, color: 'bg-green-50 text-green-600' },
+            { icon: <TrendingUp size={18} />, label: 'Avg Score', value: avgScore > 0 ? `${avgScore}%` : '--', color: 'bg-violet-50 text-violet-600' },
+            { icon: <MessageCircle size={18} />, label: 'Due Soon', value: `${dueToday.length}`, color: 'bg-amber-50 text-amber-600' },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + i * 0.05 }}
+              className={cn('rounded-2xl p-4', stat.color)}
+            >
+              <div className="flex items-center gap-2 mb-1">{stat.icon}</div>
+              <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-xs text-gray-500">{stat.label}</p>
+            </motion.div>
+          ))}
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Upcoming Assignments */}

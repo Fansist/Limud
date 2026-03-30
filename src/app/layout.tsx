@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: '%s | Limud',
   },
   description: 'Replace Khan Academy, Google Classroom, Quizlet, ClassDojo & more with one AI-powered platform. Free forever plan. FERPA & COPPA compliant.',
-  keywords: ['education', 'AI tutor', 'K-12', 'learning platform', 'auto-grading', 'gamification', 'edtech'],
+  keywords: ['education', 'AI tutor', 'K-12', 'learning platform', 'auto-grading', 'adaptive learning', 'edtech'],
   authors: [{ name: 'Limud Education Inc.' }],
   icons: { icon: '/favicon.ico' },
   manifest: '/manifest.json',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   })(),
   openGraph: {
     title: 'Limud — The All-in-One AI Learning Platform for K–12',
-    description: 'Stop juggling 6 apps. Limud replaces Khan Academy, Google Classroom, Quizlet, ClassDojo, IXL and more. AI tutoring, auto-grading, gamification, and analytics in one platform. Free forever plan.',
+    description: 'Stop juggling 6 apps. Limud replaces Khan Academy, Google Classroom, Quizlet, ClassDojo, IXL and more. AI tutoring, auto-grading, adaptive learning, and analytics in one platform. Free forever plan.',
     siteName: 'Limud',
     type: 'website',
     locale: 'en_US',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Limud — AI-Powered K–12 Learning Platform',
-    description: 'Replace 6+ education apps with one. AI tutoring, auto-grading, gamification. Free forever. FERPA compliant.',
+    description: 'Replace 6+ education apps with one. AI tutoring, auto-grading, adaptive learning. Free forever. FERPA compliant.',
   },
   robots: {
     index: true,

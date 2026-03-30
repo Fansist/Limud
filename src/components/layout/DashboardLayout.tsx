@@ -13,11 +13,11 @@ import {
   DEMO_STUDENT, DEMO_TEACHER, DEMO_ADMIN, DEMO_PARENT, DEMO_HOMESCHOOL_PARENT, DEMO_NOTIFICATIONS,
 } from '@/lib/demo-data';
 import {
-  LayoutDashboard, BookOpen, MessageCircle, Trophy, BarChart3,
+  LayoutDashboard, BookOpen, MessageCircle, BarChart3,
   GraduationCap, LogOut, Bell, Menu, X, Upload, Eye, Accessibility,
   ChevronRight, Mail, Award, Play, Sparkles, ArrowLeft, Users,
-  Home, Brain, FileText, Calendar, CalendarDays, TrendingUp, Swords, Sun, Moon,
-  Lightbulb, Focus, Zap, Target, ChevronDown, Settings, Gamepad2,
+  Home, Brain, FileText, Calendar, CalendarDays, TrendingUp, Sun, Moon,
+  Lightbulb, Focus, Zap, ChevronDown, Settings,
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
   Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList, Clipboard, Palette,
 } from 'lucide-react';
@@ -39,14 +39,6 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/student/study-planner', label: 'Study Planner', icon: <Calendar size={20} /> },
       { href: '/student/exam-sim', label: 'Exam Simulator', icon: <FileText size={20} /> },
       { href: '/student/knowledge', label: 'Analytics', icon: <BarChart3 size={20} /> },
-    ]},
-    { label: 'Rewards & Social', items: [
-      { href: '/student/rewards', label: 'Rewards', icon: <Trophy size={20} /> },
-      { href: '/student/games', label: 'Game Store', icon: <Gamepad2 size={20} /> },
-      { href: '/student/daily-challenge', label: 'Daily Challenge', icon: <Zap size={20} /> },
-      { href: '/student/leaderboard', label: 'Leaderboard', icon: <Swords size={20} /> },
-      { href: '/student/badges', label: 'Badges', icon: <Award size={20} /> },
-      { href: '/student/certificates', label: 'Certificates', icon: <Award size={20} /> },
     ]},
     { label: 'Account', items: [
       { href: '/student/messages', label: 'Messages', icon: <Mail size={20} /> },
@@ -76,7 +68,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
       { href: '/teacher/worksheets', label: 'Worksheets', icon: <PenTool size={20} /> },
       { href: '/teacher/exchange', label: 'Teacher Exchange', icon: <Globe2 size={20} /> },
-      { href: '/teacher/games', label: 'Game Control', icon: <Gamepad2 size={20} /> },
+
       { href: '/teacher/messages', label: 'Messages', icon: <Mail size={20} /> },
     ]},
   ],
@@ -133,7 +125,7 @@ const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.Reac
     { href: '/student/knowledge', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { href: '/student/focus', label: 'Focus', icon: <Focus size={20} /> },
     { href: '/student/tutor', label: 'Tutor', icon: <MessageCircle size={20} /> },
-    { href: '/student/rewards', label: 'Rewards', icon: <Trophy size={20} /> },
+    { href: '/student/assignments', label: 'Tasks', icon: <BookOpen size={20} /> },
   ],
   TEACHER: [
     { href: '/teacher/dashboard', label: 'Home', icon: <LayoutDashboard size={20} /> },

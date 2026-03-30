@@ -116,7 +116,7 @@ export default function AINavigator() {
         // Fallback demo response
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: 'I\'m having a bit of trouble right now. Try asking about your **[Assignments](/student/assignments)**, **[Grades](/student/growth)**, or **[Rewards](/student/rewards)**!',
+          content: 'I\'m having a bit of trouble right now. Try asking about your **[Assignments](/student/assignments)**, **[Grades](/student/knowledge)**, or **[Study Planner](/student/study-planner)**!',
         }]);
       }
     } catch {

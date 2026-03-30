@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Unified Teacher Analytics — v9.5.0
+ * Unified Teacher Analytics — v9.8.0
  *
  * Consolidates three formerly separate pages into one tabbed view:
  *   1. Overview   — student scores, distribution, at-risk (was /teacher/analytics)
@@ -207,54 +207,94 @@ function AnalyticsContent() {
 
 function OverviewTab({ data }: { data: any }) {
   const [search, setSearch] = useState('');
+  const [drillDown, setDrillDown] = useState<{ type: string; title: string; data: any[] } | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const summary = data?.summary || {};
-  const students = (data?.students || []).filter((s: any) =>
+  const allStudents = data?.students || [];
+  const students = allStudents.filter((s: any) =>
     s.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  function drillIntoStat(type: string) {
+    switch (type) {
+      case 'total':
+        setDrillDown({ type: 'total', title: 'All Students', data: allStudents });
+        break;
+      case 'atRisk':
+        setDrillDown({ type: 'atRisk', title: 'At-Risk Students', data: allStudents.filter((s: any) => s.riskLevel === 'high') });
+        break;
+      case 'avgScore':
+        // Show students sorted by score
+        setDrillDown({ type: 'avgScore', title: 'Students by Average Score', data: [...allStudents].sort((a: any, b: any) => (b.averageScore ?? -1) - (a.averageScore ?? -1)) });
+        break;
+      case 'pending':
+        setDrillDown({ type: 'pending', title: 'Students with Pending Submissions', data: allStudents.filter((s: any) => s.pendingCount > 0 || s.totalSubmissions < (summary.totalStudents || 1)) });
+        break;
+    }
+  }
+
+  function drillIntoRange(label: string, min: number) {
+    const rangeStudents = allStudents.filter((s: any) => {
+      if (s.averageScore === null) return false;
+      if (min === 0) return s.averageScore < 60;
+      return s.averageScore >= min && s.averageScore < min + 10;
+    });
+    setDrillDown({ type: 'range', title: `Students Scoring ${label}`, data: rangeStudents });
+  }
+
+  function openStudentProfile(student: any) {
+    setSelectedStudent(student);
+  }
+
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
+      {/* Summary Cards — now clickable */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Students', value: summary.totalStudents, icon: <Users className="text-blue-500" />, bg: 'bg-blue-50' },
-          { label: 'At Risk', value: summary.atRisk, icon: <AlertTriangle className="text-red-500" />, bg: 'bg-red-50' },
-          { label: 'Avg Score', value: `${summary.averageScore}%`, icon: <TrendingUp className="text-green-500" />, bg: 'bg-green-50' },
-          { label: 'Pending Review', value: summary.pendingSubmissions, icon: <BarChart3 className="text-amber-500" />, bg: 'bg-amber-50' },
+          { label: 'Total Students', value: summary.totalStudents, icon: <Users className="text-blue-500" />, bg: 'bg-blue-50', type: 'total' },
+          { label: 'At Risk', value: summary.atRisk, icon: <AlertTriangle className="text-red-500" />, bg: 'bg-red-50', type: 'atRisk' },
+          { label: 'Avg Score', value: `${summary.averageScore}%`, icon: <TrendingUp className="text-green-500" />, bg: 'bg-green-50', type: 'avgScore' },
+          { label: 'Pending Review', value: summary.pendingSubmissions, icon: <BarChart3 className="text-amber-500" />, bg: 'bg-amber-50', type: 'pending' },
         ].map((card, i) => (
-          <motion.div key={card.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="card">
+          <motion.div key={card.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+            className="card cursor-pointer hover:shadow-md hover:ring-2 hover:ring-primary-200 transition-all group"
+            onClick={() => drillIntoStat(card.type)}>
             <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-3', card.bg)}>
               {card.icon}
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{card.value}</p>
-            <p className="text-xs text-gray-500">{card.label}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">{card.label}</p>
+              <ChevronRight size={14} className="text-gray-300 group-hover:text-primary-500 transition" />
+            </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Score Distribution */}
+      {/* Score Distribution — bars clickable */}
       <div className="card">
-        <h3 className="font-bold text-gray-900 dark:text-white mb-4">Score Distribution</h3>
+        <h3 className="font-bold text-gray-900 dark:text-white mb-4">Score Distribution <span className="text-xs font-normal text-gray-400 ml-1">(click a bar for details)</span></h3>
         <div className="flex items-end gap-2 h-32">
           {[
-            { label: '90-100', min: 90, color: 'bg-green-500' },
-            { label: '80-89', min: 80, color: 'bg-blue-500' },
-            { label: '70-79', min: 70, color: 'bg-yellow-500' },
-            { label: '60-69', min: 60, color: 'bg-orange-500' },
-            { label: '<60', min: 0, color: 'bg-red-500' },
+            { label: '90-100', min: 90, color: 'bg-green-500 hover:bg-green-600' },
+            { label: '80-89', min: 80, color: 'bg-blue-500 hover:bg-blue-600' },
+            { label: '70-79', min: 70, color: 'bg-yellow-500 hover:bg-yellow-600' },
+            { label: '60-69', min: 60, color: 'bg-orange-500 hover:bg-orange-600' },
+            { label: '<60', min: 0, color: 'bg-red-500 hover:bg-red-600' },
           ].map(range => {
-            const count = students.filter((s: any) => {
+            const count = allStudents.filter((s: any) => {
               if (s.averageScore === null) return false;
               if (range.min === 0) return s.averageScore < 60;
               return s.averageScore >= range.min && s.averageScore < range.min + 10;
             }).length;
-            const maxCount = Math.max(students.length, 1);
+            const maxCount = Math.max(allStudents.length, 1);
             const pct = (count / maxCount) * 100;
             return (
-              <div key={range.label} className="flex-1 flex flex-col items-center gap-1">
+              <div key={range.label} className="flex-1 flex flex-col items-center gap-1 cursor-pointer group"
+                onClick={() => drillIntoRange(range.label, range.min)}>
                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{count}</span>
                 <motion.div initial={{ height: 0 }} animate={{ height: `${Math.max(pct, 4)}%` }} transition={{ duration: 0.5, delay: 0.2 }}
-                  className={cn('w-full rounded-t-lg', range.color)} />
+                  className={cn('w-full rounded-t-lg cursor-pointer transition-colors', range.color)} />
                 <span className="text-xs text-gray-400">{range.label}</span>
               </div>
             );
@@ -262,10 +302,10 @@ function OverviewTab({ data }: { data: any }) {
         </div>
       </div>
 
-      {/* Student Table */}
+      {/* Student Table — rows clickable */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-gray-900 dark:text-white">All Students</h3>
+          <h3 className="font-bold text-gray-900 dark:text-white">All Students <span className="text-xs font-normal text-gray-400 ml-1">(click a row for profile)</span></h3>
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students..." className="input-field pl-9 w-64" />
@@ -283,7 +323,9 @@ function OverviewTab({ data }: { data: any }) {
             </thead>
             <tbody>
               {students.map((student: any) => (
-                <tr key={student.id} className="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                <tr key={student.id}
+                  className="border-b border-gray-50 dark:border-gray-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition cursor-pointer"
+                  onClick={() => openStudentProfile(student)}>
                   <td className="py-3 px-2">
                     <p className="font-medium text-gray-900 dark:text-white">{student.name}</p>
                     <p className="text-xs text-gray-400">{student.email}</p>
@@ -311,6 +353,186 @@ function OverviewTab({ data }: { data: any }) {
           </table>
         </div>
       </div>
+
+      {/* Drill-Down Overlay */}
+      <AnimatePresence>
+        {drillDown && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+            onClick={() => setDrillDown(null)}>
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-gray-900 rounded-3xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <BarChart3 size={18} className="text-primary-500" /> {drillDown.title}
+                </h2>
+                <button onClick={() => setDrillDown(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+                  <span className="text-gray-400 text-xl">&times;</span>
+                </button>
+              </div>
+              {drillDown.data.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users size={32} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-400">No students match this criteria</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-400 mb-3">{drillDown.data.length} student{drillDown.data.length !== 1 ? 's' : ''}</p>
+                  {drillDown.data.map((student: any) => (
+                    <div key={student.id}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer"
+                      onClick={() => { setDrillDown(null); openStudentProfile(student); }}>
+                      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0',
+                        student.averageScore === null ? 'bg-gray-100 text-gray-400' :
+                        student.averageScore >= 90 ? 'bg-green-100 text-green-600' :
+                        student.averageScore >= 70 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600')}>
+                        {student.averageScore !== null ? `${student.averageScore}%` : '—'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{student.name}</p>
+                        <p className="text-xs text-gray-400">{student.email} · {student.totalSubmissions} submissions</p>
+                      </div>
+                      <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium',
+                        student.riskLevel === 'high' ? 'bg-red-100 text-red-700' :
+                        student.riskLevel === 'medium' ? 'bg-amber-100 text-amber-700' :
+                        student.riskLevel === 'low' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500')}>
+                        {student.riskLevel || 'new'}
+                      </span>
+                      <ChevronRight size={14} className="text-gray-300" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Student Profile Overlay */}
+      <AnimatePresence>
+        {selectedStudent && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedStudent(null)}>
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-gray-900 rounded-3xl p-6 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold',
+                    selectedStudent.averageScore === null ? 'bg-gray-100 text-gray-400' :
+                    selectedStudent.averageScore >= 90 ? 'bg-green-100 text-green-600' :
+                    selectedStudent.averageScore >= 70 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600')}>
+                    {selectedStudent.averageScore !== null ? `${selectedStudent.averageScore}%` : '—'}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">{selectedStudent.name}</h2>
+                    <p className="text-xs text-gray-400">{selectedStudent.email}</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedStudent(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+                  <span className="text-gray-400 text-xl">&times;</span>
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
+                    <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{selectedStudent.averageScore !== null ? `${selectedStudent.averageScore}%` : '—'}</p>
+                    <p className="text-[10px] text-blue-500">Average Score</p>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 text-center">
+                    <p className="text-xl font-bold text-green-700 dark:text-green-300">{selectedStudent.totalSubmissions}</p>
+                    <p className="text-[10px] text-green-500">Submissions</p>
+                  </div>
+                  <div className={cn('rounded-xl p-3 text-center',
+                    selectedStudent.riskLevel === 'high' ? 'bg-red-50 dark:bg-red-900/20' :
+                    selectedStudent.riskLevel === 'medium' ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-green-50 dark:bg-green-900/20')}>
+                    <p className={cn('text-xl font-bold',
+                      selectedStudent.riskLevel === 'high' ? 'text-red-700' :
+                      selectedStudent.riskLevel === 'medium' ? 'text-amber-700' : 'text-green-700')}>
+                      {selectedStudent.riskLevel === 'high' ? '⚠️' : selectedStudent.riskLevel === 'medium' ? '⚡' : '✅'}
+                    </p>
+                    <p className="text-[10px] text-gray-500">{selectedStudent.riskLevel === 'high' ? 'At Risk' : selectedStudent.riskLevel === 'medium' ? 'Watch' : 'On Track'}</p>
+                  </div>
+                </div>
+
+                {/* Streak & activity */}
+                {(selectedStudent.currentStreak !== undefined || selectedStudent.lastActive) && (
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Activity</h3>
+                    <div className="flex items-center gap-4 text-sm">
+                      {selectedStudent.currentStreak !== undefined && (
+                        <span className="text-gray-600 dark:text-gray-400">Streak: <strong>{selectedStudent.currentStreak} days</strong></span>
+                      )}
+                      {selectedStudent.lastActive && (
+                        <span className="text-gray-600 dark:text-gray-400">Last active: <strong>{new Date(selectedStudent.lastActive).toLocaleDateString()}</strong></span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Assignments breakdown */}
+                {selectedStudent.assignments?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Assignments</h3>
+                    <div className="space-y-2">
+                      {selectedStudent.assignments.map((a: any, i: number) => (
+                        <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold',
+                            a.score === null ? 'bg-gray-100 text-gray-400' :
+                            a.score >= 90 ? 'bg-green-100 text-green-700' :
+                            a.score >= 70 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700')}>
+                            {a.score !== null && a.score !== undefined ? a.score : '-'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{a.title}</p>
+                            <p className="text-[10px] text-gray-400">{a.type} · {a.status || 'Pending'}</p>
+                          </div>
+                          {a.score !== null && a.score !== undefined && a.maxScore && (
+                            <span className="text-xs text-gray-500">{a.score}/{a.maxScore}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Risk indicators */}
+                {selectedStudent.indicators?.length > 0 && (
+                  <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-red-700 dark:text-red-300 mb-2 flex items-center gap-1.5">
+                      <AlertTriangle size={14} /> Risk Indicators
+                    </h3>
+                    <ul className="space-y-1">
+                      {selectedStudent.indicators.map((ind: string, i: number) => (
+                        <li key={i} className="text-xs text-red-600 dark:text-red-400 flex items-start gap-2">
+                          <span className="text-red-400 mt-0.5">•</span> {ind}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Learning style if available */}
+                {selectedStudent.learningStyle && (
+                  <div className={cn('rounded-xl p-4 border', (STYLE_META[selectedStudent.learningStyle] || STYLE_META.structured).bg)}>
+                    <div className="flex items-center gap-2">
+                      {(STYLE_META[selectedStudent.learningStyle] || STYLE_META.structured).icon}
+                      <h3 className={cn('text-sm font-semibold', (STYLE_META[selectedStudent.learningStyle] || STYLE_META.structured).color)}>
+                        {(STYLE_META[selectedStudent.learningStyle] || STYLE_META.structured).label} Learner
+                      </h3>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{(STYLE_META[selectedStudent.learningStyle] || STYLE_META.structured).desc}</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -453,7 +675,7 @@ function LearningTab({ data, isDemo }: { data: any; isDemo: boolean }) {
 
   const students = data?.students || [];
   const classStats = data?.classStats || {};
-  const demoSuffix = needsDemoParam ? '?demo=true' : '';
+  const demoSuffix = isDemo ? '?demo=true' : '';
 
   const filteredStudents = filterStyle === 'all'
     ? students

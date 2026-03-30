@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.7.5
+  v9.8.0
 </p>
 
 ---
@@ -18,7 +18,7 @@
 
 **Limud** (Hebrew: "learning") is a full-stack, AI-powered adaptive learning platform built for K-12 education. It is designed from the ground up for students who learn differently — visual, auditory, kinesthetic, reading-based, and ADHD-friendly modes are all first-class citizens. Limud serves self-learners, homeschool families, individual teachers, and entire school districts through a single unified product.
 
-The platform combines **Google Gemini AI** with **cognitive science algorithms** (SM-2 spaced repetition, adaptive difficulty targeting, learning DNA profiling) and a **comprehensive gamification system** (XP, levels, streaks, coins, badges, leaderboards, avatar shop, educational games) to create a deeply personalized and engaging learning experience.
+The platform combines **Google Gemini AI** with **cognitive science algorithms** (SM-2 spaced repetition, adaptive difficulty targeting, learning DNA profiling) and **adaptive learning tools** (focus mode, study planner, exam simulator, AI lesson planner) to create a deeply personalized and engaging learning experience.
 
 Limud is **enterprise-grade**: FERPA-compliant, COPPA-compliant, and hardened against the OWASP Top 10. Security is not an afterthought — it is built into every layer, from AES-256-GCM field-level PII encryption to brute-force lockout, CSRF protection, rate limiting, and 7-year audit log retention.
 
@@ -33,15 +33,14 @@ Limud is **enterprise-grade**: FERPA-compliant, COPPA-compliant, and hardened ag
 5. [Feature Overview](#feature-overview)
    - [AI Engine](#1-ai-engine)
    - [Adaptive Learning & Cognitive Science](#2-adaptive-learning--cognitive-science)
-   - [Gamification System](#3-gamification-system)
-   - [Student Portal](#4-student-portal-16-pages)
-   - [Teacher Portal](#5-teacher-portal-15-pages)
-   - [Admin / District Portal](#6-admin--district-portal-12-pages)
-   - [Parent Portal](#7-parent-portal-3-pages)
-   - [Homeschool Portal](#8-homeschool-portal-5-pages)
-   - [Accessibility](#9-accessibility)
-   - [Platform Integrations](#10-platform-integrations-16)
-   - [Security & Compliance](#11-security--compliance)
+   - [Student Portal](#3-student-portal)
+   - [Teacher Portal](#4-teacher-portal)
+   - [Admin / District Portal](#5-admin--district-portal-12-pages)
+   - [Parent Portal](#6-parent-portal-3-pages)
+   - [Homeschool Portal](#7-homeschool-portal-5-pages)
+   - [Accessibility](#8-accessibility)
+   - [Platform Integrations](#9-platform-integrations-16)
+   - [Security & Compliance](#10-security--compliance)
 6. [Data Architecture](#data-architecture)
 7. [Complete API Reference](#complete-api-reference)
 8. [All Application Pages](#all-application-pages)
@@ -68,7 +67,7 @@ Limud fixes this by using AI to detect each student's unique learning style and 
 ### Core Principles
 
 - **Adaptive, Not One-Size-Fits-All** — AI detects whether a student is visual, auditory, kinesthetic, or reading-oriented and adapts all content accordingly.
-- **Engagement Through Gamification** — XP, levels, streaks, coins, badges, leaderboards, and educational games make learning genuinely fun.
+- **Engagement Through Progress** — Growth analytics, study streaks, certificates, and adaptive challenges keep students motivated.
 - **Teacher Empowerment** — AI auto-grading, quiz generation, misconception heatmaps, and method insights free teachers to focus on teaching.
 - **Parent Visibility** — Real-time dashboards, AI-powered check-ins, and growth reports keep parents informed without being intrusive.
 - **Enterprise Security** — FERPA, COPPA, and OWASP compliance with field-level encryption, audit logging, and role-based access control.
@@ -80,11 +79,11 @@ Limud fixes this by using AI to detect each student's unique learning style and 
 
 | Audience | How Limud Helps | Pricing |
 |---|---|---|
-| **Self-Learners** | AI adapts to your learning style, gamified progress, study planner, exam simulator | Free forever |
-| **Homeschool Families** | Parent dashboard, AI check-ins, assignment management, gamification, up to 5 students | Free forever |
+| **Self-Learners** | AI adapts to your learning style, progress tracking, study planner, exam simulator | Free forever |
+| **Homeschool Families** | Parent dashboard, AI check-ins, assignment management, adaptive learning, up to 5 students | Free forever |
 | **Individual Teachers** | AI grading, quiz generation, worksheet builder, student analytics | Free / Starter |
 | **School Districts** | Multi-school management, CSV bulk provisioning, compliance dashboards, billing, 16+ LMS integrations | From $2/student/mo |
-| **Students (K-12)** | Adaptive AI tutor, focus mode, exam simulator, educational games, rewards, leaderboards | Through school/parent |
+| **Students (K-12)** | Adaptive AI tutor, focus mode, exam simulator, study planner, growth analytics | Through school/parent |
 | **Parents** | Real-time grade visibility, AI-powered safety check-ins, growth reports, goal tracking | Through school/free plan |
 
 ---
@@ -131,8 +130,8 @@ Limud fixes this by using AI to detect each student's unique learning style and 
 ├─────────────────────────────────────────────────────────────────┤
 │                        CORE ENGINES                              │
 │  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌───────────────────┐ │
-│  │ AI Engine│ │ Cognitive │ │ Gamific. │ │ Security Engine   │ │
-│  │ (Gemini) │ │ Science   │ │ Engine   │ │ (FERPA/COPPA)     │ │
+│  │ AI Engine│ │ Cognitive │ │ Adaptive │ │ Security Engine   │ │
+│  │ (Gemini) │ │ Science   │ │ Learning │ │ (FERPA/COPPA)     │ │
 │  └──────────┘ └───────────┘ └──────────┘ └───────────────────┘ │
 │  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌───────────────────┐ │
 │  │ Learning │ │ Subscript.│ │ Demo     │ │ Performance       │ │
@@ -183,49 +182,25 @@ Limud's cognitive engine (`src/lib/cognitive-engine.ts`) implements research-bac
 
 **Caching**: The Learning DNA engine uses in-memory caching (5-minute TTL, max 500 entries) to minimize database queries during batch operations.
 
-### 3. Gamification System
-
-The gamification engine (`src/lib/gamification.ts`) drives student engagement through multiple reward mechanisms:
-
-| Mechanic | Details |
-|---|---|
-| **Experience Points (XP)** | Assignment submit: 25 XP, Complete: 50 XP, Perfect score: 100 XP, High score (90%+): 50 XP, Tutor session: 15 XP, Daily login: 10 XP |
-| **Levels** | 1 level per 250 XP. Level-up triggers a notification and coin bonus. |
-| **Streaks** | Consecutive daily study days. Bonuses at 7-day (75 XP, 20 coins), 14-day (150 XP, 50 coins), and 30-day (300 XP) milestones. |
-| **Virtual Coins** | Earned through gameplay. Spent in the avatar shop on cosmetic items. Assignment complete: 10 coins, Perfect: 25 coins, High: 15 coins, Level-up: 30 coins. |
-| **Badges** | Achievement-based — dedicated badges page with unlockable badge categories. |
-| **Leaderboard** | Student rankings by XP, visible on a dedicated leaderboard page. |
-| **Certificates** | Awarded for course completion, achievement milestones. Types: `course_completion`, `achievement`, `milestone`. |
-| **Daily Challenges** | Fresh challenges every day — quick quizzes, focus tasks, or skill drills. |
-| **Educational Games** | Math Blaster, Word Quest, Science Puzzles, History Trivia — purchasable from the Game Store with coins. |
-| **Season Pass** | Progressive seasonal rewards tracked via `SeasonPassProgress` model. |
-| **Daily Boosts** | Daily login bonuses tracked per user. |
-
-### 4. Student Portal (16 pages)
+### 3. Student Portal
 
 The student experience is a full-featured learning environment:
 
 | Page | Route | Description |
 |---|---|---|
-| **Dashboard** | `/student/dashboard` | Welcome banner, XP/level/streak/coins display, quick-access cards (Assignments, AI Tutor, Games, Rewards), recent activity |
+| **Dashboard** | `/student/dashboard` | Welcome banner, progress overview, quick-access cards (Assignments, AI Tutor, Study Planner), recent activity |
 | **Assignments** | `/student/assignments` | View and submit assignments. Types: essay, multiple choice, short answer, project, quiz |
 | **AI Tutor** | `/student/tutor` | Conversational AI tutor with Socratic questioning, Markdown rendering, conversation history |
 | **Focus Mode** | `/student/focus` | Distraction-free study environment with timed questions and focus tracking |
 | **Analytics** | `/student/knowledge` | Tabbed view: **Knowledge Map** (radar chart, skill mastery, study heatmap, goals, rank) and **Growth & Predictions** (mastery overview, predicted grade, skill map by category) |
 | **Study Planner** | `/student/study-planner` | AI-recommended study schedule based on upcoming assignments and spaced repetition intervals |
 | **Exam Simulator** | `/student/exam-sim` | Practice exams with timed conditions, question banks, immediate feedback |
-| **Rewards** | `/student/rewards` | XP breakdown, level progress bar, streak calendar, coin balance, avatar shop |
-| **Game Store** | `/student/games` | Browse and purchase educational games using virtual coins |
-| **Daily Challenge** | `/student/daily-challenge` | Daily quiz or task for streak bonuses |
-| **Leaderboard** | `/student/leaderboard` | Class/school rankings by XP |
-| **Badges** | `/student/badges` | Badge collection with unlock progress |
-| **Certificates** | `/student/certificates` | Downloadable certificates for completed milestones |
 | **Messages** | `/student/messages` | In-app messaging with teachers and classmates |
 | **My Platforms** | `/student/platforms` | Connected third-party platform integrations (Khan Academy, Google Classroom, etc.) |
 
 Additional student pages: **Survey** (`/student/survey`) for learning style assessment with v9.7 scenario-based discovery, **My Classrooms** (`/student/classrooms`) for classroom finder with assignment preview and learning method chooser, **Study Groups** (`/student/study-groups`), **Growth** (`/student/growth`, redirects to Analytics).
 
-### 5. Teacher Portal (15 pages)
+### 4. Teacher Portal
 
 Teachers get a comprehensive toolkit for managing classrooms and understanding students:
 
@@ -241,7 +216,6 @@ Teachers get a comprehensive toolkit for managing classrooms and understanding s
 | **Analytics** | `/teacher/analytics` | 4-tab consolidated view: **Overview** (scores, distribution, at-risk), **Insights & Heatmap** (misconception heatmap, skill gaps, predictions), **Learning Styles** (student profiles, AI adaptations, solving methods), **Assignment Diff** (side-by-side original vs AI-adapted content) |
 | **AI Reports** | `/teacher/reports` | Generate AI-written progress reports for individual students or entire classes |
 | **My Students** | `/teacher/students` | Full student roster with performance data, learning DNA, and contact info |
-| **Game Control** | `/teacher/games` | Monitor and manage which games are available to students |
 | **Messages** | `/teacher/messages` | In-app messaging with students and parents |
 | **Quick Setup** | `/teacher/onboarding` | 3-step onboarding wizard: Subjects → Classes → AI Preferences (v9.7) |
 | **AI Builder** | `/teacher/ai-builder` | Upload content → AI generates differentiated assignments for every learning style (v9.7) |
@@ -249,7 +223,7 @@ Teachers get a comprehensive toolkit for managing classrooms and understanding s
 
 **Backward Compatibility**: Old URLs `/teacher/insights` and `/teacher/learning-insights` redirect to the corresponding Analytics tabs.
 
-### 6. Admin / District Portal (12 pages)
+### 5. Admin / District Portal (12 pages)
 
 District administrators have full control over their organization:
 
@@ -277,19 +251,19 @@ District administrators have full control over their organization:
 - District Employee
 - IT Admin
 
-### 7. Parent Portal (3 pages)
+### 6. Parent Portal (3 pages)
 
 Parents stay connected to their child's education without being overbearing:
 
 | Page | Route | Description |
 |---|---|---|
-| **Dashboard** | `/parent/dashboard` | Real-time view of children's grades, assignments, streaks, recent activity |
+| **Dashboard** | `/parent/dashboard` | Real-time view of children's grades, assignments, recent activity |
 | **Messages** | `/parent/messages` | Direct messaging with teachers |
 | **Growth Reports** | `/parent/reports` | AI-powered growth summaries, trend analysis, areas of concern |
 
 **Parent API Endpoints**: `/api/parent` (overview), `/api/parent/ai-checkin` (AI safety check-in), `/api/parent/goals` (goal tracking), `/api/parent/reports` (detailed reports).
 
-### 8. Homeschool Portal (5 pages)
+### 7. Homeschool Portal (5 pages)
 
 Homeschool parents get a hybrid teacher-parent experience:
 
@@ -301,7 +275,7 @@ Homeschool parents get a hybrid teacher-parent experience:
 | **AI Grading** | `/teacher/grading` | Grade children's work with AI assistance |
 | **Analytics** | `/teacher/analytics` | View children's learning analytics |
 
-### 9. Accessibility
+### 8. Accessibility
 
 Limud includes a built-in accessibility panel available on all dashboard pages:
 
@@ -314,7 +288,7 @@ Limud includes a built-in accessibility panel available on all dashboard pages:
 | **WCAG Compliance** | Core pages designed to WCAG 2.1 AA standards |
 | **Lite Mode** | Performance toggle that disables animations and blur effects for lower-end devices |
 
-### 10. Platform Integrations (16+)
+### 9. Platform Integrations (16+)
 
 Limud connects with the tools schools already use:
 
@@ -336,7 +310,7 @@ Limud connects with the tools schools already use:
 - **Duolingo** — Language learning progress
 - And more via the Platforms page (`/student/platforms`)
 
-### 11. Security & Compliance
+### 10. Security & Compliance
 
 The security engine (`src/lib/security.ts`, 1,000 lines) provides enterprise-grade protection:
 
@@ -432,17 +406,12 @@ The security engine (`src/lib/security.ts`, 1,000 lines) provides enterprise-gra
 - `MathStepAttempt` — Step-by-step math problem solving
 - `ConfidenceRating` — Student self-assessment confidence scores
 
-**Gamification**
-- `RewardStats` — XP, level, streak, coins per user
+**Gamification (legacy — database models retained for data integrity)**
+- `RewardStats` — Legacy XP, level, streak, coins per user (no longer displayed in UI)
 - `Certificate` — Earned certificates (course completion, achievement, milestone)
-- `Game` — Available educational games in the store
-- `GamePurchase` — Game purchases with coins
-- `GameSession` — Game play session tracking
-- `Challenge` — Daily/weekly challenges
-- `ChallengeParticipant` — Challenge participation and scores
-- `SeasonPassProgress` — Seasonal reward tracking
-- `DailyBoost` — Daily login bonus tracking
-- `MarketplaceListing` — Avatar shop items
+- `Game`, `GamePurchase`, `GameSession` — Legacy game store models
+- `Challenge`, `ChallengeParticipant` — Legacy challenge models
+- `SeasonPassProgress`, `DailyBoost`, `MarketplaceListing` — Legacy reward models
 
 **Social & Communication**
 - `Notification` — In-app notifications (assignment, grade, achievement, system, alert, challenge)
@@ -502,16 +471,13 @@ The security engine (`src/lib/security.ts`, 1,000 lines) provides enterprise-gra
 | Endpoint | Method | Auth | Description |
 |---|---|---|---|
 | `/api/skills` | GET | Student | Skill mastery data across subjects |
-| `/api/rewards` | GET | Student | Gamification stats (XP, level, streak, coins, badges) |
+| `/api/rewards` | GET | Student | Legacy gamification stats (retained for API compatibility) |
 | `/api/study-next` | GET | Student | AI-recommended next study action |
 | `/api/confidence` | GET | Student | Confidence and mastery self-assessment data |
 | `/api/tutor` | POST | Student | AI tutor conversation (send message, get Socratic response) |
 | `/api/focus` | GET/POST | Student | Focus mode — get questions (GET), submit answers (POST) |
 | `/api/submissions` | GET/POST | Student | View submissions (GET), submit work (POST) |
 | `/api/assignments` | GET | Student | View assigned work with status and due dates |
-| `/api/daily-boost` | GET/POST | Student | Daily login bonus tracking |
-| `/api/challenges` | GET | Student | Available daily/weekly challenges |
-| `/api/games` | GET/POST | Student | Game store — browse (GET), purchase (POST) |
 | `/api/study-planner` | GET/POST | Student | AI study plan generation and management |
 | `/api/exam-sim` | GET/POST | Student | Exam simulator — get exam (GET), submit attempt (POST) |
 | `/api/mistakes` | GET | Student | Mistake history for review |
@@ -536,7 +502,6 @@ The security engine (`src/lib/security.ts`, 1,000 lines) provides enterprise-gra
 | `/api/worksheet-search` | GET | Student | Search curated worksheet database |
 | `/api/worksheets` | GET | Student | Get worksheets by filter |
 | `/api/exchange` | GET/POST | All | Teacher exchange resource sharing |
-| `/api/marketplace` | GET/POST | Student | Avatar shop marketplace |
 | `/api/lms` | GET/POST | All | LMS integration data |
 
 ### Teacher APIs
@@ -638,8 +603,8 @@ See [Feature Overview](#feature-overview) sections above for complete page listi
 
 | Tier | Price | Max Students | Key Features |
 |---|---|---|---|
-| **Free** | $0/forever | 5 | AI Tutor (50/mo), basic gamification, parent dashboard, AI check-ins |
-| **Starter** | $4/student/mo | 50 | AI Tutor, AI Grading, gamification, game store, file uploads, rewards |
+| **Free** | $0/forever | 5 | AI Tutor (50/mo), adaptive learning, parent dashboard, AI check-ins |
+| **Starter** | $4/student/mo | 50 | AI Tutor, AI Grading, full adaptive learning, file uploads |
 | **Custom** | Contact sales | Custom | Everything in Starter + priority support |
 | **Standard** | $6/student/mo | 500 | All features + analytics, LMS integration, certificates, multi-school |
 | **Premium** | $10/student/mo | 2000 | Everything in Standard + custom branding, API access, bulk import |
@@ -849,7 +814,7 @@ If you don't configure a database or API key, the app runs in **demo mode** with
 - Master demo account: `master@limud.edu` / `LimudMaster2026!` (full teacher access)
 - Role-specific demo accounts use password `password123`
 - Rich pre-built quiz banks (Math: Algebra, Geometry, Fractions; and more)
-- Simulated analytics, rewards, and gamification data
+- Simulated analytics and learning data
 
 ### Available Scripts
 
@@ -890,7 +855,6 @@ Limud/
 │   ├── components/
 │   │   ├── accessibility/  # AccessibilityPanel.tsx
 │   │   ├── ai/             # AINavigator.tsx
-│   │   ├── gamification/   # RewardComponents.tsx
 │   │   ├── landing/        # LandingPage.tsx
 │   │   ├── layout/         # DashboardLayout.tsx
 │   │   └── Providers.tsx   # Auth + accessibility providers
@@ -902,7 +866,6 @@ Limud/
 │       ├── config.ts       # Centralized app config (91 lines)
 │       ├── constants.ts    # Shared constants
 │       ├── demo-data.ts    # Demo mode data (822 lines, 24 exports)
-│       ├── gamification.ts # XP, levels, streaks, coins (206 lines)
 │       ├── hooks.ts        # Custom React hooks
 │       ├── learning-dna.ts # Cognitive profiling engine (329 lines)
 │       ├── middleware.ts   # Custom middleware utilities (352 lines)
@@ -1195,6 +1158,66 @@ NODE_OPTIONS=--max-old-space-size=512
 ---
 
 ## Changelog
+
+### v9.8.0 (2026-03-30) — Remove Gamification System
+
+#### What Changed
+
+**Complete removal of the gamification system from the entire platform.** All XP, levels, streaks, coins, badges, leaderboards, daily challenges, game store, and avatar shop UI elements have been stripped from every page, API route, navigation menu, and landing page. The platform now focuses purely on academic progress and adaptive learning.
+
+**Why:** Gamification features (XP, coins, leaderboards) were creating distractions from core learning objectives and adding unnecessary complexity. The platform's value lies in its AI-powered adaptive learning, not game mechanics.
+
+#### What Was Removed
+
+| Category | Removed Items |
+|---|---|
+| **Student Pages** | Rewards, Game Store, Daily Challenge, Leaderboard, Badges, Certificates pages |
+| **Teacher Pages** | Game Control page |
+| **Components** | `src/components/gamification/RewardComponents.tsx` (XPBar, StreakDisplay, CoinDisplay, StatsGrid, BadgeGrid) |
+| **Library** | `src/lib/gamification.ts` (XP awards, streak tracking, level-up logic) |
+| **Navigation** | Removed all gamification nav entries from student and teacher sidebars |
+| **Landing Page** | Removed "Gamification" feature card, "Educational Games" references, game/reward mentions from pricing and FAQ |
+| **API Routes** | Removed gamification calls from `/api/tutor`, `/api/submissions`, `/api/grade`; cleaned `/api/ai-navigator` reward/game handlers |
+| **Subscription Tiers** | Removed 'basic-gamification', 'gamification', 'game-store', 'rewards' from tier feature lists |
+| **Admin Settings** | Removed gamificationEnabled, leaderboardEnabled, dailyChallengeEnabled, gameStoreEnabled feature toggles from UI labels |
+| **Metadata** | Removed "gamification" from site keywords and meta descriptions |
+
+#### What Was Kept
+
+- **Database models** (RewardStats, Game, Challenge, etc.) are retained in the Prisma schema for data integrity — no destructive migration
+- **DEMO_REWARD_STATS** in `demo-data.ts` retained as inert data (no UI renders it)
+- **Certificates** page retained as it serves an academic purpose (course completion certificates)
+
+#### Teacher Students Page Reworked
+
+The teacher's "My Students" page (`/teacher/students`) was updated to replace gamification metrics:
+- **Removed**: Total XP, Streak, Level displays
+- **Added**: Average Score, Assignments Completed, Focus Time metrics
+- Student detail overlay now shows academic-focused stats instead of XP/streak/level
+
+#### Files Changed (30+)
+
+| File | Change |
+|---|---|
+| `src/components/gamification/` | **Deleted** entire directory |
+| `src/app/student/certificates/` | **Deleted** (page removed) |
+| `src/lib/gamification.ts` | **Deleted** |
+| `src/components/landing/LandingPage.tsx` | Removed gamification feature card, game references, updated pricing/FAQ |
+| `src/components/layout/DashboardLayout.tsx` | Removed gamification nav entries |
+| `src/lib/subscription.ts` | Removed gamification feature identifiers from all tiers |
+| `src/app/api/tutor/route.ts` | Removed onTutorSession/updateStreak calls |
+| `src/app/api/submissions/route.ts` | Removed updateStreak import and call |
+| `src/app/api/grade/route.ts` | Removed onAssignmentGraded import and call |
+| `src/app/api/ai-navigator/route.ts` | Replaced reward/game handlers with progress/study handlers |
+| `src/app/api/demo/route.ts` | Cleaned gamification-related demo responses |
+| `src/app/teacher/students/page.tsx` | Replaced XP/streak/level with academic metrics |
+| `src/app/admin/settings/page.tsx` | Removed gamification feature toggle labels |
+| `src/app/layout.tsx` | Removed "gamification" from meta keywords |
+| `src/app/(legal)/about/page.tsx` | Removed gamification references |
+| `src/app/(auth)/login/page.tsx` | Updated tagline (removed "gamified rewards") |
+| `src/app/(auth)/onboard/page.tsx` | Removed gamification plan descriptions |
+| `src/app/(auth)/pricing/page.tsx` | Removed gamification pricing features |
+| Version bumped in 8 config files | 9.7.11 -> 9.8.0 |
 
 ### v9.7.11 (2026-03-29) — Add AI Lesson Planner
 

@@ -36,12 +36,6 @@ AVAILABLE PAGES:
 - **[Study Planner](/student/study-planner)** — Plan study sessions
 - **[Exam Simulator](/student/exam-sim)** — Practice for exams
 - **[Growth Analytics](/student/growth)** — Track your progress
-- **[Rewards](/student/rewards)** — XP, badges, and shop
-- **[Game Store](/student/games)** — Educational games
-- **[Daily Challenge](/student/daily-challenge)** — Daily quiz challenges
-- **[Leaderboard](/student/leaderboard)** — Compete with peers
-- **[Badges](/student/badges)** — Achievement badges
-- **[Certificates](/student/certificates)** — Your certificates
 - **[My Platforms](/student/platforms)** — Connected platforms
 - **[Messages](/student/messages)** — Send messages to teachers and parents
 
@@ -49,7 +43,7 @@ You are helpful, brief, and always guide the student to the right place.`;
 
 // Fetch student context data
 async function getStudentContext(userId: string) {
-  const [assignments, rewards, recentGrades, notifications] = await Promise.all([
+  const [assignments, recentGrades, notifications] = await Promise.all([
     // Get assignments with submissions
     prisma.assignment.findMany({
       where: {
@@ -67,10 +61,6 @@ async function getStudentContext(userId: string) {
       },
       orderBy: { dueDate: 'asc' },
       take: 20,
-    }),
-    // Get reward stats
-    prisma.rewardStats.findUnique({
-      where: { userId },
     }),
     // Get recent graded submissions
     prisma.submission.findMany({
@@ -133,18 +123,6 @@ async function getStudentContext(userId: string) {
     context += '\nNo grades yet.\n';
   }
 
-  // Rewards
-  if (rewards) {
-    context += `\nREWARDS & PROGRESS:\n`;
-    context += `- Level: ${rewards.level}\n`;
-    context += `- Total XP: ${rewards.totalXP.toLocaleString()}\n`;
-    context += `- Current Streak: ${rewards.currentStreak} days (best: ${rewards.longestStreak})\n`;
-    context += `- Coins: ${rewards.virtualCoins}\n`;
-    context += `- Assignments Completed: ${rewards.assignmentsCompleted}\n`;
-    context += `- Tutor Sessions: ${rewards.tutorSessionsCount}\n`;
-    context += `- Perfect Scores: ${rewards.perfectScores}\n`;
-  }
-
   context += `\nUnread Notifications: ${notifications}\n`;
 
   return context;
@@ -178,17 +156,15 @@ Head to **[Assignments](/student/assignments)** to view all your work and submit
 Your average is looking great! Check **[Growth Analytics](/student/growth)** to see your progress over time, or **[Assignments](/student/assignments)** for detailed feedback.`;
   }
 
-  if (lower.includes('reward') || lower.includes('xp') || lower.includes('level') || lower.includes('coin') || lower.includes('badge') || lower.includes('streak')) {
-    return `Here's your reward summary! 🏆
+  if (lower.includes('progress') || lower.includes('how am i doing')) {
+    return `Here's your progress summary! 📊
 
-- **Level:** 12
-- **Total XP:** 4,850
-- **Current Streak:** 7 days 🔥
-- **Coins:** 320
+- **Avg Score:** 88%
 - **Assignments Completed:** 23
-- **Perfect Scores:** 5 ⭐
+- **Tutor Sessions:** 12
+- **Study Hours:** 28h
 
-Visit **[Rewards](/student/rewards)** to spend coins or **[Badges](/student/badges)** to see your achievements! You can also check the **[Game Store](/student/games)** to buy games with XP.`;
+Visit **[Analytics](/student/knowledge)** to see your detailed skill mastery and learning progress!`;
   }
 
   if (lower.includes('help') || lower.includes('tutor') || lower.includes('stuck') || lower.includes('understand')) {
@@ -203,11 +179,13 @@ What subject are you working on? I can point you in the right direction!`;
   }
 
   if (lower.includes('game') || lower.includes('play') || lower.includes('fun')) {
-    return `Ready for some fun? 🎮
+    return `Looking for something interactive? 📖
 
-Check out the **[Game Store](/student/games)** — you can spend your XP on educational games! You currently have enough for a few games.
+- **[AI Tutor](/student/tutor)** — Get step-by-step help with any subject
+- **[Exam Simulator](/student/exam-sim)** — Practice for tests with timed quizzes
+- **[Focus Mode](/student/focus)** — Distraction-free study sessions
 
-Also try the **[Daily Challenge](/student/daily-challenge)** for quick quizzes, or check the **[Leaderboard](/student/leaderboard)** to see how you rank against classmates!`;
+What subject would you like to practice?`;
   }
 
   if (lower.includes('message') || lower.includes('email') || lower.includes('teacher') || lower.includes('contact') || lower.includes('send')) {
@@ -235,13 +213,13 @@ You can message any teacher in your classes!`;
   return `Hi there! I'm your Limud Navigator 🧭 Here's what I can help with:
 
 📚 **[Assignments](/student/assignments)** — 3 upcoming assignments
-📊 **[Growth Analytics](/student/growth)** — Track your progress
+📊 **[Analytics](/student/knowledge)** — Track your progress
 🤖 **[AI Tutor](/student/tutor)** — Get homework help
-🎮 **[Game Store](/student/games)** — Earn and play!
+📖 **[Focus Mode](/student/focus)** — Study smart
 ✉️ **[Messages](/student/messages)** — Talk to teachers
-🏆 **[Rewards](/student/rewards)** — Level 12, 7-day streak 🔥
+📅 **[Study Planner](/student/study-planner)** — Plan your week
 
-Just ask me about your assignments, grades, rewards, or anything else — I'll help you find it! What would you like to know?`;
+Just ask me about your assignments, grades, study plans, or anything else — I'll help you find it! What would you like to know?`;
 }
 
 export const POST = apiHandler(async (req: Request) => {

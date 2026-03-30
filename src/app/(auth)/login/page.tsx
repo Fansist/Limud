@@ -236,7 +236,7 @@ export default function LoginPage() {
                 Learn together,<br />grow together.
               </h2>
               <p className="text-white/70 leading-relaxed">
-                AI-powered tutoring, automated grading, gamified rewards, and parent visibility — everything your school needs in one beautiful platform.
+                AI-powered tutoring, automated grading, adaptive learning, and parent visibility — everything your school needs in one beautiful platform.
               </p>
             </motion.div>
 

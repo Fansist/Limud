@@ -291,7 +291,7 @@ export default function ProvisionPage() {
               <ul className="text-xs text-blue-600 mt-1 space-y-1">
                 <li>• New accounts are created with default password: <code>limud2024</code></li>
                 <li>• Users will be assigned to your district automatically</li>
-                <li>• Students get gamification stats initialized automatically</li>
+                <li>• Students get learning profiles initialized automatically</li>
                 <li>• Duplicate emails are skipped (existing accounts preserved)</li>
               </ul>
             </div>

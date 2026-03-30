@@ -130,17 +130,6 @@ export const POST = apiHandler(async (req: Request) => {
     }
   }
 
-  // ── Gamification: award XP (best-effort, never crash) ──
-  if (user.role === 'STUDENT' && prisma) {
-    try {
-      const { onTutorSession, updateStreak } = await import('@/lib/gamification');
-      await onTutorSession(user.id);
-      await updateStreak(user.id);
-    } catch (e) {
-      console.warn('[TUTOR] Gamification update failed:', (e as Error).message);
-    }
-  }
-
   return NextResponse.json({
     sessionId: chatSessionId,
     message: content,

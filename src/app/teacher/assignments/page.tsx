@@ -12,7 +12,7 @@ import { addTeacherAssignment, getTeacherAssignments, getDemoCourses } from '@/l
 import toast from 'react-hot-toast';
 import {
   BookOpen, Plus, X, Clock, Users, Paperclip, Link2, FileText, Upload, Star, Scale, Tag, Trash2, ExternalLink,
-  Save, RotateCcw, Wand2, Check, CheckCircle, AlertTriangle, Globe, Search, ArrowRight,
+  Save, RotateCcw, Wand2, Check, CheckCircle, AlertTriangle, Globe, Search, ArrowRight, Edit3, Eye, ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -69,6 +69,10 @@ export default function TeacherAssignments() {
   const [courses, setCourses] = useState<any[]>([]);
   const [creating, setCreating] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
+  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', description: '', dueDate: '', totalPoints: 100, isPublished: true });
+  const [saving, setSaving] = useState(false);
   const [createMode, setCreateMode] = useState<'manual' | 'platform'>('manual');
   const [platformSearch, setPlatformSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
@@ -364,6 +368,58 @@ export default function TeacherAssignments() {
   const totalWeight = categories.filter(c => c.id !== 'extra-credit').reduce((sum, c) => sum + c.weight, 0);
   const filteredAssignments = filterCategory === 'all' ? assignments : assignments.filter(a => a.category === filterCategory);
 
+  function openDetail(assignment: any) {
+    setSelectedAssignment(assignment);
+    setEditMode(false);
+    setEditForm({
+      title: assignment.title,
+      description: assignment.description,
+      dueDate: assignment.dueDate ? new Date(assignment.dueDate).toISOString().slice(0, 16) : '',
+      totalPoints: assignment.totalPoints,
+      isPublished: assignment.isPublished,
+    });
+  }
+
+  function startEdit() {
+    setEditMode(true);
+  }
+
+  async function saveEdit() {
+    if (!selectedAssignment) return;
+    setSaving(true);
+    try {
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 500));
+        // Update local state
+        setAssignments(prev => prev.map(a =>
+          a.id === selectedAssignment.id
+            ? { ...a, title: editForm.title, description: editForm.description, dueDate: editForm.dueDate, totalPoints: editForm.totalPoints, isPublished: editForm.isPublished }
+            : a
+        ));
+        setSelectedAssignment((prev: any) => prev ? { ...prev, title: editForm.title, description: editForm.description, dueDate: editForm.dueDate, totalPoints: editForm.totalPoints, isPublished: editForm.isPublished } : null);
+        toast.success('Assignment updated! (Demo)');
+      } else {
+        const res = await fetch(`/api/assignments/${selectedAssignment.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editForm),
+        });
+        if (res.ok) {
+          toast.success('Assignment updated!');
+          fetchAssignments();
+        } else {
+          const data = await res.json();
+          toast.error(data.error || 'Update failed');
+        }
+      }
+      setEditMode(false);
+    } catch {
+      toast.error('Failed to update assignment');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6">
@@ -514,7 +570,9 @@ export default function TeacherAssignments() {
 
               return (
                 <motion.div key={assignment.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }} className={cn('card', assignment.isExtraCredit && 'border-2 border-pink-200 bg-pink-50/30')}>
+                  transition={{ delay: i * 0.05 }}
+                  className={cn('card cursor-pointer hover:shadow-md hover:border-primary-200 transition-all', assignment.isExtraCredit && 'border-2 border-pink-200 bg-pink-50/30')}
+                  onClick={() => openDetail(assignment)}>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -560,6 +618,7 @@ export default function TeacherAssignments() {
                       {pendingSubs > 0 && (
                         <span className="badge badge-warning">{pendingSubs} pending</span>
                       )}
+                      <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500" />
                     </div>
                   </div>
                 </motion.div>
@@ -577,6 +636,170 @@ export default function TeacherAssignments() {
 
       {/* Create Modal */}
       <AnimatePresence>
+        {/* Assignment Detail/Edit Modal */}
+        {selectedAssignment && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => { setSelectedAssignment(null); setEditMode(false); }}>
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-gray-900 rounded-3xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center">
+                    <BookOpen size={20} className="text-primary-500" />
+                  </div>
+                  <div>
+                    {editMode ? (
+                      <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                        className="input-field text-lg font-bold" />
+                    ) : (
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">{selectedAssignment.title}</h2>
+                    )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="badge badge-info text-xs">{selectedAssignment.course?.name}</span>
+                      <span className="text-xs text-gray-400 capitalize">{selectedAssignment.type?.toLowerCase().replace('_', ' ')}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!editMode ? (
+                    <button onClick={startEdit} className="btn-secondary text-xs flex items-center gap-1.5">
+                      <Edit3 size={12} /> Edit
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => setEditMode(false)} className="btn-secondary text-xs">Cancel</button>
+                      <button onClick={saveEdit} disabled={saving} className="btn-primary text-xs flex items-center gap-1.5">
+                        <Save size={12} /> {saving ? 'Saving...' : 'Save'}
+                      </button>
+                    </>
+                  )}
+                  <button onClick={() => { setSelectedAssignment(null); setEditMode(false); }} className="p-2 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
+                </div>
+              </div>
+
+              {/* Detail Content */}
+              <div className="space-y-5">
+                {/* Status & Meta */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-blue-50 rounded-xl p-3">
+                    <p className="text-[10px] text-blue-500 font-medium mb-1">Points</p>
+                    {editMode ? (
+                      <input type="number" value={editForm.totalPoints} onChange={e => setEditForm(f => ({ ...f, totalPoints: parseInt(e.target.value) || 0 }))}
+                        className="input-field text-sm font-bold w-full" />
+                    ) : (
+                      <p className="text-xl font-bold text-blue-700">{selectedAssignment.totalPoints}</p>
+                    )}
+                  </div>
+                  <div className="bg-amber-50 rounded-xl p-3">
+                    <p className="text-[10px] text-amber-500 font-medium mb-1">Due Date</p>
+                    {editMode ? (
+                      <input type="datetime-local" value={editForm.dueDate} onChange={e => setEditForm(f => ({ ...f, dueDate: e.target.value }))}
+                        className="input-field text-xs w-full" />
+                    ) : (
+                      <p className="text-sm font-bold text-amber-700">{formatDate(selectedAssignment.dueDate)}</p>
+                    )}
+                  </div>
+                  <div className="bg-green-50 rounded-xl p-3">
+                    <p className="text-[10px] text-green-500 font-medium mb-1">Submissions</p>
+                    <p className="text-xl font-bold text-green-700">{selectedAssignment.submissions?.length || 0}</p>
+                  </div>
+                  <div className="bg-violet-50 rounded-xl p-3">
+                    <p className="text-[10px] text-violet-500 font-medium mb-1">Graded</p>
+                    <p className="text-xl font-bold text-violet-700">{selectedAssignment.submissions?.filter((s: any) => s.status === 'GRADED').length || 0}</p>
+                  </div>
+                </div>
+
+                {/* Published toggle in edit mode */}
+                {editMode && (
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
+                    <input type="checkbox" id="editPublished" checked={editForm.isPublished}
+                      onChange={e => setEditForm(f => ({ ...f, isPublished: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                    <label htmlFor="editPublished" className="text-sm text-gray-700 font-medium">Published</label>
+                  </div>
+                )}
+
+                {/* Description */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                    <FileText size={14} className="text-gray-400" /> Description
+                  </h3>
+                  {editMode ? (
+                    <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                      className="input-field min-h-[150px] text-sm" />
+                  ) : (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                      {selectedAssignment.description || 'No description provided.'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Attachments */}
+                {(selectedAssignment.attachments?.length || 0) > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                      <Paperclip size={14} className="text-gray-400" /> Attachments ({selectedAssignment.attachments.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedAssignment.attachments.map((att: Attachment) => (
+                        <a key={att.id} href={att.url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition border border-gray-200">
+                          {att.type === 'link' ? <Link2 size={16} className="text-blue-500" /> : <FileText size={16} className="text-primary-500" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-700 truncate">{att.name}</p>
+                            {att.size && <p className="text-[10px] text-gray-400">{(att.size / 1024).toFixed(0)} KB</p>}
+                          </div>
+                          <ExternalLink size={14} className="text-gray-400 flex-shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Submissions Breakdown */}
+                {(selectedAssignment.submissions?.length || 0) > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                      <Users size={14} className="text-gray-400" /> Submission Details
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedAssignment.submissions.map((sub: any) => (
+                        <div key={sub.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold',
+                            sub.status === 'GRADED' ? (sub.score >= selectedAssignment.totalPoints * 0.7 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700')
+                            : sub.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500')}>
+                            {sub.status === 'GRADED' ? `${sub.score}` : sub.status === 'SUBMITTED' ? '...' : '-'}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-700">{sub.studentName || sub.studentId || 'Student'}</p>
+                            <p className="text-[10px] text-gray-400">
+                              {sub.status === 'GRADED' ? `Score: ${sub.score}/${sub.maxScore || selectedAssignment.totalPoints}` : sub.status}
+                            </p>
+                          </div>
+                          <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium',
+                            sub.status === 'GRADED' ? 'bg-green-100 text-green-700' : sub.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500')}>
+                            {sub.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Category info */}
+                {selectedAssignment.category && (
+                  <div className="flex items-center gap-2 text-xs text-gray-400 pt-2 border-t border-gray-100">
+                    <Tag size={12} />
+                    <span>Category: <strong className="text-gray-600">{categories.find(c => c.id === selectedAssignment.category)?.label || selectedAssignment.category}</strong></span>
+                    {selectedAssignment.isExtraCredit && <span className="text-pink-600 font-medium flex items-center gap-0.5"><Star size={10} /> Extra Credit</span>}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Create Modal - existing */}
         {showCreate && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => { setShowCreate(false); resetForm(); }}>

@@ -1004,7 +1004,7 @@ export default function PricingPage() {
           <div className="flex-1">
             <h3 className="font-bold text-gray-900">Homeschool families love Limud!</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Our Free plan gives you 50 AI tutor sessions, basic gamification, and a parent dashboard &mdash; completely free, forever.
+              Our Free plan gives you 50 AI tutor sessions, adaptive learning, and a parent dashboard &mdash; completely free, forever.
               Need more? Upgrade to Starter for just $2/student/month billed annually.
             </p>
           </div>
@@ -1019,7 +1019,7 @@ export default function PricingPage() {
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">Pricing FAQ</h2>
           <div className="space-y-4">
             {[
-              { q: 'Is the Free plan really free forever?', a: 'Yes! Our Free plan supports up to 5 students and 2 teachers with no time limit, no credit card required. You get 50 AI Tutor sessions/month, 3 quiz generations/month, basic gamification with 2 free games, a parent dashboard, and community support. Ideal for homeschool families.' },
+              { q: 'Is the Free plan really free forever?', a: 'Yes! Our Free plan supports up to 5 students and 2 teachers with no time limit, no credit card required. You get 50 AI Tutor sessions/month, 3 quiz generations/month, adaptive learning with 2 free games, a parent dashboard, and community support. Ideal for homeschool families.' },
               { q: 'What happens when I hit a limit?', a: 'You will see a friendly notification and can either upgrade or wait for your monthly limit to reset. We never cut off access to existing work — students can always view their past assignments, grades, and progress.' },
               { q: 'Can I switch plans at any time?', a: 'Absolutely. Upgrade instantly and we will prorate the difference. Downgrade at the end of your billing cycle. Your data is always preserved regardless of plan changes.' },
               { q: 'How does the Custom Plan Builder work?', a: 'Our Custom Plan Builder lets you mix and match exactly what you need. Adjust student/teacher capacity, AI usage limits (tutor sessions, grading, quizzes, writing coach), analytics modules, and add-on features like SSO, custom branding, and priority support. The builder calculates your monthly and annual cost in real time, and shows which standard plan most closely matches your selection.' },
@@ -1057,7 +1057,7 @@ function getQuickFeatures(tier: string): string[] {
       'AI Tutor (50 sessions/mo)',
 
       'AI Quiz Generator (3/mo)',
-      'Basic gamification (2 games)',
+      'Adaptive learning',
       'Parent dashboard',
       'FERPA & COPPA compliant',
       'Community support',
@@ -1068,7 +1068,7 @@ function getQuickFeatures(tier: string): string[] {
       'AI Auto-Grader (100/mo)',
 
       'AI Quiz Generator (15/mo)',
-      '4 games, full gamification',
+      'Advanced analytics',
       '6 platform integrations',
       'Email support',
     ];

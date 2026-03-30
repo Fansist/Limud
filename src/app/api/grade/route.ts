@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import { gradeSubmission } from '@/lib/ai';
-import { onAssignmentGraded } from '@/lib/gamification';
 import prisma from '@/lib/prisma';
 
 export const POST = apiHandler(async (req: Request) => {
@@ -67,9 +66,6 @@ export const POST = apiHandler(async (req: Request) => {
         gradedAt: new Date(),
       },
     });
-
-    // Award gamification points
-    await onAssignmentGraded(submission.studentId, result.score, result.maxScore);
 
     // Notify student
     await prisma.notification.create({

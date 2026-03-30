@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, requireRole, apiHandler, hasTeacherAccess } from '@/lib/middleware';
-import { updateStreak } from '@/lib/gamification';
 import prisma from '@/lib/prisma';
 
 export const POST = apiHandler(async (req: Request) => {
@@ -87,9 +86,6 @@ export const POST = apiHandler(async (req: Request) => {
       data: { submissionId: submission.id },
     });
   }
-
-  // Update streak
-  await updateStreak(user.id);
 
   return NextResponse.json({ submission }, { status: 201 });
 });

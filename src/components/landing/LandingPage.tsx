@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { motion, useInView } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
 import {
-  BookOpen, Trophy, BarChart3, GraduationCap,
+  BookOpen, BarChart3, GraduationCap,
   Shield, Users, Brain, Sparkles, ArrowRight,
   Check, Play, Heart, TrendingUp,
-  Lightbulb, Gamepad2, Eye,
+  Lightbulb, Calendar, Eye,
   FileText, Target, LayoutDashboard,
   ChevronDown, ChevronUp, MessageCircle, DollarSign,
   Award, Link2, Lock, Zap, Home, Building2, Cpu,
@@ -238,8 +238,8 @@ export default function LandingPage() {
             {[
               { icon: <Brain size={22} />, title: 'Adaptive AI Tutor', desc: 'Adapts to each student\'s learning style. Visual learners get diagrams, auditory learners get explanations, ADHD students get shorter interactive tasks.', color: 'bg-purple-100 text-purple-600' },
               { icon: <GraduationCap size={22} />, title: 'AI Auto-Grader', desc: 'One-click rubric-based grading for essays, short answers, and projects. No more midnight grading.', color: 'bg-green-100 text-green-600' },
-              { icon: <Trophy size={22} />, title: 'Gamification', desc: 'XP, levels, streaks, coins, avatar shop, badges, and leaderboards that keep students engaged.', color: 'bg-amber-100 text-amber-600' },
-              { icon: <Gamepad2 size={22} />, title: 'Educational Games', desc: 'Math Blaster, Word Quest, Science Puzzles, History Trivia — all subjects covered.', color: 'bg-pink-100 text-pink-600' },
+              { icon: <BarChart3 size={22} />, title: 'Deep Analytics', desc: 'Drill-down analytics with clickable metrics, score distributions, at-risk alerts, and detailed student performance breakdowns.', color: 'bg-amber-100 text-amber-600' },
+              { icon: <Calendar size={22} />, title: 'Study Planning', desc: 'AI-powered study planner, focus mode, exam simulator, and personalized learning paths for every student.', color: 'bg-pink-100 text-pink-600' },
               { icon: <Lightbulb size={22} />, title: 'AI Quiz Generator', desc: 'Curriculum-aligned quizzes with multiple choice and short answer. AI-generated and verified.', color: 'bg-amber-100 text-amber-600' },
               { icon: <Eye size={22} />, title: 'Parent Portal + AI', desc: 'Real-time grades, AI-powered check-ins on your child\'s progress, safety monitoring, and goal tracking.', color: 'bg-rose-100 text-rose-600' },
               { icon: <LayoutDashboard size={22} />, title: 'Admin Dashboard', desc: 'District management, CSV provisioning, compliance dashboards, billing, and usage analytics.', color: 'bg-slate-100 text-slate-600' },
@@ -272,7 +272,7 @@ export default function LandingPage() {
                 name: 'Khan Academy',
                 emoji: '🎓',
                 good: 'World-class free content with thousands of videos and exercises.',
-                limud: 'Limud integrates with Khan and adds AI auto-grading, gamification, and parent dashboards.',
+                limud: 'Limud integrates with Khan and adds AI auto-grading, adaptive learning, and parent dashboards.',
                 color: 'bg-green-50 border-green-200',
               },
               {
@@ -286,7 +286,7 @@ export default function LandingPage() {
                 name: 'Quizlet + ClassDojo + Nearpod',
                 emoji: '✨',
                 good: 'Each excels in its niche: flashcards, parent comms, and interactive lessons.',
-                limud: 'Limud combines quizzes, rewards, AI tutoring, and more. One login, one price.',
+                limud: 'Limud combines quizzes, adaptive learning, AI tutoring, and more. One login, one price.',
                 color: 'bg-purple-50 border-purple-200',
               },
             ].map(item => (
@@ -335,7 +335,7 @@ export default function LandingPage() {
               },
               {
                 icon: <GraduationCap size={22} />, title: 'Students', color: 'from-green-400 to-emerald-500',
-                features: ['AI adapts to you', 'Educational games', 'XP & rewards', 'Study planner', 'Visual/audio/ADHD modes'],
+                features: ['AI adapts to you', 'Focus mode', 'Study planner', 'Exam simulator', 'Visual/audio/ADHD modes'],
                 cta: 'Try Demo', link: '/login',
               },
             ].map(item => (
@@ -372,7 +372,7 @@ export default function LandingPage() {
             {[
               {
                 name: 'Free', price: '$0', period: '/forever', desc: 'Homeschool families',
-                features: ['Up to 5 students', 'AI Tutor (50/mo)', 'Basic gamification', 'Parent dashboard', 'AI check-ins'],
+                features: ['Up to 5 students', 'AI Tutor (50/mo)', 'Adaptive learning', 'Parent dashboard', 'AI check-ins'],
                 cta: 'Get Started Free', link: '/register', highlight: false,
               },
               {
@@ -430,9 +430,9 @@ export default function LandingPage() {
 
           <div className="bg-white rounded-xl border border-gray-100 p-6">
             {[
-              { q: 'Is Limud really free for homeschool families?', a: 'Yes! The Free plan is free forever for up to 5 students with no credit card required. It includes AI tutoring, gamification, and the full parent dashboard including AI check-ins.' },
+              { q: 'Is Limud really free for homeschool families?', a: 'Yes! The Free plan is free forever for up to 5 students with no credit card required. It includes AI tutoring, adaptive learning, and the full parent dashboard including AI check-ins.' },
               { q: 'How does the AI tutor work?', a: 'Unlike ChatGPT which gives direct answers, Limud\'s AI tutor uses Socratic questioning to guide students to discover answers themselves. All conversations are logged for parent/teacher review. It\'s grade-level appropriate and builds critical thinking.' },
-              { q: 'Do I need to leave Google Classroom or Khan Academy?', a: 'Not at all! Limud integrates with both. Keep everything you love — Limud adds AI grading, gamification, analytics, and parent dashboards that those platforms don\'t offer.' },
+              { q: 'Do I need to leave Google Classroom or Khan Academy?', a: 'Not at all! Limud integrates with both. Keep everything you love — Limud adds AI grading, adaptive analytics, and parent dashboards that those platforms don\'t offer.' },
               { q: 'What is the AI parent check-in?', a: 'Parents can ask Limud\'s AI to generate a summary of their child\'s recent academic performance, emotional engagement, study habits, and areas needing attention. It analyzes grades, streaks, tutor usage, and more to give you a comprehensive check-in report.' },
               { q: 'Is it FERPA and COPPA compliant?', a: 'Yes, fully. We never sell student data, all data is encrypted, and we undergo annual security audits. Compliance is built-in from day one.' },
               { q: 'How long does setup take?', a: 'Most families are ready in under 5 minutes. Districts can provision teachers and students via CSV upload in under 30 minutes.' },
