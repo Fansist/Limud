@@ -9,6 +9,7 @@ import { cn, AVATAR_OPTIONS } from '@/lib/utils';
 import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
 import AINavigator from '@/components/ai/AINavigator';
 import { usePerf } from '@/lib/performance';
+import { useI18n, LOCALES } from '@/lib/i18n';
 import {
   DEMO_STUDENT, DEMO_TEACHER, DEMO_ADMIN, DEMO_PARENT, DEMO_HOMESCHOOL_PARENT, DEMO_NOTIFICATIONS,
 } from '@/lib/demo-data';
@@ -20,6 +21,7 @@ import {
   Lightbulb, Focus, Zap, ChevronDown, Settings,
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
   Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList, Clipboard, Palette,
+  MessageSquare,
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?: React.ReactNode; };
@@ -36,6 +38,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
     { label: 'Learning', items: [
       { href: '/student/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
       { href: '/student/focus', label: 'Focus Mode', icon: <Focus size={20} /> },
+      { href: '/student/forums', label: 'Discussions', icon: <MessageSquare size={20} /> },
       { href: '/student/study-planner', label: 'Study Planner', icon: <Calendar size={20} /> },
       { href: '/student/exam-sim', label: 'Exam Simulator', icon: <FileText size={20} /> },
       { href: '/student/knowledge', label: 'Analytics', icon: <BarChart3 size={20} /> },
@@ -67,6 +70,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/teacher/students', label: 'My Students', icon: <Users size={20} /> },
       { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
       { href: '/teacher/worksheets', label: 'Worksheets', icon: <PenTool size={20} /> },
+      { href: '/student/forums', label: 'Forums', icon: <MessageSquare size={20} /> },
       { href: '/teacher/exchange', label: 'Teacher Exchange', icon: <Globe2 size={20} /> },
 
       { href: '/teacher/messages', label: 'Messages', icon: <Mail size={20} /> },
@@ -181,6 +185,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { liteMode, toggleLiteMode, enableAnimations, enableBlur } = usePerf();
+  const { locale, setLocale } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -563,6 +568,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex-1" />
+
+          {/* Language Switcher */}
+          <div className="relative group">
+            <button className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm text-gray-500" aria-label="Change language">
+              <Globe2 size={18} />
+              <span className="hidden sm:inline text-xs font-medium uppercase">{locale}</span>
+            </button>
+            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[140px]">
+              {LOCALES.map(l => (
+                <button
+                  key={l.code}
+                  onClick={() => setLocale(l.code)}
+                  className={cn(
+                    'w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition',
+                    locale === l.code ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 font-medium' : 'text-gray-600 dark:text-gray-400'
+                  )}
+                >
+                  <span>{l.flag}</span>
+                  <span>{l.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Notifications */}
           <div className="relative">

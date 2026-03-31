@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Sitemaps
-Sitemap: https://your-domain.com/sitemap.xml
+Sitemap: https://limud.co/sitemap.xml
 
 # Block internal/API routes from crawlers
 Disallow: /api/

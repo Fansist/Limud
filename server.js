@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// Limud v9.9.0 — server.js
+// Limud v10.0.0 — server.js
 // Universal entry point for Node.js hosting platforms:
 //   - Render.com (primary — PORT=10000, auto-detected via RENDER env)
 //   - cPanel / GoDaddy (Phusion Passenger)
@@ -52,7 +52,7 @@ const isStandalone = fs.existsSync(standaloneServerPath);
 // ─── v9.5.0: Track startup time ──────────────────────────────
 const startTime = Date.now();
 
-console.log(`[Limud v9.9.0] Platform: ${platform}`);
+console.log(`[Limud v10.0.0] Platform: ${platform}`);
 console.log(`[Limud] Node.js ${process.version}`);
 console.log(`[Limud] Environment: ${process.env.NODE_ENV || 'production'}`);
 console.log(`[Limud] Standalone build: ${isStandalone ? 'YES' : 'NO'}`);
@@ -129,7 +129,7 @@ if (isStandalone) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               status: 'ok',
-              version: '9.9.0',
+              version: '10.0.0',
               platform,
               uptime: process.uptime(),
               memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',

@@ -122,6 +122,9 @@ model SchoolDistrict {
   // v9.6 District link requests
   linkRequests      DistrictLinkRequest[] @relation("DistrictLinkRequests")
 
+  // v10.0 Announcements
+  announcements     Announcement[]
+
   @@map("school_districts")
 }
 
@@ -400,6 +403,12 @@ model User {
   // Auth sessions
   sessions       Session[]
   accounts       Account[]
+
+  // v10.0 Announcements authored
+  authoredAnnouncements Announcement[]
+
+  // v10.0 Forum posts
+  forumPosts     ForumPost[]
 
   // Messaging
   sentMessages     Message[] @relation("SentMessages")
@@ -1648,6 +1657,56 @@ model DataDeletionRequest {
 
   @@index([subjectId, status])
   @@map("data_deletion_requests")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// V10.0: ANNOUNCEMENTS, FORUMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── ANNOUNCEMENT (DB-backed, replaces in-memory) ─────────────────────────
+
+model Announcement {
+  id          String   @id @default(cuid())
+  districtId  String
+  district    SchoolDistrict @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  title       String
+  message     String   @db.Text
+  priority    String   @default("normal") // normal, urgent, info
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  targetRoles String   @default("STUDENT,TEACHER,PARENT,ADMIN") // comma-separated roles
+  isPinned    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?
+
+  @@index([districtId, isActive])
+  @@index([createdAt])
+  @@map("announcements")
+}
+
+// ─── FORUM POST (per-course threaded discussions) ─────────────────────────
+
+model ForumPost {
+  id          String    @id @default(cuid())
+  courseId    String?
+  subject     String?   // fallback subject if no course
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title       String?
+  content     String    @db.Text
+  isPinned    Boolean   @default(false)
+  isResolved  Boolean   @default(false)
+  parentId    String?
+  parent      ForumPost? @relation("ForumReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies     ForumPost[] @relation("ForumReplies")
+  upvotes     Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([courseId, createdAt])
+  @@index([parentId])
+  @@map("forum_posts")
 }
 
 // ─── DISTRICT LINK REQUESTS (v9.6 — Student → District linking) ──────────

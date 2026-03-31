@@ -351,3 +351,96 @@ export function useInView(options?: IntersectionObserverInit) {
 
   return { ref: setRef, inView };
 }
+
+// ─── CORE WEB VITALS TRACKING (v10.0) ─────────────────────────────────
+
+interface WebVitalsEntry {
+  name: string;
+  value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
+}
+
+export function reportWebVitals() {
+  if (typeof window === 'undefined' || typeof PerformanceObserver === 'undefined') return;
+
+  // LCP — Largest Contentful Paint
+  try {
+    const lcpObserver = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      const lastEntry = entries[entries.length - 1] as any;
+      if (lastEntry) {
+        const lcp = lastEntry.renderTime || lastEntry.loadTime;
+        const rating = lcp < 2500 ? 'good' : lcp < 4000 ? 'needs-improvement' : 'poor';
+        logVital({ name: 'LCP', value: Math.round(lcp), rating });
+      }
+    });
+    lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+  } catch {}
+
+  // FID — First Input Delay
+  try {
+    const fidObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const fid = (entry as any).processingStart - entry.startTime;
+        const rating = fid < 100 ? 'good' : fid < 300 ? 'needs-improvement' : 'poor';
+        logVital({ name: 'FID', value: Math.round(fid), rating });
+      }
+    });
+    fidObserver.observe({ type: 'first-input', buffered: true });
+  } catch {}
+
+  // CLS — Cumulative Layout Shift
+  try {
+    let clsValue = 0;
+    const clsObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (!(entry as any).hadRecentInput) {
+          clsValue += (entry as any).value;
+        }
+      }
+      const rating = clsValue < 0.1 ? 'good' : clsValue < 0.25 ? 'needs-improvement' : 'poor';
+      logVital({ name: 'CLS', value: Math.round(clsValue * 1000) / 1000, rating });
+    });
+    clsObserver.observe({ type: 'layout-shift', buffered: true });
+  } catch {}
+
+  // INP — Interaction to Next Paint (replaces FID in modern browsers)
+  try {
+    const inpObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const inp = entry.duration;
+        const rating = inp < 200 ? 'good' : inp < 500 ? 'needs-improvement' : 'poor';
+        logVital({ name: 'INP', value: Math.round(inp), rating });
+      }
+    });
+    inpObserver.observe({ type: 'event', buffered: true });
+  } catch {}
+}
+
+function logVital(vital: WebVitalsEntry) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Web Vital] ${vital.name}: ${vital.value}ms (${vital.rating})`);
+  }
+
+  // Send to analytics endpoint (fire-and-forget)
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/analytics', JSON.stringify({
+        type: 'web_vital',
+        ...vital,
+        url: window.location.pathname,
+        timestamp: Date.now(),
+      }));
+    }
+  } catch {}
+}
+
+// Auto-init on module load
+if (typeof window !== 'undefined') {
+  // Wait for load to capture accurate LCP
+  if (document.readyState === 'complete') {
+    reportWebVitals();
+  } else {
+    window.addEventListener('load', reportWebVitals, { once: true });
+  }
+}

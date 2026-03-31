@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import { gradeSubmission } from '@/lib/ai';
 import prisma from '@/lib/prisma';
+import { sendEmail } from '@/lib/email';
+import { gradePosted } from '@/lib/email-templates';
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
@@ -77,6 +79,19 @@ export const POST = apiHandler(async (req: Request) => {
         link: '/student/assignments',
       },
     });
+
+    // Send email notification (non-blocking)
+    sendEmail({
+      to: submission.student.email,
+      subject: `Limud: "${submission.assignment.title}" graded — ${result.score}/${result.maxScore}`,
+      html: gradePosted({
+        studentName: submission.student.name,
+        assignmentTitle: submission.assignment.title,
+        score: result.score,
+        maxScore: result.maxScore,
+        feedback: result.feedback || undefined,
+      }),
+    }).catch(() => { /* email is best-effort */ });
 
     return NextResponse.json({
       submission: updated,

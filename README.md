@@ -1159,6 +1159,63 @@ NODE_OPTIONS=--max-old-space-size=512
 
 ## Changelog
 
+### v10.0.0 (2026-03-31) — "The Full Stack" Major Release
+
+#### CI/CD & Infrastructure
+- GitHub Actions workflow: lint → type-check → test → build on every push/PR
+- SKIP_DB_PUSH env var for CI builds
+- New env vars: RESEND_API_KEY, CRON_SECRET
+- Added `jspdf` and `resend` to server-side external packages
+
+#### SEO
+- XML sitemap (9 public pages)
+- Schema.org JSON-LD: Organization, WebApplication
+- OpenGraph + Twitter Card meta tags enhanced
+- robots.txt updated with sitemap reference to limud.co
+
+#### Announcement Persistence
+- Announcements stored in PostgreSQL via new Announcement Prisma model (was in-memory)
+- Admin CRUD: create, edit, delete, set expiry, target by role
+- Cross-role broadcast triggers notifications to all matching users
+- Demo fallback for non-DB mode
+
+#### PDF Report Export
+- Branded PDF reports: student summary, per-course breakdown, grades, AI feedback
+- Export from Teacher Students, Parent Dashboard, Admin Students pages
+- FERPA-compliant footer and metadata
+- jsPDF server-side generation with download trigger
+
+#### Email Notifications
+- Resend integration for transactional email
+- Templates: welcome, grade posted, assignment due reminder, weekly parent digest
+- Cron endpoint for weekly parent digest (/api/cron/weekly-digest)
+- Graceful no-op when RESEND_API_KEY is not set
+
+#### Discussion Forums
+- Per-course threaded discussion boards (new ForumPost Prisma model)
+- Teacher moderation: pin, resolve, delete
+- Reply threading with indentation
+- Accessible from Student (Learning > Discussions) and Teacher (Classroom > Forums) navigation
+
+#### Internationalization (i18n)
+- Cookie-based locale detection with 3 languages
+- English (en), Hebrew (he), Spanish (es) — full message files
+- RTL layout support for Hebrew (html dir="rtl")
+- Language switcher in dashboard header (globe dropdown)
+- Scope: landing page, login, register, 4 dashboards, navigation, common UI
+
+#### Performance
+- Core Web Vitals tracking: LCP, FID, CLS, INP — auto-reported via PerformanceObserver
+- Metrics sent to /api/analytics via sendBeacon
+- LazySection + LazyMotion components for below-fold content
+- Dynamic import optimization for heavy dependencies
+
+#### Notification System Enhanced
+- PATCH endpoint for bulk mark-as-read (individual IDs or all)
+- POST endpoint for programmatic notification creation (teacher/admin)
+- Email integration: grade posted → student email via Resend
+- Announcement create → notification broadcast to district users
+
 ### v9.9.0 (2026-03-30) — "The Four Pillars" Blueprint Update
 
 #### What Changed

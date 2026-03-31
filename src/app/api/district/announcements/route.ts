@@ -1,13 +1,13 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.5.1 — District Announcements API                             ║
- * ║  GET  /api/district/announcements  — list announcements                ║
- * ║  POST /api/district/announcements  — create announcement (admin only)  ║
- * ║  PUT  /api/district/announcements  — update announcement (pin/edit)    ║
- * ║  DELETE /api/district/announcements — delete announcement              ║
- * ║                                                                        ║
- * ║  Uses in-memory store for development/demo.                           ║
- * ║  For production persistence, add an Announcement Prisma model.        ║
+ * ║  LIMUD v10.0 — District Announcements API (DB-backed)                 ║
+ * ║  GET  /api/district/announcements  — list announcements               ║
+ * ║  POST /api/district/announcements  — create announcement (admin only) ║
+ * ║  PUT  /api/district/announcements  — update announcement (pin/edit)   ║
+ * ║  DELETE /api/district/announcements — delete announcement             ║
+ * ║                                                                       ║
+ * ║  v10.0: Persisted in PostgreSQL via Announcement Prisma model.        ║
+ * ║  Falls back to demo data when in demo mode or no DB.                  ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
@@ -15,49 +15,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { AUTH_SECRET } from '@/lib/config';
 
-// ═══════════════════════════════════════════════════════════════════
-// IN-MEMORY ANNOUNCEMENT STORE
-// Persists for the lifetime of the server process.
-// For production persistence, replace with Prisma database calls.
-// ═══════════════════════════════════════════════════════════════════
-
-interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  priority: 'low' | 'normal' | 'high';
-  audience: string[];
-  schools: string[];
-  isPinned: boolean;
-  isActive: boolean;
-  author: { name: string; role: string };
-  readCount: number;
-  totalRecipients: number;
-  createdAt: string;
-  expiresAt: string | null;
-}
-
-const announcementStore: Announcement[] = [
+// Demo announcements for demo/non-DB mode
+const DEMO_ANNOUNCEMENTS = [
   {
-    id: 'ann-seed-1',
+    id: 'ann-demo-1',
     title: 'Welcome to Limud',
-    content: 'Welcome to the Limud learning platform! This system provides AI-powered tutoring, adaptive assignments, and comprehensive analytics for students, teachers, and parents. Explore your dashboard to get started.',
+    message: 'Welcome to the Limud learning platform! This system provides AI-powered tutoring, adaptive assignments, and comprehensive analytics for students, teachers, and parents. Explore your dashboard to get started.',
     priority: 'normal',
-    audience: ['ALL'],
-    schools: [],
     isPinned: true,
     isActive: true,
+    authorId: 'demo',
     author: { name: 'System', role: 'ADMIN' },
-    readCount: 0,
-    totalRecipients: 0,
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     expiresAt: null,
+    targetRoles: 'STUDENT,TEACHER,PARENT,ADMIN',
+  },
+  {
+    id: 'ann-demo-2',
+    title: 'New: AI-Powered Grading Available',
+    message: 'Teachers can now use AI to grade assignments automatically. Navigate to AI Grading from your dashboard to get started.',
+    priority: 'high',
+    isPinned: false,
+    isActive: true,
+    authorId: 'demo',
+    author: { name: 'Dr. Sarah Chen', role: 'ADMIN' },
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    expiresAt: null,
+    targetRoles: 'TEACHER',
   },
 ];
-
-function generateId(): string {
-  return 'ann-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-}
 
 // ═══════════════════════════════════════════════════════════════════
 // GET — List announcements
@@ -75,26 +61,64 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Update isActive based on expiry
-    const now = new Date();
-    for (const ann of announcementStore) {
-      if (ann.expiresAt && new Date(ann.expiresAt) < now) {
-        ann.isActive = false;
-      }
+    const userRole = token.role as string;
+    const districtId = token.districtId as string | null;
+    const isDemo = token.isDemo as boolean || token.isMasterDemo as boolean;
+
+    // Demo mode: return demo announcements
+    if (isDemo || !districtId) {
+      const filtered = DEMO_ANNOUNCEMENTS.filter(a =>
+        a.targetRoles.includes('ALL') || a.targetRoles.includes(userRole)
+      );
+      return NextResponse.json({
+        announcements: filtered,
+        total: filtered.length,
+      });
     }
 
-    // Return sorted: pinned first, then by date
-    const sorted = [...announcementStore].sort((a, b) => {
-      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    // DB mode: fetch from Prisma
+    try {
+      const prisma = (await import('@/lib/prisma')).default;
+      const now = new Date();
 
-    return NextResponse.json({
-      announcements: sorted,
-      total: sorted.length,
-    });
-  } catch (error: any) {
-    console.error('[Announcements API] GET error:', error.message);
+      const announcements = await prisma.announcement.findMany({
+        where: {
+          districtId,
+          isActive: true,
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: now } },
+          ],
+        },
+        include: {
+          author: { select: { name: true, role: true } },
+        },
+        orderBy: [
+          { isPinned: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: 50,
+      });
+
+      // Filter by role
+      const filtered = announcements.filter(a =>
+        a.targetRoles.includes('ALL') || a.targetRoles.includes(userRole)
+      );
+
+      return NextResponse.json({
+        announcements: filtered,
+        total: filtered.length,
+      });
+    } catch {
+      // DB not available — fall back to demo
+      return NextResponse.json({
+        announcements: DEMO_ANNOUNCEMENTS,
+        total: DEMO_ANNOUNCEMENTS.length,
+      });
+    }
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Announcements API] GET error:', msg);
     return NextResponse.json({ error: 'Failed to fetch announcements' }, { status: 500 });
   }
 }
@@ -121,41 +145,88 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, content, priority, audience, schools, isPinned, expiresIn } = body;
+    const { title, content, priority, audience, isPinned, expiresIn } = body;
 
     if (!title?.trim() || !content?.trim()) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
     }
 
-    const announcement: Announcement = {
-      id: generateId(),
-      title: title.trim(),
-      content: content.trim(),
-      priority: priority || 'normal',
-      audience: audience || ['ALL'],
-      schools: schools || [],
-      isPinned: isPinned || false,
-      isActive: true,
-      author: {
-        name: token.name as string || 'Admin',
-        role: role,
+    const districtId = token.districtId as string | null;
+    const isDemo = token.isDemo as boolean || token.isMasterDemo as boolean;
+
+    // Demo mode: return synthetic announcement
+    if (isDemo || !districtId) {
+      const demoAnn = {
+        id: 'ann-' + Date.now().toString(36),
+        title: title.trim(),
+        message: content.trim(),
+        priority: priority || 'normal',
+        isPinned: isPinned || false,
+        isActive: true,
+        authorId: 'demo',
+        author: { name: token.name || 'Admin', role },
+        targetRoles: audience?.join(',') || 'STUDENT,TEACHER,PARENT,ADMIN',
+        createdAt: new Date().toISOString(),
+        expiresAt: expiresIn
+          ? new Date(Date.now() + parseInt(expiresIn) * 24 * 60 * 60 * 1000).toISOString()
+          : null,
+      };
+      return NextResponse.json({ success: true, announcement: demoAnn });
+    }
+
+    // DB mode
+    const prisma = (await import('@/lib/prisma')).default;
+    const targetRoles = audience?.length ? audience.join(',') : 'STUDENT,TEACHER,PARENT,ADMIN';
+
+    const announcement = await prisma.announcement.create({
+      data: {
+        districtId,
+        title: title.trim(),
+        message: content.trim(),
+        priority: priority || 'normal',
+        authorId: token.sub as string,
+        targetRoles,
+        isPinned: isPinned || false,
+        expiresAt: expiresIn
+          ? new Date(Date.now() + parseInt(expiresIn) * 24 * 60 * 60 * 1000)
+          : null,
       },
-      readCount: 0,
-      totalRecipients: 0,
-      createdAt: new Date().toISOString(),
-      expiresAt: expiresIn
-        ? new Date(Date.now() + parseInt(expiresIn) * 24 * 60 * 60 * 1000).toISOString()
-        : null,
-    };
-
-    announcementStore.unshift(announcement);
-
-    return NextResponse.json({
-      success: true,
-      announcement,
+      include: {
+        author: { select: { name: true, role: true } },
+      },
     });
-  } catch (error: any) {
-    console.error('[Announcements API] POST error:', error.message);
+
+    // Fire notifications to users in district with matching roles
+    try {
+      const roleList = targetRoles.split(',').map((r: string) => r.trim());
+      const users = await prisma.user.findMany({
+        where: {
+          districtId,
+          role: { in: roleList as any[] },
+          isActive: true,
+        },
+        select: { id: true },
+      });
+
+      if (users.length > 0) {
+        await prisma.notification.createMany({
+          data: users.map(u => ({
+            userId: u.id,
+            title: `📢 ${title.trim()}`,
+            message: content.trim().substring(0, 200),
+            type: 'announcement',
+            link: '/admin/announcements',
+          })),
+        });
+      }
+    } catch (notifError) {
+      console.warn('[Announcements] Notification dispatch failed:', notifError);
+    }
+
+    return NextResponse.json({ success: true, announcement });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Announcements API] POST error:', msg);
     return NextResponse.json({ error: 'Failed to create announcement' }, { status: 500 });
   }
 }
@@ -188,19 +259,30 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Announcement ID is required' }, { status: 400 });
     }
 
-    const ann = announcementStore.find(a => a.id === id);
-    if (!ann) {
-      return NextResponse.json({ error: 'Announcement not found' }, { status: 404 });
+    const isDemo = token.isDemo as boolean || token.isMasterDemo as boolean;
+    if (isDemo) {
+      return NextResponse.json({ success: true, announcement: { id, isPinned, title, content, priority } });
     }
 
-    if (typeof isPinned === 'boolean') ann.isPinned = isPinned;
-    if (title?.trim()) ann.title = title.trim();
-    if (content?.trim()) ann.content = content.trim();
-    if (priority) ann.priority = priority;
+    const prisma = (await import('@/lib/prisma')).default;
+    const data: Record<string, unknown> = {};
+    if (typeof isPinned === 'boolean') data.isPinned = isPinned;
+    if (title?.trim()) data.title = title.trim();
+    if (content?.trim()) data.message = content.trim();
+    if (priority) data.priority = priority;
 
-    return NextResponse.json({ success: true, announcement: ann });
-  } catch (error: any) {
-    console.error('[Announcements API] PUT error:', error.message);
+    const updated = await prisma.announcement.update({
+      where: { id },
+      data,
+      include: {
+        author: { select: { name: true, role: true } },
+      },
+    });
+
+    return NextResponse.json({ success: true, announcement: updated });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Announcements API] PUT error:', msg);
     return NextResponse.json({ error: 'Failed to update announcement' }, { status: 500 });
   }
 }
@@ -233,16 +315,18 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Announcement ID is required' }, { status: 400 });
     }
 
-    const index = announcementStore.findIndex(a => a.id === id);
-    if (index === -1) {
-      return NextResponse.json({ error: 'Announcement not found' }, { status: 404 });
+    const isDemo = token.isDemo as boolean || token.isMasterDemo as boolean;
+    if (isDemo) {
+      return NextResponse.json({ success: true });
     }
 
-    announcementStore.splice(index, 1);
+    const prisma = (await import('@/lib/prisma')).default;
+    await prisma.announcement.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('[Announcements API] DELETE error:', error.message);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[Announcements API] DELETE error:', msg);
     return NextResponse.json({ error: 'Failed to delete announcement' }, { status: 500 });
   }
 }

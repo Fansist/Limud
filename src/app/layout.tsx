@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { cookies } from 'next/headers';
 import './globals.css';
 import Providers from '@/components/Providers';
 
@@ -7,11 +8,11 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Limud — AI-Powered K–12 Learning Platform',
+    default: 'Limud — AI-Powered Adaptive Learning for K-12',
     template: '%s | Limud',
   },
-  description: 'Replace Khan Academy, Google Classroom, Quizlet, ClassDojo & more with one AI-powered platform. Free forever plan. FERPA & COPPA compliant.',
-  keywords: ['education', 'AI tutor', 'K-12', 'learning platform', 'auto-grading', 'adaptive learning', 'edtech'],
+  description: 'Eliminate the one-size-fits-all classroom. AI adapts curriculum to every student\'s Learning DNA. Free for homeschool. FERPA & COPPA compliant.',
+  keywords: ['adaptive learning', 'K-12', 'AI tutor', 'FERPA', 'COPPA', 'homeschool', 'edtech', 'auto-grading', 'learning platform'],
   authors: [{ name: 'Limud Education Inc.' }],
   icons: { icon: '/favicon.ico' },
   manifest: '/manifest.json',
@@ -55,8 +56,13 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read locale from cookie for server-side RTL support
+  const cookieStore = cookies();
+  const locale = cookieStore.get('limud-locale')?.value || 'en';
+  const dir = locale === 'he' || locale === 'ar' ? 'rtl' : 'ltr';
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} dir={dir} suppressHydrationWarning>
       <head>
         {/* Preconnect for speed */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

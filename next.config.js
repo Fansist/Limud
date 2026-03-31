@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // v10.0: Keep these for now — removing requires fixing all type errors across 60+ pages
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   // ─── STANDALONE OUTPUT for Render / cPanel / any Node.js hosting ───
@@ -10,7 +11,7 @@ const nextConfig = {
     apiTimeout: 60000, // 60 seconds
   },
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', '@google/genai'],
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', '@google/genai', 'jspdf', 'resend'],
     optimizePackageImports: [
       'lucide-react',
       'framer-motion',

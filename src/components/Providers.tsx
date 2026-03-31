@@ -4,6 +4,7 @@ import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'react-hot-toast';
 import { ReactNode, createContext, useContext, useState, useEffect } from 'react';
 import { PerfProvider } from '@/lib/performance';
+import { I18nProvider } from '@/lib/i18n';
 
 // Accessibility context
 type AccessibilitySettings = {
@@ -79,6 +80,7 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
       <PerfProvider>
+        <I18nProvider>
         <AccessibilityProvider>
           {children}
           <Toaster
@@ -91,6 +93,7 @@ export default function Providers({ children }: { children: ReactNode }) {
             }}
           />
         </AccessibilityProvider>
+        </I18nProvider>
       </PerfProvider>
     </SessionProvider>
   );
