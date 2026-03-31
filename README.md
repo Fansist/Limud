@@ -1942,18 +1942,130 @@ Also: if everything fails, API returns 26 hardcoded districts (never empty).
 
 ## Roadmap
 
-Planned features and improvements:
+> Based on an independent product audit (March 2026). Items are prioritized by user impact and mapped against what Limud already ships today. Versions are tentative targets, not commitments.
 
-- **Real-time Collaboration** — Live co-editing for study groups and whiteboards
-- **Announcement Model** — Persist announcements to database (currently in-memory for demo)
-- **SSO/SAML** — Enterprise single sign-on integration
-- **Mobile App** — React Native companion app
-- **Offline Mode** — Progressive Web App (PWA) with offline question banks
-- **Advanced Reporting** — Exportable PDF reports for districts
-- **Custom AI Training** — Fine-tuned models per district for specialized curriculum
-- **Multi-Language** — Full i18n support (Hebrew, Spanish, Arabic, French)
-- **Video Lessons** — AI-generated video explanations
-- **Parent Mobile Notifications** — Push notifications for grades and alerts
+### Audit vs. Current State — Gap Matrix
+
+| Audit Recommendation | Limud v9.9.0 Status | Gap? |
+|---|---|---|
+| Adaptive AI tutor | ✅ Gemini 2.5 Flash Socratic tutor | — |
+| Student progress dashboards | ✅ Knowledge, Growth, Analytics pages | — |
+| Teacher gradebook / auto-grading | ✅ AI auto-grader with editable feedback | — |
+| Quiz generation | ✅ Curriculum-aligned AI quiz generator | — |
+| Gamification (XP, streaks, levels) | ✅ Restored in v9.9.0 | — |
+| Learning style adaptation | ✅ Learning DNA profiler + adaptive assignments | — |
+| RBAC (role-based access) | ✅ 5-role middleware (Student/Teacher/Admin/Parent/Homeschool) | — |
+| AES-256-GCM encryption | ✅ Field-level PII encryption in security.ts | — |
+| FERPA / COPPA compliance | ✅ Built into every layer, audit logs, 7-year retention | — |
+| WCAG AA accessibility | ✅ Keyboard nav, contrast, semantic HTML, focus traps | — |
+| PWA / Offline basics | ✅ manifest.json + sw.js already present | — |
+| SEO: robots.txt | ✅ Present in public/ | — |
+| MFA for admins | ✅ Referenced in admin settings | — |
+| CI/CD pipeline | ❌ No GitHub Actions workflow | **Gap** |
+| Automated testing (70–90%) | ❌ No test files found | **Gap** |
+| XML sitemap | ❌ Not present | **Gap** |
+| Schema.org structured data | ❌ Not implemented | **Gap** |
+| Notification / reminder system | ⚠️ Partial (grading notifs only) | **Partial** |
+| Full i18n (Hebrew, Spanish, Arabic) | ❌ English only | **Gap** |
+| Mobile app | ❌ Web only | **Gap** |
+| Content library (video lessons, worksheets DB) | ⚠️ 87+ worksheets; no video lessons | **Partial** |
+| Discussion forums / social learning | ⚠️ Messages exist; no forums | **Partial** |
+| Advanced reporting (PDF export) | ❌ Screen-only reports | **Gap** |
+| SSO / SAML | ❌ Not implemented | **Gap** |
+| Persistent announcements (DB) | ❌ In-memory for demo | **Gap** |
+
+---
+
+### Phase 1 — v9.10 "Foundation Hardening" (0–4 weeks)
+
+**Theme:** Testing, CI/CD, SEO, Performance — the audit's short-term quick wins.
+
+| # | Feature | Priority | Effort |
+|---|---|---|---|
+| 1.1 | **CI/CD Pipeline** — GitHub Actions: lint → type-check → build → deploy-preview on PR | 🔴 Critical | M |
+| 1.2 | **Testing Foundation** — Jest + React Testing Library setup; unit tests for API routes (`/api/health`, `/api/survey`, `/api/assignments`, `/api/grade`); target 30% coverage as v1 | 🔴 Critical | L |
+| 1.3 | **XML Sitemap** — Auto-generated sitemap.xml for all public pages (`/`, `/about`, `/pricing`, `/help`, `/login`, `/register`) | 🟡 High | S |
+| 1.4 | **Schema.org Structured Data** — `Course`, `FAQ`, `Organization` JSON-LD on landing page and help page | 🟡 High | S |
+| 1.5 | **Performance Audit** — Measure LCP (target <2.5s); lazy-load below-fold images; optimize Framer Motion bundle | 🟡 High | M |
+| 1.6 | **Announcement Persistence** — Store announcements in DB (Prisma model) instead of in-memory; admin CRUD API | 🟢 Medium | M |
+| 1.7 | **Notification Bell** — In-app notification dropdown for students/teachers (new grades, new assignments, announcements) | 🟢 Medium | L |
+
+**KPIs:** Build passes on every PR; test coverage ≥ 30%; LCP < 2.5s on landing; sitemap indexed by Google.
+
+---
+
+### Phase 2 — v9.11 "Content & Engagement" (4–8 weeks)
+
+**Theme:** Richer content, social features, and the audit's medium-term engagement gaps.
+
+| # | Feature | Priority | Effort |
+|---|---|---|---|
+| 2.1 | **Video Lesson Player** — Embeddable video component in assignments; YouTube/Vimeo embed + AI-generated transcript | 🔴 Critical | L |
+| 2.2 | **Interactive Exercise Builder** — Drag-and-drop, fill-in-the-blank, matching, and hotspot question types beyond MCQ/essay | 🟡 High | XL |
+| 2.3 | **Discussion Forums** — Per-course discussion boards with teacher moderation; threaded replies | 🟡 High | L |
+| 2.4 | **PDF Report Export** — Teacher and admin can export student progress, class averages, and growth charts as branded PDF | 🟡 High | M |
+| 2.5 | **Email Notifications** — SendGrid/Resend integration: assignment due reminders (24h before), grade posted alerts, weekly parent digest | 🟢 Medium | M |
+| 2.6 | **Content Library Expansion** — Curated lesson templates per subject (Math, Science, ELA, History for grades 3–12); teachers can fork and customize | 🟢 Medium | XL |
+| 2.7 | **Raise Test Coverage to 60%** — Integration tests for full flows: login → create assignment → submit → auto-grade → view report | 🟢 Medium | L |
+
+**KPIs:** ≥3 video-enabled assignments in demo; forum adoption >20% of active teachers; PDF export used by ≥1 district; test coverage ≥ 60%.
+
+---
+
+### Phase 3 — v9.12 "Enterprise & Scale" (8–16 weeks)
+
+**Theme:** SSO, i18n, mobile — the audit's long-term and enterprise requirements.
+
+| # | Feature | Priority | Effort |
+|---|---|---|---|
+| 3.1 | **SSO / SAML** — Enterprise single sign-on via SAML 2.0 (Azure AD, Google Workspace, Clever); auto-provisioning | 🔴 Critical | XL |
+| 3.2 | **Internationalization (i18n)** — Extract all strings to JSON locale files; ship Hebrew (he) + Spanish (es) first; RTL layout support for Hebrew/Arabic | 🔴 Critical | XL |
+| 3.3 | **Mobile PWA Improvements** — Offline question bank cache; push notifications via Web Push API; "Add to Home Screen" prompt | 🟡 High | L |
+| 3.4 | **Advanced Analytics Dashboard** — Admin: DAU/WAU/MAU charts, funnel (sign-up → active → paid), NPS survey widget; export to CSV | 🟡 High | L |
+| 3.5 | **GDPR Compliance Module** — Data export (Article 20), right to deletion (Article 17), cookie consent banner, DPO contact page | 🟡 High | M |
+| 3.6 | **Docker & Terraform** — Containerized deployment; infrastructure-as-code for AWS/GCP; staging environment auto-provisioned on PR | 🟢 Medium | L |
+| 3.7 | **Raise Test Coverage to 80%** — E2E tests with Playwright for critical paths: onboarding survey, assignment submission, AI tutor conversation, demo login | 🟢 Medium | L |
+
+**KPIs:** ≥1 district using SSO in pilot; Hebrew + Spanish live; DAU/MAU > 30%; GDPR audit passed; test coverage ≥ 80%.
+
+---
+
+### Phase 4 — v10.0 "Next Generation" (16–24 weeks)
+
+**Theme:** AI evolution, VR/AR, and the audit's moonshot long-term items.
+
+| # | Feature | Priority | Effort |
+|---|---|---|---|
+| 4.1 | **Emotional AI Layer** — Sentiment detection in tutor conversations; adaptive tone when student is frustrated or disengaged | 🟡 High | XL |
+| 4.2 | **React Native Mobile App** — Native iOS/Android companion with offline sync, push notifications, biometric login | 🟡 High | XXL |
+| 4.3 | **AI-Generated Video Lessons** — Gemini generates narrated explainer videos from lesson content; text-to-speech + slide generation | 🟢 Medium | XL |
+| 4.4 | **VR/AR Lesson Modules** — WebXR-based interactive science labs and historical explorations | 🟢 Medium | XXL |
+| 4.5 | **Custom AI Training per District** — Fine-tuned models on district-specific curriculum; custom rubrics encoded into the grading engine | 🟢 Medium | XL |
+| 4.6 | **Marketplace / Exchange** — Teachers sell/share lesson plans; peer-reviewed content with ratings | 🟢 Medium | L |
+| 4.7 | **Annual Security Audit** — Third-party penetration test; SOC 2 Type II certification; publish transparency report | 🔴 Critical | L |
+
+**KPIs:** NPS > 50; mobile app >1,000 installs in first quarter; ≥1 VR module live; SOC 2 report published.
+
+---
+
+### Effort Legend
+
+| Code | Meaning |
+|---|---|
+| **S** | Small — 1–2 days |
+| **M** | Medium — 3–5 days |
+| **L** | Large — 1–2 weeks |
+| **XL** | Extra Large — 2–4 weeks |
+| **XXL** | Huge — 4+ weeks |
+
+### Business Model Validation (from audit)
+
+The audit recommends validating the pricing model (~$5,500/school/year, ~$1–3/student). Current Limud tiers:
+- **Free**: $0, up to 5 students (homeschool/self-learners)
+- **Standard**: $6/student/month (~$72/student/year)
+- **Enterprise**: Custom pricing with SSO/SLA
+
+**Action item for Phase 2:** Conduct pricing sensitivity surveys with 5+ pilot districts to validate the $6/student/month standard tier against competitor benchmarks (Khan Academy free, DreamBox $15–25/student/year).
 
 ---
 
