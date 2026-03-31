@@ -1159,6 +1159,25 @@ NODE_OPTIONS=--max-old-space-size=512
 
 ## Changelog
 
+### v11.0.0 (2026-03-31) — "The Completion Update"
+
+#### Dashboard Interactivity Fixes
+- **Clickable assignment rows**: Each assignment in "Recent Assignments" now links to its grading page with the assignment pre-selected
+- **Clickable student rows**: Each student in "Students Needing Attention" now links to the Intelligence Dashboard with student context
+- **Clickable stat cards**: Total Students → My Students page, At-Risk → Intelligence Dashboard, Class Average → Analytics, Pending Grading → Grading page
+- **"View all" and "Intelligence" links**: Already functional (verified), navigate to assignments list and intelligence dashboard respectively
+
+#### Classroom Settings (formerly Quick Setup)
+- **One-time wizard guard**: Teachers who have completed Quick Setup can no longer re-run the wizard
+- **Settings mode**: After first setup, the page becomes "Classroom Settings" — a single-page editor where teachers can update subjects, classes, grade level, and AI preferences at any time
+- **Saved state persistence**: All onboarding choices (subjects, grade range, AI preferences) are saved and restored when revisiting settings
+- **Nav renamed**: Sidebar item changed from "Quick Setup" to "Classroom Settings" with a gear icon
+
+#### Version Bump
+- Version bumped to 11.0.0 across all 7 config locations (package.json, config.ts, middleware.ts, server.js, health route, ai-status route, demo-state.ts)
+
+---
+
 ### v10.0.0 (2026-03-31) — "The Full Stack" Major Release
 
 #### CI/CD & Infrastructure

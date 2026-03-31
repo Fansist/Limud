@@ -14,7 +14,11 @@ import {
 } from 'lucide-react';
 
 /*
- * Teacher Dashboard v9.9.0 — "The Mrs. Osher Experience"
+ * Teacher Dashboard v11.0.0 — "The Completion Update"
+ * v11.0: All dashboard widgets are now clickable/navigable.
+ * - Assignment rows → grading page
+ * - Student rows → intelligence page
+ * - Stat cards → relevant pages
  * Blueprint: Single-Source Upload → AI Adapter → One-Click Auto-Grading → Intelligence Dashboard
  * Pain point: Hours spent on differentiation and grading. Solution: Automation + Universal Differentiation + Intervention.
  */
@@ -238,24 +242,28 @@ export default function TeacherDashboard() {
           ))}
         </div>
 
-        {/* ═══ STATS STRIP ═══ */}
+        {/* ═══ STATS STRIP — v11.0: All cards are clickable ═══ */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { icon: <Users size={18} />, label: 'Total Students', value: `${summary.totalStudents}`, color: 'bg-blue-50 text-blue-600' },
-            { icon: <AlertTriangle size={18} />, label: 'At-Risk', value: `${summary.atRisk}`, color: summary.atRisk > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600' },
-            { icon: <TrendingUp size={18} />, label: 'Class Average', value: `${summary.averageScore}%`, color: 'bg-green-50 text-green-600' },
-            { icon: <Clock size={18} />, label: 'Pending Grading', value: `${summary.pendingSubmissions}`, color: summary.pendingSubmissions > 0 ? 'bg-amber-50 text-amber-600' : 'bg-gray-50 text-gray-600' },
+            { icon: <Users size={18} />, label: 'Total Students', value: `${summary.totalStudents}`, color: 'bg-blue-50 text-blue-600', href: `/teacher/students${demoSuffix}` },
+            { icon: <AlertTriangle size={18} />, label: 'At-Risk', value: `${summary.atRisk}`, color: summary.atRisk > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600', href: `/teacher/intelligence${demoSuffix}` },
+            { icon: <TrendingUp size={18} />, label: 'Class Average', value: `${summary.averageScore}%`, color: 'bg-green-50 text-green-600', href: `/teacher/analytics${demoSuffix}` },
+            { icon: <Clock size={18} />, label: 'Pending Grading', value: `${summary.pendingSubmissions}`, color: summary.pendingSubmissions > 0 ? 'bg-amber-50 text-amber-600' : 'bg-gray-50 text-gray-600', href: `/teacher/grading${demoSuffix}` },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + i * 0.05 }}
-              className={cn('rounded-2xl p-4', stat.color)}
             >
-              <div className="flex items-center gap-2 mb-1">{stat.icon}</div>
-              <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-              <p className="text-xs text-gray-500">{stat.label}</p>
+              <Link
+                href={stat.href}
+                className={cn('rounded-2xl p-4 block cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200', stat.color)}
+              >
+                <div className="flex items-center gap-2 mb-1">{stat.icon}</div>
+                <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-xs text-gray-500">{stat.label}</p>
+              </Link>
             </motion.div>
           ))}
         </div>
@@ -287,7 +295,11 @@ export default function TeacherDashboard() {
                 </div>
               ) : (
                 atRiskStudents.slice(0, 5).map((student: any) => (
-                  <div key={student.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+                  <Link
+                    key={student.id}
+                    href={`/teacher/intelligence${demoSuffix}${demoSuffix ? '&' : '?'}student=${student.id}`}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer"
+                  >
                     <div
                       className={cn(
                         'w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0',
@@ -310,7 +322,7 @@ export default function TeacherDashboard() {
                     >
                       {student.riskLevel === 'high' ? 'At Risk' : 'Watch'}
                     </span>
-                  </div>
+                  </Link>
                 ))
               )}
             </div>
@@ -346,7 +358,11 @@ export default function TeacherDashboard() {
                   const gradedSubs = assignment.submissions?.filter((s: any) => s.status === 'GRADED').length || 0;
                   const pct = totalSubs > 0 ? Math.round((gradedSubs / totalSubs) * 100) : 0;
                   return (
-                    <div key={assignment.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+                    <Link
+                      key={assignment.id}
+                      href={`/teacher/grading${demoSuffix}${demoSuffix ? '&' : '?'}assignment=${assignment.id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer"
+                    >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 truncate">{assignment.title}</p>
                         <p className="text-xs text-gray-400">
@@ -368,7 +384,7 @@ export default function TeacherDashboard() {
                           <span className="text-xs text-gray-400">No submissions</span>
                         )}
                       </div>
-                    </div>
+                    </Link>
                   );
                 })
               )}

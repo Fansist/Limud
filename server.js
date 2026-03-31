@@ -129,7 +129,7 @@ if (isStandalone) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               status: 'ok',
-              version: '10.0.0',
+              version: '11.0.0',
               platform,
               uptime: process.uptime(),
               memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',

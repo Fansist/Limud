@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 /*
- * Student Dashboard v10.0.0 — "The Sylvester Experience"
+ * Student Dashboard v11.0.0 — "The Sylvester Experience"
  * Blueprint: Learning DNA + Adaptive Assignments + Focus Mode + Socratic Tutor + Instant Gratification (XP/Streak)
  */
 

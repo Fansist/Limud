@@ -52,7 +52,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
   TEACHER: [
     { items: [
       { href: '/teacher/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-      { href: '/teacher/onboarding', label: 'Quick Setup', icon: <Sparkles size={20} /> },
+      { href: '/teacher/onboarding', label: 'Classroom Settings', icon: <Settings size={20} /> },
     ]},
     { label: 'Assignments', items: [
       { href: '/teacher/assignments', label: 'My Assignments', icon: <BookOpen size={20} /> },

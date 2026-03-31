@@ -23,7 +23,7 @@ export const GET = apiHandler(async (req: Request) => {
     keyLength: key.length,
     keySource: process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : process.env.GOOGLE_API_KEY ? 'GOOGLE_API_KEY' : 'none',
     hasApiKeyResult: hasApiKey(),
-    version: '10.0.0',
+    version: '11.0.0',
   };
 
   // Optional: test the actual API connection with ?test=true

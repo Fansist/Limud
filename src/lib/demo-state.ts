@@ -112,11 +112,18 @@ interface DemoState {
   // v9.7.11: Custom courses/classrooms from onboarding Quick Setup
   customCourses: DemoCourse[];
   customClassrooms: DemoClassroom[];
+  // v11.0: Onboarding completion tracking
+  onboardingCompleted: boolean;
+  onboardingData: {
+    subjects: string[];
+    gradeRange: string;
+    aiPreferences: string[];
+  } | null;
   // Version to track if state needs reset
   version: string;
 }
 
-const STATE_VERSION = '10.0.0';
+const STATE_VERSION = '11.0.0';
 
 function getDefaultState(): DemoState {
   return {
@@ -128,6 +135,8 @@ function getDefaultState(): DemoState {
     gradedSubmissions: {},
     customCourses: [],
     customClassrooms: [],
+    onboardingCompleted: false,
+    onboardingData: null,
     version: STATE_VERSION,
   };
 }
@@ -338,10 +347,37 @@ export function getSharedMessages(): DemoMessage[] {
  */
 export function saveOnboardingCourses(courses: DemoCourse[], classrooms: DemoClassroom[]): void {
   const state = loadDemoState();
-  // Replace (not append) — onboarding is a one-time setup
+  // Replace (not append) — onboarding can be re-done from settings
   state.customCourses = courses;
   state.customClassrooms = classrooms;
+  state.onboardingCompleted = true;
   saveDemoState(state);
+}
+
+/**
+ * v11.0: Save onboarding preferences (subjects, grade range, AI prefs)
+ * so the settings page can reload them for editing.
+ */
+export function saveOnboardingData(data: { subjects: string[]; gradeRange: string; aiPreferences: string[] }): void {
+  const state = loadDemoState();
+  state.onboardingData = data;
+  saveDemoState(state);
+}
+
+/**
+ * v11.0: Check if onboarding has been completed.
+ */
+export function isOnboardingCompleted(): boolean {
+  const state = loadDemoState();
+  return state.onboardingCompleted;
+}
+
+/**
+ * v11.0: Get saved onboarding data for editing in settings.
+ */
+export function getOnboardingData(): { subjects: string[]; gradeRange: string; aiPreferences: string[] } | null {
+  const state = loadDemoState();
+  return state.onboardingData;
 }
 
 /**
