@@ -55,3 +55,4 @@ tmp/restart.txt
 
 # Render
 .render/
+.github/
