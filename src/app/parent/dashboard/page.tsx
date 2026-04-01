@@ -272,19 +272,19 @@ export default function ParentDashboard() {
                 </div>
               </div>
 
-              {/* Stats Grid — clean, digestible numbers */}
+              {/* Stats Grid — v11.0: clickable cards link to reports */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { icon: <Star size={18} />, label: 'XP Earned', value: child.rewards?.totalXP?.toLocaleString() || '0', color: 'bg-purple-50 text-purple-600' },
-                  { icon: <Flame size={18} />, label: 'Best Streak', value: `${child.rewards?.longestStreak || 0} days`, color: 'bg-orange-50 text-orange-600' },
-                  { icon: <MessageCircle size={18} />, label: 'Tutor Chats', value: `${child.rewards?.tutorSessionsCount || 0}`, color: 'bg-blue-50 text-blue-600' },
-                  { icon: <BookOpen size={18} />, label: 'Completed', value: `${child.rewards?.assignmentsCompleted || 0}`, color: 'bg-green-50 text-green-600' },
+                  { icon: <Star size={18} />, label: 'XP Earned', value: child.rewards?.totalXP?.toLocaleString() || '0', color: 'bg-purple-50 text-purple-600', href: `/parent/reports${demoSuffix}` },
+                  { icon: <Flame size={18} />, label: 'Best Streak', value: `${child.rewards?.longestStreak || 0} days`, color: 'bg-orange-50 text-orange-600', href: `/parent/reports${demoSuffix}` },
+                  { icon: <MessageCircle size={18} />, label: 'Tutor Chats', value: `${child.rewards?.tutorSessionsCount || 0}`, color: 'bg-blue-50 text-blue-600', href: `/parent/reports${demoSuffix}` },
+                  { icon: <BookOpen size={18} />, label: 'Completed', value: `${child.rewards?.assignmentsCompleted || 0}`, color: 'bg-green-50 text-green-600', href: `/parent/reports${demoSuffix}` },
                 ].map(stat => (
-                  <div key={stat.label} className={cn('rounded-2xl p-4', stat.color)}>
+                  <Link key={stat.label} href={stat.href} className={cn('rounded-2xl p-4 block hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer', stat.color)}>
                     <div className="mb-1">{stat.icon}</div>
                     <p className="text-xl font-bold text-gray-900">{stat.value}</p>
                     <p className="text-xs text-gray-500">{stat.label}</p>
-                  </div>
+                  </Link>
                 ))}
               </div>
 
@@ -299,7 +299,8 @@ export default function ParentDashboard() {
                   </h3>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {child.courses.map((c: any, i: number) => (
-                      <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <Link key={i} href={`/parent/reports${demoSuffix}`}
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer">
                         <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
                           <BookOpen size={16} className="text-primary-600" />
                         </div>
@@ -307,7 +308,7 @@ export default function ParentDashboard() {
                           <p className="text-sm font-semibold text-gray-900">{c.name}</p>
                           <p className="text-xs text-gray-400">{c.subject}</p>
                         </div>
-                      </div>
+                        </Link>
                     ))}
                   </div>
                 </div>
@@ -335,7 +336,8 @@ export default function ParentDashboard() {
                       const pct = sub.score !== null && sub.maxScore ? Math.round((sub.score / sub.maxScore) * 100) : null;
 
                       return (
-                        <div key={i} className="p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+                        <Link key={i} href={`/parent/reports${demoSuffix}`}
+                          className="p-4 rounded-xl bg-gray-50 hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer block">
                           <div className="flex items-center justify-between mb-2">
                             <div>
                               <p className="text-sm font-semibold text-gray-900">{sub.assignmentTitle}</p>
@@ -369,7 +371,7 @@ export default function ParentDashboard() {
                               <p className="text-gray-500 leading-relaxed">{feedback.feedback}</p>
                             </div>
                           )}
-                        </div>
+                          </Link>
                       );
                     })
                   )}

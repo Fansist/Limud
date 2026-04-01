@@ -1,12 +1,14 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
   TrendingUp, AlertTriangle, Brain, Flame, BarChart3, Clock, BookOpen, CheckCircle, Calendar, Users,
+  ChevronDown, MessageCircle, Sparkles,
 } from 'lucide-react';
 
 export default function ParentReportsPage() {
@@ -14,6 +16,8 @@ export default function ParentReportsPage() {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedChild, setSelectedChild] = useState(0);
+  const [expandedActivity, setExpandedActivity] = useState<number | null>(null);
+  const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
 
   useEffect(() => {
     if (isDemo) {
@@ -131,24 +135,51 @@ export default function ParentReportsPage() {
             </div>
 
             <div className="grid lg:grid-cols-2 gap-6">
-              {/* Subject Performance */}
+              {/* Subject Performance — v11.0: clickable for per-assignment breakdown */}
               <div className="card">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><BarChart3 size={16} className="text-primary-500" /> By Subject</h3>
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><BarChart3 size={16} className="text-primary-500" /> By Subject
+                  <span className="text-xs text-gray-400 ml-auto font-normal">Click to expand</span>
+                </h3>
                 <div className="space-y-3">
-                  {r.subjectAverages.map((sa: any) => (
-                    <div key={sa.subject} className="flex items-center gap-3">
-                      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold', sa.average >= 80 ? 'bg-green-100 text-green-600' : sa.average >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600')}>
-                        {sa.average}
+                  {r.subjectAverages.map((sa: any) => {
+                    const isSubExpanded = expandedSubject === sa.subject;
+                    const subjectActivities = r.recentActivity.filter((a: any) => a.subject === sa.subject);
+                    return (
+                      <div key={sa.subject} className="rounded-xl overflow-hidden">
+                        <button onClick={() => setExpandedSubject(isSubExpanded ? null : sa.subject)}
+                          className="flex items-center gap-3 w-full text-left hover:bg-gray-50 transition p-1 rounded-xl">
+                          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold', sa.average >= 80 ? 'bg-green-100 text-green-600' : sa.average >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600')}>
+                            {sa.average}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-gray-900">{sa.subject}</p>
+                            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden mt-1">
+                              <div className={cn('h-full rounded-full', sa.average >= 80 ? 'bg-green-500' : sa.average >= 60 ? 'bg-amber-500' : 'bg-red-500')} style={{ width: `${sa.average}%` }} />
+                            </div>
+                          </div>
+                          <span className="text-xs text-gray-400">{sa.count} assignments</span>
+                          <ChevronDown size={14} className={cn('text-gray-400 transition-transform', isSubExpanded && 'rotate-180')} />
+                        </button>
+                        <AnimatePresence>
+                          {isSubExpanded && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                              <div className="pl-14 pr-2 pb-2 space-y-1">
+                                {subjectActivities.length > 0 ? subjectActivities.map((a: any, j: number) => (
+                                  <div key={j} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs">
+                                    <span className={cn('font-bold', a.percentage >= 80 ? 'text-green-600' : a.percentage >= 60 ? 'text-amber-600' : 'text-red-600')}>{a.percentage}%</span>
+                                    <span className="flex-1 text-gray-700 truncate">{a.title}</span>
+                                    <span className="text-gray-400">{a.score}/{a.maxScore}</span>
+                                  </div>
+                                )) : (
+                                  <p className="text-xs text-gray-400 py-2">No recent graded assignments for this subject</p>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900">{sa.subject}</p>
-                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden mt-1">
-                          <div className={cn('h-full rounded-full', sa.average >= 80 ? 'bg-green-500' : sa.average >= 60 ? 'bg-amber-500' : 'bg-red-500')} style={{ width: `${sa.average}%` }} />
-                        </div>
-                      </div>
-                      <span className="text-xs text-gray-400">{sa.count} assignments</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -180,22 +211,62 @@ export default function ParentReportsPage() {
               </div>
             </div>
 
-            {/* Recent Activity */}
+            {/* Recent Activity — v11.0: expandable rows with score breakdown */}
             <div className="card">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><BookOpen size={16} className="text-primary-500" /> Recent Activity</h3>
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><BookOpen size={16} className="text-primary-500" /> Recent Activity
+                <span className="text-xs text-gray-400 ml-auto font-normal">Click for details</span>
+              </h3>
               <div className="space-y-2">
-                {r.recentActivity.map((a: any, i: number) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold', a.percentage >= 80 ? 'bg-green-100 text-green-600' : a.percentage >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600')}>
-                      {a.percentage}%
+                {r.recentActivity.map((a: any, i: number) => {
+                  const isExpanded = expandedActivity === i;
+                  const grade = a.percentage >= 93 ? 'A' : a.percentage >= 90 ? 'A-' : a.percentage >= 87 ? 'B+' : a.percentage >= 83 ? 'B' : a.percentage >= 80 ? 'B-' : a.percentage >= 77 ? 'C+' : a.percentage >= 73 ? 'C' : a.percentage >= 70 ? 'C-' : 'D';
+                  return (
+                    <div key={i} className="rounded-xl bg-gray-50 overflow-hidden">
+                      <button onClick={() => setExpandedActivity(isExpanded ? null : i)}
+                        className="flex items-center gap-3 p-3 w-full text-left hover:bg-gray-100 transition">
+                        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold', a.percentage >= 80 ? 'bg-green-100 text-green-600' : a.percentage >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600')}>
+                          {a.percentage}%
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-gray-900">{a.title}</p>
+                          <p className="text-xs text-gray-400">{a.course} &middot; {new Date(a.date).toLocaleDateString()}</p>
+                        </div>
+                        <span className="text-sm font-bold text-gray-700">{a.score}/{a.maxScore}</span>
+                        <ChevronDown size={14} className={cn('text-gray-400 transition-transform', isExpanded && 'rotate-180')} />
+                      </button>
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                            <div className="px-3 pb-3 space-y-2">
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="bg-white rounded-lg p-2 text-center border border-gray-200">
+                                  <p className="text-lg font-bold text-primary-600">{grade}</p>
+                                  <p className="text-[10px] text-gray-400">Letter Grade</p>
+                                </div>
+                                <div className="bg-white rounded-lg p-2 text-center border border-gray-200">
+                                  <p className="text-lg font-bold text-gray-900">{a.score}/{a.maxScore}</p>
+                                  <p className="text-[10px] text-gray-400">Points</p>
+                                </div>
+                                <div className="bg-white rounded-lg p-2 text-center border border-gray-200">
+                                  <p className="text-lg font-bold text-gray-900">{a.subject}</p>
+                                  <p className="text-[10px] text-gray-400">Subject</p>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-2 bg-white rounded-lg p-2.5 border border-gray-200">
+                                <Sparkles size={12} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+                                <p className="text-xs text-gray-600">
+                                  {a.percentage >= 90 ? `Excellent work on ${a.title}! ${r.child.name} shows strong understanding of ${a.subject} concepts.`
+                                   : a.percentage >= 75 ? `Good effort on ${a.title}. With a bit more practice in ${a.subject}, ${r.child.name} can improve further.`
+                                   : `${r.child.name} may need extra support with ${a.title}. Consider reviewing ${a.subject} fundamentals together.`}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900">{a.title}</p>
-                      <p className="text-xs text-gray-400">{a.course} &middot; {new Date(a.date).toLocaleDateString()}</p>
-                    </div>
-                    <span className="text-sm font-bold text-gray-700">{a.score}/{a.maxScore}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </>

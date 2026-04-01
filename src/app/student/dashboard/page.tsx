@@ -184,23 +184,23 @@ export default function StudentDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
+              <Link href={`/student/knowledge${demoSuffix}`} className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 hover:bg-white/20 transition-all cursor-pointer">
                 <p className="text-2xl font-bold flex items-center justify-center gap-1">
                   <Zap size={16} className="text-purple-300" />{totalXP.toLocaleString()}
                 </p>
                 <p className="text-[10px] text-white/60 font-medium">XP</p>
-              </div>
-              <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
+              </Link>
+              <Link href={`/student/knowledge${demoSuffix}`} className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 hover:bg-white/20 transition-all cursor-pointer">
                 <p className="text-2xl font-bold flex items-center justify-center gap-1">
                   <Flame size={16} className="text-orange-300" />{currentStreak}
                 </p>
                 <p className="text-[10px] text-white/60 font-medium">Day Streak</p>
-              </div>
+              </Link>
               {avgScore > 0 && (
-                <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5">
+                <Link href={`/student/knowledge${demoSuffix}`} className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 hover:bg-white/20 transition-all cursor-pointer">
                   <p className="text-2xl font-bold">{avgScore}%</p>
                   <p className="text-[10px] text-white/60 font-medium">Avg Score</p>
-                </div>
+                </Link>
               )}
             </div>
           </div>
@@ -320,24 +320,25 @@ export default function StudentDashboard() {
           ))}
         </div>
 
-        {/* Stats strip */}
+        {/* Stats strip — v11.0: All cards clickable for deeper drill-down */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { icon: <BookOpen size={18} />, label: 'Total Assignments', value: `${assignments.length}`, color: 'bg-blue-50 text-blue-600' },
-            { icon: <Target size={18} />, label: 'Completed', value: `${completedCount}`, color: 'bg-green-50 text-green-600' },
-            { icon: <TrendingUp size={18} />, label: 'Avg Score', value: avgScore > 0 ? `${avgScore}%` : '--', color: 'bg-violet-50 text-violet-600' },
-            { icon: <Zap size={18} />, label: 'Level', value: `${level}`, color: 'bg-purple-50 text-purple-600' },
+            { icon: <BookOpen size={18} />, label: 'Total Assignments', value: `${assignments.length}`, color: 'bg-blue-50 text-blue-600', href: `/student/assignments${demoSuffix}` },
+            { icon: <Target size={18} />, label: 'Completed', value: `${completedCount}`, color: 'bg-green-50 text-green-600', href: `/student/assignments${demoSuffix}` },
+            { icon: <TrendingUp size={18} />, label: 'Avg Score', value: avgScore > 0 ? `${avgScore}%` : '--', color: 'bg-violet-50 text-violet-600', href: `/student/knowledge${demoSuffix}` },
+            { icon: <Zap size={18} />, label: 'Level', value: `${level}`, color: 'bg-purple-50 text-purple-600', href: `/student/knowledge${demoSuffix}` },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + i * 0.05 }}
-              className={cn('rounded-2xl p-4', stat.color)}
             >
-              <div className="flex items-center gap-2 mb-1">{stat.icon}</div>
-              <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-              <p className="text-xs text-gray-500">{stat.label}</p>
+              <Link href={stat.href} className={cn('rounded-2xl p-4 block hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer', stat.color)}>
+                <div className="flex items-center gap-2 mb-1">{stat.icon}</div>
+                <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-xs text-gray-500">{stat.label}</p>
+              </Link>
             </motion.div>
           ))}
         </div>
@@ -371,9 +372,10 @@ export default function StudentDashboard() {
                 upcomingAssignments.map(assignment => {
                   const days = daysUntil(assignment.dueDate);
                   return (
-                    <div
+                    <Link
                       key={assignment.id}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition group"
+                      href={`/student/assignments${demoSuffix}${demoSuffix ? '&' : '?'}focus=${assignment.id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 hover:shadow-sm transition-all group cursor-pointer"
                     >
                       <div
                         className={cn(
@@ -388,7 +390,7 @@ export default function StudentDashboard() {
                         <p className="text-xs text-gray-400">{assignment.course?.name}</p>
                       </div>
                       <span className="badge-info text-xs">{assignment.totalPoints} pts</span>
-                    </div>
+                    </Link>
                   );
                 })
               )}
@@ -409,6 +411,9 @@ export default function StudentDashboard() {
                 </div>
                 Recent Grades
               </h2>
+              <Link href={`/student/knowledge${demoSuffix}`} className="text-xs text-green-600 font-semibold hover:underline flex items-center gap-1">
+                View all <ArrowRight size={12} />
+              </Link>
             </div>
             <div className="space-y-2.5">
               {gradedSubmissions.length === 0 ? (
@@ -422,9 +427,10 @@ export default function StudentDashboard() {
                   const pct = sub.maxScore ? Math.round((sub.score / sub.maxScore) * 100) : 0;
                   const grade = sub.maxScore ? getLetterGrade(sub.score, sub.maxScore) : '-';
                   return (
-                    <div
+                    <Link
                       key={assignment.id}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50"
+                      href={`/student/knowledge${demoSuffix}`}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer"
                     >
                       <div
                         className={cn(
@@ -451,7 +457,7 @@ export default function StudentDashboard() {
                           />
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })
               )}

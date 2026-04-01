@@ -1159,9 +1159,9 @@ NODE_OPTIONS=--max-old-space-size=512
 
 ## Changelog
 
-### v11.0.0 (2026-03-31) — "The Completion Update"
+### v11.0.0 (2026-04-01) — "The Depth Update"
 
-#### Dashboard Interactivity Fixes
+#### Dashboard Interactivity Fixes (Phase 1)
 - **Clickable assignment rows**: Each assignment in "Recent Assignments" now links to its grading page with the assignment pre-selected
 - **Clickable student rows**: Each student in "Students Needing Attention" now links to the Intelligence Dashboard with student context
 - **Clickable stat cards**: Total Students → My Students page, At-Risk → Intelligence Dashboard, Class Average → Analytics, Pending Grading → Grading page
@@ -1173,8 +1173,28 @@ NODE_OPTIONS=--max-old-space-size=512
 - **Saved state persistence**: All onboarding choices (subjects, grade range, AI preferences) are saved and restored when revisiting settings
 - **Nav renamed**: Sidebar item changed from "Quick Setup" to "Classroom Settings" with a gear icon
 
+#### Depth & Drill-Down Enhancements (Phase 2)
+
+##### Teacher Intelligence
+- **Expandable student rows**: Clicking a student row in the "All Students" tab now reveals an expanded detail panel with 4 stat cards (Average Score, Engagement, Streak, Study Time), AI Insights text, and action links (Full Profile, Learning Style, Generate Plan)
+- **Clickable summary cards**: Total Students → Students tab, At Risk → Risk tab, etc. — summary cards now navigate to relevant tabs on click
+- **Action deep-links**: Each expanded row links to /teacher/students, /teacher/analytics (Learning Style tab), and can trigger AI Intervention plan generation
+
+##### Teacher Analytics (Overview)
+- **Student profile deep-links**: Student profile overlay now includes action buttons linking to Full Profile (/teacher/students), AI Intelligence (/teacher/intelligence), and Grade Work (/teacher/grading)
+
+##### Student Knowledge / Analytics
+- **Expandable skill mastery**: Each skill in the "Skill Mastery" section is now clickable, revealing practice session count, last practiced date, streak, AI study tips, and quick-links to "Practice with AI Tutor" and "Focus Session"
+- **Expandable goal countdown**: Each goal in "Goal Countdown" expands to show an AI tip and a contextual action button (Study Now, Practice, Quick Session, View Assignments) linking to the appropriate page
+
+##### Parent Reports / Growth Reports
+- **Expandable recent activity**: Each assignment in "Recent Activity" now expands on click, showing letter grade, points breakdown, subject, and an AI-generated insight about the child's performance
+- **Expandable subject performance**: Subject bars in "By Subject" are now clickable, revealing individual assignment scores within each subject
+- **AnimatePresence transitions**: Smooth expand/collapse animations on all drill-down panels
+
 #### Version Bump
 - Version bumped to 11.0.0 across all 7 config locations (package.json, config.ts, middleware.ts, server.js, health route, ai-status route, demo-state.ts)
+- Admin Dashboard version comment updated to v11.0.0
 
 ---
 

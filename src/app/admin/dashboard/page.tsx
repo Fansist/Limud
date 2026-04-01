@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 /*
- * Admin Dashboard v9.9.0 — "The Superintendent Ofer Command Center"
+ * Admin Dashboard v11.0.0 — "The Superintendent Ofer Command Center"
  * Blueprint: High-level analytics, compliance, and ROI.
  * Key KPIs: 247 active students, 18 teachers, $12,000 annual cost.
  * Widgets: Cost/ROI, Compliance, Bulk Management, Announcements.
@@ -71,12 +71,12 @@ const TRENDING_ALERTS = [
 ];
 
 const TRENDING_METRICS = [
-  { label: 'Active Students Today', value: '189', change: '+12', trend: 'up' as const, icon: Users },
-  { label: 'Assignments Submitted', value: '47', change: '+8', trend: 'up' as const, icon: BookOpen },
-  { label: 'AI Tutor Sessions', value: '64', change: '+22', trend: 'up' as const, icon: Brain },
-  { label: 'Avg. Score This Week', value: '78%', change: '-2%', trend: 'down' as const, icon: Star },
-  { label: 'Teacher Logins', value: '14', change: '0', trend: 'stable' as const, icon: GraduationCap },
-  { label: 'Parent Check-ins', value: '23', change: '+5', trend: 'up' as const, icon: Eye },
+  { label: 'Active Students Today', value: '189', change: '+12', trend: 'up' as const, icon: Users, href: '/admin/students' },
+  { label: 'Assignments Submitted', value: '47', change: '+8', trend: 'up' as const, icon: BookOpen, href: '/admin/analytics' },
+  { label: 'AI Tutor Sessions', value: '64', change: '+22', trend: 'up' as const, icon: Brain, href: '/admin/analytics#ai' },
+  { label: 'Avg. Score This Week', value: '78%', change: '-2%', trend: 'down' as const, icon: Star, href: '/admin/analytics' },
+  { label: 'Teacher Logins', value: '14', change: '0', trend: 'stable' as const, icon: GraduationCap, href: '/admin/employees' },
+  { label: 'Parent Check-ins', value: '23', change: '+5', trend: 'up' as const, icon: Eye, href: '/admin/analytics' },
 ];
 
 export default function AdminDashboard() {
@@ -174,16 +174,17 @@ export default function AdminDashboard() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { icon: <Users size={18} />, value: district.studentCount, label: `Active Students (max ${district.maxStudents})`, accent: 'text-blue-300' },
-                    { icon: <GraduationCap size={18} />, value: district.teacherCount, label: `Teachers (max ${district.maxTeachers})`, accent: 'text-green-300' },
-                    { icon: <DollarSign size={18} />, value: `$${district.pricePerYear.toLocaleString()}`, label: 'Annual Cost', accent: 'text-amber-300' },
-                    { icon: <CreditCard size={18} />, value: `$${district.costPerStudent > 0 ? district.costPerStudent.toFixed(2) : '\u2014'}`, label: 'Per Student / Year', accent: 'text-purple-300' },
+                    { icon: <Users size={18} />, value: district.studentCount, label: `Active Students (max ${district.maxStudents})`, accent: 'text-blue-300', href: `/admin/students${demoSuffix}` },
+                    { icon: <GraduationCap size={18} />, value: district.teacherCount, label: `Teachers (max ${district.maxTeachers})`, accent: 'text-green-300', href: `/admin/employees${demoSuffix}` },
+                    { icon: <DollarSign size={18} />, value: `$${district.pricePerYear.toLocaleString()}`, label: 'Annual Cost', accent: 'text-amber-300', href: `/admin/payments${demoSuffix}` },
+                    { icon: <CreditCard size={18} />, value: `$${district.costPerStudent > 0 ? district.costPerStudent.toFixed(2) : '\u2014'}`, label: 'Per Student / Year', accent: 'text-purple-300', href: `/admin/payments${demoSuffix}` },
                   ].map(stat => (
-                    <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                    <Link key={stat.label} href={stat.href}
+                      className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/20 transition-all cursor-pointer block">
                       <div className={cn('flex items-center gap-2 mb-2', stat.accent)}>{stat.icon}</div>
                       <p className="text-2xl font-bold">{stat.value}</p>
                       <p className="text-xs text-white/50 mt-0.5">{stat.label}</p>
-                    </div>
+                    </Link>
                   ))}
                 </div>
 
@@ -199,30 +200,30 @@ export default function AdminDashboard() {
             {/* ═══ COMPLIANCE + SYSTEM STATUS — Blueprint: "confirms FERPA, COPPA, WCAG AA" ═══ */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
               className="grid sm:grid-cols-3 gap-4">
-              <div className="card flex items-center gap-4 border-l-4 border-l-green-500">
+              <Link href={`/api/health${demoSuffix}`} className="card flex items-center gap-4 border-l-4 border-l-green-500 hover:shadow-md transition-all">
                 <div className="p-3 bg-green-100 rounded-xl"><Activity size={22} className="text-green-600" /></div>
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 text-sm">System Status</h4>
                   <p className="text-xs text-gray-400">All services operational</p>
                 </div>
                 <span className="badge badge-success text-[10px]">Healthy</span>
-              </div>
-              <div className="card flex items-center gap-4 border-l-4 border-l-blue-500">
+              </Link>
+              <Link href={`/admin/security${demoSuffix}`} className="card flex items-center gap-4 border-l-4 border-l-blue-500 hover:shadow-md transition-all">
                 <div className="p-3 bg-blue-100 rounded-xl"><Shield size={22} className="text-blue-600" /></div>
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 text-sm">Compliance</h4>
                   <p className="text-xs text-gray-400">FERPA · COPPA · WCAG AA</p>
                 </div>
                 <span className="badge badge-success text-[10px]">Active</span>
-              </div>
-              <div className="card flex items-center gap-4 border-l-4 border-l-purple-500">
+              </Link>
+              <Link href={`/admin/analytics${demoSuffix}#ai`} className="card flex items-center gap-4 border-l-4 border-l-purple-500 hover:shadow-md transition-all">
                 <div className="p-3 bg-purple-100 rounded-xl"><Cpu size={22} className="text-purple-600" /></div>
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 text-sm">AI Features</h4>
                   <p className="text-xs text-gray-400">Tutor · Grader · Planner</p>
                 </div>
                 <span className="badge badge-success text-[10px]">Online</span>
-              </div>
+              </Link>
             </motion.div>
 
             {/* ═══ TRENDING METRICS — Live data ═══ */}
@@ -241,21 +242,24 @@ export default function AdminDashboard() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.18 + i * 0.03 }}
-                    className="card p-3 hover:shadow-md transition-all"
                   >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <metric.icon size={14} className="text-gray-400" />
-                      <span className={cn(
-                        'text-[10px] font-bold flex items-center gap-0.5',
-                        metric.trend === 'up' ? 'text-green-600' : metric.trend === 'down' ? 'text-red-600' : 'text-gray-400'
-                      )}>
-                        {metric.trend === 'up' && <TrendingUp size={10} />}
-                        {metric.trend === 'down' && <TrendingDown size={10} />}
-                        {metric.change}
-                      </span>
-                    </div>
-                    <p className="text-xl font-bold text-gray-900">{metric.value}</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">{metric.label}</p>
+                    <Link href={`${metric.href}${demoSuffix}`}
+                      className="card p-3 hover:shadow-md hover:-translate-y-0.5 transition-all block cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <metric.icon size={14} className="text-gray-400" />
+                        <span className={cn(
+                          'text-[10px] font-bold flex items-center gap-0.5',
+                          metric.trend === 'up' ? 'text-green-600' : metric.trend === 'down' ? 'text-red-600' : 'text-gray-400'
+                        )}>
+                          {metric.trend === 'up' && <TrendingUp size={10} />}
+                          {metric.trend === 'down' && <TrendingDown size={10} />}
+                          {metric.change}
+                        </span>
+                      </div>
+                      <p className="text-xl font-bold text-gray-900">{metric.value}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">{metric.label}</p>
+                    </Link>
                   </motion.div>
                 ))}
               </div>

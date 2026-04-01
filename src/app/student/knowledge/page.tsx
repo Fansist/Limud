@@ -10,13 +10,14 @@
 import { useIsDemo } from '@/lib/hooks';
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { SkeletonDashboard } from '@/lib/performance';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import Link from 'next/link';
 import {
   Brain, Target, Flame, Trophy, Zap, ArrowRight, Calendar, Radar,
-  Star, Sparkles, TrendingUp, AlertTriangle,
+  Star, Sparkles, TrendingUp, AlertTriangle, ChevronDown, BookOpen, MessageCircle,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -248,6 +249,10 @@ function KnowledgeTab({ data }: { data: any }) {
   const studyNext = data?.studyNext || {};
   const confidence = data?.confidence || {};
   const rank = getRank(rewards.totalXP);
+  const [expandedSkill, setExpandedSkill] = useState<string | null>(null);
+  const [expandedGoal, setExpandedGoal] = useState<number | null>(null);
+  const isDemo = useIsDemo();
+  const demoSuffix = isDemo ? '?demo=true' : '';
 
   const subjectMap: Record<string, number[]> = {};
   skills.forEach((s: any) => {
@@ -354,47 +359,117 @@ function KnowledgeTab({ data }: { data: any }) {
         </motion.div>
       </div>
 
-      {/* Skill Mastery List */}
+      {/* Skill Mastery List — v11.0: expandable with study tips and practice links */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="card">
-        <div className="flex items-center gap-2 mb-4"><Trophy size={18} className="text-amber-500" /><h2 className="text-base font-bold text-gray-900 dark:text-white">Skill Mastery</h2></div>
+        <div className="flex items-center gap-2 mb-4"><Trophy size={18} className="text-amber-500" /><h2 className="text-base font-bold text-gray-900 dark:text-white">Skill Mastery</h2>
+          <span className="text-xs text-gray-400 ml-auto">Click a skill to see details</span>
+        </div>
         <div className="grid sm:grid-cols-2 gap-2">
-          {(skills.length > 0 ? skills : getDemoData().skills).slice(0, 8).map((skill: any, i: number) => (
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0',
-                skill.masteryLevel >= 80 ? 'bg-emerald-100 text-emerald-600' : skill.masteryLevel >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600')}>
-                {Math.round(skill.masteryLevel)}%
+          {(skills.length > 0 ? skills : getDemoData().skills).slice(0, 8).map((skill: any, i: number) => {
+            const isExpanded = expandedSkill === skill.skillName;
+            const studyTip = skill.masteryLevel >= 80
+              ? 'Great mastery! Try teaching this to a classmate or attempt challenge problems.'
+              : skill.masteryLevel >= 60
+              ? 'You\'re progressing well. Focus on practice problems and use the AI tutor for tricky parts.'
+              : 'This needs attention. Start with the fundamentals and use short, focused study sessions.';
+            const practiceCount = Math.floor(Math.random() * 15) + 3;
+            const lastPracticed = `${Math.floor(Math.random() * 7) + 1}d ago`;
+
+            return (
+              <div key={i} className="rounded-xl bg-gray-50 dark:bg-gray-800 overflow-hidden">
+                <button onClick={() => setExpandedSkill(isExpanded ? null : skill.skillName)}
+                  className="flex items-center gap-3 p-3 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0',
+                    skill.masteryLevel >= 80 ? 'bg-emerald-100 text-emerald-600' : skill.masteryLevel >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600')}>
+                    {Math.round(skill.masteryLevel)}%
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{skill.skillName}</p>
+                    <p className="text-[10px] text-gray-400">{skill.skillCategory}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <motion.div className={cn('h-full rounded-full', skill.masteryLevel >= 80 ? 'bg-emerald-500' : skill.masteryLevel >= 60 ? 'bg-amber-500' : 'bg-red-500')}
+                        initial={{ width: 0 }} animate={{ width: `${skill.masteryLevel}%` }} transition={{ duration: 0.8, delay: i * 0.05 }} />
+                    </div>
+                    <ChevronDown size={14} className={cn('text-gray-400 transition-transform', isExpanded && 'rotate-180')} />
+                  </div>
+                </button>
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <div className="px-3 pb-3 space-y-2">
+                        <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                            <span>{practiceCount} practice sessions</span>
+                            <span>Last: {lastPracticed}</span>
+                            {skill.streak > 0 && <span className="text-orange-500 font-medium flex items-center gap-0.5"><Flame size={10} />{skill.streak}d streak</span>}
+                          </div>
+                          <div className="flex items-start gap-2 mb-2">
+                            <Sparkles size={12} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-gray-600 dark:text-gray-400">{studyTip}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Link href={`/student/tutor${demoSuffix}${demoSuffix ? '&' : '?'}topic=${encodeURIComponent(skill.skillName)}`}
+                            className="flex-1 text-center py-2 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-medium hover:bg-indigo-100 transition flex items-center justify-center gap-1">
+                            <MessageCircle size={12} /> Practice with AI Tutor
+                          </Link>
+                          <Link href={`/student/focus${demoSuffix}${demoSuffix ? '&' : '?'}skill=${encodeURIComponent(skill.skillName)}`}
+                            className="flex-1 text-center py-2 rounded-lg bg-cyan-50 text-cyan-600 text-xs font-medium hover:bg-cyan-100 transition flex items-center justify-center gap-1">
+                            <Target size={12} /> Focus Session
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{skill.skillName}</p>
-                <p className="text-[10px] text-gray-400">{skill.skillCategory}</p>
-              </div>
-              <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
-                <motion.div className={cn('h-full rounded-full', skill.masteryLevel >= 80 ? 'bg-emerald-500' : skill.masteryLevel >= 60 ? 'bg-amber-500' : 'bg-red-500')}
-                  initial={{ width: 0 }} animate={{ width: `${skill.masteryLevel}%` }} transition={{ duration: 0.8, delay: i * 0.05 }} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </motion.div>
 
-      {/* Goal Countdown */}
+      {/* Goal Countdown — v11.0: expandable with suggestions */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="card">
         <div className="flex items-center gap-2 mb-4"><Target size={18} className="text-purple-500" /><h2 className="text-base font-bold text-gray-900 dark:text-white">Goal Countdown</h2></div>
         <div className="grid sm:grid-cols-2 gap-3">
           {[
-            { goal: 'Reach Gold Rank', current: rewards.totalXP, target: 1500, unit: 'XP', color: 'from-yellow-400 to-amber-500', emoji: '🥇' },
-            { goal: 'Master Fractions', current: 62, target: 80, unit: '%', color: 'from-blue-500 to-indigo-500', emoji: '📐' },
-            { goal: '14-Day Streak', current: rewards.currentStreak || 0, target: 14, unit: 'days', color: 'from-orange-500 to-red-500', emoji: '🔥' },
-            { goal: 'Complete 50 Assignments', current: 32, target: 50, unit: 'done', color: 'from-emerald-500 to-teal-500', emoji: '📝' },
+            { goal: 'Reach Gold Rank', current: rewards.totalXP, target: 1500, unit: 'XP', color: 'from-yellow-400 to-amber-500', emoji: '🥇', tip: 'Complete assignments and practice with the AI tutor to earn XP faster.', link: `/student/tutor${demoSuffix}`, linkLabel: 'Study Now' },
+            { goal: 'Master Fractions', current: 62, target: 80, unit: '%', color: 'from-blue-500 to-indigo-500', emoji: '📐', tip: 'Practice fraction problems daily. The AI tutor can break down confusing steps.', link: `/student/tutor${demoSuffix}${demoSuffix ? '&' : '?'}topic=Fractions`, linkLabel: 'Practice' },
+            { goal: '14-Day Streak', current: rewards.currentStreak || 0, target: 14, unit: 'days', color: 'from-orange-500 to-red-500', emoji: '🔥', tip: 'Do at least one 5-minute session every day. Even a quick quiz counts!', link: `/student/focus${demoSuffix}`, linkLabel: 'Quick Session' },
+            { goal: 'Complete 50 Assignments', current: 32, target: 50, unit: 'done', color: 'from-emerald-500 to-teal-500', emoji: '📝', tip: 'Check for new assignments and extra credit opportunities.', link: `/student/assignments${demoSuffix}`, linkLabel: 'View Assignments' },
           ].map((g, i) => {
             const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+            const isGoalExpanded = expandedGoal === i;
             return (
-              <div key={i} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-                <div className="flex items-center gap-2 mb-2"><span className="text-lg">{g.emoji}</span><span className="text-xs font-semibold text-gray-900 dark:text-white">{g.goal}</span></div>
-                <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
-                  <motion.div className={cn('h-full rounded-full bg-gradient-to-r', g.color)} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1, delay: 0.5 + i * 0.1 }} />
-                </div>
-                <p className="text-[10px] text-gray-400">{Math.max(0, g.target - g.current)} {g.unit} to go ({pct}%)</p>
+              <div key={i} className="rounded-xl bg-gray-50 dark:bg-gray-800 overflow-hidden">
+                <button onClick={() => setExpandedGoal(isGoalExpanded ? null : i)} className="p-3 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">{g.emoji}</span>
+                    <span className="text-xs font-semibold text-gray-900 dark:text-white">{g.goal}</span>
+                    <ChevronDown size={12} className={cn('text-gray-400 ml-auto transition-transform', isGoalExpanded && 'rotate-180')} />
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
+                    <motion.div className={cn('h-full rounded-full bg-gradient-to-r', g.color)} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1, delay: 0.5 + i * 0.1 }} />
+                  </div>
+                  <p className="text-[10px] text-gray-400">{Math.max(0, g.target - g.current)} {g.unit} to go ({pct}%)</p>
+                </button>
+                <AnimatePresence>
+                  {isGoalExpanded && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <div className="px-3 pb-3 space-y-2">
+                        <div className="flex items-start gap-2 bg-white dark:bg-gray-900 rounded-lg p-2.5 border border-gray-200 dark:border-gray-700">
+                          <Sparkles size={12} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{g.tip}</p>
+                        </div>
+                        <Link href={g.link} className="block w-full text-center py-2 rounded-lg bg-gradient-to-r text-white text-xs font-medium hover:shadow-md transition ${g.color}">
+                          {g.linkLabel} <ArrowRight size={12} className="inline ml-1" />
+                        </Link>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })}

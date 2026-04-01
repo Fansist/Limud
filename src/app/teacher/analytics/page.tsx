@@ -192,7 +192,7 @@ function AnalyticsContent() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'overview' && <OverviewTab data={analyticsData} />}
+        {activeTab === 'overview' && <OverviewTab data={analyticsData} needsDemoParam={needsDemoParam} />}
         {activeTab === 'insights' && <InsightsTab data={insightsData} />}
         {activeTab === 'learning' && <LearningTab data={learningData} isDemo={isDemo} />}
         {activeTab === 'diff' && <DiffTab isDemo={isDemo} />}
@@ -205,7 +205,7 @@ function AnalyticsContent() {
 // TAB 1: OVERVIEW (formerly /teacher/analytics)
 // ═══════════════════════════════════════════════════════════════
 
-function OverviewTab({ data }: { data: any }) {
+function OverviewTab({ data, needsDemoParam }: { data: any; needsDemoParam: boolean }) {
   const [search, setSearch] = useState('');
   const [drillDown, setDrillDown] = useState<{ type: string; title: string; data: any[] } | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
@@ -528,6 +528,16 @@ function OverviewTab({ data }: { data: any }) {
                     <p className="text-xs text-gray-500 mt-1">{(STYLE_META[selectedStudent.learningStyle] || STYLE_META.structured).desc}</p>
                   </div>
                 )}
+
+                {/* v11.0: Deep-link actions */}
+                <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <Link href={`/teacher/students${needsDemoParam ? '?demo=true&' : '?'}student=${selectedStudent.id}`}
+                    className="btn-secondary text-xs flex items-center gap-1.5"><Users size={12} /> Full Profile</Link>
+                  <Link href={`/teacher/intelligence${needsDemoParam ? '?demo=true' : ''}`}
+                    className="btn-secondary text-xs flex items-center gap-1.5"><Brain size={12} /> AI Intelligence</Link>
+                  <Link href={`/teacher/grading${needsDemoParam ? '?demo=true' : ''}`}
+                    className="btn-secondary text-xs flex items-center gap-1.5"><BarChart3 size={12} /> Grade Work</Link>
+                </div>
               </div>
             </motion.div>
           </motion.div>

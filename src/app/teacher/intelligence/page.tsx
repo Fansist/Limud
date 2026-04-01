@@ -1,6 +1,7 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
@@ -56,6 +57,7 @@ export default function TeacherIntelligencePage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'overview' | 'students' | 'risk'>('overview');
+  const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
   const [autoAssigning, setAutoAssigning] = useState<string | null>(null);
   // v9.7.8: Track bulk assign state to prevent duplicate clicks & show single summary toast
   const [bulkAssigning, setBulkAssigning] = useState(false);
@@ -178,23 +180,27 @@ export default function TeacherIntelligencePage() {
           </div>
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Cards — v11.0: clickable for drill-down */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { icon: <Users size={20} />, label: 'Students', value: summary.totalStudents, color: 'bg-blue-50 text-blue-600', iconBg: 'bg-blue-100' },
-            { icon: <TrendingUp size={20} />, label: 'Class Avg Score', value: `${summary.classAvgScore}%`, color: 'bg-green-50 text-green-600', iconBg: 'bg-green-100' },
-            { icon: <Zap size={20} />, label: 'Avg Engagement', value: summary.avgEngagement, color: 'bg-purple-50 text-purple-600', iconBg: 'bg-purple-100' },
-            { icon: <AlertTriangle size={20} />, label: 'At Risk', value: summary.atRiskCount, color: summary.atRiskCount > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600', iconBg: summary.atRiskCount > 0 ? 'bg-red-100' : 'bg-green-100' },
+            { icon: <Users size={20} />, label: 'Students', value: summary.totalStudents, color: 'bg-blue-50 text-blue-600', iconBg: 'bg-blue-100', action: () => setTab('students') },
+            { icon: <TrendingUp size={20} />, label: 'Class Avg Score', value: `${summary.classAvgScore}%`, color: 'bg-green-50 text-green-600', iconBg: 'bg-green-100', action: () => setTab('students') },
+            { icon: <Zap size={20} />, label: 'Avg Engagement', value: summary.avgEngagement, color: 'bg-purple-50 text-purple-600', iconBg: 'bg-purple-100', action: () => setTab('students') },
+            { icon: <AlertTriangle size={20} />, label: 'At Risk', value: summary.atRiskCount, color: summary.atRiskCount > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600', iconBg: summary.atRiskCount > 0 ? 'bg-red-100' : 'bg-green-100', action: () => setTab('risk') },
           ].map((stat, i) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-              className="card flex items-start gap-3"
+              className="card flex items-start gap-3 cursor-pointer hover:shadow-md hover:ring-2 hover:ring-primary-200 transition-all group"
+              onClick={stat.action}
             >
               <div className={cn('p-2.5 rounded-xl', stat.iconBg)}>
                 <span className={stat.color.split(' ')[1]}>{stat.icon}</span>
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                <p className="text-xs text-gray-500">{stat.label}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">{stat.label}</p>
+                  <ChevronRight size={12} className="text-gray-300 group-hover:text-primary-500 transition" />
+                </div>
               </div>
             </motion.div>
           ))}
@@ -305,38 +311,86 @@ export default function TeacherIntelligencePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map((stu: any) => (
-                    <tr key={stu.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
-                      <td className="py-3 px-4">
-                        <p className="font-semibold text-gray-900">{stu.name}</p>
-                        <p className="text-[10px] text-gray-400">Grade {stu.gradeLevel}</p>
-                      </td>
-                      <td className="text-center py-3 px-2">
-                        <span className={cn('font-bold', (stu.avgScore ?? 0) >= 70 ? 'text-green-600' : (stu.avgScore ?? 0) >= 50 ? 'text-amber-600' : 'text-red-600')}>
-                          {stu.avgScore ?? '--'}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-2">
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="text-xs font-medium text-gray-600 w-6">{stu.engagementScore}</span>
-                          <EngagementBar score={stu.engagementScore} size="sm" />
-                        </div>
-                      </td>
-                      <td className="text-center py-3 px-2">
-                        <span className="text-sm text-gray-700">{stu.streakDays}d</span>
-                      </td>
-                      <td className="text-center py-3 px-2">
-                        <span className="text-sm text-gray-700">{Math.round((stu.studyMinutes || 0) / 60)}h</span>
-                      </td>
-                      <td className="text-center py-3 px-2">
-                        <span className={cn('badge text-[10px]',
-                          stu.riskLevel === 'high' ? 'badge-danger' : stu.riskLevel === 'medium' ? 'badge-warning' : 'badge-success'
-                        )}>
-                          {stu.riskLevel === 'high' ? 'At Risk' : stu.riskLevel === 'medium' ? 'Watch' : 'OK'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {students.map((stu: any) => {
+                    const isExpanded = expandedStudent === stu.id;
+                    return (
+                      <>
+                        <tr key={stu.id}
+                          className="border-b border-gray-50 hover:bg-primary-50 transition cursor-pointer"
+                          onClick={() => setExpandedStudent(isExpanded ? null : stu.id)}>
+                          <td className="py-3 px-4">
+                            <p className="font-semibold text-gray-900">{stu.name}</p>
+                            <p className="text-[10px] text-gray-400">Grade {stu.gradeLevel}</p>
+                          </td>
+                          <td className="text-center py-3 px-2">
+                            <span className={cn('font-bold', (stu.avgScore ?? 0) >= 70 ? 'text-green-600' : (stu.avgScore ?? 0) >= 50 ? 'text-amber-600' : 'text-red-600')}>
+                              {stu.avgScore ?? '--'}%
+                            </span>
+                          </td>
+                          <td className="py-3 px-2">
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="text-xs font-medium text-gray-600 w-6">{stu.engagementScore}</span>
+                              <EngagementBar score={stu.engagementScore} size="sm" />
+                            </div>
+                          </td>
+                          <td className="text-center py-3 px-2">
+                            <span className="text-sm text-gray-700">{stu.streakDays}d</span>
+                          </td>
+                          <td className="text-center py-3 px-2">
+                            <span className="text-sm text-gray-700">{Math.round((stu.studyMinutes || 0) / 60)}h</span>
+                          </td>
+                          <td className="text-center py-3 px-2">
+                            <span className={cn('badge text-[10px]',
+                              stu.riskLevel === 'high' ? 'badge-danger' : stu.riskLevel === 'medium' ? 'badge-warning' : 'badge-success'
+                            )}>
+                              {stu.riskLevel === 'high' ? 'At Risk' : stu.riskLevel === 'medium' ? 'Watch' : 'OK'}
+                            </span>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr key={`${stu.id}-detail`}>
+                            <td colSpan={6} className="p-0">
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="overflow-hidden bg-gray-50 p-5 border-b border-gray-100">
+                                <div className="grid sm:grid-cols-4 gap-3 mb-4">
+                                  <div className="bg-blue-50 rounded-xl p-3 text-center">
+                                    <p className="text-xl font-bold text-blue-700">{stu.avgScore ?? '--'}%</p>
+                                    <p className="text-[10px] text-blue-500">Average Score</p>
+                                  </div>
+                                  <div className="bg-purple-50 rounded-xl p-3 text-center">
+                                    <p className="text-xl font-bold text-purple-700">{stu.engagementScore}</p>
+                                    <p className="text-[10px] text-purple-500">Engagement</p>
+                                  </div>
+                                  <div className="bg-orange-50 rounded-xl p-3 text-center">
+                                    <p className="text-xl font-bold text-orange-700">{stu.streakDays}d</p>
+                                    <p className="text-[10px] text-orange-500">Current Streak</p>
+                                  </div>
+                                  <div className="bg-emerald-50 rounded-xl p-3 text-center">
+                                    <p className="text-xl font-bold text-emerald-700">{Math.round((stu.studyMinutes || 0) / 60)}h</p>
+                                    <p className="text-[10px] text-emerald-500">Study Time</p>
+                                  </div>
+                                </div>
+                                <div className="bg-white rounded-xl p-4 border border-gray-200 mb-3">
+                                  <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5"><Sparkles size={12} className="text-indigo-500" /> AI Insights</p>
+                                  <p className="text-xs text-gray-600">
+                                    {stu.riskLevel === 'high'
+                                      ? `${stu.name} needs immediate attention. Score is trending down and engagement is low. Consider a 1-on-1 check-in and targeted review assignments.`
+                                      : stu.riskLevel === 'medium'
+                                      ? `${stu.name} is showing some inconsistency. Their engagement could improve — encourage more AI tutor usage and shorter, focused study sessions.`
+                                      : `${stu.name} is performing well with strong engagement. They could be a great peer tutor candidate. Consider enrichment challenges.`}
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Link href={`/teacher/students?student=${stu.id}`} className="btn-secondary text-xs flex items-center gap-1"><Users size={12} /> Full Profile</Link>
+                                  <Link href={`/teacher/analytics?tab=learning`} className="btn-secondary text-xs flex items-center gap-1"><Brain size={12} /> Learning Style</Link>
+                                  <button onClick={(e) => { e.stopPropagation(); handleGenerateIntervention(stu); }} className="btn-primary text-xs flex items-center gap-1"><Sparkles size={12} /> Generate Plan</button>
+                                </div>
+                              </motion.div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
