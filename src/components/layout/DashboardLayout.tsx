@@ -70,7 +70,8 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/teacher/students', label: 'My Students', icon: <Users size={20} /> },
       { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
       { href: '/teacher/worksheets', label: 'Worksheets', icon: <PenTool size={20} /> },
-      { href: '/student/forums', label: 'Forums', icon: <MessageSquare size={20} /> },
+      { href: '/teacher/forums', label: 'Forums', icon: <MessageSquare size={20} /> },
+      { href: '/teacher/content-library', label: 'Content Library', icon: <BookOpen size={20} /> },
       { href: '/teacher/exchange', label: 'Teacher Exchange', icon: <Globe2 size={20} /> },
 
       { href: '/teacher/messages', label: 'Messages', icon: <Mail size={20} /> },
@@ -629,17 +630,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           <p className="text-sm text-gray-400">No notifications yet</p>
                         </div>
                       ) : (
-                        notifications.slice(0, 8).map(notif => (
-                          <div key={notif.id}
-                            className={cn(
-                              'px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer',
-                              !notif.isRead && 'bg-primary-50/50 dark:bg-primary-900/20'
-                            )}
-                          >
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{notif.title}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{notif.message}</p>
-                          </div>
-                        ))
+                        notifications.slice(0, 8).map(notif => {
+                          const typeIcon = notif.type === 'assignment' ? '📝' : notif.type === 'grade' ? '📊' : notif.type === 'achievement' ? '🏆' : notif.type === 'announcement' ? '📢' : notif.type === 'alert' ? '⚠️' : notif.type === 'forum' ? '💬' : '🔔';
+                          const timeAgo = (() => { const d = Date.now() - new Date(notif.createdAt).getTime(); if (d < 60000) return 'Just now'; if (d < 3600000) return `${Math.floor(d / 60000)}m ago`; if (d < 86400000) return `${Math.floor(d / 3600000)}h ago`; return `${Math.floor(d / 86400000)}d ago`; })();
+                          return (
+                            <a key={notif.id} href={notif.link || '#'}
+                              onClick={(e) => { if (!notif.link) e.preventDefault(); setShowNotifications(false); }}
+                              className={cn(
+                                'flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer no-underline',
+                                !notif.isRead && 'bg-primary-50/50 dark:bg-primary-900/20'
+                              )}
+                            >
+                              <span className="text-base mt-0.5 flex-shrink-0">{typeIcon}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{notif.title}</p>
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>
+                                <p className="text-[10px] text-gray-400 mt-1">{timeAgo}</p>
+                              </div>
+                              {!notif.isRead && <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-2" />}
+                            </a>
+                          );
+                        })
                       )}
                     </div>
                   </motion.div>

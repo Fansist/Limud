@@ -233,6 +233,12 @@ export const DEMO_ASSIGNMENTS = [
     isPublished: true,
     submissions: [],
     createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    // v12.0.0: Video lesson attachment
+    videoUrl: 'https://www.youtube.com/watch?v=sQK3Yr4Sc_k',
+    videoTitle: 'Photosynthesis: Crash Course Biology',
+    exercises: [
+      { id: 'ex1', type: 'fill-blank', title: 'Key Terms', instructions: 'Fill in the blanks with the correct photosynthesis terms.', text: 'Photosynthesis takes place in the {{blank}}. The pigment {{blank}} absorbs light energy. The overall equation is 6CO2 + 6H2O → {{blank}} + 6O2.', blanks: [{ id: 'b1', answer: 'chloroplast', hint: 'An organelle' }, { id: 'b2', answer: 'chlorophyll', hint: 'Green pigment' }, { id: 'b3', answer: 'C6H12O6', hint: 'Glucose formula' }] },
+    ],
   },
   {
     id: 'demo-a2',
@@ -247,6 +253,11 @@ export const DEMO_ASSIGNMENTS = [
     isPublished: true,
     submissions: [],
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    videoUrl: 'https://www.youtube.com/watch?v=i7idZfS8t8w',
+    videoTitle: 'Solving Quadratic Equations — Khan Academy',
+    exercises: [
+      { id: 'ex2', type: 'matching', title: 'Match the Method', instructions: 'Match each equation to the best solving method.', pairs: [{ id: 'p1', left: 'x² - 9 = 0', right: 'Factoring (Difference of Squares)' }, { id: 'p2', left: 'x² + 5x + 6 = 0', right: 'Factoring (Trinomial)' }, { id: 'p3', left: '2x² + 3x - 7 = 0', right: 'Quadratic Formula' }] },
+    ],
   },
   {
     id: 'demo-a3',

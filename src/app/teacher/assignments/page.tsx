@@ -65,6 +65,7 @@ export default function TeacherAssignments() {
     attachments: [] as Attachment[],
     linkUrl: '',
     linkTitle: '',
+    videoUrl: '',  // v12.0.0: Video lesson URL (YouTube/Vimeo)
   });
   const [courses, setCourses] = useState<any[]>([]);
   const [creating, setCreating] = useState(false);
@@ -254,7 +255,7 @@ export default function TeacherAssignments() {
   }
 
   function resetForm() {
-    setForm({ title: '', description: '', type: 'SHORT_ANSWER', courseId: '', dueDate: '', totalPoints: 100, isPublished: true, category: 'homework', isExtraCredit: false, attachments: [], linkUrl: '', linkTitle: '' });
+    setForm({ title: '', description: '', type: 'SHORT_ANSWER', courseId: '', dueDate: '', totalPoints: 100, isPublished: true, category: 'homework', isExtraCredit: false, attachments: [], linkUrl: '', linkTitle: '', videoUrl: '' });
     setCreateMode('manual');
     setWorksheetPrefilled(false);
   }
@@ -1084,6 +1085,16 @@ export default function TeacherAssignments() {
                     </div>
                   )}
                   <p className="text-[10px] text-gray-400 mt-2">Students will see these attachments when viewing the assignment.</p>
+                </div>
+
+                {/* v12.0.0: Video Lesson URL */}
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold text-indigo-700 mb-2 flex items-center gap-2">
+                    🎬 Video Lesson (Optional)
+                  </h3>
+                  <p className="text-xs text-indigo-500 mb-2">Attach a YouTube or Vimeo video lesson. Students will see an embedded player alongside the assignment.</p>
+                  <input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))}
+                    className="input-field text-sm" placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..." />
                 </div>
 
                 <div className="flex items-center gap-2">

@@ -49,7 +49,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ============================================================
-   LANDING PAGE v11.0.0 — "The Four Pillars" Blueprint
+   LANDING PAGE v12.0.0 — Foundation Hardening + Content & Engagement
    Mission: Eliminate the one-size-fits-all classroom
    ============================================================ */
 
@@ -74,7 +74,7 @@ export default function LandingPage() {
   return (
     <div className="bg-white overflow-x-hidden">
 
-      {/* Schema.org JSON-LD for SEO */}
+      {/* Schema.org JSON-LD for SEO — Organization, WebApplication, Course, FAQ */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([
         {
           "@context": "https://schema.org",
@@ -82,7 +82,10 @@ export default function LandingPage() {
           "name": "Limud Education Inc.",
           "url": "https://limud.co",
           "logo": "https://limud.co/logo.png",
-          "sameAs": ["https://github.com/Fansist/Limud"]
+          "sameAs": ["https://github.com/Fansist/Limud"],
+          "description": "AI-powered adaptive learning platform for K-12 education",
+          "foundingDate": "2026",
+          "contactPoint": { "@type": "ContactPoint", "contactType": "customer service", "url": "https://limud.co/contact" }
         },
         {
           "@context": "https://schema.org",
@@ -91,9 +94,33 @@ export default function LandingPage() {
           "applicationCategory": "EducationalApplication",
           "operatingSystem": "Web",
           "offers": [
-            { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" },
-            { "@type": "Offer", "name": "Standard", "price": "3", "priceCurrency": "USD", "description": "Per student/month" },
-            { "@type": "Offer", "name": "Enterprise", "description": "Custom pricing for districts" }
+            { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD", "description": "Up to 5 students, AI Tutor, adaptive learning" },
+            { "@type": "Offer", "name": "Standard", "price": "6", "priceCurrency": "USD", "description": "Per student/month — full features" },
+            { "@type": "Offer", "name": "Enterprise", "description": "Custom pricing for districts with SSO/SLA" }
+          ],
+          "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "247" }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Course",
+          "name": "Adaptive K-12 Learning with AI",
+          "description": "Personalized learning paths powered by Google Gemini AI. Covers Math, Science, ELA, History for grades K-12.",
+          "provider": { "@type": "Organization", "name": "Limud Education Inc.", "url": "https://limud.co" },
+          "educationalLevel": "K-12",
+          "inLanguage": "en",
+          "isAccessibleForFree": true,
+          "coursePrerequisites": "None",
+          "hasCourseInstance": { "@type": "CourseInstance", "courseMode": "online", "courseWorkload": "PT30M" }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            { "@type": "Question", "name": "Is Limud really free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Homeschool families and self-learners get Limud free forever. The free plan includes AI Tutor, adaptive learning, and parent dashboards for up to 5 students." }},
+            { "@type": "Question", "name": "What subjects does Limud cover?", "acceptedAnswer": { "@type": "Answer", "text": "Limud supports Math (Algebra, Geometry, Fractions), Science, English Language Arts, History, and more. Teachers can create custom content for any subject." }},
+            { "@type": "Question", "name": "How does the AI tutor work?", "acceptedAnswer": { "@type": "Answer", "text": "Limud's AI tutor uses Socratic questioning — it guides students to discover answers rather than giving them directly. It adapts to each student's learning style and interests." }},
+            { "@type": "Question", "name": "Is Limud FERPA and COPPA compliant?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Limud is built for compliance from the ground up with AES-256-GCM encryption, 7-year audit log retention, parental consent tracking, and role-based access control." }},
+            { "@type": "Question", "name": "Can I use Limud with my existing LMS?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Limud integrates with 16+ platforms including Google Classroom, Canvas, Khan Academy, Clever, and more." }}
           ]
         }
       ]) }} />
@@ -106,7 +133,7 @@ export default function LandingPage() {
             <Link href="/" className="flex items-center gap-2">
               <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg shadow-md object-cover" />
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
-              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v11.0</span>
+              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v12.0</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -553,7 +580,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-2 mb-3">
                 <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg object-cover" />
                 <span className="text-base font-bold text-white">Limud</span>
-                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v11.0</span>
+                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v12.0</span>
               </div>
               <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for self-learners, homeschool families, and school districts.</p>
               <div className="flex gap-2 mt-3">

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 /*
- * Admin Dashboard v11.0.0 — "The Superintendent Ofer Command Center"
+ * Admin Dashboard v12.0.0 — Foundation Hardening + Content & Engagement
  * Blueprint: High-level analytics, compliance, and ROI.
  * Key KPIs: 247 active students, 18 teachers, $12,000 annual cost.
  * Widgets: Cost/ROI, Compliance, Bulk Management, Announcements.

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, requireRole, apiHandler, hasTeacherAccess } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import { sendEmail } from '@/lib/email';
+import { assignmentDueReminder } from '@/lib/email-templates';
 
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
@@ -145,6 +147,46 @@ export const POST = apiHandler(async (req: Request) => {
       headers: { 'Content-Type': 'application/json', cookie: req.headers.get('cookie') || '' },
       body: JSON.stringify({ assignmentId: assignment.id }),
     }).catch(() => {});
+  }
+
+  // v12.0.0: Send email & in-app notification to enrolled students (fire-and-forget)
+  if (assignment.isPublished) {
+    (async () => {
+      try {
+        const enrollments = await prisma.enrollment.findMany({
+          where: { courseId },
+          include: { student: { select: { id: true, name: true, email: true } } },
+        });
+        const dueStr = new Date(dueDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+        // In-app notifications
+        if (enrollments.length > 0) {
+          await prisma.notification.createMany({
+            data: enrollments.map(e => ({
+              userId: e.student.id,
+              title: `📝 New: ${assignment.title}`,
+              message: `Due ${dueStr} — ${assignment.course.name}`,
+              type: 'assignment',
+              link: '/student/assignments',
+            })),
+          });
+        }
+        // Email notifications (best-effort)
+        for (const e of enrollments) {
+          sendEmail({
+            to: e.student.email,
+            subject: `New Assignment: ${assignment.title}`,
+            html: assignmentDueReminder({
+              studentName: e.student.name,
+              assignmentTitle: assignment.title,
+              dueDate: dueStr,
+              courseUrl: 'https://limud.co/student/assignments',
+            }),
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.warn('[Assignments] Notification dispatch failed:', err);
+      }
+    })();
   }
 
   return NextResponse.json({ assignment }, { status: 201 });

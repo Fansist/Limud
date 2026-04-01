@@ -10,8 +10,13 @@ import { DEMO_ASSIGNMENTS } from '@/lib/demo-data';
 import { getStudentAssignments, submitStudentAssignment } from '@/lib/demo-state';
 import toast from 'react-hot-toast';
 import {
-  BookOpen, Clock, Send, X, FileText, Upload, Paperclip, Trash2, Link2, Mic, Video, Code2, PenTool, Globe, Star, ExternalLink, Download,
+  BookOpen, Clock, Send, X, FileText, Upload, Paperclip, Trash2, Link2, Mic, Video, Code2, PenTool, Globe, Star, ExternalLink, Download, Play, Puzzle,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+// v12.0.0 — Lazy-load Video Player and Exercise Renderer
+const VideoPlayer = dynamic(() => import('@/components/video/VideoPlayer'), { ssr: false });
+const ExerciseRenderer = dynamic(() => import('@/components/exercises/ExerciseRenderer'), { ssr: false });
 
 export default function StudentAssignments() {
   const { data: session } = useSession();
@@ -262,6 +267,25 @@ export default function StudentAssignments() {
                               </a>
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {/* v12.0.0: Video Lesson */}
+                      {assignment.videoUrl && (
+                        <div className="mt-3">
+                          <VideoPlayer url={assignment.videoUrl} title={assignment.videoTitle || 'Lesson Video'} />
+                        </div>
+                      )}
+
+                      {/* v12.0.0: Interactive Exercises */}
+                      {assignment.exercises && assignment.exercises.length > 0 && (
+                        <div className="mt-3 p-3 bg-purple-50 rounded-xl border border-purple-100">
+                          <p className="text-xs font-semibold text-purple-800 mb-2 flex items-center gap-1">
+                            <Puzzle size={12} /> Interactive Practice
+                          </p>
+                          {assignment.exercises.map((ex: any) => (
+                            <ExerciseRenderer key={ex.id} exercise={ex} onComplete={(result: any) => toast.success(`${result.correct ? '✅ Correct!' : '❌ Try again'}`)} />
+                          ))}
                         </div>
                       )}
                     </div>
