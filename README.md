@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v12.1.0
+  v12.2.0
 </p>
 
 ---
@@ -1158,6 +1158,21 @@ NODE_OPTIONS=--max-old-space-size=512
 ---
 
 ## Changelog
+
+### v12.2.0 (2026-04-03) — "Cross‑Page Bug‑Fix Release"
+
+**Student page fixes (6):**
+- **Exam Simulator: questionCount overflow** — Demo mode only has 6 questions but allowed selecting 8/10/15/20; now clamps to available pool and adjusts timer accordingly
+- **Focus Mode: static question order** — Questions were always in the same order; now shuffled on each session mount for variety
+- **Study Planner: byDate stale after toggle** — Demo mode `toggleComplete` updated `sessions` but never re-grouped `byDate`, so the date view didn't reflect changes
+- **Knowledge Analytics: missing History category** — `getDemoData()` had a "US History" skill in the skills array but `skillsByCategory` was missing the History group
+- **Classrooms: misleading "Classes Today" label** — Stat card showed total classrooms count but was labeled "Classes Today"; renamed to "Total Classes"
+- **Study Groups: hardcoded sender name** — `sendMessage()` used hardcoded "Alex R." instead of `session?.user?.name`
+
+**Non‑role page fixes (3):**
+- **Providers.tsx: localStorage crash** — `JSON.parse(localStorage.getItem('limud-accessibility'))` could crash if stored value was corrupted; wrapped in try/catch
+- **Demo page: missing ?demo=true on redirect** — When signIn succeeded on `/demo`, router pushed to dashboard without `?demo=true`, breaking demo data detection
+- **Reset Password: min‑length mismatch** — Client validation required 8 chars but registration enforces 10; now requires 10 chars + lowercase letter to match registration rules
 
 ### v12.1.0 (2026-04-03) — "Student Pages Bug‑Fix Release"
 

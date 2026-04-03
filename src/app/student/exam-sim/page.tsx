@@ -68,8 +68,9 @@ export default function ExamSimulatorPage() {
         { question: 'Slope of y = 3x - 7?', options: ['3', '-7', '7', '-3'], skill: 'Linear Functions' },
         { question: 'Factor: x\u00b2 - 9', options: ['(x+3)(x-3)', '(x+9)(x-1)', '(x-3)\u00b2', '(x+3)\u00b2'], skill: 'Factoring' },
       ];
-      setQuestions(demoQs.slice(0, questionCount));
-      setTimeLeft(questionCount * 90);
+      const sliced = demoQs.slice(0, Math.min(questionCount, demoQs.length));
+      setQuestions(sliced);
+      setTimeLeft(sliced.length * 90);
       setStartTime(Date.now());
       setAnswers({});
       setCurrentQ(0);

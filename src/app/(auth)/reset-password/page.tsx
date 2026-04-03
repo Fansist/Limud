@@ -20,9 +20,10 @@ function ResetPasswordForm() {
   const [success, setSuccess] = useState(false);
 
   const passwordChecks = [
-    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'At least 10 characters', met: password.length >= 10 },
     { label: 'Contains a number', met: /\d/.test(password) },
     { label: 'Contains uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'Contains lowercase letter', met: /[a-z]/.test(password) },
     { label: 'Passwords match', met: password.length > 0 && password === confirmPassword },
   ];
 

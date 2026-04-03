@@ -49,7 +49,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ============================================================
-   LANDING PAGE v12.1.0 — Foundation Hardening + Content & Engagement
+   LANDING PAGE v12.2.0 — Foundation Hardening + Content & Engagement
    Mission: Eliminate the one-size-fits-all classroom
    ============================================================ */
 
@@ -133,7 +133,7 @@ export default function LandingPage() {
             <Link href="/" className="flex items-center gap-2">
               <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg shadow-md object-cover" />
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
-              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v12.1</span>
+              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v12.2</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -580,7 +580,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-2 mb-3">
                 <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg object-cover" />
                 <span className="text-base font-bold text-white">Limud</span>
-                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v12.1</span>
+                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v12.2</span>
               </div>
               <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for self-learners, homeschool families, and school districts.</p>
               <div className="flex gap-2 mt-3">

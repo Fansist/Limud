@@ -612,6 +612,9 @@ function getDemoData() {
         { skillName: 'Grammar', masteryLevel: 82 },
         { skillName: 'Vocabulary', masteryLevel: 55 },
       ],
+      History: [
+        { skillName: 'US History', masteryLevel: 74 },
+      ],
     },
   };
 }

@@ -222,7 +222,7 @@ export default function MyClassroomsPage() {
         {/* Quick Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Classes Today', value: classrooms.length, icon: BookOpen, color: 'text-blue-600 bg-blue-50' },
+            { label: 'Total Classes', value: classrooms.length, icon: BookOpen, color: 'text-blue-600 bg-blue-50' },
             { label: 'Due This Week', value: classrooms.reduce((s, c) => s + (c.assignments?.filter((a: any) => daysUntil(a.dueDate) <= 7).length || 0), 0), icon: Clock, color: 'text-amber-600 bg-amber-50' },
             { label: 'Due Tomorrow', value: classrooms.reduce((s, c) => s + (c.assignments?.filter((a: any) => daysUntil(a.dueDate) <= 1).length || 0), 0), icon: AlertTriangle, color: 'text-red-600 bg-red-50' },
             { label: 'Total Points', value: classrooms.reduce((s, c) => s + (c.assignments?.reduce((ps: number, a: any) => ps + (a.points || 0), 0) || 0), 0), icon: Star, color: 'text-green-600 bg-green-50' },

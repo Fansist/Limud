@@ -127,7 +127,8 @@ export default function StudyGroupsPage() {
 
   function sendMessage() {
     if (!newMessage.trim() || !selectedGroup) return;
-    const msg = { id: `m${Date.now()}`, userId: 'demo-student', userName: 'Alex R.', text: newMessage, time: 'Just now' };
+    const userName = session?.user?.name || 'You';
+    const msg = { id: `m${Date.now()}`, userId: 'demo-student', userName, text: newMessage, time: 'Just now' };
     setSelectedGroup((prev: any) => ({ ...prev, messages: [...prev.messages, msg] }));
     setGroups(prev => prev.map(g => g.id === selectedGroup.id ? { ...g, messages: [...g.messages, msg] } : g));
     setNewMessage('');

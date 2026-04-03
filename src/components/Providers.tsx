@@ -34,12 +34,16 @@ function AccessibilityProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Load saved preferences
-    const saved = localStorage.getItem('limud-accessibility');
-    if (saved) {
-      const prefs = JSON.parse(saved);
-      setHighContrast(prefs.highContrast || false);
-      setDyslexiaFont(prefs.dyslexiaFont || false);
-      setTextSize(prefs.textSize || 'normal');
+    try {
+      const saved = localStorage.getItem('limud-accessibility');
+      if (saved) {
+        const prefs = JSON.parse(saved);
+        setHighContrast(prefs.highContrast || false);
+        setDyslexiaFont(prefs.dyslexiaFont || false);
+        setTextSize(prefs.textSize || 'normal');
+      }
+    } catch {
+      // Invalid or unavailable localStorage — use defaults
     }
   }, []);
 
@@ -54,10 +58,14 @@ function AccessibilityProvider({ children }: { children: ReactNode }) {
     if (textSize === 'xlarge') document.body.classList.add('text-xl');
 
     // Persist preferences
-    localStorage.setItem(
-      'limud-accessibility',
-      JSON.stringify({ highContrast, dyslexiaFont, textSize })
-    );
+    try {
+      localStorage.setItem(
+        'limud-accessibility',
+        JSON.stringify({ highContrast, dyslexiaFont, textSize })
+      );
+    } catch {
+      // localStorage unavailable (e.g. incognito)
+    }
   }, [highContrast, dyslexiaFont, textSize]);
 
   return (

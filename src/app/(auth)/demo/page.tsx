@@ -90,7 +90,7 @@ export default function DemoPage() {
         // Auth succeeded — use known role mapping for instant redirect
         const knownRole = DEMO_EMAIL_ROLES[email.toLowerCase()];
         if (knownRole) {
-          router.push(getDashboardPath(knownRole));
+          router.push(`${getDashboardPath(knownRole)}?demo=true`);
           router.refresh();
         } else {
           // Fallback: try from DEMO_CREDENTIALS
@@ -101,7 +101,7 @@ export default function DemoPage() {
             Admin: '/admin/dashboard',
             Parent: '/parent/dashboard',
           };
-          router.push(roleMap[cred?.role || 'Student'] || '/student/dashboard');
+          router.push(`${roleMap[cred?.role || 'Student'] || '/student/dashboard'}?demo=true`);
           router.refresh();
         }
       } else {

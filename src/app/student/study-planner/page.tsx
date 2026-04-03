@@ -120,7 +120,18 @@ export default function StudyPlannerPage() {
 
   async function toggleComplete(sessionId: string) {
     if (isDemo) {
-      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, completed: !s.completed, actualMinutes: !s.completed ? s.goalMinutes : 0 } : s));
+      setSessions(prev => {
+        const updated = prev.map(s => s.id === sessionId ? { ...s, completed: !s.completed, actualMinutes: !s.completed ? s.goalMinutes : 0 } : s);
+        // Re-group by date so the UI reflects the change
+        const grouped: Record<string, any[]> = {};
+        updated.forEach(s => {
+          const dateStr = new Date(s.date).toISOString().split('T')[0];
+          if (!grouped[dateStr]) grouped[dateStr] = [];
+          grouped[dateStr].push(s);
+        });
+        setByDate(grouped);
+        return updated;
+      });
       toast.success('Session updated!');
       return;
     }
