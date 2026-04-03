@@ -35,7 +35,7 @@ const DEMO_INTELLIGENCE = {
   atRisk: [
     { id: 'demo-student-eitan', name: 'Eitan Balan', gradeLevel: '9', avgScore: 73, engagementScore: 55, riskLevel: 'medium', daysSinceActive: 1 },
   ],
-  summary: { totalStudents: 3, avgEngagement: 76, atRiskCount: 0, classAvgScore: 86 },
+  summary: { totalStudents: 3, avgEngagement: 76, atRiskCount: 1, classAvgScore: 86 },
 };
 
 function EngagementBar({ score, size = 'md' }: { score: number; size?: 'sm' | 'md' }) {

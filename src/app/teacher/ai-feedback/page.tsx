@@ -203,7 +203,24 @@ export default function AIFeedbackPage() {
   }, [isDemo]);
 
   async function loadSubmissions() {
-    // In real app, fetch from API
+    if (isDemo) {
+      setSubmissions(DEMO_SUBMISSIONS.map(s => ({ ...s, feedback: null })));
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await fetch('/api/submissions?status=SUBMITTED');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.submissions?.length > 0) {
+          setSubmissions(data.submissions.map((s: any) => ({ ...s, feedback: null })));
+          setLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // fallback to demo data
+    }
     setSubmissions(DEMO_SUBMISSIONS.map(s => ({ ...s, feedback: null })));
     setLoading(false);
   }

@@ -84,7 +84,10 @@ export default function GradingPage() {
     try {
       if (isDemo) {
         await new Promise(r => setTimeout(r, 1500));
-        const score = Math.round(70 + Math.random() * 30);
+        // v12.3.0: Deterministic score from submission ID to avoid different grades on re-grade
+        let hash = 0;
+        for (let i = 0; i < submissionId.length; i++) { hash = ((hash << 5) - hash) + submissionId.charCodeAt(i); hash |= 0; }
+        const score = 70 + (Math.abs(hash) % 31);
         setSubmissions(prev => prev.map(s =>
           s.id === submissionId ? { ...s, status: 'GRADED', score, maxScore: 100 } : s
         ));
@@ -129,9 +132,13 @@ export default function GradingPage() {
     try {
       if (isDemo) {
         await new Promise(r => setTimeout(r, 2000));
-        setSubmissions(prev => prev.map(s =>
-          s.status === 'SUBMITTED' ? { ...s, status: 'GRADED', score: Math.round(70 + Math.random() * 30), maxScore: 100 } : s
-        ));
+        // v12.3.0: Deterministic batch scores
+        setSubmissions(prev => prev.map(s => {
+          if (s.status !== 'SUBMITTED') return s;
+          let h = 0;
+          for (let i = 0; i < s.id.length; i++) { h = ((h << 5) - h) + s.id.charCodeAt(i); h |= 0; }
+          return { ...s, status: 'GRADED', score: 70 + (Math.abs(h) % 31), maxScore: 100 };
+        }));
         toast.success(`Graded ${pendingIds.length} submissions! 🎉 (Demo)`);
         setBatchGrading(false);
         return;

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 /*
- * Admin Dashboard v12.2.0 — Foundation Hardening + Content & Engagement
+ * Admin Dashboard v12.3.0 — Foundation Hardening + Content & Engagement
  * Blueprint: High-level analytics, compliance, and ROI.
  * Key KPIs: 247 active students, 18 teachers, $12,000 annual cost.
  * Widgets: Cost/ROI, Compliance, Bulk Management, Announcements.

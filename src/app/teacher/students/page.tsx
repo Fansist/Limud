@@ -22,14 +22,25 @@ import {
  */
 
 // Build rich student data from existing demo data
-const DEMO_STUDENTS = DEMO_ANALYTICS.students.map(student => {
+// v12.3.0: Use deterministic seed per student instead of Math.random() to avoid hydration mismatch
+function seededValue(seed: string, index: number): number {
+  let hash = 0;
+  const str = seed + index;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return (Math.abs(hash) % 1000) / 1000;
+}
+
+const DEMO_STUDENTS = DEMO_ANALYTICS.students.map((student, idx) => {
   const learningData = DEMO_LEARNING_INSIGHTS.students.find(s => s.id === student.id);
   const submissions = DEMO_TEACHER_ASSIGNMENTS.flatMap(a =>
-    (a.submissions || []).filter((s: any) => s.studentId === student.id).map((s: any) => ({
+    (a.submissions || []).filter((s: any) => s.studentId === student.id).map((s: any, si: number) => ({
       title: a.title,
       score: s.score,
       max: a.totalPoints,
-      date: new Date(Date.now() - Math.random() * 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      date: new Date(2026, 2, 25 - si * 2).toISOString().split('T')[0],
     }))
   ).filter(s => s.score !== null);
 
@@ -38,6 +49,11 @@ const DEMO_STUDENTS = DEMO_ANALYTICS.students.map(student => {
     'demo-student-eitan': '🤖',
     'demo-student-noam': '🧙',
   };
+
+  const seed = student.id;
+  const tutorSessions = Math.round(seededValue(seed, 1) * 20 + 10);
+  const focusMinutes = Math.round(seededValue(seed, 2) * 300 + 120);
+  const daysAgo = Math.round(seededValue(seed, 3) * 2);
 
   return {
     id: student.id,
@@ -48,18 +64,18 @@ const DEMO_STUDENTS = DEMO_ANALYTICS.students.map(student => {
     stats: {
       assignmentsCompleted: student.totalSubmissions || 38,
       avgScore: student.averageScore,
-      tutorSessions: Math.round(Math.random() * 20 + 10),
-      focusMinutes: Math.round(Math.random() * 300 + 120),
-      lastActive: new Date(Date.now() - Math.random() * 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      tutorSessions,
+      focusMinutes,
+      lastActive: new Date(2026, 2, 28 - daysAgo).toISOString().split('T')[0],
     },
     skills: learningData?.recentMethods?.map(m => ({
       name: m.assignment.split(' ')[0],
       mastery: m.score,
     })) || [
-      { name: 'Biology', mastery: Math.round(student.averageScore + (Math.random() - 0.5) * 10) },
-      { name: 'Algebra', mastery: Math.round(student.averageScore + (Math.random() - 0.5) * 15) },
-      { name: 'English', mastery: Math.round(student.averageScore + (Math.random() - 0.5) * 8) },
-      { name: 'History', mastery: Math.round(student.averageScore + (Math.random() - 0.5) * 12) },
+      { name: 'Biology', mastery: Math.round(student.averageScore + (seededValue(seed, 4) - 0.5) * 10) },
+      { name: 'Algebra', mastery: Math.round(student.averageScore + (seededValue(seed, 5) - 0.5) * 15) },
+      { name: 'English', mastery: Math.round(student.averageScore + (seededValue(seed, 6) - 0.5) * 8) },
+      { name: 'History', mastery: Math.round(student.averageScore + (seededValue(seed, 7) - 0.5) * 12) },
     ],
     recentGrades: submissions.length > 0 ? submissions.slice(0, 4) : [
       { title: 'Ecosystem Research', score: Math.round(student.averageScore * 2 * 0.01 * 200), max: 200, date: '2026-03-25' },

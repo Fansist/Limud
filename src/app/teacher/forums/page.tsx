@@ -171,25 +171,29 @@ export default function TeacherForumsPage() {
   }
 
   function togglePin(postId: string) {
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, isPinned: !p.isPinned } : p));
-    if (selectedPost?.id === postId) setSelectedPost(prev => prev ? { ...prev, isPinned: !prev.isPinned } : null);
-    toast.success('Pin toggled');
+    const post = posts.find(p => p.id === postId);
+    const newValue = !post?.isPinned;
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, isPinned: newValue } : p));
+    if (selectedPost?.id === postId) setSelectedPost(prev => prev ? { ...prev, isPinned: newValue } : null);
+    toast.success(newValue ? 'Post pinned' : 'Post unpinned');
     if (!isDemo) {
       fetch('/api/forums', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: postId, isPinned: true }),
+        body: JSON.stringify({ id: postId, isPinned: newValue }),
       }).catch(() => {});
     }
   }
 
   function toggleResolved(postId: string) {
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, isResolved: !p.isResolved } : p));
-    if (selectedPost?.id === postId) setSelectedPost(prev => prev ? { ...prev, isResolved: !prev.isResolved } : null);
-    toast.success('Resolved status toggled');
+    const post = posts.find(p => p.id === postId);
+    const newValue = !post?.isResolved;
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, isResolved: newValue } : p));
+    if (selectedPost?.id === postId) setSelectedPost(prev => prev ? { ...prev, isResolved: newValue } : null);
+    toast.success(newValue ? 'Marked as resolved' : 'Marked as unresolved');
     if (!isDemo) {
       fetch('/api/forums', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: postId, isResolved: true }),
+        body: JSON.stringify({ id: postId, isResolved: newValue }),
       }).catch(() => {});
     }
   }
