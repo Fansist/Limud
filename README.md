@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://limud.co">limud.co</a> &bull;
   <a href="https://github.com/Fansist/Limud">GitHub</a> &bull;
-  v9.9.0
+  v12.1.0
 </p>
 
 ---
@@ -1158,6 +1158,25 @@ NODE_OPTIONS=--max-old-space-size=512
 ---
 
 ## Changelog
+
+### v12.1.0 (2026-04-03) — "Student Pages Bug‑Fix Release"
+
+> Bug‑fix‑only release targeting all student‑facing pages. No new features.
+
+#### Critical Fixes
+- **Assignments: demo submission crash** — `handleSubmit()` referenced an undefined variable `a` instead of looking up the assignment by ID; submitting in demo mode now works correctly
+- **Knowledge: goal countdown link styling** — Goal action links used raw string interpolation (`${g.color}`) instead of the `cn()` utility, so gradient classes were never applied; fixed to use `cn()`
+
+#### Medium Fixes
+- **Knowledge: skill drill‑down query strings** — "Practice with AI Tutor" and "Focus Session" links produced malformed URLs (double `?` or missing `?`); corrected query‑string construction
+- **Dashboard: quick‑action cards missing demo param** — The four Quick Action cards (Assignments, AI Tutor, Focus Mode, Growth Analytics) used bare paths, losing the `?demo=true` parameter for demo users; now includes `demoSuffix`
+- **Forums: isTeacher operator precedence** — Missing parentheses around `&&` clause caused the demo teacher detection to always evaluate incorrectly; added explicit grouping
+- **Exam Simulator: timer doesn't auto‑submit** — When time ran out the exam sat idle; added auto‑submit with a toast notification ("Time's up!") when `timeLeft` reaches 0
+
+#### Minor Fixes
+- **Classrooms: invalid spinner class** — Loading spinner used `border-3` (not a valid Tailwind class); corrected to `border-4`
+- **Knowledge: wrong totalSkills count** — `getDemoData()` returns 9 demo skills but `totalSkills` was hardcoded to 8; corrected to 9
+- **Dashboard: version comment** — Updated header comment from v11.0.0 to v12.1.0
 
 ### v12.0.0 (2026-04-01) — "Foundation Hardening + Content & Engagement"
 

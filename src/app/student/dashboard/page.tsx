@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 /*
- * Student Dashboard v11.0.0 — "The Sylvester Experience"
+ * Student Dashboard v12.1.0 — "The Sylvester Experience"
  * Blueprint: Learning DNA + Adaptive Assignments + Focus Mode + Socratic Tutor + Instant Gratification (XP/Streak)
  */
 
@@ -259,7 +259,7 @@ export default function StudentDashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             {
-              href: '/student/assignments',
+              href: `/student/assignments${demoSuffix}`,
               icon: <Sparkles size={22} />,
               title: 'Adaptive Assignments',
               desc: `${upcomingAssignments.length} adapted for you`,
@@ -267,7 +267,7 @@ export default function StudentDashboard() {
               shadow: 'shadow-blue-500/20',
             },
             {
-              href: '/student/tutor',
+              href: `/student/tutor${demoSuffix}`,
               icon: <MessageCircle size={22} />,
               title: 'Socratic AI Tutor',
               desc: 'Guided discovery',
@@ -275,7 +275,7 @@ export default function StudentDashboard() {
               shadow: 'shadow-purple-500/20',
             },
             {
-              href: '/student/focus',
+              href: `/student/focus${demoSuffix}`,
               icon: <Target size={22} />,
               title: 'Focus Mode',
               desc: 'ADHD-friendly',
@@ -283,7 +283,7 @@ export default function StudentDashboard() {
               shadow: 'shadow-indigo-500/20',
             },
             {
-              href: '/student/knowledge',
+              href: `/student/knowledge${demoSuffix}`,
               icon: <BarChart3 size={22} />,
               title: 'Growth Analytics',
               desc: 'Track your progress',

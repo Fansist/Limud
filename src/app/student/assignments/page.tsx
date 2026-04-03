@@ -97,11 +97,12 @@ export default function StudentAssignments() {
     try {
       if (isDemo) {
         await new Promise(r => setTimeout(r, 1000));
-        const submission = { id: `demo-sub-${Date.now()}`, status: 'SUBMITTED', score: null, maxScore: a.totalPoints, submittedAt: new Date().toISOString(), aiFeedback: null, studentId: 'demo-student-lior', studentName: 'Lior Betzalel', assignmentTitle: a.title };
-        setAssignments(prev => prev.map(a =>
-          a.id === assignmentId
-            ? { ...a, submissions: [submission] }
-            : a
+        const assignment = assignments.find(x => x.id === assignmentId);
+        const submission = { id: `demo-sub-${Date.now()}`, status: 'SUBMITTED', score: null, maxScore: assignment?.totalPoints ?? 100, submittedAt: new Date().toISOString(), aiFeedback: null, studentId: 'demo-student-lior', studentName: 'Lior Betzalel', assignmentTitle: assignment?.title ?? '' };
+        setAssignments(prev => prev.map(item =>
+          item.id === assignmentId
+            ? { ...item, submissions: [submission] }
+            : item
         ));
         // v9.7.5: Save submission to shared state so teacher can see it
         submitStudentAssignment(assignmentId, submission);

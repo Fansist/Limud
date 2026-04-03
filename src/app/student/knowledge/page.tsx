@@ -411,11 +411,11 @@ function KnowledgeTab({ data }: { data: any }) {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Link href={`/student/tutor${demoSuffix}${demoSuffix ? '&' : '?'}topic=${encodeURIComponent(skill.skillName)}`}
+                          <Link href={`/student/tutor${demoSuffix ? demoSuffix + '&' : '?'}topic=${encodeURIComponent(skill.skillName)}`}
                             className="flex-1 text-center py-2 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-medium hover:bg-indigo-100 transition flex items-center justify-center gap-1">
                             <MessageCircle size={12} /> Practice with AI Tutor
                           </Link>
-                          <Link href={`/student/focus${demoSuffix}${demoSuffix ? '&' : '?'}skill=${encodeURIComponent(skill.skillName)}`}
+                          <Link href={`/student/focus${demoSuffix ? demoSuffix + '&' : '?'}skill=${encodeURIComponent(skill.skillName)}`}
                             className="flex-1 text-center py-2 rounded-lg bg-cyan-50 text-cyan-600 text-xs font-medium hover:bg-cyan-100 transition flex items-center justify-center gap-1">
                             <Target size={12} /> Focus Session
                           </Link>
@@ -463,7 +463,7 @@ function KnowledgeTab({ data }: { data: any }) {
                           <Sparkles size={12} className="text-indigo-500 mt-0.5 flex-shrink-0" />
                           <p className="text-xs text-gray-600 dark:text-gray-400">{g.tip}</p>
                         </div>
-                        <Link href={g.link} className="block w-full text-center py-2 rounded-lg bg-gradient-to-r text-white text-xs font-medium hover:shadow-md transition ${g.color}">
+                        <Link href={g.link} className={cn('block w-full text-center py-2 rounded-lg bg-gradient-to-r text-white text-xs font-medium hover:shadow-md transition', g.color)}>
                           {g.linkLabel} <ArrowRight size={12} className="inline ml-1" />
                         </Link>
                       </div>
@@ -591,7 +591,7 @@ function getDemoData() {
     },
     confidence: { accuracy: 78, luckyGuessRate: 12, trueMastery: 72, totalRatings: 48 },
     overallMastery: 74,
-    totalSkills: 8,
+    totalSkills: 9,
     masteredSkills: 3,
     needsWorkSkills: 2,
     dueReviews: 5,

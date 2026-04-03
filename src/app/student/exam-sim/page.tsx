@@ -33,7 +33,15 @@ export default function ExamSimulatorPage() {
   }, [isDemo]);
 
   useEffect(() => {
-    if (state !== 'taking' || timeLeft <= 0) return;
+    if (state !== 'taking') return;
+    if (timeLeft <= 0) {
+      // Auto-submit when time runs out
+      if (questions.length > 0 && !loading) {
+        toast('Time\'s up! Auto-submitting...', { icon: '⏰' });
+        submitExam();
+      }
+      return;
+    }
     const timer = setInterval(() => setTimeLeft(t => t > 0 ? t - 1 : 0), 1000);
     return () => clearInterval(timer);
   }, [state, timeLeft]);

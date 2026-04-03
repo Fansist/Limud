@@ -110,7 +110,7 @@ export default function ForumsPage() {
   const [filter, setFilter] = useState<'all' | 'pinned' | 'unresolved'>('all');
 
   const isTeacher = (session?.user as any)?.role === 'TEACHER' ||
-    searchParams.get('demo') === 'true' && typeof window !== 'undefined' && window.location.pathname.startsWith('/teacher');
+    (searchParams.get('demo') === 'true' && typeof window !== 'undefined' && window.location.pathname.startsWith('/teacher'));
 
   useEffect(() => {
     if (isDemo) {
