@@ -77,6 +77,27 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Classroom name required' }, { status: 400 });
   }
 
+  // v12.4.5: Auto-create a Course when creating a classroom with a teacher
+  let finalCourseId = courseId || null;
+  if (!finalCourseId && teacherId) {
+    const course = await prisma.course.create({
+      data: {
+        name,
+        subject: subject || 'General',
+        gradeLevel: gradeLevel || 'All',
+        districtId: user.districtId,
+        description: `Course for classroom: ${name}`,
+      },
+    });
+    finalCourseId = course.id;
+    // Link teacher to the course via CourseTeacher
+    try {
+      await prisma.courseTeacher.create({
+        data: { courseId: finalCourseId, teacherId },
+      });
+    } catch { /* already exists */ }
+  }
+
   const classroom = await prisma.classroom.create({
     data: {
       name,
@@ -86,7 +107,7 @@ export const POST = apiHandler(async (req: Request) => {
       subject: subject || null,
       period: period || null,
       teacherId: teacherId || null,
-      courseId: courseId || null,
+      courseId: finalCourseId,
     },
   });
 
@@ -126,6 +147,19 @@ export const PUT = apiHandler(async (req: Request) => {
         created.push(sid);
       } catch { /* duplicate */ }
     }
+
+    // v12.4.5: Also enroll students in the classroom's course (if any)
+    // so they can see assignments created by the teacher
+    if (classroom.courseId && created.length > 0) {
+      for (const sid of created) {
+        try {
+          await prisma.enrollment.create({
+            data: { courseId: classroom.courseId, studentId: sid },
+          });
+        } catch { /* already enrolled */ }
+      }
+    }
+
     return NextResponse.json({ success: true, added: created.length });
   }
 
@@ -151,12 +185,11 @@ export const PUT = apiHandler(async (req: Request) => {
     });
   }
 
-  // v12.4: Assign teacher to classroom
+  // v12.4/v12.4.5: Assign teacher to classroom
   if (action === 'assign-teacher') {
     const { teacherId: newTeacherId } = data;
     if (newTeacherId) {
       // v12.4.4: Verify teacher exists — check district match OR allow teachers without a district
-      // This handles teachers created via self-registration who have null districtId
       const teacher = await prisma.user.findFirst({
         where: {
           id: newTeacherId,
@@ -168,7 +201,50 @@ export const PUT = apiHandler(async (req: Request) => {
         },
       });
       if (!teacher) return NextResponse.json({ error: 'Teacher not found in district' }, { status: 404 });
+
+      // v12.4.5: Auto-create a Course for this classroom if none exists,
+      // and link teacher via CourseTeacher so assignments work
+      let courseId = classroom.courseId;
+      if (!courseId) {
+        // Create a Course mirroring the classroom
+        const course = await prisma.course.create({
+          data: {
+            name: classroom.name,
+            subject: classroom.subject || 'General',
+            gradeLevel: classroom.gradeLevel || 'All',
+            districtId: classroom.districtId,
+            description: `Course for classroom: ${classroom.name}`,
+          },
+        });
+        courseId = course.id;
+        // Link classroom to this course
+        await prisma.classroom.update({
+          where: { id: classroomId },
+          data: { courseId },
+        });
+      }
+
+      // v12.4.5: Ensure CourseTeacher entry exists so teacher can create assignments
+      try {
+        await prisma.courseTeacher.create({
+          data: { courseId, teacherId: newTeacherId },
+        });
+      } catch { /* already exists — unique constraint */ }
+
+      // v12.4.5: Enroll all classroom students in the course so they see assignments
+      const classroomStudents = await prisma.classroomStudent.findMany({
+        where: { classroomId },
+        select: { studentId: true },
+      });
+      for (const cs of classroomStudents) {
+        try {
+          await prisma.enrollment.create({
+            data: { courseId, studentId: cs.studentId },
+          });
+        } catch { /* already enrolled */ }
+      }
     }
+
     const updated = await prisma.classroom.update({
       where: { id: classroomId },
       data: { teacherId: newTeacherId || null },

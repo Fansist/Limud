@@ -104,7 +104,22 @@ export default function TeacherAssignments() {
 
   useEffect(() => {
     fetchAssignments();
+    if (!isDemo) fetchCourses(); // v12.4.5: Fetch courses independently
   }, [isDemo]);
+
+  // v12.4.5: Fetch teacher's courses independently from assignments
+  // This ensures the Course dropdown is populated even when the teacher has no assignments yet
+  async function fetchCourses() {
+    try {
+      const res = await fetch('/api/teacher/courses');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.courses?.length > 0) {
+          setCourses(data.courses);
+        }
+      }
+    } catch { /* silent — assignments fallback still works */ }
+  }
 
   async function fetchAssignments() {
     try {
@@ -145,11 +160,22 @@ export default function TeacherAssignments() {
       if (res.ok) {
         const data = await res.json();
         setAssignments(data.assignments || []);
+        // v12.4.5: Only use assignments to supplement courses if fetchCourses didn't populate them
         const uniqueCourses = new Map();
         data.assignments?.forEach((a: any) => {
           if (a.course && a.courseId) uniqueCourses.set(a.courseId, a.course);
         });
-        setCourses(Array.from(uniqueCourses.entries()).map(([id, c]) => ({ id, ...c })));
+        setCourses(prev => {
+          if (prev.length > 0) {
+            // Merge: add any courses from assignments that weren't in the teacher/courses response
+            const existing = new Set(prev.map(c => c.id));
+            const extras = Array.from(uniqueCourses.entries())
+              .filter(([id]) => !existing.has(id))
+              .map(([id, c]) => ({ id, ...c }));
+            return [...prev, ...extras];
+          }
+          return Array.from(uniqueCourses.entries()).map(([id, c]) => ({ id, ...c }));
+        });
       }
     } catch {
       toast.error('Failed to load assignments');

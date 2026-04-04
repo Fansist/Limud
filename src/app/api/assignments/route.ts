@@ -103,11 +103,18 @@ export const POST = apiHandler(async (req: Request) => {
 
   // Verify access to this course
   if (user.role === 'TEACHER') {
+    // v12.4.5: Check CourseTeacher OR classroom assignment
     const courseTeacher = await prisma.courseTeacher.findFirst({
       where: { courseId, teacherId: user.id },
     });
     if (!courseTeacher) {
-      return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      // Also check if teacher is assigned to a classroom linked to this course
+      const classroom = await prisma.classroom.findFirst({
+        where: { courseId, teacherId: user.id },
+      });
+      if (!classroom) {
+        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      }
     }
   } else if (user.role === 'PARENT' && user.isHomeschoolParent) {
     // Homeschool parents can create assignments for courses in their district
