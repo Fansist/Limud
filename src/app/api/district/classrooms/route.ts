@@ -7,6 +7,7 @@ export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN', 'TEACHER');
   const { searchParams } = new URL(req.url);
   const schoolId = searchParams.get('schoolId');
+  const includeStudents = searchParams.get('includeStudents') === 'true';
 
   const where: any = { districtId: user.districtId };
   if (schoolId) where.schoolId = schoolId;
@@ -17,6 +18,19 @@ export const GET = apiHandler(async (req: Request) => {
     include: {
       school: { select: { id: true, name: true } },
       _count: { select: { students: true } },
+      // v12.4.3: Optionally include full student list for teacher view
+      ...(includeStudents ? {
+        students: {
+          include: {
+            student: {
+              select: {
+                id: true, name: true, email: true, gradeLevel: true,
+                rewardStats: { select: { totalXP: true, level: true, currentStreak: true } },
+              },
+            },
+          },
+        },
+      } : {}),
     },
     orderBy: { name: 'asc' },
   });

@@ -10,11 +10,11 @@ import { cn } from '@/lib/utils';
 import { DEMO_ANALYTICS, DEMO_TEACHER_ASSIGNMENTS, DEMO_TEACHER } from '@/lib/demo-data';
 import {
   BookOpen, GraduationCap, BarChart3, Users, AlertTriangle, Clock, ArrowRight, TrendingUp, FileText, Sparkles, CalendarDays,
-  Upload, Target, Brain, Lightbulb, Zap, Eye, Search,
+  Upload, Target, Brain, Lightbulb, Zap, Eye, Search, Building2,
 } from 'lucide-react';
 
 /*
- * Teacher Dashboard v12.4 — Simplified & Clean
+ * Teacher Dashboard v12.4.3 — Simplified & Clean + My Classes
  * Blueprint: Upload → Adapt → Auto-Grade → Intelligence Dashboard
  */
 
@@ -25,12 +25,17 @@ export default function TeacherDashboard() {
   const needsDemoParam = useNeedsDemoParam();
   const [analytics, setAnalytics] = useState<any>(null);
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [myClassrooms, setMyClassrooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (isDemo) {
       setAnalytics(DEMO_ANALYTICS);
       setAssignments(DEMO_TEACHER_ASSIGNMENTS);
+      setMyClassrooms([
+        { id: 'tc1', name: 'Math 101', subject: 'Mathematics', gradeLevel: '6th', period: 'Period 1', school: { name: 'Lincoln Elementary' }, _count: { students: 24 }, color: '#3B82F6' },
+        { id: 'tc2', name: 'Algebra II Honors', subject: 'Mathematics', gradeLevel: '9th', period: 'Period 4', school: { name: 'Jefferson High' }, _count: { students: 18 }, color: '#06B6D4' },
+      ]);
       setLoading(false);
       return;
     }
@@ -43,14 +48,19 @@ export default function TeacherDashboard() {
 
   async function fetchData() {
     try {
-      const [analyticsRes, assignRes] = await Promise.all([
+      const [analyticsRes, assignRes, classroomsRes] = await Promise.all([
         fetch('/api/analytics'),
         fetch('/api/assignments'),
+        fetch('/api/district/classrooms'),
       ]);
       if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
       if (assignRes.ok) {
         const data = await assignRes.json();
         setAssignments(data.assignments || []);
+      }
+      if (classroomsRes.ok) {
+        const data = await classroomsRes.json();
+        setMyClassrooms(data.classrooms || []);
       }
     } catch (err) {
       console.error('Error fetching teacher data:', err);
@@ -262,6 +272,48 @@ export default function TeacherDashboard() {
             </motion.div>
           ))}
         </div>
+
+        {/* ═══ MY CLASSES — v12.4.3: Show assigned classrooms ═══ */}
+        {myClassrooms.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="card"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <BookOpen size={16} className="text-blue-500" />
+                </div>
+                My Classes ({myClassrooms.length})
+              </h2>
+              <Link href={`/teacher/classrooms${demoSuffix}`} className="text-xs text-primary-600 font-semibold hover:underline flex items-center gap-1">
+                View all <ArrowRight size={12} />
+              </Link>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {myClassrooms.slice(0, 6).map((c: any) => (
+                <Link key={c.id} href={`/teacher/classrooms${demoSuffix}`}
+                  className="group p-3 rounded-xl bg-gray-50 hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer border-l-4"
+                  style={{ borderLeftColor: c.color || '#3B82F6' }}>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
+                  <p className="text-xs text-gray-500">{[c.subject, c.gradeLevel, c.period].filter(Boolean).join(' | ')}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                      <Users size={10} /> {c._count?.students || 0} students
+                    </span>
+                    {c.school && (
+                      <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                        <Building2 size={10} /> {c.school.name}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Students Needing Attention — Blueprint: Intelligence Dashboard alerts */}

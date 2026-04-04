@@ -6,6 +6,8 @@ export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
 
   let courseIds: string[] = [];
+  // v12.4.3: Also track students from classroom assignments
+  let classroomStudentIds: string[] = [];
 
   if (user.role === 'PARENT' && user.isHomeschoolParent) {
     // Homeschool parent: get courses from their district
@@ -21,6 +23,15 @@ export const GET = apiHandler(async (req: Request) => {
       select: { courseId: true },
     });
     courseIds = courseTeachers.map(ct => ct.courseId);
+
+    // v12.4.3: Also get students from classrooms assigned to this teacher
+    const teacherClassrooms = await prisma.classroom.findMany({
+      where: { teacherId: user.id, districtId: user.districtId },
+      include: {
+        students: { select: { studentId: true } },
+      },
+    });
+    classroomStudentIds = teacherClassrooms.flatMap(c => c.students.map(s => s.studentId));
   } else if (user.role === 'ADMIN') {
     // Admin: get all district courses
     const courses = await prisma.course.findMany({
@@ -30,7 +41,7 @@ export const GET = apiHandler(async (req: Request) => {
     courseIds = courses.map(c => c.id);
   }
 
-  if (courseIds.length === 0) {
+  if (courseIds.length === 0 && classroomStudentIds.length === 0) {
     return NextResponse.json({
       students: [],
       summary: { totalStudents: 0, atRisk: 0, averageScore: 0, pendingSubmissions: 0 },
@@ -38,7 +49,7 @@ export const GET = apiHandler(async (req: Request) => {
   }
 
   // Get students with their performance data
-  const enrollments = await prisma.enrollment.findMany({
+  const enrollments = courseIds.length > 0 ? await prisma.enrollment.findMany({
     where: { courseId: { in: courseIds } },
     include: {
       student: {
@@ -52,7 +63,7 @@ export const GET = apiHandler(async (req: Request) => {
       },
       course: { select: { name: true, subject: true } },
     },
-  });
+  }) : [];
 
   // Aggregate student analytics
   const studentMap = new Map<string, any>();
@@ -84,6 +95,43 @@ export const GET = apiHandler(async (req: Request) => {
       name: enrollment.course.name,
       subject: enrollment.course.subject,
     });
+  }
+
+  // v12.4.3: Also include students from teacher's classrooms (via ClassroomStudent)
+  if (classroomStudentIds.length > 0) {
+    const uniqueIds = [...new Set(classroomStudentIds)].filter(id => !studentMap.has(id));
+    if (uniqueIds.length > 0) {
+      const classroomStudents = await prisma.user.findMany({
+        where: { id: { in: uniqueIds } },
+        include: {
+          submissions: {
+            where: { status: 'GRADED' },
+            select: { score: true, maxScore: true, assignmentId: true },
+          },
+          rewardStats: true,
+        },
+      });
+      for (const s of classroomStudents) {
+        const gradedSubmissions = s.submissions.filter(sub => sub.score !== null);
+        const avgScore =
+          gradedSubmissions.length > 0
+            ? gradedSubmissions.reduce((sum, sub) => sum + (sub.score! / (sub.maxScore || 100)) * 100, 0) /
+              gradedSubmissions.length
+            : null;
+        studentMap.set(s.id, {
+          id: s.id,
+          name: s.name,
+          email: s.email,
+          courses: [],
+          averageScore: avgScore !== null ? Math.round(avgScore * 10) / 10 : null,
+          totalSubmissions: gradedSubmissions.length,
+          currentStreak: s.rewardStats?.currentStreak || 0,
+          totalXP: s.rewardStats?.totalXP || 0,
+          level: s.rewardStats?.level || 1,
+          riskLevel: avgScore === null ? 'unknown' : avgScore < 60 ? 'high' : avgScore < 75 ? 'medium' : 'low',
+        });
+      }
+    }
   }
 
   const students = Array.from(studentMap.values()).sort((a, b) => {
