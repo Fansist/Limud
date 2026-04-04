@@ -123,7 +123,14 @@ export default function AdminClassroomsPageEnhanced() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   // v12.4: Teacher assignment
   const [teachers, setTeachers] = useState<any[]>([]);
-  const [assigningTeacher, setAssigningTeacher] = useState<string | null>(null); // classroomId being assigned
+  const [assigningTeacher, setAssigningTeacher] = useState<string | null>(null);
+  // v12.4.2: Student assignment & school assignment
+  const [students, setStudents] = useState<any[]>([]);
+  const [districtSchools, setDistrictSchools] = useState<any[]>([]);
+  const [assigningStudents, setAssigningStudents] = useState<string | null>(null); // classroomId
+  const [assigningSchool, setAssigningSchool] = useState<string | null>(null); // classroomId
+  const [studentSearch, setStudentSearch] = useState('');
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
 
   const [form, setForm] = useState({
     name: '', subject: '', gradeLevel: '', period: '',
@@ -137,7 +144,7 @@ export default function AdminClassroomsPageEnhanced() {
     gamesDisabledDuringClass: false,
   });
 
-  useEffect(() => { fetchClassrooms(); fetchTeachers(); }, [isDemo]);
+  useEffect(() => { fetchClassrooms(); fetchTeachers(); fetchStudents(); fetchSchools(); }, [isDemo]);
 
   async function fetchClassrooms() {
     if (isDemo) {
@@ -240,6 +247,49 @@ export default function AdminClassroomsPageEnhanced() {
     } catch { /* silent */ }
   }
 
+  // v12.4.2: Fetch students for assignment
+  async function fetchStudents() {
+    if (isDemo) {
+      setStudents([
+        { id: 's1', name: 'Alex Johnson', email: 'alex.j@school.edu', gradeLevel: '6th', classroomStudents: [{ classroom: { id: 'dc1' } }] },
+        { id: 's2', name: 'Bella Martinez', email: 'bella.m@school.edu', gradeLevel: '6th', classroomStudents: [{ classroom: { id: 'dc3' } }] },
+        { id: 's3', name: 'Carlos Davis', email: 'carlos.d@school.edu', gradeLevel: '10th', classroomStudents: [{ classroom: { id: 'dc2' } }] },
+        { id: 's4', name: 'Diana Lee', email: 'diana.l@school.edu', gradeLevel: '8th', classroomStudents: [] },
+        { id: 's5', name: 'Ethan Brown', email: 'ethan.b@school.edu', gradeLevel: '9th', classroomStudents: [] },
+        { id: 's6', name: 'Fiona Wilson', email: 'fiona.w@school.edu', gradeLevel: '5th', classroomStudents: [] },
+        { id: 's7', name: 'George White', email: 'george.w@school.edu', gradeLevel: '6th', classroomStudents: [] },
+        { id: 's8', name: 'Hannah Kim', email: 'hannah.k@school.edu', gradeLevel: '10th', classroomStudents: [] },
+      ]);
+      return;
+    }
+    try {
+      const res = await fetch('/api/district/students');
+      if (res.ok) {
+        const data = await res.json();
+        setStudents(data.students || []);
+      }
+    } catch { /* silent */ }
+  }
+
+  // v12.4.2: Fetch schools for assignment
+  async function fetchSchools() {
+    if (isDemo) {
+      setDistrictSchools([
+        { id: 's1', name: 'Lincoln Elementary' },
+        { id: 's2', name: 'Washington Middle School' },
+        { id: 's3', name: 'Jefferson High School' },
+      ]);
+      return;
+    }
+    try {
+      const res = await fetch('/api/district/schools');
+      if (res.ok) {
+        const data = await res.json();
+        setDistrictSchools(data.schools || []);
+      }
+    } catch { /* silent */ }
+  }
+
   // v12.4: Assign teacher to classroom
   async function handleAssignTeacher(classroomId: string, teacherId: string | null) {
     if (isDemo) {
@@ -269,6 +319,103 @@ export default function AdminClassroomsPageEnhanced() {
       }
     } catch { toast.error('Failed to assign teacher'); }
     finally { setAssigningTeacher(null); }
+  }
+
+  // v12.4.2: Assign students to classroom
+  async function handleAssignStudents(classroomId: string) {
+    if (selectedStudents.size === 0) { toast.error('Select at least one student'); return; }
+    const ids = Array.from(selectedStudents);
+    if (isDemo) {
+      setClassrooms(prev => prev.map(c =>
+        c.id === classroomId
+          ? { ...c, _count: { ...c._count, students: (c._count?.students || 0) + ids.length } }
+          : c
+      ));
+      // Update demo student data
+      setStudents(prev => prev.map(s =>
+        ids.includes(s.id)
+          ? { ...s, classroomStudents: [...(s.classroomStudents || []), { classroom: { id: classroomId } }] }
+          : s
+      ));
+      setAssigningStudents(null); setSelectedStudents(new Set()); setStudentSearch('');
+      toast.success(`Added ${ids.length} student(s)`);
+      return;
+    }
+    try {
+      const res = await fetch('/api/district/classrooms', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classroomId, action: 'add-students', studentIds: ids }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Added ${data.added} student(s)`);
+        fetchClassrooms(); fetchStudents();
+      } else {
+        const d = await res.json();
+        toast.error(d.error || 'Failed');
+      }
+    } catch { toast.error('Failed to assign students'); }
+    finally { setAssigningStudents(null); setSelectedStudents(new Set()); setStudentSearch(''); }
+  }
+
+  // v12.4.2: Remove student from classroom
+  async function handleRemoveStudent(classroomId: string, studentId: string) {
+    if (isDemo) {
+      setClassrooms(prev => prev.map(c =>
+        c.id === classroomId
+          ? { ...c, _count: { ...c._count, students: Math.max(0, (c._count?.students || 0) - 1) } }
+          : c
+      ));
+      setStudents(prev => prev.map(s =>
+        s.id === studentId
+          ? { ...s, classroomStudents: (s.classroomStudents || []).filter((cs: any) => cs.classroom?.id !== classroomId) }
+          : s
+      ));
+      toast.success('Student removed');
+      return;
+    }
+    try {
+      const res = await fetch('/api/district/classrooms', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classroomId, action: 'remove-students', studentIds: [studentId] }),
+      });
+      if (res.ok) {
+        toast.success('Student removed');
+        fetchClassrooms(); fetchStudents();
+      }
+    } catch { toast.error('Failed'); }
+  }
+
+  // v12.4.2: Assign classroom to school
+  async function handleAssignSchool(classroomId: string, schoolId: string | null) {
+    if (isDemo) {
+      const school = schoolId ? districtSchools.find(s => s.id === schoolId) : null;
+      setClassrooms(prev => prev.map(c =>
+        c.id === classroomId
+          ? { ...c, school: school ? { id: school.id, name: school.name } : null, schoolId }
+          : c
+      ));
+      setAssigningSchool(null);
+      toast.success(school ? `Assigned to ${school.name}` : 'School removed');
+      return;
+    }
+    try {
+      const res = await fetch('/api/district/classrooms', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classroomId, action: 'update', schoolId: schoolId || null }),
+      });
+      if (res.ok) {
+        toast.success(schoolId ? 'Classroom assigned to school' : 'School removed');
+        fetchClassrooms();
+      } else {
+        const d = await res.json();
+        toast.error(d.error || 'Failed');
+      }
+    } catch { toast.error('Failed to assign school'); }
+    finally { setAssigningSchool(null); }
   }
 
   function resetForm() {
@@ -370,12 +517,17 @@ export default function AdminClassroomsPageEnhanced() {
                     <input value={form.period} onChange={e => setForm(f => ({ ...f, period: e.target.value }))} className="input-field" placeholder="e.g., Period 1" /></div>
                 </div>
 
-                {/* v12.4: Teacher Assignment in create form */}
+                {/* v12.4.2: Teacher & School Assignment in create form */}
                 <div className="grid sm:grid-cols-2 gap-4 mt-4">
                   <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Assign Teacher</label>
                     <select value={form.teacherId} onChange={e => setForm(f => ({ ...f, teacherId: e.target.value }))} className="input-field">
-                      <option value="">— Select Teacher —</option>
+                      <option value="">-- Select Teacher --</option>
                       {teachers.map(t => <option key={t.id} value={t.id}>{t.name} ({t.email})</option>)}
+                    </select></div>
+                  <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Assign to School</label>
+                    <select value={form.schoolId} onChange={e => setForm(f => ({ ...f, schoolId: e.target.value }))} className="input-field">
+                      <option value="">-- Select School --</option>
+                      {districtSchools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select></div>
                 </div>
 
@@ -550,7 +702,30 @@ export default function AdminClassroomsPageEnhanced() {
                           <button onClick={() => setAssigningTeacher(null)} className="text-[10px] text-gray-400 mt-1 hover:underline block">Cancel</button>
                         </div>
                       )}
-                      {c.school && <p className="text-xs text-gray-400 flex items-center gap-1"><Building2 size={10} /> {c.school.name}</p>}
+                      {/* v12.4.2: School assignment */}
+                      {c.school ? (
+                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                          <Building2 size={10} /> {c.school.name}
+                          <button onClick={(e) => { e.stopPropagation(); setAssigningSchool(assigningSchool === c.id ? null : c.id); }}
+                            className="ml-1 text-primary-500 hover:text-primary-700 transition" title="Change school"><Edit3 size={10} /></button>
+                        </p>
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); setAssigningSchool(c.id); }}
+                          className="text-xs text-amber-600 mt-0.5 flex items-center gap-1 hover:underline">
+                          <Building2 size={10} /> Assign to School
+                        </button>
+                      )}
+                      {assigningSchool === c.id && (
+                        <div className="mt-2 p-2 bg-emerald-50 rounded-lg border border-emerald-200" onClick={e => e.stopPropagation()}>
+                          <p className="text-[10px] font-medium text-emerald-700 mb-1.5 flex items-center gap-1"><Building2 size={10} /> Assign School</p>
+                          <select className="input-field text-xs py-1.5" defaultValue={c.school?.id || c.schoolId || ''}
+                            onChange={e => handleAssignSchool(c.id, e.target.value || null)}>
+                            <option value="">-- No School --</option>
+                            {districtSchools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                          </select>
+                          <button onClick={() => setAssigningSchool(null)} className="text-[10px] text-gray-400 mt-1 hover:underline block">Cancel</button>
+                        </div>
+                      )}
                     </div>
                     {c.difficultyLevel && c.difficultyLevel !== 'Standard' && (
                       <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium',
@@ -604,11 +779,111 @@ export default function AdminClassroomsPageEnhanced() {
                         <span className={cn('text-[10px] font-medium', c.requireDailyChallenge ? 'text-amber-600' : 'text-gray-400')}>DC</span>
                       </button>
                     </div>
-                    <button onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
-                      className="text-xs text-primary-600 font-medium flex items-center gap-1 hover:underline">
-                      Details {expandedId === c.id ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setAssigningStudents(assigningStudents === c.id ? null : c.id); setSelectedStudents(new Set()); setStudentSearch(''); }}
+                        className="text-xs text-emerald-600 font-medium flex items-center gap-1 hover:underline">
+                        <UserPlus size={10} /> Students
+                      </button>
+                      <button onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                        className="text-xs text-primary-600 font-medium flex items-center gap-1 hover:underline">
+                        Details {expandedId === c.id ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* v12.4.2: Student Assignment Panel */}
+                  <AnimatePresence>
+                    {assigningStudents === c.id && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                          <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1"><Users size={12} /> Manage Students</p>
+
+                          {/* Currently enrolled students */}
+                          {(() => {
+                            const enrolled = students.filter(s => s.classroomStudents?.some((cs: any) => cs.classroom?.id === c.id));
+                            return enrolled.length > 0 ? (
+                              <div className="mb-3">
+                                <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Enrolled ({enrolled.length})</p>
+                                <div className="space-y-1 max-h-32 overflow-y-auto">
+                                  {enrolled.map((s: any) => (
+                                    <div key={s.id} className="flex items-center justify-between bg-green-50 rounded-lg px-2 py-1.5">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-5 h-5 rounded-full bg-green-200 flex items-center justify-center text-[8px] font-bold text-green-700">
+                                          {s.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                        </div>
+                                        <span className="text-xs text-gray-700">{s.name}</span>
+                                        {s.gradeLevel && <span className="text-[10px] text-gray-400">{s.gradeLevel}</span>}
+                                      </div>
+                                      <button onClick={() => handleRemoveStudent(c.id, s.id)}
+                                        className="text-red-400 hover:text-red-600 transition p-0.5" title="Remove">
+                                        <X size={12} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null;
+                          })()}
+
+                          {/* Search & add students */}
+                          <div className="relative mb-2">
+                            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input value={studentSearch} onChange={e => setStudentSearch(e.target.value)}
+                              className="input-field text-xs py-1.5 pl-7 w-full" placeholder="Search students to add..." />
+                          </div>
+
+                          {/* Available students list */}
+                          <div className="max-h-40 overflow-y-auto space-y-1 mb-2">
+                            {(() => {
+                              const enrolledIds = new Set(students.filter(s => s.classroomStudents?.some((cs: any) => cs.classroom?.id === c.id)).map(s => s.id));
+                              const available = students.filter(s => {
+                                if (enrolledIds.has(s.id)) return false;
+                                if (!studentSearch) return true;
+                                const q = studentSearch.toLowerCase();
+                                return s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q) || s.gradeLevel?.toLowerCase().includes(q);
+                              });
+                              return available.length > 0 ? available.map((s: any) => (
+                                <label key={s.id} className={cn('flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition',
+                                  selectedStudents.has(s.id) ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-gray-50')}>
+                                  <input type="checkbox" checked={selectedStudents.has(s.id)}
+                                    onChange={() => setSelectedStudents(prev => {
+                                      const next = new Set(prev);
+                                      next.has(s.id) ? next.delete(s.id) : next.add(s.id);
+                                      return next;
+                                    })} className="rounded text-blue-500" />
+                                  <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-600">
+                                    {s.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-gray-700 truncate">{s.name}</p>
+                                    <p className="text-[10px] text-gray-400">{s.gradeLevel} {s.email && `- ${s.email}`}</p>
+                                  </div>
+                                </label>
+                              )) : (
+                                <p className="text-[10px] text-gray-400 text-center py-2">
+                                  {studentSearch ? 'No matching students' : 'All students are enrolled'}
+                                </p>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex gap-2">
+                            <button onClick={() => handleAssignStudents(c.id)}
+                              disabled={selectedStudents.size === 0}
+                              className={cn('text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition',
+                                selectedStudents.size > 0 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed')}>
+                              <UserPlus size={10} /> Add {selectedStudents.size > 0 ? `(${selectedStudents.size})` : ''}
+                            </button>
+                            <button onClick={() => { setAssigningStudents(null); setSelectedStudents(new Set()); setStudentSearch(''); }}
+                              className="text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                              Close
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Expanded Details */}
                   <AnimatePresence>

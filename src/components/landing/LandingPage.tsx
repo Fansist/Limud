@@ -49,7 +49,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 /* ============================================================
-   LANDING PAGE v12.4.1 — Foundation Hardening + Content & Engagement
+   LANDING PAGE v12.4.2 — Foundation Hardening + Content & Engagement
    Mission: Eliminate the one-size-fits-all classroom
    ============================================================ */
 
