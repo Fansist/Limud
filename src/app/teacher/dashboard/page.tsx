@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 /*
- * Teacher Dashboard v12.3.0 — Cross-Page Bug-Fix Release
+ * Teacher Dashboard v12.3.1 — Cross-Page Bug-Fix Release
  * v11.0: All dashboard widgets are now clickable/navigable.
  * - Assignment rows → grading page
  * - Student rows → intelligence page
