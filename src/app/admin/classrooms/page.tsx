@@ -121,6 +121,9 @@ export default function AdminClassroomsPageEnhanced() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // v12.4: Teacher assignment
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [assigningTeacher, setAssigningTeacher] = useState<string | null>(null); // classroomId being assigned
 
   const [form, setForm] = useState({
     name: '', subject: '', gradeLevel: '', period: '',
@@ -134,7 +137,7 @@ export default function AdminClassroomsPageEnhanced() {
     gamesDisabledDuringClass: false,
   });
 
-  useEffect(() => { fetchClassrooms(); }, [isDemo]);
+  useEffect(() => { fetchClassrooms(); fetchTeachers(); }, [isDemo]);
 
   async function fetchClassrooms() {
     if (isDemo) {
@@ -182,7 +185,7 @@ export default function AdminClassroomsPageEnhanced() {
       return;
     }
     try {
-      const res = await fetch('/api/district/classrooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res = await fetch('/api/district/classrooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, teacherId: form.teacherId || undefined }) });
       if (res.ok) { toast.success('Classroom created!'); fetchClassrooms(); setShowCreate(false); resetForm(); }
       else { const d = await res.json(); toast.error(d.error); }
     } catch { toast.error('Failed'); }
@@ -214,6 +217,58 @@ export default function AdminClassroomsPageEnhanced() {
       setClassrooms(prev => prev.map(c => c.id === id ? { ...c, requireDailyChallenge: !current } : c));
       toast.success(!current ? 'Daily Challenge required' : 'Daily Challenge optional'); return;
     }
+  }
+
+  // v12.4: Fetch teachers for assignment dropdown
+  async function fetchTeachers() {
+    if (isDemo) {
+      setTeachers([
+        { id: 't1', name: 'Marcus Williams', email: 'marcus.w@meadowbrook.edu' },
+        { id: 't2', name: 'Dr. Sarah Chen', email: 'sarah.chen@meadowbrook.edu' },
+        { id: 't3', name: 'Jennifer Lopez', email: 'jennifer.l@meadowbrook.edu' },
+        { id: 't4', name: 'Robert Kim', email: 'robert.k@meadowbrook.edu' },
+        { id: 't7', name: 'Lisa Nguyen', email: 'lisa.n@meadowbrook.edu' },
+      ]);
+      return;
+    }
+    try {
+      const res = await fetch('/api/district/teachers');
+      if (res.ok) {
+        const data = await res.json();
+        setTeachers(data.teachers || []);
+      }
+    } catch { /* silent */ }
+  }
+
+  // v12.4: Assign teacher to classroom
+  async function handleAssignTeacher(classroomId: string, teacherId: string | null) {
+    if (isDemo) {
+      const teacher = teacherId ? teachers.find(t => t.id === teacherId) : null;
+      setClassrooms(prev => prev.map(c =>
+        c.id === classroomId
+          ? { ...c, teacher: teacher ? { id: teacher.id, name: teacher.name } : null, teacherId }
+          : c
+      ));
+      setAssigningTeacher(null);
+      toast.success(teacher ? `Assigned ${teacher.name}` : 'Teacher removed');
+      return;
+    }
+    try {
+      const res = await fetch('/api/district/classrooms', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classroomId, action: 'assign-teacher', teacherId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message);
+        fetchClassrooms();
+      } else {
+        const d = await res.json();
+        toast.error(d.error || 'Failed');
+      }
+    } catch { toast.error('Failed to assign teacher'); }
+    finally { setAssigningTeacher(null); }
   }
 
   function resetForm() {
@@ -313,6 +368,15 @@ export default function AdminClassroomsPageEnhanced() {
                     <input value={form.gradeLevel} onChange={e => setForm(f => ({ ...f, gradeLevel: e.target.value }))} className="input-field" placeholder="e.g., 6th" /></div>
                   <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Period</label>
                     <input value={form.period} onChange={e => setForm(f => ({ ...f, period: e.target.value }))} className="input-field" placeholder="e.g., Period 1" /></div>
+                </div>
+
+                {/* v12.4: Teacher Assignment in create form */}
+                <div className="grid sm:grid-cols-2 gap-4 mt-4">
+                  <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Assign Teacher</label>
+                    <select value={form.teacherId} onChange={e => setForm(f => ({ ...f, teacherId: e.target.value }))} className="input-field">
+                      <option value="">— Select Teacher —</option>
+                      {teachers.map(t => <option key={t.id} value={t.id}>{t.name} ({t.email})</option>)}
+                    </select></div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4 mt-4">
@@ -463,7 +527,29 @@ export default function AdminClassroomsPageEnhanced() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-gray-900 dark:text-white text-lg">{c.name}</h3>
                       <p className="text-sm text-gray-500">{[c.subject, c.gradeLevel, c.period].filter(Boolean).join(' | ')}</p>
-                      {c.teacher && <p className="text-xs text-gray-400 mt-1 flex items-center gap-1"><GraduationCap size={10} /> {c.teacher.name}</p>}
+                      {c.teacher ? (
+                        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                          <GraduationCap size={10} /> {c.teacher.name}
+                          <button onClick={(e) => { e.stopPropagation(); setAssigningTeacher(assigningTeacher === c.id ? null : c.id); }}
+                            className="ml-1 text-primary-500 hover:text-primary-700 transition" title="Change teacher"><Edit3 size={10} /></button>
+                        </p>
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); setAssigningTeacher(c.id); }}
+                          className="text-xs text-amber-600 mt-1 flex items-center gap-1 hover:underline">
+                          <UserPlus size={10} /> Assign Teacher
+                        </button>
+                      )}
+                      {assigningTeacher === c.id && (
+                        <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200" onClick={e => e.stopPropagation()}>
+                          <p className="text-[10px] font-medium text-blue-700 mb-1.5 flex items-center gap-1"><GraduationCap size={10} /> Assign Teacher</p>
+                          <select className="input-field text-xs py-1.5" defaultValue={c.teacher?.id || ''}
+                            onChange={e => handleAssignTeacher(c.id, e.target.value || null)}>
+                            <option value="">— No Teacher —</option>
+                            {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                          </select>
+                          <button onClick={() => setAssigningTeacher(null)} className="text-[10px] text-gray-400 mt-1 hover:underline block">Cancel</button>
+                        </div>
+                      )}
                       {c.school && <p className="text-xs text-gray-400 flex items-center gap-1"><Building2 size={10} /> {c.school.name}</p>}
                     </div>
                     {c.difficultyLevel && c.difficultyLevel !== 'Standard' && (

@@ -14,13 +14,8 @@ import {
 } from 'lucide-react';
 
 /*
- * Teacher Dashboard v12.3.1 — Cross-Page Bug-Fix Release
- * v11.0: All dashboard widgets are now clickable/navigable.
- * - Assignment rows → grading page
- * - Student rows → intelligence page
- * - Stat cards → relevant pages
- * Blueprint: Single-Source Upload → AI Adapter → One-Click Auto-Grading → Intelligence Dashboard
- * Pain point: Hours spent on differentiation and grading. Solution: Automation + Universal Differentiation + Intervention.
+ * Teacher Dashboard v12.4 — Simplified & Clean
+ * Blueprint: Upload → Adapt → Auto-Grade → Intelligence Dashboard
  */
 
 export default function TeacherDashboard() {

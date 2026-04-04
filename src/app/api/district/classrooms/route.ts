@@ -21,7 +21,21 @@ export const GET = apiHandler(async (req: Request) => {
     orderBy: { name: 'asc' },
   });
 
-  return NextResponse.json({ classrooms });
+  // v12.4: Enrich with teacher data
+  const enriched = await Promise.all(
+    classrooms.map(async (c) => {
+      let teacher = null;
+      if (c.teacherId) {
+        teacher = await prisma.user.findUnique({
+          where: { id: c.teacherId },
+          select: { id: true, name: true, email: true },
+        });
+      }
+      return { ...c, teacher };
+    })
+  );
+
+  return NextResponse.json({ classrooms: enriched });
 });
 
 // POST /api/district/classrooms - Create a classroom
@@ -99,6 +113,27 @@ export const PUT = apiHandler(async (req: Request) => {
       success: true,
       gamesDisabled: updated.gamesDisabledDuringClass,
       message: updated.gamesDisabledDuringClass ? 'Games disabled' : 'Games enabled',
+    });
+  }
+
+  // v12.4: Assign teacher to classroom
+  if (action === 'assign-teacher') {
+    const { teacherId: newTeacherId } = data;
+    if (newTeacherId) {
+      // Verify teacher exists and is in same district
+      const teacher = await prisma.user.findFirst({
+        where: { id: newTeacherId, districtId: user.districtId, role: 'TEACHER' },
+      });
+      if (!teacher) return NextResponse.json({ error: 'Teacher not found in district' }, { status: 404 });
+    }
+    const updated = await prisma.classroom.update({
+      where: { id: classroomId },
+      data: { teacherId: newTeacherId || null },
+    });
+    return NextResponse.json({
+      success: true,
+      classroom: updated,
+      message: newTeacherId ? 'Teacher assigned' : 'Teacher removed',
     });
   }
 

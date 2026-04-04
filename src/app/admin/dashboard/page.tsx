@@ -17,10 +17,9 @@ import {
 } from 'lucide-react';
 
 /*
- * Admin Dashboard v12.3.1 — Foundation Hardening + Content & Engagement
+ * Admin Dashboard v12.4 — Simplified + District Controls
  * Blueprint: High-level analytics, compliance, and ROI.
- * Key KPIs: 247 active students, 18 teachers, $12,000 annual cost.
- * Widgets: Cost/ROI, Compliance, Bulk Management, Announcements.
+ * v12.4: Cleaned up quick actions, added Teacher Management link.
  */
 
 const TRENDING_ALERTS = [
@@ -308,21 +307,17 @@ export default function AdminDashboard() {
               </div>
             </motion.div>
 
-            {/* ═══ QUICK ACTIONS — Blueprint: bulk import, announcements, analytics ═══ */}
+            {/* ═══ QUICK ACTIONS — v12.4: Streamlined to essential actions ═══ */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { href: `/admin/employees${demoSuffix}`, icon: <UserCog className="text-indigo-600" size={24} />, bg: 'bg-indigo-100 group-hover:bg-indigo-200', title: 'Employee Directory', desc: 'Manage teachers, staff, and admin roles' },
+                { href: `/admin/employees${demoSuffix}`, icon: <UserCog className="text-indigo-600" size={24} />, bg: 'bg-indigo-100 group-hover:bg-indigo-200', title: 'Teachers & Staff', desc: 'Create teachers, assign to classes, manage staff' },
                 { href: `/admin/students${demoSuffix}`, icon: <Users className="text-blue-600" size={24} />, bg: 'bg-blue-100 group-hover:bg-blue-200', title: 'Student Accounts', desc: 'Create students with auto parent accounts' },
+                { href: `/admin/classrooms${demoSuffix}`, icon: <BookOpen className="text-violet-600" size={24} />, bg: 'bg-violet-100 group-hover:bg-violet-200', title: 'Classrooms', desc: 'Create classes, assign teachers & students' },
                 { href: `/admin/schools${demoSuffix}`, icon: <Building2 className="text-emerald-600" size={24} />, bg: 'bg-emerald-100 group-hover:bg-emerald-200', title: 'Schools', desc: 'Manage schools & transfer users' },
-                { href: `/admin/classrooms${demoSuffix}`, icon: <BookOpen className="text-violet-600" size={24} />, bg: 'bg-violet-100 group-hover:bg-violet-200', title: 'Classrooms', desc: 'Configure classes, schedules & curriculum' },
                 { href: `/admin/announcements${demoSuffix}`, icon: <Megaphone className="text-pink-600" size={24} />, bg: 'bg-pink-100 group-hover:bg-pink-200', title: 'Announcements', desc: 'Cross-role broadcasts to all portals' },
-                { href: `/admin/provision${demoSuffix}`, icon: <Upload className="text-green-600" size={24} />, bg: 'bg-green-100 group-hover:bg-green-200', title: 'Bulk Import (CSV)', desc: 'Provision students & teachers at scale' },
-                { href: `/admin/analytics${demoSuffix}`, icon: <BarChart3 className="text-cyan-600" size={24} />, bg: 'bg-cyan-100 group-hover:bg-cyan-200', title: 'District Analytics', desc: 'Performance, engagement & AI usage data' },
+                { href: `/admin/analytics${demoSuffix}`, icon: <BarChart3 className="text-cyan-600" size={24} />, bg: 'bg-cyan-100 group-hover:bg-cyan-200', title: 'Analytics & Reports', desc: 'Performance, engagement & compliance' },
                 { href: `/admin/payments${demoSuffix}`, icon: <CreditCard className="text-amber-600" size={24} />, bg: 'bg-amber-100 group-hover:bg-amber-200', title: 'Billing & Payments', desc: 'Subscription & payment history' },
-                { href: `/admin/settings${demoSuffix}`, icon: <Settings className="text-gray-600" size={24} />, bg: 'bg-gray-100 group-hover:bg-gray-200', title: 'District Settings', desc: 'Policies, branding, security & feature flags' },
-                { href: `/admin/audit${demoSuffix}`, icon: <ClipboardList className="text-orange-600" size={24} />, bg: 'bg-orange-100 group-hover:bg-orange-200', title: 'Audit Log', desc: 'Track admin actions & system events' },
-                { href: `/admin/analytics${demoSuffix}#compliance`, icon: <FileSearch className="text-teal-600" size={24} />, bg: 'bg-teal-100 group-hover:bg-teal-200', title: 'Compliance Reports', desc: 'FERPA/COPPA audit trails & data reports' },
-                { href: `/admin/analytics${demoSuffix}#ai`, icon: <Cpu className="text-fuchsia-600" size={24} />, bg: 'bg-fuchsia-100 group-hover:bg-fuchsia-200', title: 'AI Usage Monitor', desc: 'Tutor, grader & planner usage analytics' },
+                { href: `/admin/settings${demoSuffix}`, icon: <Settings className="text-gray-600" size={24} />, bg: 'bg-gray-100 group-hover:bg-gray-200', title: 'Settings & Security', desc: 'Policies, branding, audit log & compliance' },
               ].map((item, i) => (
                 <motion.div key={item.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.02 }}>
                   <Link href={item.href} className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full">

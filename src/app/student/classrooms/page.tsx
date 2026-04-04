@@ -140,20 +140,16 @@ export default function MyClassroomsPage() {
         setLoading(false);
         return;
       }
-      // Try to fetch real classrooms
-      const res = await fetch('/api/classrooms');
+      // Fetch real classrooms for authenticated students
+      const res = await fetch('/api/student/classrooms');
       if (res.ok) {
         const data = await res.json();
-        if (data.classrooms?.length > 0) {
-          setClassrooms(data.classrooms);
-        } else {
-          setClassrooms(DEFAULT_STUDENT_CLASSROOMS);
-        }
+        setClassrooms(data.classrooms || []);
       } else {
-        setClassrooms(DEFAULT_STUDENT_CLASSROOMS);
+        setClassrooms([]);
       }
     } catch {
-      setClassrooms(DEFAULT_STUDENT_CLASSROOMS);
+      setClassrooms([]);
     } finally {
       setLoading(false);
     }
@@ -290,10 +286,11 @@ export default function MyClassroomsPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-[10px] text-gray-500 mb-3">
-                  <span className="flex items-center gap-1"><MapPin size={10} /> {classroom.room}</span>
-                  <span className="flex items-center gap-1"><Clock size={10} /> {classroom.period}</span>
-                  <span className="flex items-center gap-1"><Users size={10} /> {classroom.studentCount}</span>
+                <div className="flex items-center gap-3 text-[10px] text-gray-500 mb-3 flex-wrap">
+                  {classroom.room && <span className="flex items-center gap-1"><MapPin size={10} /> {classroom.room}</span>}
+                  {classroom.period && <span className="flex items-center gap-1"><Clock size={10} /> {classroom.period}</span>}
+                  {classroom.studentCount > 0 && <span className="flex items-center gap-1"><Users size={10} /> {classroom.studentCount}</span>}
+                  {classroom.gradeLevel && <span className="flex items-center gap-1">{classroom.gradeLevel}</span>}
                 </div>
 
                 {/* Assignment preview */}
@@ -330,7 +327,18 @@ export default function MyClassroomsPage() {
           })}
         </div>
 
-        {filtered.length === 0 && (
+        {filtered.length === 0 && classrooms.length === 0 && !isDemo && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-16">
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <GraduationCap size={28} className="text-gray-400" />
+            </div>
+            <p className="text-lg font-medium text-gray-500 mb-2">No classrooms yet</p>
+            <p className="text-sm text-gray-400 max-w-md mx-auto">
+              You haven&apos;t been assigned to any classrooms. Your teacher or school admin will add you to classes soon.
+            </p>
+          </motion.div>
+        )}
+        {filtered.length === 0 && classrooms.length > 0 && (
           <div className="text-center py-12">
             <Search size={32} className="mx-auto text-gray-300 mb-3" />
             <p className="text-sm text-gray-500">No classrooms found for &quot;{searchQuery}&quot;</p>

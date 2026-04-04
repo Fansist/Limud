@@ -165,12 +165,31 @@ export default function AdminEmployeesPage() {
       return;
     }
     try {
-      const res = await fetch('/api/district/employees', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      if (res.ok) { toast.success('Employee created!'); fetchEmployees(); setShowCreate(false); resetForm(); }
-      else { const d = await res.json(); toast.error(d.error || 'Failed'); }
+      // v12.4: Use /api/district/teachers for teacher accounts
+      if (form.role === 'TEACHER') {
+        const res = await fetch('/api/district/teachers', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teachers: [{
+              name: `${form.firstName} ${form.lastName}`,
+              firstName: form.firstName,
+              lastName: form.lastName,
+              email: form.email,
+              phone: form.phone || undefined,
+              schoolId: form.schoolId || undefined,
+            }],
+          }),
+        });
+        if (res.ok) { toast.success('Teacher account created!'); fetchEmployees(); setShowCreate(false); resetForm(); }
+        else { const d = await res.json(); toast.error(d.error || 'Failed'); }
+      } else {
+        const res = await fetch('/api/district/employees', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        });
+        if (res.ok) { toast.success('Employee created!'); fetchEmployees(); setShowCreate(false); resetForm(); }
+        else { const d = await res.json(); toast.error(d.error || 'Failed'); }
+      }
     } catch { toast.error('Failed to create employee'); }
   }
 

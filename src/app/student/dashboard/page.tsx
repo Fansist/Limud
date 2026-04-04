@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 /*
- * Student Dashboard v12.3.1 — "The Sylvester Experience"
+ * Student Dashboard v12.4 — "The Sylvester Experience"
  * Blueprint: Learning DNA + Adaptive Assignments + Focus Mode + Socratic Tutor + Instant Gratification (XP/Streak)
  */
 
@@ -60,10 +60,7 @@ export default function StudentDashboard() {
       ]);
       if (assignRes.ok) {
         const data = await assignRes.json();
-        const fetched = data.assignments || [];
-        setAssignments(fetched.length > 0 ? fetched : (isUnlinked ? DEMO_ASSIGNMENTS : []));
-      } else if (isUnlinked) {
-        setAssignments(DEMO_ASSIGNMENTS);
+        setAssignments(data.assignments || []);
       }
       if (rewardRes?.ok) {
         const data = await rewardRes.json();
@@ -78,9 +75,6 @@ export default function StudentDashboard() {
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
-      if (isUnlinked) {
-        setAssignments(DEMO_ASSIGNMENTS);
-      }
     } finally {
       setLoading(false);
     }
