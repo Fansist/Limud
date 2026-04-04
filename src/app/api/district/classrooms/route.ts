@@ -3,15 +3,31 @@ import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
 // GET /api/district/classrooms
+// v12.4.4: Fixed teacher visibility — teachers can see their classrooms
+// even if their districtId is missing from the session (e.g. self-registered teachers)
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN', 'TEACHER');
   const { searchParams } = new URL(req.url);
   const schoolId = searchParams.get('schoolId');
   const includeStudents = searchParams.get('includeStudents') === 'true';
 
-  const where: any = { districtId: user.districtId };
+  let where: any;
+
+  if (user.role === 'TEACHER') {
+    // v12.4.4: For teachers, query by teacherId directly.
+    // Use OR: classrooms in their district OR classrooms assigned to them by any admin.
+    // This fixes the bug where teachers with null/empty districtId saw no classrooms.
+    const conditions: any[] = [{ teacherId: user.id }];
+    if (user.districtId) {
+      conditions.push({ districtId: user.districtId, teacherId: user.id });
+    }
+    where = { OR: conditions };
+  } else {
+    // Admin: filter by district
+    where = { districtId: user.districtId };
+  }
+
   if (schoolId) where.schoolId = schoolId;
-  if (user.role === 'TEACHER') where.teacherId = user.id;
 
   const classrooms = await prisma.classroom.findMany({
     where,
@@ -84,8 +100,13 @@ export const PUT = apiHandler(async (req: Request) => {
 
   if (!classroomId) return NextResponse.json({ error: 'classroomId required' }, { status: 400 });
 
-  const where: any = { id: classroomId, districtId: user.districtId };
-  if (user.role === 'TEACHER') where.teacherId = user.id;
+  // v12.4.4: For teachers, allow access by teacherId without requiring districtId match
+  let where: any;
+  if (user.role === 'TEACHER') {
+    where = { id: classroomId, teacherId: user.id };
+  } else {
+    where = { id: classroomId, districtId: user.districtId };
+  }
 
   const classroom = await prisma.classroom.findFirst({ where });
   if (!classroom) return NextResponse.json({ error: 'Classroom not found' }, { status: 404 });
@@ -134,9 +155,17 @@ export const PUT = apiHandler(async (req: Request) => {
   if (action === 'assign-teacher') {
     const { teacherId: newTeacherId } = data;
     if (newTeacherId) {
-      // Verify teacher exists and is in same district
+      // v12.4.4: Verify teacher exists — check district match OR allow teachers without a district
+      // This handles teachers created via self-registration who have null districtId
       const teacher = await prisma.user.findFirst({
-        where: { id: newTeacherId, districtId: user.districtId, role: 'TEACHER' },
+        where: {
+          id: newTeacherId,
+          role: 'TEACHER',
+          OR: [
+            { districtId: user.districtId },
+            { districtId: null },
+          ],
+        },
       });
       if (!teacher) return NextResponse.json({ error: 'Teacher not found in district' }, { status: 404 });
     }

@@ -61,7 +61,9 @@ export default function TeacherClassroomsPage() {
       return;
     }
     try {
-      const res = await fetch('/api/district/classrooms?includeStudents=true');
+      // v12.4.4: Use dedicated teacher endpoint — queries by teacherId directly,
+      // not dependent on districtId, so assigned classrooms always appear
+      const res = await fetch('/api/teacher/classrooms?includeStudents=true');
       if (res.ok) {
         const data = await res.json();
         setClassrooms(data.classrooms || []);

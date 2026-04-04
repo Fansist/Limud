@@ -51,7 +51,8 @@ export default function TeacherDashboard() {
       const [analyticsRes, assignRes, classroomsRes] = await Promise.all([
         fetch('/api/analytics'),
         fetch('/api/assignments'),
-        fetch('/api/district/classrooms'),
+        // v12.4.4: Use dedicated teacher endpoint for reliable classroom visibility
+        fetch('/api/teacher/classrooms'),
       ]);
       if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
       if (assignRes.ok) {

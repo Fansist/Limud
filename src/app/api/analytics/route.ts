@@ -24,9 +24,10 @@ export const GET = apiHandler(async (req: Request) => {
     });
     courseIds = courseTeachers.map(ct => ct.courseId);
 
-    // v12.4.3: Also get students from classrooms assigned to this teacher
+    // v12.4.3/v12.4.4: Get students from classrooms assigned to this teacher
+    // Query by teacherId only — don't require districtId match
     const teacherClassrooms = await prisma.classroom.findMany({
-      where: { teacherId: user.id, districtId: user.districtId },
+      where: { teacherId: user.id },
       include: {
         students: { select: { studentId: true } },
       },
