@@ -131,16 +131,30 @@ export default function AdminEmployeesPage() {
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', role: 'TEACHER',
     phone: '', title: '', department: '', schoolId: '',
-    hireDate: '', certifications: '',
+    hireDate: '', certifications: '', password: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => { fetchEmployees(); }, [isDemo]);
 
   async function fetchEmployees() {
     if (isDemo) { setEmployees(DEMO_EMPLOYEES); setLoading(false); return; }
     try {
-      const res = await fetch('/api/district/employees');
-      if (res.ok) { const data = await res.json(); setEmployees(data.employees || []); }
+      // Fetch teachers from the district teachers API
+      const res = await fetch('/api/district/teachers');
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = (data.teachers || []).map((t: any) => ({
+          id: t.id, name: t.name || `${t.firstName || ''} ${t.lastName || ''}`.trim(),
+          email: t.email, role: 'TEACHER', phone: t.phone || '',
+          title: '', department: '', school: t.school || null,
+          hireDate: t.createdAt ? new Date(t.createdAt).toISOString().split('T')[0] : '',
+          certifications: [], subjects: (t.taughtCourses || []).map((tc: any) => tc.course?.name).filter(Boolean),
+          isActive: t.isActive ?? true, lastLogin: null,
+          classroomCount: 0, studentCount: 0,
+        }));
+        setEmployees(mapped);
+      }
     } catch { toast.error('Failed to load employees'); }
     finally { setLoading(false); }
   }
@@ -165,22 +179,34 @@ export default function AdminEmployeesPage() {
       return;
     }
     try {
-      // v12.4: Use /api/district/teachers for teacher accounts
+      // v12.4.1: Use /api/district/teachers for teacher accounts, now with password support
       if (form.role === 'TEACHER') {
+        const teacherData: any = {
+          name: `${form.firstName} ${form.lastName}`,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          phone: form.phone || undefined,
+          schoolId: form.schoolId || undefined,
+        };
+        if (form.password) {
+          teacherData.password = form.password;
+        }
         const res = await fetch('/api/district/teachers', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            teachers: [{
-              name: `${form.firstName} ${form.lastName}`,
-              firstName: form.firstName,
-              lastName: form.lastName,
-              email: form.email,
-              phone: form.phone || undefined,
-              schoolId: form.schoolId || undefined,
-            }],
-          }),
+          body: JSON.stringify({ teachers: [teacherData] }),
         });
-        if (res.ok) { toast.success('Teacher account created!'); fetchEmployees(); setShowCreate(false); resetForm(); }
+        if (res.ok) {
+          const data = await res.json();
+          const firstResult = data.results?.[0];
+          if (firstResult?.success) {
+            toast.success('Teacher account created successfully!');
+          } else {
+            toast.error(firstResult?.error || 'Failed to create teacher');
+            return;
+          }
+          fetchEmployees(); setShowCreate(false); resetForm();
+        }
         else { const d = await res.json(); toast.error(d.error || 'Failed'); }
       } else {
         const res = await fetch('/api/district/employees', {
@@ -209,7 +235,8 @@ export default function AdminEmployeesPage() {
   }
 
   function resetForm() {
-    setForm({ firstName: '', lastName: '', email: '', role: 'TEACHER', phone: '', title: '', department: '', schoolId: '', hireDate: '', certifications: '' });
+    setForm({ firstName: '', lastName: '', email: '', role: 'TEACHER', phone: '', title: '', department: '', schoolId: '', hireDate: '', certifications: '', password: '' });
+    setShowPassword(false);
   }
 
   function exportCSV() {
@@ -335,6 +362,23 @@ export default function AdminEmployeesPage() {
                     <input value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} className="input-field" /></div>
                   <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email *</label>
                     <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="input-field" /></div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={form.password}
+                        onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                        className="input-field pr-10"
+                        placeholder="Leave blank for default"
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Default: limud2024!</p>
+                  </div>
                   <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
                     <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} className="input-field">
                       <option value="TEACHER">Teacher</option>
