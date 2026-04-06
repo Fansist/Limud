@@ -105,9 +105,14 @@ export default function TeacherStudentsPage() {
     if (isDemo) { setStudents(DEMO_STUDENTS); setLoading(false); return; }
     try {
       const res = await fetch('/api/teacher/insights?action=students');
-      if (res.ok) { const data = await res.json(); setStudents(data.students?.length ? data.students : DEMO_STUDENTS); }
-      else { setStudents(DEMO_STUDENTS); }
-    } catch { setStudents(DEMO_STUDENTS); }
+      if (res.ok) {
+        const data = await res.json();
+        // v12.5: Never fall back to demo data for real users — show empty state instead
+        setStudents(data.students || []);
+      } else {
+        setStudents([]);
+      }
+    } catch { setStudents([]); }
     finally { setLoading(false); }
   }
 

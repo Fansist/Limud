@@ -122,14 +122,12 @@ function AnalyticsContent() {
         fetch('/api/teacher/learning-insights').then(r => r.ok ? r.json() : null),
       ]);
 
-      setAnalyticsData(analyticsRes.status === 'fulfilled' ? analyticsRes.value : DEMO_ANALYTICS);
-      setInsightsData(insightsRes.status === 'fulfilled' && insightsRes.value ? insightsRes.value : getDemoInsights());
-      setLearningData(learningRes.status === 'fulfilled' && learningRes.value ? learningRes.value : DEMO_LEARNING_INSIGHTS);
+      // v12.5: NEVER fall back to demo data for real users — show empty state instead
+      setAnalyticsData(analyticsRes.status === 'fulfilled' && analyticsRes.value ? analyticsRes.value : null);
+      setInsightsData(insightsRes.status === 'fulfilled' && insightsRes.value ? insightsRes.value : null);
+      setLearningData(learningRes.status === 'fulfilled' && learningRes.value ? learningRes.value : null);
     } catch {
       toast.error('Failed to load analytics');
-      setAnalyticsData(DEMO_ANALYTICS);
-      setInsightsData(getDemoInsights());
-      setLearningData(DEMO_LEARNING_INSIGHTS);
     } finally {
       setLoading(false);
     }
@@ -219,6 +217,20 @@ function OverviewTab({ data, needsDemoParam }: { data: any; needsDemoParam: bool
   const [search, setSearch] = useState('');
   const [drillDown, setDrillDown] = useState<{ type: string; title: string; data: any[] } | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+
+  // v12.5: Proper empty state when no data is available (instead of demo data fallback)
+  if (!data) {
+    return (
+      <div className="card text-center py-16">
+        <BarChart3 size={48} className="mx-auto text-gray-300 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">No Analytics Data Yet</h3>
+        <p className="text-sm text-gray-400 max-w-md mx-auto">
+          Analytics will appear once you have students enrolled in your courses and they start submitting assignments.
+        </p>
+      </div>
+    );
+  }
+
   const summary = data?.summary || {};
   const allStudents = data?.students || [];
   const students = allStudents.filter((s: any) =>
@@ -693,6 +705,19 @@ function LearningTab({ data, isDemo }: { data: any; isDemo: boolean }) {
   const [expandedAdaptation, setExpandedAdaptation] = useState<string | null>(null);
   const [filterStyle, setFilterStyle] = useState<string>('all');
 
+  // v12.5: Proper empty state for real users
+  if (!data) {
+    return (
+      <div className="card text-center py-16">
+        <Eye size={48} className="mx-auto text-gray-300 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">No Learning Style Data Yet</h3>
+        <p className="text-sm text-gray-400 max-w-md mx-auto">
+          Learning style insights will appear once students complete their learning surveys and submit assignments.
+        </p>
+      </div>
+    );
+  }
+
   const students = data?.students || [];
   const classStats = data?.classStats || {};
   const demoSuffix = isDemo ? '?demo=true' : '';
@@ -960,10 +985,11 @@ function DiffTab({ isDemo }: { isDemo: boolean }) {
         const data = await res.json();
         setAssignments(data.assignments || []);
       } else {
-        setAssignments(getDemoDiffAssignments());
+        // v12.5: Don't fall back to demo data for real users
+        setAssignments([]);
       }
     } catch {
-      setAssignments(getDemoDiffAssignments());
+      setAssignments([]);
     } finally {
       setLoading(false);
     }
