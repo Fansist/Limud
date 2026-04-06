@@ -1,5 +1,5 @@
 // Limud Service Worker - Offline & Cache Strategy
-const CACHE_NAME = 'limud-v3';
+const CACHE_NAME = 'limud-v13';
 const STATIC_ASSETS = [
   '/',
   '/student/dashboard',

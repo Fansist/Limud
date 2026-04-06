@@ -14,7 +14,15 @@ export const metadata: Metadata = {
   description: 'Eliminate the one-size-fits-all classroom. AI adapts curriculum to every student\'s Learning DNA. Free for homeschool. FERPA & COPPA compliant.',
   keywords: ['adaptive learning', 'K-12', 'AI tutor', 'FERPA', 'COPPA', 'homeschool', 'edtech', 'auto-grading', 'learning platform'],
   authors: [{ name: 'Limud Education Inc.' }],
-  icons: { icon: '/favicon.ico' },
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '64x64' },
+      { url: '/icons/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/icons/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+  },
   manifest: '/manifest.json',
   metadataBase: (() => {
     const raw = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://limud.co';
