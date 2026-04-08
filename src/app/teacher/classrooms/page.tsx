@@ -66,7 +66,7 @@ export default function TeacherClassroomsPage() {
       const res = await fetch('/api/teacher/classrooms?includeStudents=true');
       if (res.ok) {
         const data = await res.json();
-        setClassrooms(data.classrooms || []);
+        if (data?.classrooms) setClassrooms(data.classrooms); else setClassrooms([]);
       }
     } catch {
       toast.error('Failed to load classrooms');

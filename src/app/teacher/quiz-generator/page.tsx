@@ -60,7 +60,10 @@ export default function QuizGeneratorPage() {
       setLoading(false);
       return;
     }
-    fetch('/api/quiz-generator').then(r => r.ok ? r.json() : null).then(d => {
+    fetch('/api/quiz-generator').then(r => {
+      if (!r.ok) { toast.error('Failed to load quizzes'); return null; }
+      return r.json();
+    }).then(d => {
       if (d) {
         setQuizzes(d.quizzes || []);
         if (d.aiStatus) setAiStatus(d.aiStatus);

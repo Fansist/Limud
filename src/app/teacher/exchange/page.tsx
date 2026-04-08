@@ -178,7 +178,7 @@ export default function TeacherExchangePage() {
       return;
     }
     Promise.all([
-      fetch('/api/exchange?type=items').then(r => r.json()).then(d => setItems(d.items || [])).catch(() => {}),
+      fetch('/api/exchange?type=items').then(r => r.json()).then(d => setItems(d.items || [])).catch((err) => { console.error('[teacher/exchange]', err); toast.error('Failed to load exchange'); }),
       fetch('/api/exchange?type=requests').then(r => r.json()).then(d => setRequests(d.requests || [])).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, [isDemo]);

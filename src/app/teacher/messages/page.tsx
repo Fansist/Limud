@@ -115,9 +115,11 @@ export default function TeacherMessagesPage() {
     if (!newMessage.trim() || !selectedConvo) return;
     setSending(true);
     if (isDemo) {
-      const msg = { id: 'new-' + Date.now(), senderId: currentUserId, senderName: 'You', content: newMessage, createdAt: new Date().toISOString(), isRead: false, subject: selectedConvo.subject };
+      const now = Date.now();
+      const nowIso = new Date(now).toISOString();
+      const msg = { id: 'new-' + now, senderId: currentUserId, senderName: 'You', content: newMessage, createdAt: nowIso, isRead: false, subject: selectedConvo.subject };
       setThreadMessages(p => [...p, msg]);
-      setConversations(p => p.map(c => c.id === selectedConvo.id ? { ...c, lastMessage: newMessage, lastDate: new Date().toISOString() } : c));
+      setConversations(p => p.map(c => c.id === selectedConvo.id ? { ...c, lastMessage: newMessage, lastDate: nowIso } : c));
       setNewMessage(''); setSending(false); toast.success('Message sent (Demo)'); return;
     }
     try {

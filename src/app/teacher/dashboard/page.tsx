@@ -87,6 +87,13 @@ export default function TeacherDashboard() {
   const students = analytics?.students || [];
   const firstName = isDemo ? DEMO_TEACHER.name.split(' ')[0] : (session?.user?.name?.split(' ')[0] || 'Teacher');
   const demoSuffix = needsDemoParam ? '?demo=true' : '';
+  // v13.3: Safe URL builder so we never produce malformed query strings like `?student=X?demo=true`
+  const buildUrl = (base: string, params: Record<string, string>) => {
+    const merged: Record<string, string> = { ...params };
+    if (needsDemoParam) merged.demo = 'true';
+    const u = new URLSearchParams(merged);
+    return `${base}?${u.toString()}`;
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -345,7 +352,7 @@ export default function TeacherDashboard() {
                 atRiskStudents.slice(0, 5).map((student: any) => (
                   <Link
                     key={student.id}
-                    href={`/teacher/intelligence${demoSuffix}${demoSuffix ? '&' : '?'}student=${student.id}`}
+                    href={buildUrl('/teacher/intelligence', { student: student.id })}
                     className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer"
                   >
                     <div
@@ -408,7 +415,7 @@ export default function TeacherDashboard() {
                   return (
                     <Link
                       key={assignment.id}
-                      href={`/teacher/grading${demoSuffix}${demoSuffix ? '&' : '?'}assignment=${assignment.id}`}
+                      href={buildUrl('/teacher/grading', { assignment: assignment.id })}
                       className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer"
                     >
                       <div className="flex-1 min-w-0">

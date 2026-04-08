@@ -82,13 +82,22 @@ export const POST = apiHandler(async (req: Request) => {
   // Try DB mode first; fall back to demo
   let reportData;
   try {
-    const student = await prisma.user.findUnique({
-      where: { id: targetStudentId },
+    const student = await prisma.user.findFirst({
+      where: {
+        id: targetStudentId,
+        ...(user.role === 'PARENT' && targetStudentId !== user.id
+          ? { parentId: user.id }
+          : {}),
+      },
       include: {
         district: { select: { name: true } },
         rewardStats: true,
       },
     });
+
+    if (user.role === 'PARENT' && targetStudentId !== user.id && !student) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     if (!student) {
       // Use demo data

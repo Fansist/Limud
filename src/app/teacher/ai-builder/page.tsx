@@ -168,7 +168,9 @@ export default function AIBuilderPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          if (data.assignments && data.assignments.length > 0) {
+          if (!data?.assignments) {
+            assignments = [];
+          } else if (data.assignments.length > 0) {
             assignments = data.assignments;
             toast.success(
               data.aiGenerated

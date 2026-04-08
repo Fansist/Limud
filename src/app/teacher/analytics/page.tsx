@@ -109,8 +109,9 @@ function AnalyticsContent() {
       }
 
       if (status !== 'authenticated') return;
-      const user = session?.user as any;
-      if (user?.role !== 'TEACHER' && user?.role !== 'ADMIN') {
+      if (!session?.user) return;
+      const role = (session.user as { role?: string }).role;
+      if (role !== 'TEACHER' && role !== 'ADMIN') {
         router.push('/');
         return;
       }
@@ -173,7 +174,7 @@ function AnalyticsContent() {
             try {
               const res = await fetch('/api/reports/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'class-summary' }) });
               if (res.ok) { const toast = (await import('react-hot-toast')).default; toast.success('Report generated (PDF export)'); }
-            } catch {}
+            } catch (err) { console.error('[teacher/analytics] pdf export failed', err); toast.error('PDF export failed'); }
           }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm transition">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Export PDF

@@ -4,6 +4,83 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [6.0.0] - 2026-04-08 — Update 6
+
+### Fixed - Teacher & parent pages bug fixes
+
+**Parent FERPA fix (`src/app/api/reports/export/route.ts`)**:
+
+1. **Parent report export now scope-filtered at the database query**
+   - **Before**: A `PARENT` could call `POST /api/reports/export` with any `studentId`. The route's pre-query authorization comments said "check later" and the only enforcement was a post-query `student.parentId !== user.id` branch — by which point an attacker could distinguish "student exists" vs "student does not exist", and the demo report could leak when the wrong student id was supplied.
+   - **After**: The `prisma.user.findFirst` `where` clause now includes `parentId: user.id` whenever `user.role === 'PARENT'` and the target is not the parent themselves, so the database itself enforces the scope. An explicit `403 Forbidden` is returned BEFORE any demo-data fallback when the filter excludes the row.
+
+**Teacher pages (`src/app/teacher/**`)**:
+
+2. **`/teacher/ai-feedback` — non-deterministic feedback scores**
+   - **Before**: `generateFeedback()` used `Math.floor(Math.random() * N)` for the score jitter, so re-rendering or clicking "regenerate" gave a different score for the same submission. In SSR-then-client paths this was a hydration mismatch risk.
+   - **After**: Jitter is derived from a stable hash of `submission.id`, producing the same score every time for the same submission.
+
+3. **`/teacher/ai-builder` — silent malformed-response handling**
+   - **Before**: After `await res.json()` the code accessed `data.assignments` without checking shape; an empty / malformed body silently set assignments and the rest of the flow continued with broken state.
+   - **After**: Explicit `if (!data?.assignments) { assignments = []; }` guard.
+
+4. **`/teacher/dashboard` — malformed query strings on student/grading links**
+   - **Before**: Demo links were built with `${demoSuffix}${demoSuffix ? '&' : '?'}student=...`, which produced `?student=X?demo=true` (two `?`) on certain branches and broke navigation.
+   - **After**: New `buildUrl(base, params)` helper uses `URLSearchParams`, folds in `demo=true` when needed, and is used by both the at-risk student links and the recent assignment links.
+
+5. **`/teacher/assignments` — error parsing on failed create**
+   - **Before**: On a non-OK create response, `res.json()` was called unconditionally; if the body wasn't JSON it threw and was lost in the generic catch.
+   - **After**: Early return `if (!res.ok) { toast.error('Creation failed'); return; }` before any body parsing.
+
+6. **`/teacher/grading` — silent failure on assignment load**
+   - **Before**: `if (res.ok)` wrap meant a 401/500 from `/api/assignments` left the page empty with no user feedback.
+   - **After**: Explicit `if (!res.ok) { toast.error('Failed to load grading data'); return; }`.
+
+7. **`/teacher/messages` — duplicate `Date.now()` in demo send**
+   - **Before**: Demo reply created the message and updated the conversation list with two separate `new Date().toISOString()` calls, so the conversation list timestamp could drift from the message timestamp.
+   - **After**: One hoisted `const now = Date.now()` / `nowIso = ...` reused in both updates.
+
+8. **`/teacher/analytics` — silent PDF export failure + `as any` session cast**
+   - **Before**: The PDF export `catch {}` was empty, so failures gave no feedback. The role check used `session?.user as any`, an explicit `any` cast.
+   - **After**: Catch logs the error and shows `toast.error('PDF export failed')`. The role check uses a narrow `(session.user as { role?: string }).role` cast.
+
+9. **`/teacher/quiz-generator` — silent failure on quiz load**
+   - **Before**: `r.ok ? r.json() : null` returned null without telling the user; quizzes silently appeared empty on auth failure.
+   - **After**: `if (!r.ok) { toast.error('Failed to load quizzes'); return null; }`.
+
+10. **`/teacher/intelligence` — silent failure on auto-assign**
+    - **Before**: A 401/500 from `/api/teacher/auto-assign` had no user-facing surface beyond the existing `else if (!silent)` toast, but `res.json()` could still throw on malformed bodies.
+    - **After**: Early-return guard on `!res.ok` (still respects the `silent` flag) before any body parsing.
+
+11. **`/teacher/exchange` — empty page on items fetch failure**
+    - **Before**: The items fetch's `.catch(() => {})` swallowed errors silently, leaving the exchange page blank with no explanation.
+    - **After**: Catch logs and surfaces `toast.error('Failed to load exchange')`.
+
+12. **`/teacher/classrooms` — implicit empty array on missing field**
+    - **Before**: `setClassrooms(data.classrooms || [])` masked the difference between "API returned no field" and "no classrooms".
+    - **After**: Explicit `if (data?.classrooms) ... else setClassrooms([])`.
+
+**Parent pages (`src/app/parent/**`)**:
+
+13. **`/parent/children` — NPE on add-child success**
+    - **Before**: After a successful add-child POST, the code accessed `data.child.name` without checking that `data.child` existed; a malformed success body crashed the handler.
+    - **After**: `if (!data?.child) { toast.error('Failed to load child'); return; }` guard.
+
+14. **`/parent/children` — error JSON parse on add-course failure**
+    - **Before**: `res.json()` was called once for both success and failure paths; on failure with a non-JSON body it threw and the user saw a generic error.
+    - **After**: On failure, `res.json()` is wrapped in a local try/catch with a default `'Failed to update child'` message.
+
+15. **`/parent/messages` — duplicate demo IDs and silent error swallow**
+    - **Before**: Demo reply IDs used only `'new-' + Date.now()`, so two rapid sends in the same millisecond produced duplicate React keys. The fetch error handlers were `catch { toast.error(...) }` with no error logging.
+    - **After**: Demo IDs include a random base36 suffix; both catches log the error to `console.error` before the toast.
+
+### Known follow-ups (not in this update)
+
+- `src/app/api/reports/export/route.ts` — the `TEACHER` and `ADMIN` pre-query authorization paths still say "check later". The post-query check at lines 108-113 only verifies `ADMIN` district scope; teachers can still request export for any student id and reach the data fetch. This was outside the scope of the parent-page audit and will be tracked separately.
+- Pre-existing widespread `any` usage in teacher pages was deliberately not touched in this update; tracked as tech debt.
+
+---
+
 ## [5.0.0] - 2026-04-08 — Update 5
 
 ### Fixed - Student pages & registration bug fixes

@@ -45,15 +45,14 @@ export default function GradingPage() {
         return;
       }
       const res = await fetch('/api/assignments');
-      if (res.ok) {
-        const data = await res.json();
-        const assignmentsWithPending = (data.assignments || []).filter(
-          (a: any) => a.submissions?.some((s: any) => s.status === 'SUBMITTED')
-        );
-        setAssignments(data.assignments || []);
-        if (assignmentsWithPending.length > 0 && !selectedAssignment) {
-          setSelectedAssignment(assignmentsWithPending[0].id);
-        }
+      if (!res.ok) { toast.error('Failed to load grading data'); return; }
+      const data = await res.json();
+      const assignmentsWithPending = (data.assignments || []).filter(
+        (a: any) => a.submissions?.some((s: any) => s.status === 'SUBMITTED')
+      );
+      setAssignments(data.assignments || []);
+      if (assignmentsWithPending.length > 0 && !selectedAssignment) {
+        setSelectedAssignment(assignmentsWithPending[0].id);
       }
     } catch {
       toast.error('Failed to load assignments');

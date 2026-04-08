@@ -107,6 +107,11 @@ function generateFeedback(submission: typeof DEMO_SUBMISSIONS[0]): {
   const hasDetails = wordCount > 50;
   const hasAnalysis = /(because|therefore|proves|shows|demonstrates|evidence)/i.test(submission.content);
 
+  // v13.3: Deterministic score jitter keyed on submission id (stable across re-renders/regenerates)
+  let idHash = 0;
+  for (let i = 0; i < submission.id.length; i++) { idHash = ((idHash << 5) - idHash) + submission.id.charCodeAt(i); idHash |= 0; }
+  const jitter = Math.abs(idHash);
+
   let score: number;
   let strengths: string[] = [];
   let improvements: string[] = [];
@@ -115,7 +120,7 @@ function generateFeedback(submission: typeof DEMO_SUBMISSIONS[0]): {
 
   if (wordCount > 80 && hasAnalysis && hasDetails) {
     // Strong submission
-    score = 85 + Math.floor(Math.random() * 10);
+    score = 85 + (jitter % 10);
     strengths = [
       'Strong use of evidence to support claims',
       'Well-organized structure with clear progression',
@@ -129,7 +134,7 @@ function generateFeedback(submission: typeof DEMO_SUBMISSIONS[0]): {
     encouragement = 'You\'re doing great work! Keep challenging yourself with deeper analysis.';
   } else if (wordCount > 40) {
     // Moderate submission
-    score = 70 + Math.floor(Math.random() * 12);
+    score = 70 + (jitter % 12);
     strengths = [
       'Shows basic understanding of the topic',
       'Includes relevant information',
@@ -143,7 +148,7 @@ function generateFeedback(submission: typeof DEMO_SUBMISSIONS[0]): {
     encouragement = 'You\'re on the right track! A little more detail will make a big difference.';
   } else {
     // Needs more work
-    score = 55 + Math.floor(Math.random() * 12);
+    score = 55 + (jitter % 12);
     strengths = [
       'Demonstrates willingness to attempt the assignment',
       'Shows some awareness of the topic',

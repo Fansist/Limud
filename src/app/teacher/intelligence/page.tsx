@@ -83,13 +83,14 @@ export default function TeacherIntelligencePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skillName: skill.skill, subject: skill.subject }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (!silent) {
-          toast.success(`Created ${data.tiers?.length || 0} tiered assignments for ${skill.skill}`);
-        }
-      } else if (!silent) {
-        toast.error('Failed to auto-assign');
+      if (!res.ok) {
+        if (!silent) toast.error('Auto-assign failed');
+        setAutoAssigning(null);
+        return;
+      }
+      const data = await res.json();
+      if (!silent) {
+        toast.success(`Created ${data.tiers?.length || 0} tiered assignments for ${skill.skill}`);
       }
     } catch { if (!silent) toast.error('Error creating assignments'); }
     setAutoAssigning(null);

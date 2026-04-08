@@ -110,6 +110,7 @@ export default function ManageChildrenPage() {
 
       const data = await res.json();
       if (res.ok) {
+        if (!data?.child) { toast.error('Failed to load child'); return; }
         toast.success(`${data.child.name} has been added!`);
         setCreatedChild(data.child);
         setShowAddChild(false);
@@ -151,14 +152,15 @@ export default function ManageChildrenPage() {
         }),
       });
 
-      const data = await res.json();
       if (res.ok) {
         toast.success(`Course "${courseName}" created!`);
         setShowAddCourse(false);
         resetCourseForm();
         fetchData();
       } else {
-        toast.error(data.error || 'Failed to create course');
+        let errMsg = 'Failed to update child';
+        try { const ed = await res.json(); if (ed?.error) errMsg = ed.error; } catch {}
+        toast.error(errMsg);
       }
     } catch {
       toast.error('Failed to create course');

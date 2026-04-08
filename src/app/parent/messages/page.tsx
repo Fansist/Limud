@@ -84,7 +84,7 @@ export default function ParentMessagesPage() {
       const [convRes, contactRes] = await Promise.all([fetch('/api/messages'), fetch('/api/messages/contacts')]);
       if (convRes.ok) { const d = await convRes.json(); setConversations(d.conversations || []); }
       if (contactRes.ok) { const d = await contactRes.json(); setContacts(d.contacts || []); }
-    } catch { toast.error('Failed to load messages'); }
+    } catch (err) { console.error('[parent/messages]', err); toast.error('Failed to load messages'); }
     finally { setLoading(false); }
   }
 
@@ -94,14 +94,14 @@ export default function ParentMessagesPage() {
     try {
       const res = await fetch(`/api/messages/thread?userId=${convo.otherUser.id}`);
       if (res.ok) { const d = await res.json(); setThreadMessages(d.messages || []); setConversations(p => p.map(c => c.id === convo.id ? { ...c, unread: 0 } : c)); }
-    } catch { toast.error('Failed to load conversation'); }
+    } catch (err) { console.error('[parent/messages]', err); toast.error('Failed to load conversation'); }
   }
 
   async function sendReply() {
     if (!newMessage.trim() || !selectedConvo) return;
     setSending(true);
     if (isDemo) {
-      setThreadMessages(p => [...p, { id: 'new-' + Date.now(), senderId: currentUserId, senderName: 'You', content: newMessage, createdAt: new Date().toISOString(), isRead: false, subject: selectedConvo.subject }]);
+      setThreadMessages(p => [...p, { id: 'new-' + Date.now() + '-' + Math.random().toString(36).slice(2,8), senderId: currentUserId, senderName: 'You', content: newMessage, createdAt: new Date().toISOString(), isRead: false, subject: selectedConvo.subject }]);
       setConversations(p => p.map(c => c.id === selectedConvo.id ? { ...c, lastMessage: newMessage, lastDate: new Date().toISOString() } : c));
       setNewMessage(''); setSending(false); toast.success('Message sent (Demo)'); return;
     }

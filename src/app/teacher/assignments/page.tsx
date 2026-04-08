@@ -264,15 +264,14 @@ export default function TeacherAssignments() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, category: form.isExtraCredit ? 'extra-credit' : form.category }),
       });
-      if (res.ok) {
-        toast.success('Assignment created!');
-        setShowCreate(false);
-        resetForm();
-        fetchAssignments();
-      } else {
-        const data = await res.json();
-        toast.error(data.error || 'Creation failed');
+      if (!res.ok) {
+        toast.error('Creation failed');
+        return;
       }
+      toast.success('Assignment created!');
+      setShowCreate(false);
+      resetForm();
+      fetchAssignments();
     } catch {
       toast.error('Failed to create assignment');
     } finally {
