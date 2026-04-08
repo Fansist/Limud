@@ -88,8 +88,17 @@ export default function GradingPage() {
         let hash = 0;
         for (let i = 0; i < submissionId.length; i++) { hash = ((hash << 5) - hash) + submissionId.charCodeAt(i); hash |= 0; }
         const score = 70 + (Math.abs(hash) % 31);
+        // v13.2: Generate AI feedback so the feedback section renders after grading
+        const sub = submissions.find(s => s.id === submissionId);
+        const assignment = assignments.find(a => a.id === selectedAssignment);
+        const demoFeedback = JSON.stringify({
+          feedback: `Good work on this ${assignment?.type?.toLowerCase() || 'assignment'}! Your submission demonstrates solid understanding of the key concepts. Score: ${score}/100.`,
+          strengths: ['Clear understanding of core concepts', 'Good effort and completion'],
+          improvements: ['Add more specific examples', 'Expand your analysis with supporting evidence'],
+          encouragement: 'Keep up the great work! You\'re making excellent progress.',
+        });
         setSubmissions(prev => prev.map(s =>
-          s.id === submissionId ? { ...s, status: 'GRADED', score, maxScore: 100 } : s
+          s.id === submissionId ? { ...s, status: 'GRADED', score, maxScore: assignment?.totalPoints || 100, aiFeedback: demoFeedback, gradedAt: new Date().toISOString() } : s
         ));
         toast.success('Graded successfully! ✨ (Demo)');
         setGrading(prev => { const next = new Set(prev); next.delete(submissionId); return next; });
@@ -132,12 +141,21 @@ export default function GradingPage() {
     try {
       if (isDemo) {
         await new Promise(r => setTimeout(r, 2000));
+        const assignment = assignments.find(a => a.id === selectedAssignment);
         // v12.3.0: Deterministic batch scores
+        // v13.2: Include AI feedback in batch grading
         setSubmissions(prev => prev.map(s => {
           if (s.status !== 'SUBMITTED') return s;
           let h = 0;
           for (let i = 0; i < s.id.length; i++) { h = ((h << 5) - h) + s.id.charCodeAt(i); h |= 0; }
-          return { ...s, status: 'GRADED', score: 70 + (Math.abs(h) % 31), maxScore: 100 };
+          const score = 70 + (Math.abs(h) % 31);
+          const batchFeedback = JSON.stringify({
+            feedback: `Solid submission! Your work shows understanding of the ${assignment?.course?.name || 'course'} material. Score: ${score}/${assignment?.totalPoints || 100}.`,
+            strengths: ['Good grasp of fundamental concepts', 'Complete submission'],
+            improvements: ['Provide more detailed explanations', 'Include additional examples'],
+            encouragement: 'Great effort — keep it up!',
+          });
+          return { ...s, status: 'GRADED', score, maxScore: assignment?.totalPoints || 100, aiFeedback: batchFeedback, gradedAt: new Date().toISOString() };
         }));
         toast.success(`Graded ${pendingIds.length} submissions! 🎉 (Demo)`);
         setBatchGrading(false);
