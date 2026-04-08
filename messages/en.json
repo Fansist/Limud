@@ -1,0 +1,60 @@
+{
+  "common": {
+    "dashboard": "Dashboard",
+    "assignments": "Assignments",
+    "messages": "Messages",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "logout": "Log Out",
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "success": "Success!",
+    "search": "Search...",
+    "noResults": "No results found",
+    "viewAll": "View All"
+  },
+  "landing": {
+    "hero": "Eliminate the one-size-fits-all classroom",
+    "heroSub": "AI adapts curriculum to every student's Learning DNA",
+    "cta": "Start Free",
+    "signIn": "Sign In",
+    "tryDemo": "Try Live Demo"
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Create Account",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "student": {
+    "welcome": "Welcome back",
+    "aiTutor": "AI Tutor",
+    "focusMode": "Focus Mode",
+    "studyPlanner": "Study Planner",
+    "examSim": "Exam Simulator",
+    "knowledge": "Knowledge Map"
+  },
+  "teacher": {
+    "welcome": "Good to see you",
+    "grading": "AI Grading",
+    "intelligence": "Intelligence",
+    "quizGenerator": "Quiz Generator",
+    "reports": "Reports"
+  },
+  "admin": {
+    "commandCenter": "Command Center",
+    "employees": "Employees",
+    "students": "Students",
+    "schools": "Schools"
+  },
+  "parent": {
+    "myChildren": "My Children",
+    "growthReports": "Growth Reports",
+    "aiCheckin": "AI Check-In"
+  }
+}

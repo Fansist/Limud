@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limud &mdash; AI-Powered K&ndash;12 Learning Platform</title>
+  <meta name="description" content="Replace Khan Academy, Google Classroom, Quizlet, ClassDojo & more with one AI-powered platform. Free forever plan. FERPA & COPPA compliant.">
+  <meta name="keywords" content="education, AI tutor, K-12, learning platform, auto-grading, gamification, lesson planner, edtech, homeschool">
+  <meta name="author" content="Limud Education Inc.">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Limud &mdash; The All-in-One AI Learning Platform for K&ndash;12">
+  <meta property="og:description" content="Stop juggling 6 apps. Limud replaces Khan Academy, Google Classroom, Quizlet, ClassDojo, IXL and more. AI tutoring, auto-grading, gamification, and analytics in one platform. Free forever plan.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:site_name" content="Limud">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Limud &mdash; AI-Powered K&ndash;12 Learning Platform">
+  <meta name="twitter:description" content="Replace 6+ education apps with one. AI tutoring, auto-grading, gamification. Free forever. FERPA compliant.">
+
+  <!-- Favicon -->
+  <link rel="icon" href="/favicon.ico">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Limud">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' },
+            accent:  { 50:'#fdf4ff',100:'#fae8ff',200:'#f5d0fe',300:'#f0abfc',400:'#e879f9',500:'#d946ef',600:'#c026d3',700:'#a21caf' },
+          },
+          fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    [id] { scroll-margin-top: 80px; }
+    body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    @keyframes gradient-shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    @keyframes float-reverse { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+    @keyframes bounce-slow { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+    @keyframes fade-up { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes progress-bar { from{width:0} to{width:78%} }
+    @keyframes logo-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+    .animate-gradient { background-size:200% 200%; animation:gradient-shift 4s ease infinite; }
+    .animate-float { animation:float 4s ease-in-out infinite; }
+    .animate-float-reverse { animation:float-reverse 5s ease-in-out infinite; }
+    .animate-bounce-slow { animation:bounce-slow 2s ease-in-out infinite; }
+    .animate-fade-up { animation:fade-up 0.7s ease-out forwards; }
+    .animate-progress { animation:progress-bar 1.5s ease-out 1s forwards; }
+    .reveal { opacity:0; transform:translateY(30px); transition:opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity:1; transform:translateY(0); }
+    .faq-answer { max-height:0; overflow:hidden; transition:max-height 0.3s ease, opacity 0.3s ease; opacity:0; }
+    .faq-answer.open { max-height:500px; opacity:1; }
+    .faq-chevron { transition:transform 0.2s ease; }
+    .faq-chevron.open { transform:rotate(180deg); }
+    .comp-yes { color:#22c55e; }
+    .comp-no { color:#f87171; }
+    .comp-partial { color:#fbbf24; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 overflow-x-hidden">
+
+<!-- =====================================================================
+     NAVBAR
+     ===================================================================== -->
+<nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16 lg:h-[72px]">
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2.5">
+        <div class="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+          <i data-lucide="book-open" class="w-[18px] h-[18px] text-white"></i>
+        </div>
+        <span class="text-xl font-extrabold text-gray-900 tracking-tight">Limud</span>
+        <span class="hidden sm:inline-flex items-center text-[10px] font-bold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-md">v8.6</span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#features" class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Features</a>
+        <a href="#compare" class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Compare</a>
+        <a href="#integrations" class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Integrations</a>
+        <a href="#how-it-works" class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">How It Works</a>
+        <a href="#pricing" class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Pricing</a>
+        <a href="#faq" class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">FAQ</a>
+      </div>
+
+      <!-- CTA buttons -->
+      <div class="flex items-center gap-3">
+        <a href="/login" class="hidden sm:inline-flex text-sm font-semibold text-gray-700 hover:text-gray-900 transition px-4 py-2">Sign In</a>
+        <a href="/register" class="inline-flex items-center gap-1.5 bg-primary-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-primary-700 transition-all shadow-sm shadow-primary-600/25 hover:shadow-md">
+          Start Free <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </a>
+        <button id="mobile-toggle" class="md:hidden p-2 rounded-lg hover:bg-gray-100" aria-label="Toggle menu">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="hidden md:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-2">
+    <a href="#features" class="block px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">Features</a>
+    <a href="#compare" class="block px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">Compare</a>
+    <a href="#integrations" class="block px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">Integrations</a>
+    <a href="#how-it-works" class="block px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">How It Works</a>
+    <a href="#pricing" class="block px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">Pricing</a>
+    <a href="#faq" class="block px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">FAQ</a>
+    <div class="flex gap-2 pt-2">
+      <a href="/login" class="flex-1 text-center text-sm font-semibold bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl hover:bg-gray-200">Sign In</a>
+      <a href="/register" class="flex-1 text-center text-sm font-semibold bg-primary-600 text-white px-5 py-2.5 rounded-xl hover:bg-primary-700">Start Free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- =====================================================================
+     HERO
+     ===================================================================== -->
+<section class="relative min-h-screen flex items-center pt-16 overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-purple-50/30"></div>
+  <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-primary-200/30 to-transparent rounded-full blur-3xl -translate-y-1/3 translate-x-1/4 animate-gradient"></div>
+  <div class="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-purple-200/20 to-transparent rounded-full blur-3xl translate-y-1/3 -translate-x-1/4"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+    <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <div>
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 bg-primary-50 border border-primary-200 text-primary-800 px-4 py-1.5 rounded-full text-sm font-semibold mb-6 animate-fade-up" style="animation-delay:0s">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-primary-500"></i> AI-Powered K-12 Learning Platform
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1] animate-fade-up" style="animation-delay:0.1s">
+          Why pay for
+          <span class="relative inline-block mx-2"><span class="relative z-10 line-through decoration-red-400 decoration-4 text-gray-400"> 6 apps</span></span>
+          <br>when
+          <span class="relative inline-block ml-2">
+            <span class="relative z-10 bg-gradient-to-r from-primary-600 via-purple-500 to-primary-600 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">one does it all?</span>
+            <svg class="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none"><path d="M2 8C50 2 100 2 150 6C200 10 250 4 298 8" stroke="url(#grad)" stroke-width="3" stroke-linecap="round"/><defs><linearGradient id="grad"><stop stop-color="#3b82f6"/><stop offset="1" stop-color="#d946ef"/></linearGradient></defs></svg>
+          </span>
+        </h1>
+
+        <p class="mt-6 text-lg sm:text-xl text-gray-500 leading-relaxed max-w-xl animate-fade-up" style="animation-delay:0.2s">
+          Limud brings AI tutoring, auto-grading, gamification, and 16+ platform integrations together in one place &mdash;
+          <strong class="text-gray-700"> designed for homeschool families and school districts alike.</strong>
+        </p>
+
+        <div class="mt-8 flex flex-col sm:flex-row gap-4 animate-fade-up" style="animation-delay:0.3s">
+          <a href="/register" class="group inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25 hover:shadow-xl hover:-translate-y-0.5">
+            Start Free &mdash; No Credit Card <i data-lucide="arrow-right" class="w-[18px] h-[18px] group-hover:translate-x-1 transition-transform"></i>
+          </a>
+          <a href="/login" class="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-8 py-4 rounded-2xl font-bold text-base border-2 border-gray-200 hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700 transition-all">
+            <i data-lucide="play" class="w-[18px] h-[18px] text-primary-500"></i> Try Live Demo
+          </a>
+        </div>
+
+        <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-400 animate-fade-up" style="animation-delay:0.4s">
+          <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-4 h-4 text-green-500"></i> Free forever plan</span>
+          <span class="flex items-center gap-1.5"><i data-lucide="lock" class="w-4 h-4 text-green-500"></i> FERPA &amp; COPPA compliant</span>
+          <span class="flex items-center gap-1.5"><i data-lucide="zap" class="w-4 h-4 text-green-500"></i> Setup in 5 minutes</span>
+          <span class="flex items-center gap-1.5"><i data-lucide="shield" class="w-4 h-4 text-green-500"></i> 30-day money-back guarantee</span>
+        </div>
+      </div>
+
+      <!-- Dashboard Preview -->
+      <div class="relative hidden lg:block">
+        <div class="relative bg-white rounded-2xl shadow-2xl shadow-gray-900/10 border border-gray-200/60 overflow-hidden">
+          <div class="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
+            <div class="flex gap-1.5"><div class="w-3 h-3 rounded-full bg-red-400"></div><div class="w-3 h-3 rounded-full bg-yellow-400"></div><div class="w-3 h-3 rounded-full bg-green-400"></div></div>
+            <div class="flex-1 mx-4"><div class="bg-white rounded-lg px-3 py-1 text-xs text-gray-400 border border-gray-200 max-w-xs mx-auto text-center">app.limud.edu/dashboard</div></div>
+          </div>
+          <div class="p-4 bg-gradient-to-br from-gray-50 to-white">
+            <div class="bg-gradient-to-r from-primary-600 to-purple-600 rounded-xl p-4 text-white mb-3">
+              <div class="flex items-center justify-between">
+                <div><p class="text-sm opacity-80">Welcome back!</p><p class="text-lg font-bold">Hey, Alex!</p></div>
+                <div class="flex gap-3 text-center">
+                  <div><p class="text-xl font-bold">12</p><p class="text-[10px] opacity-70">Level</p></div>
+                  <div><p class="text-xl font-bold">14</p><p class="text-[10px] opacity-70">Streak</p></div>
+                  <div><p class="text-xl font-bold">485</p><p class="text-[10px] opacity-70">Coins</p></div>
+                </div>
+              </div>
+              <div class="mt-3 h-2 bg-white/20 rounded-full overflow-hidden"><div class="h-full bg-white/60 rounded-full w-0 animate-progress"></div></div>
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+              <div class="rounded-lg p-2 text-center bg-blue-50 text-blue-600"><span class="text-lg">&#x1F4DD;</span><p class="text-[9px] font-bold mt-0.5">Assignments</p></div>
+              <div class="rounded-lg p-2 text-center bg-purple-50 text-purple-600"><span class="text-lg">&#x1F916;</span><p class="text-[9px] font-bold mt-0.5">AI Tutor</p></div>
+              <div class="rounded-lg p-2 text-center bg-green-50 text-green-600"><span class="text-lg">&#x1F3AE;</span><p class="text-[9px] font-bold mt-0.5">Games</p></div>
+              <div class="rounded-lg p-2 text-center bg-amber-50 text-amber-600"><span class="text-lg">&#x1F3C6;</span><p class="text-[9px] font-bold mt-0.5">Rewards</p></div>
+            </div>
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <div class="bg-indigo-50 rounded-lg p-2 flex items-center gap-2"><span class="text-sm">&#x1F393;</span><div><p class="text-[9px] font-bold text-indigo-700">Khan Academy</p><p class="text-[8px] text-indigo-400">Synced</p></div></div>
+              <div class="bg-emerald-50 rounded-lg p-2 flex items-center gap-2"><span class="text-sm">&#x1F4DA;</span><div><p class="text-[9px] font-bold text-emerald-700">Google Classroom</p><p class="text-[8px] text-emerald-400">3 new</p></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Floating cards -->
+        <div class="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg shadow-green-500/10 border border-gray-100 p-3 flex items-center gap-2 animate-float">
+          <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center"><i data-lucide="trending-up" class="w-4 h-4 text-green-600"></i></div>
+          <div><p class="text-xs font-bold text-gray-900">AI Graded: A</p><p class="text-[10px] text-gray-400">92/100 pts</p></div>
+        </div>
+        <div class="absolute -bottom-3 -left-6 bg-white rounded-xl shadow-lg shadow-amber-500/10 border border-gray-100 p-3 flex items-center gap-2 animate-float-reverse">
+          <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-lg">&#x1F525;</div>
+          <div><p class="text-xs font-bold text-gray-900">14-Day Streak!</p><p class="text-[10px] text-gray-400">+150 XP bonus</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce-slow">
+    <i data-lucide="chevron-down" class="w-6 h-6 text-gray-300"></i>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PAIN POINT / SOLUTION
+     ===================================================================== -->
+<section class="reveal py-16 bg-gradient-to-r from-red-50 via-orange-50/30 to-red-50 border-y border-red-100/50">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-1.5 rounded-full text-sm font-bold mb-3">
+        <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Sound familiar?
+      </div>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900">Teachers waste 15+ hours/week on admin instead of teaching</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all">
+        <div class="bg-red-50 px-6 py-4 border-b border-red-100"><div class="flex items-center gap-2 text-red-600 mb-1"><i data-lucide="x" class="w-4 h-4 text-red-400"></i><span class="text-sm font-semibold">Before Limud</span></div><p class="text-sm text-red-800">Switching between 6+ apps every day</p></div>
+        <div class="bg-green-50 px-6 py-4"><div class="flex items-center gap-2 text-green-600 mb-1"><i data-lucide="check-circle-2" class="w-4 h-4 text-green-500"></i><span class="text-sm font-semibold">With Limud</span></div><p class="text-sm text-green-800 font-medium">One dashboard for everything</p><div class="mt-2 inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-bold"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Save 2 hrs/day</div></div>
+      </div>
+      <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all">
+        <div class="bg-red-50 px-6 py-4 border-b border-red-100"><div class="flex items-center gap-2 text-red-600 mb-1"><i data-lucide="x" class="w-4 h-4 text-red-400"></i><span class="text-sm font-semibold">Before Limud</span></div><p class="text-sm text-red-800">Grading papers until midnight</p></div>
+        <div class="bg-green-50 px-6 py-4"><div class="flex items-center gap-2 text-green-600 mb-1"><i data-lucide="check-circle-2" class="w-4 h-4 text-green-500"></i><span class="text-sm font-semibold">With Limud</span></div><p class="text-sm text-green-800 font-medium">AI auto-grades in seconds</p><div class="mt-2 inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-bold"><i data-lucide="zap" class="w-3.5 h-3.5"></i> Save 8 hrs/week</div></div>
+      </div>
+      <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all">
+        <div class="bg-red-50 px-6 py-4 border-b border-red-100"><div class="flex items-center gap-2 text-red-600 mb-1"><i data-lucide="x" class="w-4 h-4 text-red-400"></i><span class="text-sm font-semibold">Before Limud</span></div><p class="text-sm text-red-800">No idea which students are falling behind</p></div>
+        <div class="bg-green-50 px-6 py-4"><div class="flex items-center gap-2 text-green-600 mb-1"><i data-lucide="check-circle-2" class="w-4 h-4 text-green-500"></i><span class="text-sm font-semibold">With Limud</span></div><p class="text-sm text-green-800 font-medium">AI flags at-risk learners automatically</p><div class="mt-2 inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-bold"><i data-lucide="target" class="w-3.5 h-3.5"></i> Catch issues 3x faster</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PLATFORM HIGHLIGHTS
+     ===================================================================== -->
+<section class="reveal py-16 bg-white border-y border-gray-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <p class="text-center text-sm font-medium text-gray-400 mb-10 uppercase tracking-wider">Built for modern education</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 items-center justify-items-center">
+      <div class="text-center"><p class="text-3xl lg:text-4xl mb-2">&#x1F916;</p><p class="text-sm font-semibold text-gray-700">AI-Powered Tutoring</p></div>
+      <div class="text-center"><p class="text-3xl lg:text-4xl mb-2">&#x1F517;</p><p class="text-sm font-semibold text-gray-700">16+ Integrations</p></div>
+      <div class="text-center"><p class="text-3xl lg:text-4xl mb-2">&#x1F3E0;</p><p class="text-sm font-semibold text-gray-700">Homeschool-Friendly</p></div>
+      <div class="text-center"><p class="text-3xl lg:text-4xl mb-2">&#x1F512;</p><p class="text-sm font-semibold text-gray-700">FERPA &amp; COPPA Compliant</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     REPLACES VISUAL
+     ===================================================================== -->
+<section class="reveal py-20 bg-gradient-to-b from-white to-gray-50">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">Stop paying for tools you don't need</h2>
+    <p class="text-lg text-gray-500 mb-12 max-w-2xl mx-auto">Your district is spending thousands on apps Limud already replaces.</p>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
+      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative hover:scale-105 transition-transform"><div class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"><i data-lucide="x" class="w-3 h-3 text-white"></i></div><span class="text-2xl block mb-2">&#x1F4DD;</span><p class="text-xs font-semibold text-gray-700">Grading tools</p><p class="text-xs text-red-500 font-bold line-through">$2,400/yr</p></div>
+      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative hover:scale-105 transition-transform"><div class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"><i data-lucide="x" class="w-3 h-3 text-white"></i></div><span class="text-2xl block mb-2">&#x1F3C6;</span><p class="text-xs font-semibold text-gray-700">Reward systems</p><p class="text-xs text-red-500 font-bold line-through">$800/yr</p></div>
+      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative hover:scale-105 transition-transform"><div class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"><i data-lucide="x" class="w-3 h-3 text-white"></i></div><span class="text-2xl block mb-2">&#x1F4E7;</span><p class="text-xs font-semibold text-gray-700">Parent comms</p><p class="text-xs text-red-500 font-bold line-through">$1,500/yr</p></div>
+      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative hover:scale-105 transition-transform"><div class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"><i data-lucide="x" class="w-3 h-3 text-white"></i></div><span class="text-2xl block mb-2">&#x2753;</span><p class="text-xs font-semibold text-gray-700">Quiz makers</p><p class="text-xs text-red-500 font-bold line-through">$1,200/yr</p></div>
+      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative hover:scale-105 transition-transform"><div class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"><i data-lucide="x" class="w-3 h-3 text-white"></i></div><span class="text-2xl block mb-2">&#x1F3EB;</span><p class="text-xs font-semibold text-gray-700">LMS seats</p><p class="text-xs text-red-500 font-bold line-through">$4,000/yr</p></div>
+      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative hover:scale-105 transition-transform"><div class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"><i data-lucide="x" class="w-3 h-3 text-white"></i></div><span class="text-2xl block mb-2">&#x1F4CA;</span><p class="text-xs font-semibold text-gray-700">Analytics</p><p class="text-xs text-red-500 font-bold line-through">$2,100/yr</p></div>
+    </div>
+    <div class="bg-gradient-to-r from-primary-600 to-purple-600 rounded-3xl p-8 text-white max-w-lg mx-auto">
+      <div class="flex items-center justify-center gap-3 mb-3"><i data-lucide="book-open" class="w-7 h-7"></i><span class="text-2xl font-extrabold">Limud</span></div>
+      <p class="text-white/80 text-sm mb-4">All of the above + AI tutoring, gamification, 87+ worksheets, and 16+ platform integrations</p>
+      <div class="flex items-center justify-center gap-3"><span class="text-3xl font-extrabold">From $0</span><span class="text-white/60 text-sm">/forever for homeschool</span></div>
+      <p class="text-green-300 font-bold text-sm mt-2">Everything your school needs in one platform</p>
+      <a href="/register" class="mt-4 inline-flex items-center gap-2 bg-white text-primary-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-100 transition">Start Free Today <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     COMPETITOR COMPARISON
+     ===================================================================== -->
+<section id="compare" class="reveal py-20 lg:py-28 bg-gradient-to-b from-gray-50 to-white">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><i data-lucide="crown" class="w-3.5 h-3.5"></i> Compare</div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">How Limud stacks up against the competition</h2>
+      <p class="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">We analyzed 30 top education apps. Here's why schools are switching to Limud.</p>
+    </div>
+    <div class="overflow-x-auto -mx-4 px-4">
+      <table class="w-full min-w-[700px] border-collapse">
+        <thead><tr>
+          <th class="text-left py-4 px-3 text-sm font-semibold text-gray-500 w-[200px]">Feature</th>
+          <th class="text-center py-4 px-3 w-[120px]"><div class="bg-gradient-to-br from-primary-600 to-purple-600 text-white rounded-xl px-3 py-2 text-sm font-bold shadow-lg shadow-primary-500/20">Limud</div></th>
+          <th class="text-center py-4 px-3 text-xs font-semibold text-gray-400">Khan<br>Academy</th>
+          <th class="text-center py-4 px-3 text-xs font-semibold text-gray-400">Google<br>Classroom</th>
+          <th class="text-center py-4 px-3 text-xs font-semibold text-gray-400">Quizlet</th>
+          <th class="text-center py-4 px-3 text-xs font-semibold text-gray-400">ClassDojo</th>
+          <th class="text-center py-4 px-3 text-xs font-semibold text-gray-400">Nearpod</th>
+        </tr></thead>
+        <tbody class="divide-y divide-gray-100" id="comp-table"></tbody>
+      </table>
+    </div>
+
+    <!-- Competitor callouts -->
+    <div class="grid md:grid-cols-3 gap-6 mt-14">
+      <div class="rounded-2xl p-6 border border-green-200 bg-green-50"><h4 class="font-bold text-gray-900 mb-2">vs. Khan Academy</h4><p class="text-xs text-red-600 mb-3 leading-relaxed"><strong>Their weakness:</strong> Self-directed learning requires strong motivation. No live interaction, limited teacher tools.</p><p class="text-xs text-green-700 leading-relaxed"><strong>Limud's advantage:</strong> Limud adds AI tutoring that guides (not gives answers), gamification to keep students engaged, plus full teacher/admin dashboards.</p></div>
+      <div class="rounded-2xl p-6 border border-blue-200 bg-blue-50"><h4 class="font-bold text-gray-900 mb-2">vs. Google Classroom</h4><p class="text-xs text-red-600 mb-3 leading-relaxed"><strong>Their weakness:</strong> Basic grading tools, no AI features, no gamification, no analytics.</p><p class="text-xs text-green-700 leading-relaxed"><strong>Limud's advantage:</strong> Limud has AI auto-grading, lesson planning, quiz generation, plus full gamification that Google Classroom lacks entirely.</p></div>
+      <div class="rounded-2xl p-6 border border-purple-200 bg-purple-50"><h4 class="font-bold text-gray-900 mb-2">vs. Quizlet / ClassDojo / Nearpod</h4><p class="text-xs text-red-600 mb-3 leading-relaxed"><strong>Their weakness:</strong> Each solves one problem. Quizlet = flashcards. ClassDojo = behavior. Nearpod = presentations.</p><p class="text-xs text-green-700 leading-relaxed"><strong>Limud's advantage:</strong> Limud combines ALL of these into one platform: quizzes, behavior tracking, interactive lessons, AI, and more. One login, one price.</p></div>
+    </div>
+
+    <div class="mt-10 text-center">
+      <a href="/register" class="group inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25">Switch to Limud &mdash; Free to Start <i data-lucide="arrow-right" class="w-[18px] h-[18px] group-hover:translate-x-1 transition-transform"></i></a>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     FEATURES
+     ===================================================================== -->
+<section id="features" class="reveal py-20 lg:py-28 bg-gradient-to-b from-white via-primary-50/20 to-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <div class="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Features</div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Everything your school needs &mdash; nothing it doesn't</h2>
+      <p class="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Built for students, teachers, administrators, and parents. Every feature designed to replace a separate paid app.</p>
+    </div>
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="features-grid"></div>
+    <div class="mt-12 text-center">
+      <a href="/register" class="group inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25">Get All 12+ Features Free <i data-lucide="arrow-right" class="w-[18px] h-[18px] group-hover:translate-x-1 transition-transform"></i></a>
+      <p class="text-sm text-gray-400 mt-3">No credit card required. Upgrade anytime.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     INTEGRATIONS (NEW in v8.6)
+     ===================================================================== -->
+<section id="integrations" class="reveal py-20 lg:py-28 bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center gap-2 bg-cyan-50 text-cyan-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><i data-lucide="link-2" class="w-3.5 h-3.5"></i> Integrations</div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Connects with the tools you already use</h2>
+      <p class="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">Sync progress, assignments, and grades from 16+ educational platforms. No more tab-switching.</p>
+    </div>
+
+    <!-- Platform logos -->
+    <div class="flex flex-wrap justify-center gap-3 mb-12" id="platform-logos"></div>
+
+    <!-- Integration features -->
+    <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+      <div class="text-center p-6 bg-white rounded-2xl border border-gray-100">
+        <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center text-cyan-600 mx-auto mb-3"><i data-lucide="refresh-cw" class="w-5 h-5"></i></div>
+        <h4 class="font-bold text-gray-900 mb-1">Auto-Sync</h4>
+        <p class="text-sm text-gray-500">Grades, progress, and assignments sync automatically from connected platforms.</p>
+      </div>
+      <div class="text-center p-6 bg-white rounded-2xl border border-gray-100">
+        <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center text-cyan-600 mx-auto mb-3"><i data-lucide="shield" class="w-5 h-5"></i></div>
+        <h4 class="font-bold text-gray-900 mb-1">Secure &amp; Private</h4>
+        <p class="text-sm text-gray-500">Encrypted connections. We never store platform passwords. FERPA compliant.</p>
+      </div>
+      <div class="text-center p-6 bg-white rounded-2xl border border-gray-100">
+        <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center text-cyan-600 mx-auto mb-3"><i data-lucide="zap" class="w-5 h-5"></i></div>
+        <h4 class="font-bold text-gray-900 mb-1">One-Click Setup</h4>
+        <p class="text-sm text-gray-500">Connect any platform in seconds with just your username or school email.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     HOW IT WORKS
+     ===================================================================== -->
+<section id="how-it-works" class="reveal py-20 lg:py-28">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <div class="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><i data-lucide="zap" class="w-3.5 h-3.5"></i> How It Works</div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Up and running in 5 minutes</h2>
+      <p class="mt-4 text-lg text-gray-500 max-w-xl mx-auto">Unlike Classcraft (complex setup) or Nearpod (steep learning curve), Limud is simple from day one.</p>
+    </div>
+    <div class="grid md:grid-cols-4 gap-8 relative">
+      <div class="hidden md:block absolute top-12 left-[12%] right-[12%] h-0.5 bg-gradient-to-r from-primary-200 via-primary-300 to-primary-200"></div>
+      <div class="relative text-center"><div class="relative inline-flex"><div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg flex items-center justify-center text-white mb-5 mx-auto"><i data-lucide="users" class="w-7 h-7"></i></div><span class="absolute -top-2 -right-2 w-7 h-7 bg-white text-primary-600 rounded-full text-xs font-bold flex items-center justify-center shadow-sm border border-gray-100">01</span></div><h4 class="text-base font-bold text-gray-900 mb-2">Create Accounts</h4><p class="text-sm text-gray-500 leading-relaxed">Upload a CSV or use single sign-on. Students, teachers, parents provisioned in bulk.</p></div>
+      <div class="relative text-center"><div class="relative inline-flex"><div class="w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-600 rounded-2xl shadow-lg flex items-center justify-center text-white mb-5 mx-auto"><i data-lucide="link-2" class="w-7 h-7"></i></div><span class="absolute -top-2 -right-2 w-7 h-7 bg-white text-primary-600 rounded-full text-xs font-bold flex items-center justify-center shadow-sm border border-gray-100">02</span></div><h4 class="text-base font-bold text-gray-900 mb-2">Connect Platforms</h4><p class="text-sm text-gray-500 leading-relaxed">Link Khan Academy, i-Ready, Amplify, Canvas, Google Classroom, IXL, and 10+ more.</p></div>
+      <div class="relative text-center"><div class="relative inline-flex"><div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg flex items-center justify-center text-white mb-5 mx-auto"><i data-lucide="brain" class="w-7 h-7"></i></div><span class="absolute -top-2 -right-2 w-7 h-7 bg-white text-primary-600 rounded-full text-xs font-bold flex items-center justify-center shadow-sm border border-gray-100">03</span></div><h4 class="text-base font-bold text-gray-900 mb-2">Learn &amp; Play</h4><p class="text-sm text-gray-500 leading-relaxed">Students use AI tutor, earn XP/coins, play educational games, and submit work.</p></div>
+      <div class="relative text-center"><div class="relative inline-flex"><div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg flex items-center justify-center text-white mb-5 mx-auto"><i data-lucide="zap" class="w-7 h-7"></i></div><span class="absolute -top-2 -right-2 w-7 h-7 bg-white text-primary-600 rounded-full text-xs font-bold flex items-center justify-center shadow-sm border border-gray-100">04</span></div><h4 class="text-base font-bold text-gray-900 mb-2">AI Does the Rest</h4><p class="text-sm text-gray-500 leading-relaxed">Auto-grading, personalized feedback, parent reports, and analytics that flag at-risk students.</p></div>
+    </div>
+    <div class="mt-14 text-center">
+      <a href="/register" class="group inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold text-base hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25">Get Started in 5 Minutes <i data-lucide="arrow-right" class="w-[18px] h-[18px] group-hover:translate-x-1 transition-transform"></i></a>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PRICING
+     ===================================================================== -->
+<section id="pricing" class="reveal py-20 lg:py-28 bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><i data-lucide="award" class="w-3.5 h-3.5"></i> Pricing</div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Start free. Scale when you're ready.</h2>
+      <p class="mt-4 text-lg text-gray-500 max-w-xl mx-auto">Every paid plan includes a 14-day free trial. No credit card required.</p>
+    </div>
+
+    <!-- Competitor price comparison (NEW in v8.6) -->
+    <div class="max-w-3xl mx-auto bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-12">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="dollar-sign" class="w-5 h-5 text-amber-600"></i>
+        <h4 class="font-bold text-gray-900">How competitors charge</h4>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="bg-white rounded-xl p-3 border border-amber-100"><p class="text-xs font-bold text-gray-700">Coursera</p><p class="text-sm font-extrabold text-red-500">$49-79/mo</p><p class="text-[10px] text-gray-400">per certificate</p></div>
+        <div class="bg-white rounded-xl p-3 border border-amber-100"><p class="text-xs font-bold text-gray-700">Babbel</p><p class="text-sm font-extrabold text-red-500">$299</p><p class="text-[10px] text-gray-400">lifetime or $7/mo</p></div>
+        <div class="bg-white rounded-xl p-3 border border-amber-100"><p class="text-xs font-bold text-gray-700">ABCmouse</p><p class="text-sm font-extrabold text-red-500">$13/mo</p><p class="text-[10px] text-gray-400">ages 2-8 only</p></div>
+        <div class="bg-white rounded-xl p-3 border border-amber-100"><p class="text-xs font-bold text-gray-700">Nearpod</p><p class="text-sm font-extrabold text-red-500">Custom</p><p class="text-[10px] text-gray-400">school license</p></div>
+      </div>
+      <p class="mt-3 text-center text-sm text-amber-800"><strong>Limud starts at $0/forever</strong> and replaces <em>all</em> of these.</p>
+    </div>
+
+    <div class="max-w-7xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4" id="pricing-grid"></div>
+    <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+      <div class="inline-flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-6 py-4">
+        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center"><i data-lucide="shield" class="w-5 h-5 text-green-600"></i></div>
+        <div class="text-left"><p class="text-sm font-bold text-green-800">30-Day Money-Back Guarantee</p><p class="text-xs text-green-600">Not happy? Full refund, no questions asked.</p></div>
+      </div>
+      <a href="/pricing" class="text-sm font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1">Compare all features in detail <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     WHO IS LIMUD FOR
+     ===================================================================== -->
+<section class="reveal py-20 lg:py-28">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <div class="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><i data-lucide="heart" class="w-3.5 h-3.5"></i> Built For</div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Who is Limud for?</h2>
+    </div>
+    <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-lg transition-all">
+        <div class="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white text-2xl mb-5">&#x1F3E0;</div>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">Homeschool Families</h3>
+        <p class="text-sm text-gray-500 leading-relaxed mb-4">Create a free parent account, add your children as students, and use AI-powered lesson planning, tutoring, and progress tracking. Limud makes homeschooling organized and engaging.</p>
+        <ul class="space-y-2"><li class="flex items-center gap-2 text-sm text-gray-600"><i data-lucide="check" class="w-3.5 h-3.5 text-green-500 flex-shrink-0"></i> Free forever plan</li><li class="flex items-center gap-2 text-sm text-gray-600"><i data-lucide="check" class="w-3.5 h-3.5 text-green-500 flex-shrink-0"></i> AI lesson planner &amp; tutor</li><li class="flex items-center gap-2 text-sm text-gray-600"><i data-lucide="check" class="w-3.5 h-3.5 text-green-500 flex-shrink-0"></i> Gamification to keep kids motivated</li><li class="flex items-center gap-2 text-sm text-gray-600"><i data-lucide="check" class="w-3.5 h-3.5 text-green-500 flex-shrink-0"></i> Parent dashboard for progress tracking</li></ul>
+        <a href="/register" class="mt-6 inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700">Start Free <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      </div>
+      <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-lg transition-all">
+        <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl mb-5">&#x1F3EB;</div>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">School Districts</h3>
+        <p class="text-sm text-gray-500 leading-relaxed mb-4">District administrators can create an account, choose a plan, and provision teachers and students at scale. Centralized management with powerful AI tools.</p>
+        <ul class="space-y-2"><li class="flex items-center gap-2 text-sm text-gray-600"><i data-lucide="check" class="w-3.5 h-3.5 text-green-500 flex-shrink-0"></i> Plans from $2/student/month</li><li class="flex items-center gap-2 text-sm text-gray-600"><i data-lucide="check" class="w-3.5 h-3.5 text-green-500 flex-shrink-0"></i> Bulk CSV provisioning</li><li class="flex items-center gap-2 text-sm text-gray-600"><i data-lucide="check" class="w-3.5 h-3.5 text-green-500 flex-shrink-0"></i> AI auto-grading &amp; analytics</li><li class="flex items-center gap-2 text-sm text-gray-600"><i data-lucide="check" class="w-3.5 h-3.5 text-green-500 flex-shrink-0"></i> Multi-school management</li></ul>
+        <a href="/register" class="mt-6 inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700">Create Admin Account <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     FAQ
+     ===================================================================== -->
+<section id="faq" class="reveal py-20 lg:py-28 bg-gray-50">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i> FAQ</div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900">Frequently asked questions</h2>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-100 p-6 lg:p-8" id="faq-list"></div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     FINAL CTA
+     ===================================================================== -->
+<section class="reveal py-20 lg:py-28">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="relative bg-gradient-to-br from-primary-600 via-primary-700 to-purple-700 rounded-3xl p-10 lg:p-16 text-center text-white overflow-hidden">
+      <div class="relative">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-white/10 rounded-2xl mb-6"><i data-lucide="rocket" class="w-8 h-8 text-white"></i></div>
+        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold">Stop juggling apps. Start teaching.</h2>
+        <p class="mt-4 text-lg text-white/80 max-w-2xl mx-auto">Limud brings together AI tutoring, auto-grading, gamification, and 16+ platform integrations &mdash; built for homeschool families and school districts.</p>
+        <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="/register" class="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-8 py-4 rounded-2xl font-bold text-base hover:bg-gray-100 transition-all shadow-lg">Start Free Now <i data-lucide="arrow-right" class="w-[18px] h-[18px] group-hover:translate-x-1 transition-transform"></i></a>
+          <a href="/login" class="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-2xl font-bold text-base border border-white/20 hover:bg-white/20 transition-all">Try Live Demo</a>
+        </div>
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-6 text-sm text-white/60">
+          <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-green-300"></i> Free forever plan</span>
+          <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-green-300"></i> 14-day free trial</span>
+          <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-green-300"></i> 30-day money-back</span>
+          <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-green-300"></i> FERPA compliant</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     FOOTER
+     ===================================================================== -->
+<footer class="bg-gray-900 text-gray-400 py-16">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid md:grid-cols-5 gap-8">
+      <div class="md:col-span-2">
+        <div class="flex items-center gap-2.5 mb-4">
+          <div class="w-9 h-9 bg-primary-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20"><i data-lucide="book-open" class="w-[18px] h-[18px] text-white"></i></div>
+          <span class="text-lg font-bold text-white">Limud</span>
+          <span class="text-xs bg-primary-500/20 text-primary-400 px-1.5 py-0.5 rounded font-medium">v8.6</span>
+        </div>
+        <p class="text-sm leading-relaxed max-w-sm mb-6">The all-in-one EdTech platform that replaces Khan Academy, Google Classroom, IXL, Quizlet, ClassDojo, and more with AI-powered learning for K-12.</p>
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-xs bg-green-500/10 text-green-400 px-2.5 py-1 rounded-full font-medium border border-green-500/20">FERPA</span>
+          <span class="text-xs bg-blue-500/10 text-blue-400 px-2.5 py-1 rounded-full font-medium border border-blue-500/20">COPPA</span>
+          <span class="text-xs bg-purple-500/10 text-purple-400 px-2.5 py-1 rounded-full font-medium border border-purple-500/20">WCAG AA</span>
+          <span class="text-xs bg-amber-500/10 text-amber-400 px-2.5 py-1 rounded-full font-medium border border-amber-500/20">SOC 2</span>
+        </div>
+      </div>
+      <div><h4 class="text-sm font-semibold text-white mb-4">Product</h4><ul class="space-y-2.5"><li><a href="#features" class="text-sm hover:text-white transition">Features</a></li><li><a href="#compare" class="text-sm hover:text-white transition">Compare</a></li><li><a href="#integrations" class="text-sm hover:text-white transition">Integrations</a></li><li><a href="#pricing" class="text-sm hover:text-white transition">Pricing</a></li><li><a href="#features" class="text-sm hover:text-white transition">AI Tutor</a></li><li><a href="#features" class="text-sm hover:text-white transition">Auto-Grading</a></li><li><a href="#features" class="text-sm hover:text-white transition">Gamification</a></li></ul></div>
+      <div><h4 class="text-sm font-semibold text-white mb-4">Company</h4><ul class="space-y-2.5"><li><a href="/about" class="text-sm hover:text-white transition">About</a></li><li><a href="/help" class="text-sm hover:text-white transition">Help Center</a></li><li><a href="/roadmap" class="text-sm hover:text-white transition">Roadmap</a></li><li><a href="/contact" class="text-sm hover:text-white transition">Contact</a></li><li><a href="/pricing" class="text-sm hover:text-white transition">Pricing</a></li></ul></div>
+      <div><h4 class="text-sm font-semibold text-white mb-4">Legal</h4><ul class="space-y-2.5"><li><a href="/privacy" class="text-sm hover:text-white transition">Privacy Policy</a></li><li><a href="/terms" class="text-sm hover:text-white transition">Terms of Service</a></li><li><a href="/accessibility" class="text-sm hover:text-white transition">Accessibility</a></li></ul></div>
+    </div>
+    <div class="border-t border-gray-800 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="text-sm">&copy; <script>document.write(new Date().getFullYear())</script> Limud Education Inc. All rights reserved.</p>
+      <p class="text-xs text-gray-500">Built with care for educators, students, and families.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Scroll to top -->
+<button id="scroll-top" class="fixed bottom-20 right-6 z-50 w-12 h-12 bg-primary-600 text-white rounded-full shadow-lg shadow-primary-600/25 items-center justify-center hover:bg-primary-700 transition-all hover:shadow-xl hidden" aria-label="Back to top">
+  <i data-lucide="chevron-up" class="w-5 h-5"></i>
+</button>
+
+<!-- Sticky CTA -->
+<div id="sticky-cta" class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-gray-200 shadow-2xl shadow-gray-900/10 py-3 px-4 hidden">
+  <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <div class="hidden sm:flex items-center gap-3">
+      <div class="flex items-center gap-1.5 text-sm text-gray-600"><i data-lucide="sparkles" class="w-4 h-4 text-primary-500"></i><span><strong class="text-gray-900">Free forever</strong> for homeschool families</span></div>
+      <div class="hidden lg:flex items-center gap-1.5 text-sm text-gray-500"><i data-lucide="shield" class="w-3.5 h-3.5 text-green-500"></i><span>FERPA &amp; COPPA compliant</span></div>
+    </div>
+    <div class="flex items-center gap-3 w-full sm:w-auto">
+      <a href="/register" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-700 transition-all shadow-lg shadow-primary-600/25">Start Free &mdash; No Credit Card <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+      <a href="/login" class="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition px-4 py-2.5">Try Demo</a>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================================
+     JAVASCRIPT
+     ===================================================================== -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Lucide icons
+  lucide.createIcons();
+
+  // -- Navbar scroll effect -------------------------------------------
+  var navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', function() {
+    if (window.scrollY > 20) {
+      navbar.classList.add('bg-white/90','backdrop-blur-xl','border-b','border-gray-100/80','shadow-sm');
+      navbar.classList.remove('bg-transparent');
+    } else {
+      navbar.classList.remove('bg-white/90','backdrop-blur-xl','border-b','border-gray-100/80','shadow-sm');
+      navbar.classList.add('bg-transparent');
+    }
+  });
+
+  // -- Mobile menu toggle ---------------------------------------------
+  document.getElementById('mobile-toggle').addEventListener('click', function() {
+    document.getElementById('mobile-menu').classList.toggle('hidden');
+  });
+  document.querySelectorAll('#mobile-menu a').forEach(function(a) {
+    a.addEventListener('click', function() { document.getElementById('mobile-menu').classList.add('hidden'); });
+  });
+
+  // -- Scroll reveal --------------------------------------------------
+  var reveals = document.querySelectorAll('.reveal');
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.1, rootMargin: '-40px' });
+  reveals.forEach(function(el) { observer.observe(el); });
+
+  // -- Scroll to top --------------------------------------------------
+  var scrollBtn = document.getElementById('scroll-top');
+  var stickyCta = document.getElementById('sticky-cta');
+  window.addEventListener('scroll', function() {
+    scrollBtn.style.display = window.scrollY > 500 ? 'flex' : 'none';
+    stickyCta.style.display = window.scrollY > 600 ? 'block' : 'none';
+  });
+  scrollBtn.addEventListener('click', function() { window.scrollTo({top:0,behavior:'smooth'}); });
+
+  // -- Comparison table -----------------------------------------------
+  var compData = [
+    ['AI Tutor (Socratic method)','yes','partial','no','partial','no','no'],
+    ['AI Auto-Grading','yes','no','no','no','no','no'],
+    ['AI Lesson Planner','yes','no','no','no','no','partial'],
+    ['AI Quiz Generator','yes','no','no','partial','no','partial'],
+    ['Gamification (XP, streaks, coins)','yes','partial','no','partial','partial','no'],
+    ['Playable Educational Games','yes','no','no','partial','no','no'],
+    ['16+ Platform Integrations','yes','no','partial','no','no','partial'],
+    ['Parent Dashboard','yes','partial','no','no','yes','no'],
+    ['Teacher + Student + Admin + Parent','yes','partial','partial','no','partial','partial'],
+    ['Knowledge Analytics & Insights','yes','partial','no','no','no','partial'],
+    ['Worksheet Finder (87+)','yes','no','no','no','no','no'],
+    ['Cross-Platform Assignments','yes','no','partial','no','no','no'],
+    ['FERPA & COPPA Compliant','yes','yes','yes','partial','yes','yes'],
+    ['Free Forever Plan','yes','yes','yes','partial','partial','no'],
+  ];
+  function compIcon(v) {
+    if (v==='yes') return '<svg class="w-[18px] h-[18px] text-green-500 mx-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+    if (v==='no') return '<svg class="w-[18px] h-[18px] text-red-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M15 9l-6 6M9 9l6 6"/></svg>';
+    return '<svg class="w-[18px] h-[18px] text-amber-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 12h14"/></svg>';
+  }
+  var tbody = document.getElementById('comp-table');
+  compData.forEach(function(r) {
+    var tr = '<tr class="hover:bg-gray-50/50 transition"><td class="py-3 px-3 text-sm font-medium text-gray-700">'+r[0]+'</td><td class="py-3 px-3 text-center bg-primary-50/30">'+compIcon(r[1])+'</td>';
+    for (var i=2;i<r.length;i++) tr+='<td class="py-3 px-3 text-center">'+compIcon(r[i])+'</td>';
+    tbody.innerHTML += tr+'</tr>';
+  });
+
+  // -- Features grid --------------------------------------------------
+  var features = [
+    {icon:'brain',title:'AI Tutor',desc:'Socratic questioning that guides students to answers without giving them away. Unlike ChatGPT, it teaches critical thinking instead of enabling shortcuts.',color:'bg-purple-100 text-purple-600',tag:'Replaces ChatGPT',tagColor:'bg-purple-50 text-purple-600'},
+    {icon:'wand-2',title:'AI Lesson Planner',desc:'Generate complete, standards-aligned lesson plans in seconds. Real AI that creates specific activities, not generic templates.',color:'bg-indigo-100 text-indigo-600',tag:'Replaces manual planning',tagColor:'bg-indigo-50 text-indigo-600'},
+    {icon:'lightbulb',title:'AI Quiz Generator',desc:'Curriculum-aligned quizzes with multiple choice and short answer. Better than Quizlet because content is AI-verified, not user-generated.',color:'bg-amber-100 text-amber-600',tag:'Replaces Quizlet',tagColor:'bg-amber-50 text-amber-600'},
+    {icon:'graduation-cap',title:'AI Auto-Grader',desc:'One-click grading with rubric-based scoring. Handles essays, short answers, and projects. No more midnight grading sessions.',color:'bg-green-100 text-green-600',tag:'Replaces manual grading',tagColor:'bg-green-50 text-green-600'},
+    {icon:'trophy',title:'Gamification Engine',desc:'XP, levels, streaks, coins, avatar shop, and badges. More engaging than ClassDojo for older students, and it actually drives learning.',color:'bg-amber-100 text-amber-600',tag:'Replaces ClassDojo',tagColor:'bg-amber-50 text-amber-600'},
+    {icon:'gamepad-2',title:'Educational Games',desc:'Math Blaster, Word Quest, Science Puzzles, History Trivia and more. Like Prodigy Math but covers ALL subjects, not just math.',color:'bg-pink-100 text-pink-600',tag:'Replaces Prodigy',tagColor:'bg-pink-50 text-pink-600'},
+    {icon:'link-2',title:'16+ Platform Integrations',desc:'Connect Khan Academy, i-Ready, Amplify, PLTW, Google Classroom, Canvas, IXL, Quizlet, Clever, and more. Auto-sync everything.',color:'bg-cyan-100 text-cyan-600',tag:'Replaces Clever SSO',tagColor:'bg-cyan-50 text-cyan-600'},
+    {icon:'file-text',title:'Assignment Manager',desc:'Category weighting, extra credit, file/link attachments, cross-platform assignments. More powerful than Google Classroom.',color:'bg-blue-100 text-blue-600',tag:'Replaces Google Classroom',tagColor:'bg-blue-50 text-blue-600'},
+    {icon:'pen-tool',title:'Worksheet Finder',desc:'Search 87+ curated worksheets from education.com, Khan Academy, K5 Learning, and more. Filter by subject, grade, and topic.',color:'bg-teal-100 text-teal-600',tag:'Replaces TPT browsing',tagColor:'bg-teal-50 text-teal-600'},
+    {icon:'bar-chart-3',title:'Knowledge Analytics',desc:'Skill radar charts, study heatmaps, rank system, and learning DNA insights. AI flags at-risk students before they fall behind.',color:'bg-emerald-100 text-emerald-600',tag:'Replaces analytics tools',tagColor:'bg-emerald-50 text-emerald-600'},
+    {icon:'eye',title:'Parent Portal',desc:'Real-time view of grades, feedback, progress, and tutor conversations. Better than Remind because parents see everything, not just messages.',color:'bg-rose-100 text-rose-600',tag:'Replaces Remind',tagColor:'bg-rose-50 text-rose-600'},
+    {icon:'layout-dashboard',title:'Admin Dashboard',desc:'District management, CSV provisioning, subscription billing, usage analytics. Complete school management from one panel.',color:'bg-slate-100 text-slate-600',tag:'Replaces separate admin tools',tagColor:'bg-slate-50 text-slate-600'},
+  ];
+  var fg = document.getElementById('features-grid');
+  features.forEach(function(f) {
+    fg.innerHTML += '<div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all h-full hover:-translate-y-1"><div class="flex items-start justify-between mb-4"><div class="w-12 h-12 rounded-xl flex items-center justify-center '+f.color+'"><i data-lucide="'+f.icon+'" class="w-6 h-6"></i></div><span class="text-[10px] px-2 py-0.5 rounded-full font-medium '+f.tagColor+'">'+f.tag+'</span></div><h3 class="text-base font-bold text-gray-900 mb-2">'+f.title+'</h3><p class="text-sm text-gray-500 leading-relaxed">'+f.desc+'</p></div>';
+  });
+
+  // -- Platform logos (NEW in v8.6) ---------------------------------
+  var platforms = [
+    {name:'Khan Academy',icon:'\uD83C\uDF93'},
+    {name:'Google Classroom',icon:'\uD83D\uDCDA'},
+    {name:'Canvas LMS',icon:'\uD83C\uDFA8'},
+    {name:'i-Ready',icon:'\uD83D\uDCCA'},
+    {name:'Amplify',icon:'\uD83D\uDCD6'},
+    {name:'PLTW',icon:'\uD83D\uDD27'},
+    {name:'IXL',icon:'\uD83E\uDDE0'},
+    {name:'Quizlet',icon:'\uD83C\uDCCF'},
+    {name:'Kahoot!',icon:'\uD83C\uDFAF'},
+    {name:'Schoology',icon:'\uD83C\uDFEB'},
+    {name:'Nearpod',icon:'\uD83D\uDCA1'},
+    {name:'BrainPOP',icon:'\uD83C\uDFAC'},
+    {name:'Clever',icon:'\uD83D\uDD10'},
+    {name:'Desmos',icon:'\uD83D\uDCC8'},
+    {name:'Edpuzzle',icon:'\uD83C\uDFAC'},
+    {name:'Newsela',icon:'\uD83D\uDCF0'},
+  ];
+  var pl = document.getElementById('platform-logos');
+  platforms.forEach(function(p) {
+    pl.innerHTML += '<div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition"><span class="text-lg">'+p.icon+'</span><span class="text-xs font-semibold text-gray-700">'+p.name+'</span></div>';
+  });
+
+  // -- Pricing grid ---------------------------------------------------
+  var plans = [
+    {emoji:'&#x1F3E0;',name:'Free',desc:'Homeschool families',price:'$0',period:'/forever',perStudent:'',features:['Up to 5 students','AI Tutor (50/mo)','AI Lesson Planner (5/mo)','AI Quiz Gen (3/mo)','Basic gamification','Parent dashboard','3 platform links'],limits:['No AI Auto-Grader','No Teacher Exchange','Community support only'],cta:'Get Started Free',link:'/register',highlighted:false,dark:false},
+    {emoji:'&#x26A1;',name:'Starter',desc:'Small schools',price:'$2',period:'/student/mo',perStudent:'billed annually',features:['Up to 50 students','AI Tutor (200/mo)','AI Grader (100/mo)','Lesson Planner (25/mo)','Full gamification','6 platform links','Email support'],limits:['No LMS sync','No cross-platform assignments','Basic admin dashboard'],cta:'Free Trial',link:'/onboard?plan=STARTER',highlighted:false,dark:false},
+    {emoji:'&#x1F331;',name:'Growth',desc:'Growing schools',price:'$4',period:'/student/mo',perStudent:'billed annually',features:['Up to 200 students','AI Tutor (1,000/mo)','AI Grader (500/mo)','Writing Coach (50/mo)','All games & Exchange','Google Classroom sync','CSV bulk import'],limits:['No Canvas/Schoology sync','No district-wide reporting','No custom branding'],cta:'Free Trial',link:'/onboard?plan=GROWTH',highlighted:false,dark:false},
+    {emoji:'&#x2B50;',name:'Standard',desc:'Most popular',price:'$6',period:'/student/mo',perStudent:'billed annually',features:['Up to 500 students','Unlimited AI features','All 16+ integrations','Cross-platform assignments','District analytics','Export reports','Priority support'],limits:['No SSO/SAML','No custom branding','No predictive analytics'],cta:'Free Trial',link:'/onboard?plan=STANDARD',highlighted:true,dark:false},
+    {emoji:'&#x1F48E;',name:'Premium',desc:'Large districts',price:'$9',period:'/student/mo',perStudent:'billed annually',features:['Up to 2,000 students','Everything in Standard','SSO / SAML','Predictive AI analytics','Custom branding','SOC 2 certified','Dedicated manager'],limits:['No custom AI training','No on-site PD'],cta:'Free Trial',link:'/onboard?plan=PREMIUM',highlighted:false,dark:false},
+    {emoji:'&#x1F3E2;',name:'Enterprise',desc:'States & mega-districts',price:'Custom',period:'',perStudent:'Volume discounts',features:['Unlimited everything','Custom AI training','Custom LMS connectors','Data residency options','99.9% uptime SLA','24/7 dedicated support','On-site training & PD'],limits:[],cta:'Contact Sales',link:'/contact',highlighted:false,dark:true},
+  ];
+  var pg = document.getElementById('pricing-grid');
+  plans.forEach(function(p) {
+    var cls = p.highlighted ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white relative overflow-hidden ring-4 ring-primary-300 ring-offset-2' : p.dark ? 'bg-white border-2 border-gray-900' : 'bg-white border-2 border-gray-100 hover:shadow-lg hover:border-gray-200';
+    var h = '<div class="rounded-3xl p-5 h-full flex flex-col transition-all '+cls+'">';
+    if (p.highlighted) h += '<div class="absolute top-3 right-3 bg-white/20 backdrop-blur-sm rounded-full px-2.5 py-1 text-[10px] font-semibold">Most Popular</div>';
+    h += '<div class="flex items-center gap-2 mb-1"><span class="text-lg">'+p.emoji+'</span><h3 class="text-base font-bold '+(p.highlighted?'text-white':'text-gray-900')+'">'+p.name+'</h3></div>';
+    h += '<p class="text-[11px] '+(p.highlighted?'text-white/70':'text-gray-500')+'">'+p.desc+'</p>';
+    h += '<div class="mt-3"><span class="text-3xl font-extrabold '+(p.highlighted?'':'text-gray-900')+'">'+p.price+'</span>';
+    if (p.period) h += '<span class="ml-1 text-xs '+(p.highlighted?'text-white/70':'text-gray-500')+'">'+p.period+'</span>';
+    h += '</div>';
+    if (p.perStudent) h += '<p class="text-[10px] mt-0.5 '+(p.highlighted?'text-white/50':'text-gray-400')+'">'+p.perStudent+'</p>';
+    h += '<ul class="mt-4 space-y-1.5 flex-1">';
+    p.features.forEach(function(f) { h += '<li class="flex items-center gap-1.5 text-[11px] '+(p.highlighted?'text-white/90':'text-gray-600')+'"><svg class="w-3 h-3 flex-shrink-0 '+(p.highlighted?'text-green-300':'text-green-500')+'" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> '+f+'</li>'; });
+    p.limits.forEach(function(f) { h += '<li class="flex items-center gap-1.5 text-[10px] '+(p.highlighted?'text-white/40':'text-gray-400')+'"><svg class="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 12h14"/></svg> '+f+'</li>'; });
+    h += '</ul>';
+    var btnCls = p.highlighted ? 'bg-white text-primary-700 hover:bg-gray-100' : p.dark ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-gray-100 text-gray-900 hover:bg-gray-200';
+    h += '<a href="'+p.link+'" class="mt-4 block text-center py-2.5 rounded-xl font-bold text-xs transition '+btnCls+'">'+p.cta+'</a></div>';
+    pg.innerHTML += h;
+  });
+
+  // -- FAQ accordion --------------------------------------------------
+  var faqs = [
+    {q:'How is Limud different from Khan Academy?',a:'Khan Academy is amazing for self-study, but it lacks teacher tools, AI grading, gamification, and parent dashboards. Limud integrates WITH Khan Academy (auto-syncs progress) while adding AI tutoring that uses Socratic questioning, auto-grading, lesson planning, educational games, and complete school management. Think of Limud as Khan Academy + Google Classroom + ClassDojo + IXL all in one.'},
+    {q:'Why switch from Google Classroom?',a:'Google Classroom is a basic LMS with limited grading tools and no AI features. Limud adds AI auto-grading (saves 8+ hrs/week), AI lesson planning, AI quiz generation, gamification, educational games, 16+ platform integrations, and detailed analytics. Plus, Limud connects WITH Google Classroom so you don\'t lose anything.'},
+    {q:'Is this better than Quizlet or Duolingo?',a:'Quizlet and Duolingo each solve one problem well. Quizlet = flashcards (but user-generated content can be wrong). Duolingo = language learning (but can be repetitive). Limud covers ALL subjects with AI-verified content, plus adds tutoring, grading, games, and complete school management.'},
+    {q:'Is Limud FERPA and COPPA compliant?',a:'Yes. Limud is fully compliant with FERPA and COPPA. We never sell student data, all data is encrypted at rest and in transit, and we undergo annual third-party security audits.'},
+    {q:'Can I try it before buying?',a:'Absolutely! Our Free plan is free forever for up to 5 students with no credit card required. All paid plans include a 14-day free trial with full access. Plus, we offer a 30-day money-back guarantee on all paid plans.'},
+    {q:'How long does setup take?',a:'Most districts are fully up and running within 5-30 minutes. Upload a CSV of students and teachers, connect your platforms, and you\'re ready.'},
+    {q:'What about the AI \u2014 is it safe for students?',a:'Unlike ChatGPT which can give direct answers, Limud\'s AI tutor uses Socratic questioning to GUIDE students to answers without giving them away. All AI conversations are logged and available for teacher/parent review. The AI is grade-level appropriate and designed to build critical thinking, not shortcuts.'},
+    {q:'Do students actually enjoy using Limud?',a:'The gamification engine \u2014 XP, levels, streaks, coins, avatar shop, playable educational games, leaderboards, and badges \u2014 is designed to be more engaging than ClassDojo for older students and more educational than Prodigy.'},
+    {q:'What if I\'m not satisfied?',a:'We offer a 30-day money-back guarantee on all paid plans. If Limud isn\'t the right fit, we\'ll refund you in full, no questions asked.'},
+  ];
+  var fl = document.getElementById('faq-list');
+  faqs.forEach(function(f, i) {
+    fl.innerHTML += '<div class="border-b border-gray-100 last:border-0"><button onclick="toggleFaq('+i+')" class="w-full flex items-center justify-between py-5 text-left group" aria-expanded="false"><span class="text-base font-semibold text-gray-900 group-hover:text-primary-600 transition pr-4">'+f.q+'</span><svg id="faq-chev-'+i+'" class="w-5 h-5 text-gray-400 flex-shrink-0 faq-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button><div id="faq-ans-'+i+'" class="faq-answer"><p class="pb-5 text-sm text-gray-500 leading-relaxed">'+f.a+'</p></div></div>';
+  });
+
+  // Re-init icons after dynamic content
+  lucide.createIcons();
+});
+
+function toggleFaq(i) {
+  var ans = document.getElementById('faq-ans-'+i);
+  var chev = document.getElementById('faq-chev-'+i);
+  ans.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+</script>
+</body>
+</html>

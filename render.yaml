@@ -1,0 +1,70 @@
+# ─────────────────────────────────────────────────────────────
+# Limud v9.5.1 — Render Blueprint (render.yaml)
+# Defines the Render Web Service for automatic deployment.
+# Docs: https://render.com/docs/blueprint-spec
+# ─────────────────────────────────────────────────────────────
+
+services:
+  - type: web
+    name: limud
+    runtime: node
+    region: oregon  # us-west-2 — change if you prefer another region
+    plan: starter   # starter ($7/mo) or standard ($25/mo) for production
+    buildCommand: rm -rf node_modules && npm install && npm run build
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true  # Auto-deploy on push to main branch
+
+    # ─── Custom Domain ───────────────────────────────────────
+    # After deploying, add limud.co as a custom domain in the
+    # Render dashboard: Settings → Custom Domains → Add limud.co
+    # Then configure DNS:
+    #   - CNAME record:  www.limud.co  → limud.onrender.com
+    #   - A record:      limud.co      → (Render's IP, shown in dashboard)
+    # Render provides free TLS/SSL for custom domains.
+    customDomains:
+      - limud.co
+      - www.limud.co
+
+    # ─── Environment Variables ────────────────────────────────
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20.19.0
+      - key: NEXT_PUBLIC_APP_NAME
+        value: Limud
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://limud.co
+      # NEXTAUTH_SECRET: Optional — v9.5.1 embeds a stable default secret.
+      # Only set this if you want to override the embedded secret.
+      # Generate once with: openssl rand -base64 32
+      # DO NOT use generateValue: true — it creates a new secret on every deploy!
+      # - key: NEXTAUTH_SECRET
+      #   value: <your-fixed-secret-here>
+      # NEXTAUTH_URL: Optional — auto-derived from request headers.
+      # Only set for custom domains.
+      # - key: NEXTAUTH_URL
+      #   value: https://limud.co
+      # ─── SET THESE IN RENDER DASHBOARD (Secrets) ────────────
+      # - key: DATABASE_URL
+      #   value: postgresql://user:pass@host:5432/limud?sslmode=require
+      #
+      # ─── AI / OpenAI Configuration (v9.2.1) ──────────────────
+      # The Genspark proxy is recommended — set these in Dashboard → Environment:
+      # - key: OPENAI_API_KEY
+      #   value: gsk-<your-genspark-key>
+      # - key: OPENAI_BASE_URL
+      #   value: https://www.genspark.ai/api/llm_proxy/v1
+      # Without these, AI features (tutor, lesson planner, grading) run in demo mode.
+
+# ─── Optional: Render PostgreSQL Database ─────────────────────
+# Uncomment below to provision a managed Render PostgreSQL DB.
+# After creation, DATABASE_URL is automatically injected.
+#
+# databases:
+#   - name: limud-db
+#     plan: starter  # starter ($7/mo) or standard ($20/mo)
+#     databaseName: limud
+#     user: limud_user
+#     region: oregon

@@ -1,0 +1,60 @@
+{
+  "common": {
+    "dashboard": "Panel de control",
+    "assignments": "Tareas",
+    "messages": "Mensajes",
+    "analytics": "An\u00e1lisis",
+    "settings": "Configuraci\u00f3n",
+    "logout": "Cerrar sesi\u00f3n",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "loading": "Cargando...",
+    "error": "Algo sali\u00f3 mal",
+    "success": "\u00c9xito!",
+    "search": "Buscar...",
+    "noResults": "No se encontraron resultados",
+    "viewAll": "Ver todo"
+  },
+  "landing": {
+    "hero": "Elimina el aula de talla \u00fanica",
+    "heroSub": "La IA adapta el curr\u00edculo al ADN de aprendizaje de cada estudiante",
+    "cta": "Empezar gratis",
+    "signIn": "Iniciar sesi\u00f3n",
+    "tryDemo": "Prueba la demo"
+  },
+  "auth": {
+    "login": "Iniciar sesi\u00f3n",
+    "register": "Crear cuenta",
+    "email": "Correo electr\u00f3nico",
+    "password": "Contrase\u00f1a",
+    "forgotPassword": "\u00bfOlvidaste tu contrase\u00f1a?",
+    "noAccount": "\u00bfNo tienes cuenta?",
+    "hasAccount": "\u00bfYa tienes cuenta?"
+  },
+  "student": {
+    "welcome": "Bienvenido de vuelta",
+    "aiTutor": "Tutor IA",
+    "focusMode": "Modo enfoque",
+    "studyPlanner": "Planificador de estudio",
+    "examSim": "Simulador de ex\u00e1menes",
+    "knowledge": "Mapa de conocimiento"
+  },
+  "teacher": {
+    "welcome": "Bienvenido",
+    "grading": "Calificaci\u00f3n IA",
+    "intelligence": "Inteligencia",
+    "quizGenerator": "Generador de cuestionarios",
+    "reports": "Informes"
+  },
+  "admin": {
+    "commandCenter": "Centro de mando",
+    "employees": "Empleados",
+    "students": "Estudiantes",
+    "schools": "Escuelas"
+  },
+  "parent": {
+    "myChildren": "Mis hijos",
+    "growthReports": "Informes de crecimiento",
+    "aiCheckin": "Control IA"
+  }
+}

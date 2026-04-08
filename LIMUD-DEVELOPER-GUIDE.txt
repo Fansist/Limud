@@ -1,0 +1,1576 @@
+================================================================================
+  LIMUD — COMPREHENSIVE DEVELOPER GUIDE
+  Version 13.0 | Last Updated: 2026-04-07
+  AI-Powered K-12 Learning Platform
+================================================================================
+
+TABLE OF CONTENTS
+─────────────────
+  1.  WHAT IS LIMUD?
+  2.  TECH STACK & ARCHITECTURE
+  3.  PROJECT STRUCTURE — EVERY FILE EXPLAINED
+  4.  DATABASE SCHEMA (69 MODELS, 9 ENUMS)
+  5.  USER ROLES & ACCESS CONTROL (RBAC)
+  6.  FEATURE CATALOG — WHAT EVERY FEATURE DOES
+  7.  API ROUTES — ALL 88 ENDPOINTS
+  8.  AI SYSTEM (GEMINI 2.5 FLASH)
+  9.  SECURITY & COMPLIANCE (COPPA / FERPA / OWASP)
+  10. GAMIFICATION ENGINE
+  11. ADAPTIVE LEARNING & COGNITIVE SCIENCE
+  12. DEMO MODE — HOW IT WORKS
+  13. INTERNATIONALIZATION (i18n)
+  14. PWA & MOBILE (APK)
+  15. DEPLOYMENT & HOSTING
+  16. ENVIRONMENT VARIABLES
+  17. KNOWN BUGS & ISSUES
+  18. PLANNED FUTURE FEATURES
+  19. HOW TO CONTRIBUTE — GETTING STARTED
+  20. VERSION HISTORY
+
+
+================================================================================
+1. WHAT IS LIMUD?
+================================================================================
+
+Limud (Hebrew: למד, "learn") is an all-in-one AI-powered educational platform
+for K-12 schools. It serves four user roles — Students, Teachers, Parents, and
+Administrators — within a district-based multi-tenant architecture.
+
+Core mission: Personalize education using AI tutoring, automated grading,
+adaptive learning paths, cognitive science (spaced repetition, interleaving),
+and gamification — all while meeting COPPA and FERPA compliance requirements
+for student data privacy in the United States.
+
+The platform is designed to be used by:
+  - Individual homeschool families (single parent + children)
+  - Small private schools (1 school, few teachers)
+  - Large school districts (multiple schools, hundreds of teachers & students)
+
+Production URL: https://limud.co
+Repository:     https://github.com/Fansist/Limud
+Package Name:   co.limud.app (Android APK)
+
+
+================================================================================
+2. TECH STACK & ARCHITECTURE
+================================================================================
+
+FRONTEND
+  - Next.js 14.2.21 (App Router, Server Components)
+  - React 18.3.1
+  - TypeScript 5.7.2
+  - Tailwind CSS 3.4.17
+  - Framer Motion (animations)
+  - Lucide React (icons)
+  - Recharts (charts/analytics)
+  - Zustand 5.0.2 (client state management)
+
+BACKEND
+  - Next.js API Routes (App Router, /api/*)
+  - NextAuth.js 4.24.11 (JWT-based authentication, credentials provider)
+  - Prisma 5.22.0 (ORM)
+  - PostgreSQL (database)
+
+AI
+  - Google Gemini 2.5 Flash (via @google/genai SDK)
+  - Fallback demo responses when no API key is set
+
+EMAIL
+  - Resend (transactional emails: password reset, weekly digests)
+
+BUILD & DEPLOY
+  - Node.js 20.x
+  - PM2 (process manager)
+  - Render.com (primary hosting)
+  - cPanel (alternative hosting)
+  - Bubblewrap (Android TWA APK generation)
+
+ARCHITECTURE PATTERN:
+  Next.js App Router with server-side rendering (SSR) and client components.
+  The "/" page checks session and redirects logged-in users to their dashboard.
+  All authenticated pages are behind middleware RBAC (role-based access control).
+  API routes handle all data mutations and AI calls server-side.
+  Demo mode runs entirely without a database using in-memory demo data.
+
+
+================================================================================
+3. PROJECT STRUCTURE — EVERY FILE EXPLAINED
+================================================================================
+
+ROOT FILES
+──────────
+  package.json          — Dependencies, scripts, version (13.0.0)
+  package-lock.json     — Locked dependency versions
+  tsconfig.json         — TypeScript config (strict mode, path aliases @/*)
+  tailwind.config.js    — Tailwind theme, custom colors, fonts
+  postcss.config.js     — PostCSS plugins (tailwind, autoprefixer)
+  jest.config.js        — Jest test runner config
+  ecosystem.config.cjs  — PM2 process manager config (production mode)
+  server.js             — Universal Node.js entry point (Render, cPanel, etc.)
+  .env                  — Local environment variables (NEVER commit this)
+  .env.example          — Template showing all env vars with documentation
+  .htaccess             — Apache/cPanel rewrite rules
+  .npmrc                — NPM config
+  render.yaml           — Render.com deployment configuration
+  wrangler.toml         — Cloudflare Workers config (legacy, not primary)
+  index.html            — Static fallback page
+  limud-v13.apk         — Signed Android APK (TWA wrapper)
+  CHANGELOG.md          — Detailed version history (from v4.0.0)
+  README.md             — Project overview, setup instructions
+  PROMPT-v10.md         — AI development prompts used to build features
+  DEPLOY-CPANEL.md      — cPanel deployment guide
+  deploy-cpanel.sh      — Automated cPanel deployment script
+
+/prisma
+───────
+  schema.prisma         — THE database schema. 69 models, 9 enums, 1735 lines.
+                          Defines every table: Users, Districts, Schools,
+                          Classrooms, Courses, Assignments, Submissions,
+                          AI Tutor Logs, Games, Skill Tracking, Spaced Rep,
+                          Study Planner, Exam Sim, Mistake Replay, Challenges,
+                          Reports, Messages, Security Audit Logs, Consent,
+                          Forums, Announcements, Learning DNA, Focus Sessions,
+                          Emotional Checkins, and much more.
+  seed.ts               — Database seeder (creates demo district, users, data)
+  seed-districts.ts     — District-specific seeder
+
+/messages
+─────────
+  en.json               — English translations
+  he.json               — Hebrew translations (RTL support)
+  es.json               — Spanish translations
+
+/__tests__
+──────────
+  lib/cognitive-engine.test.ts  — Tests for SM-2 algorithm
+  lib/config.test.ts            — Tests for configuration resolution
+  lib/security.test.ts          — Tests for security engine
+  lib/utils.test.ts             — Tests for utility functions
+
+/public
+───────
+  favicon.ico              — Site favicon
+  logo.png                 — Limud logo
+  manifest.json            — PWA manifest (app name, icons, shortcuts)
+  robots.txt               — Search engine crawler rules
+  sitemap.xml              — SEO sitemap
+  sw.js                    — Service Worker (offline caching, update strategy)
+  apple-touch-icon.png     — iOS home screen icon
+  icons/                   — Full icon set (48px to 512px + maskable)
+
+/src — SOURCE CODE
+──────────────────
+
+src/middleware.ts
+  THE edge middleware. Runs on EVERY request before the handler.
+  Responsibilities:
+    1. Block known malicious scanners (sqlmap, nikto, etc.)
+    2. Block path traversal, SQL injection, XSS in URLs
+    3. Block attack file extensions (.php, .asp, .exe, etc.)
+    4. Block oversized URLs (>8192 chars)
+    5. Edge-level rate limiting (500 req/min global, 30 req/min auth)
+    6. Allow public paths without auth (/, /login, /register, etc.)
+    7. Pass through static assets (/_next, .ico, .png, .css, .js)
+    8. JWT authentication check (via next-auth/jwt getToken)
+    9. Role-based access control (ADMIN, TEACHER, STUDENT, PARENT paths)
+    10. Add OWASP security headers (HSTS, CSP, X-Frame-Options, etc.)
+
+src/app/layout.tsx
+  Root layout. Sets metadata, viewport, favicon, Open Graph tags.
+  Reads 'limud-locale' cookie for i18n (Hebrew = RTL dir="rtl").
+  Loads Inter font from Google, OpenDyslexic font conditionally.
+  Wraps children in <Providers>.
+
+src/app/page.tsx
+  Home page. If logged in, redirects to role-specific dashboard.
+  If not logged in, renders the <LandingPage> marketing page.
+
+src/app/error.tsx
+  Global error boundary component.
+
+src/app/globals.css
+  Tailwind imports + Inter font + scroll behavior + accessibility CSS.
+
+/src/app/(auth) — AUTHENTICATION PAGES
+───────────────
+  /login/page.tsx           — Login form (email + password)
+  /register/page.tsx        — Registration form (role selection, district)
+  /demo/page.tsx            — Demo mode entry (quick-access demo accounts)
+  /onboard/page.tsx         — Multi-step onboarding wizard
+  /forgot-password/page.tsx — Password reset request
+  /reset-password/page.tsx  — Password reset with token
+  /pricing/page.tsx         — Subscription tier comparison
+
+/src/app/(legal) — LEGAL & INFO PAGES
+──────────────
+  /about/page.tsx           — About Limud
+  /accessibility/page.tsx   — Accessibility statement
+  /contact/page.tsx         — Contact information
+  /privacy/page.tsx         — Privacy policy (COPPA/FERPA)
+  /terms/page.tsx           — Terms of service
+
+/src/app/help               — Help center / FAQ
+
+/src/app/roadmap            — Public product roadmap
+
+/src/app/student — STUDENT PAGES
+────────────────
+  /dashboard/page.tsx       — Student home: XP, streak, recent grades, tasks
+  /assignments/page.tsx     — View/submit assignments
+  /classrooms/page.tsx      — Enrolled classrooms
+  /tutor/page.tsx           — AI Tutor chat (Gemini-powered, personalized)
+  /focus/page.tsx           — Pomodoro-style focus timer with distraction tracking
+  /forums/page.tsx          — Course discussion forums
+  /study-planner/page.tsx   — AI-recommended study schedule
+  /exam-sim/page.tsx        — Practice exam simulator with AI-generated questions
+  /knowledge/page.tsx       — Analytics: skill mastery, learning DNA, mistakes
+  /growth/page.tsx          — Growth analytics and progress over time
+  /study-groups/page.tsx    — Create/join study groups
+  /platforms/page.tsx       — Connected external platforms (Google Classroom, etc.)
+  /survey/page.tsx          — Student interest survey (hobbies, learning style)
+  /messages/page.tsx        — Message inbox (teacher-student communication)
+  /link-district/page.tsx   — Request to join a school district
+
+/src/app/teacher — TEACHER PAGES
+────────────────
+  /dashboard/page.tsx       — Teacher home: class overview, quick actions
+  /assignments/page.tsx     — Create/manage assignments
+  /grading/page.tsx         — AI-assisted grading interface
+  /classrooms/page.tsx      — Manage classrooms and enrolled students
+  /analytics/page.tsx       — Class analytics, score distributions
+  /quiz-generator/page.tsx  — AI quiz generator (by subject, grade, difficulty)
+  /students/page.tsx        — Individual student profiles and progress
+  /reports/page.tsx         — AI-generated student progress reports
+  /intelligence/page.tsx    — AI Teaching Intelligence: auto-assign, interventions
+  /insights/page.tsx        — Class-wide learning insights
+  /learning-insights/page.tsx — Detailed learning method analysis
+  /lesson-planner/page.tsx  — AI-powered lesson plan generator
+  /exchange/page.tsx        — Resource exchange marketplace
+  /content-library/page.tsx — Teacher content library
+  /forums/page.tsx          — Moderate/participate in course forums
+  /worksheets/page.tsx      — Worksheet generator
+  /ai-builder/page.tsx      — AI assignment builder
+  /ai-feedback/page.tsx     — AI feedback assistant
+  /onboarding/page.tsx      — Teacher onboarding flow
+  /messages/page.tsx        — Message center
+
+/src/app/parent — PARENT PAGES
+───────────────
+  /dashboard/page.tsx       — Parent overview: children's progress
+  /children/page.tsx        — Individual child details
+  /messages/page.tsx        — Parent-teacher messaging
+  /reports/page.tsx         — Weekly progress reports
+
+/src/app/admin — ADMIN PAGES
+──────────────
+  /dashboard/page.tsx       — Admin overview: district stats, user counts
+  /schools/page.tsx         — Manage schools within district
+  /classrooms/page.tsx      — Manage all classrooms
+  /students/page.tsx        — Manage all student accounts
+  /employees/page.tsx       — Manage teacher/staff accounts
+  /announcements/page.tsx   — Create/manage district announcements
+  /analytics/page.tsx       — District-wide analytics
+  /payments/page.tsx        — Billing, subscription management
+  /settings/page.tsx        — District settings
+  /provision/page.tsx       — Bulk account provisioning (CSV import)
+  /link-requests/page.tsx   — Review student-to-district link requests
+  /security/page.tsx        — Security dashboard
+  /audit/page.tsx           — Security audit log viewer
+
+/src/components
+───────────────
+  Providers.tsx                 — Session, Perf, I18n, Accessibility providers
+  InstallPrompt.tsx             — PWA install banner
+  ServiceWorkerRegistration.tsx — SW registration with update detection
+  accessibility/
+    AccessibilityPanel.tsx      — High contrast, dyslexia font, text size
+  ai/
+    AINavigator.tsx             — Floating AI helper for navigation
+  exercises/
+    ExerciseRenderer.tsx        — Renders different exercise types
+  landing/
+    LandingPage.tsx             — Full marketing landing page (animated, sections)
+  layout/
+    DashboardLayout.tsx         — Sidebar navigation, header, notifications, theme
+  reports/
+    PDFExportButton.tsx         — Export reports as PDF
+  video/
+    VideoPlayer.tsx             — Educational video player
+
+/src/lib — CORE LIBRARIES
+─────────
+  config.ts          — Centralized config: AUTH_SECRET, DATABASE_URL, APP_URL,
+                       GEMINI_API_KEY, AI_MODEL, APP_NAME, APP_VERSION.
+                       All have embedded defaults — zero env vars required.
+
+  auth.ts            — NextAuth configuration. Credentials provider with:
+                       - Demo accounts (master, students, teacher, admin, parent)
+                       - Database auth (bcrypt password comparison)
+                       - Brute-force protection
+                       - JWT callbacks (role, districtId, isMasterDemo)
+
+  ai.ts              — AI service layer. Functions:
+                       - callGemini() — Core API call to Gemini
+                       - callGeminiSafe() — Non-throwing wrapper
+                       - chatWithTutor() — Personalized AI tutoring
+                       - gradeSubmission() — AI auto-grading
+                       - generateStudentReport() — AI progress reports
+                       - analyzeCurriculum() — AI curriculum analysis
+                       - analyzeWriting() — AI writing feedback
+                       All functions have demo fallbacks for no-API-key mode.
+
+  ai-generators.ts   — Quiz question banks for demo mode. Hundreds of questions
+                       across Math (Algebra, Geometry, Fractions), Science
+                       (Biology, Chemistry, Physics, Earth Science), English
+                       (Grammar, Literature, Writing), History, and more.
+
+  cognitive-engine.ts — Cognitive science algorithms:
+                       - SM-2 Spaced Repetition (scheduling review intervals)
+                       - Adaptive difficulty targeting (70-85% success rate)
+                       - Skill tracking and mastery calculation
+                       - Score-to-quality conversion
+
+  learning-dna.ts    — Learning DNA profiling engine:
+                       - Learning speed calculation
+                       - Retention rate analysis
+                       - Preferred modality detection (visual/auditory/kinesthetic/reading)
+                       - Peak hour calculation
+                       - Subject strength/weakness mapping
+                       - In-memory cache (5-min TTL, max 500 entries)
+
+  security.ts        — Enterprise security engine:
+                       - Rate limiting (sliding window, per-IP + per-user)
+                       - Brute-force protection (progressive lockout)
+                       - Input sanitization (XSS, SQL injection, prototype pollution)
+                       - CSRF token generation (timing-safe validation)
+                       - PII encryption (AES-256-GCM)
+                       - Password policy (NIST SP 800-63B)
+                       - Audit logging
+                       - Session fingerprinting
+
+  prisma.ts          — Prisma client singleton (prevents multiple instances)
+
+  demo-data.ts       — All demo mode data:
+                       - Ofer Academy district
+                       - Demo courses, classrooms, students
+                       - Demo assignments, submissions, grades
+                       - Demo notifications, announcements
+                       - Demo gamification stats
+
+  demo-state.ts      — Client-side demo state management
+
+  constants.ts       — Shared constants: SUBJECTS, GRADE_LEVELS, DURATIONS,
+                       RESOURCE_TYPES
+
+  email.ts           — Email service via Resend:
+                       - sendEmail() — sends transactional email
+                       - No-op if RESEND_API_KEY not set
+
+  email-templates.ts — HTML email templates (password reset, weekly digest)
+
+  hooks.ts           — Custom React hooks
+
+  i18n.tsx           — Internationalization system:
+                       - Supports en, he (Hebrew), es (Spanish)
+                       - RTL support for Hebrew/Arabic
+                       - Cookie-based locale persistence
+
+  middleware.ts      — Shared middleware helpers (distinct from edge middleware)
+
+  pdf-generator.ts   — PDF export functionality for reports
+
+  performance.tsx    — Performance monitoring provider
+
+  subscription.ts    — Subscription tier management:
+                       - Feature gating by tier (FREE through ENTERPRISE)
+                       - 6 tiers with progressive feature unlocks
+                       - Tier labels, colors, feature lists
+
+  utils.ts           — Utility functions: cn() class merger, avatar options,
+                       date formatting, etc.
+
+/src/types
+──────────
+  next-auth.d.ts     — TypeScript type extensions for NextAuth session
+                       (adds role, districtId, accountType, etc.)
+
+
+================================================================================
+4. DATABASE SCHEMA (69 MODELS, 9 ENUMS)
+================================================================================
+
+ENUMS:
+  Role                — STUDENT, TEACHER, ADMIN, PARENT
+  AccountType         — DISTRICT, HOMESCHOOL, INDIVIDUAL, SELF_EDUCATION
+  SubmissionStatus    — PENDING, SUBMITTED, GRADING, GRADED, RETURNED
+  AssignmentType      — ESSAY, MULTIPLE_CHOICE, SHORT_ANSWER, PROJECT, QUIZ
+  SubscriptionStatus  — ACTIVE, TRIAL, EXPIRED, CANCELLED
+  SubscriptionTier    — FREE, STARTER, CUSTOM, STANDARD, PREMIUM, ENTERPRISE
+  Difficulty          — BEGINNER, EASY, MEDIUM, HARD, ADVANCED
+  DistrictAccessLevel — SUPERINTENDENT, ASSISTANT_SUPERINTENDENT,
+                        CURRICULUM_DIRECTOR, PRINCIPAL, VICE_PRINCIPAL,
+                        DISTRICT_EMPLOYEE, IT_ADMIN
+  PaymentStatus       — PENDING, COMPLETED, FAILED, REFUNDED
+
+KEY MODELS (grouped by domain):
+
+  ORGANIZATION:
+    SchoolDistrict    — Multi-tenant district (name, subdomain, subscription)
+    School            — School within a district
+    Classroom         — Class within a school (subject, period, teacher)
+    ClassroomStudent  — M:N enrollment (student <-> classroom)
+    DistrictAdmin     — District admin access levels & permissions
+    DistrictLinkRequest — Student request to join a district
+
+  USERS & AUTH:
+    User              — Core user (email, password, role, district, profile)
+    Account           — NextAuth OAuth accounts
+    Session           — NextAuth sessions
+    VerificationToken — NextAuth email verification
+
+  CURRICULUM:
+    Course            — Subject course (name, subject, gradeLevel, district)
+    CourseTeacher     — M:N teacher <-> course
+    Enrollment        — M:N student <-> course
+    Assignment        — Teacher-created assignments (type, rubric, difficulty)
+    AdaptedAssignment — AI-adapted versions per student's learning style
+    Submission        — Student submission (content, score, AI feedback)
+
+  AI & TUTORING:
+    AITutorLog        — Conversation history (role, content, subject, personality)
+    QuizTemplate      — AI-generated quiz templates
+    WritingSubmission  — Writing coach submissions with AI feedback
+    MathStepAttempt   — Step-by-step math solving attempts
+
+  ADAPTIVE LEARNING:
+    SkillRecord       — Per-student skill mastery tracking
+    SpacedRepItem     — Spaced repetition flashcard items
+    LearningDNA       — Long-term cognitive profile (speed, retention, modality)
+    StudentSurvey     — Interest survey (hobbies, games, dream job, learning style)
+    MistakeEntry      — Mistake replay / error diagnosis log
+    ConfidenceRating  — Self-assessment confidence tracking
+
+  STUDY & PRODUCTIVITY:
+    StudyPlanSession  — AI-recommended study schedule items
+    FocusSession      — Pomodoro focus sessions with distraction tracking
+    ExamAttempt       — Practice exam simulation results
+    DailyBoost        — Daily quick-practice sessions
+
+  SOCIAL & COMMUNITY:
+    StudyGroup / StudyGroupMember / StudyGroupMessage
+    QuestionPost / QuestionVote (Q&A feed)
+    ForumPost         — Course discussion forums (threaded replies)
+    PeerTutorMatch    — Peer tutoring matchmaking
+    MarketplaceListing — Teacher resource exchange
+
+  GAMIFICATION:
+    RewardStats       — XP, level, streak, coins, badges, themes, league points
+    Game / GamePurchase / GameSession — Game store (buy with XP, play)
+    Challenge / ChallengeParticipant — Competitions and tournaments
+    SeasonPassProgress — Seasonal battle-pass style progression
+    Certificate       — Achievement certificates
+    GoalContract      — AI goal-contract system (targets, rewards, AI coaching)
+
+  COMMUNICATION:
+    Message           — Direct messages (parent-teacher, student-teacher)
+    Notification      — In-app notifications
+    Announcement      — District-wide announcements
+    WeeklyReport      — AI-generated weekly progress reports
+
+  WELLNESS:
+    EmotionalCheckin  — Mood, energy, confidence check-ins with AI response
+
+  CONTENT:
+    MicroLesson       — AI-generated 3-minute micro-lessons
+    HomeworkScan      — Scanned homework auto-grading
+    Whiteboard / WhiteboardMember — Collaborative whiteboard
+    ConceptMap        — AI-generated concept maps (nodes + edges)
+    VocabEntry        — Vocabulary vault with spaced repetition
+    InterventionPlan  — Teacher-created intervention plans
+    ParentGoal        — Parent-set goals for children
+    ProgressSnapshot  — Periodic progress snapshots
+    FileUpload        — File attachments (base64 or URL)
+    TeacherSettings   — Teacher grading weights
+
+  BILLING:
+    Payment           — Subscription payments (Stripe integration)
+
+  SECURITY & COMPLIANCE:
+    SecurityAuditLog  — Tamper-proof audit trail (7-year FERPA retention)
+    LoginAttempt      — Brute-force detection
+    ParentalConsent   — COPPA consent records (per child, per consent type)
+    DataAccessLog     — FERPA data access tracking
+    DataDeletionRequest — Right-to-delete requests
+
+
+================================================================================
+5. USER ROLES & ACCESS CONTROL (RBAC)
+================================================================================
+
+  STUDENT
+    Can access: /student/*
+    Features: AI tutor, assignments, focus mode, study planner, exam sim,
+              forums, study groups, knowledge analytics, platforms, messages
+    Special: Can request to join a district (/student/link-district)
+
+  TEACHER
+    Can access: /teacher/*
+    Features: Create assignments, AI grading, quiz generator, analytics,
+              student management, reports, lesson planner, intelligence,
+              resource exchange, content library, forums, messages
+    Special: Homeschool parents get teacher access too
+
+  PARENT
+    Can access: /parent/*
+    Features: Children overview, weekly reports, messages, goal tracking
+    Special: Homeschool parents also get teacher-level access
+
+  ADMIN (District Administrator)
+    Can access: /admin/*
+    Features: District management, schools, classrooms, user management,
+              announcements, analytics, billing/payments, security,
+              audit logs, bulk provisioning, link request approvals
+    Permissions per admin: canCreateAccounts, canManageSchools,
+                           canManageBilling, canViewAllData, canManageClasses
+
+  MASTER DEMO
+    Email: master@limud.edu / Password: LimudMaster2026!
+    Has isMasterDemo=true in JWT — bypasses ALL role checks
+    Can access every page across all roles (for demonstration purposes)
+
+  MIDDLEWARE ENFORCEMENT:
+    - Edge middleware runs on every request
+    - Checks JWT token via next-auth/jwt
+    - Maps URL paths to required roles
+    - Returns 401 for API, redirects to /login for pages
+    - Public paths bypass auth entirely
+
+
+================================================================================
+6. FEATURE CATALOG — WHAT EVERY FEATURE DOES
+================================================================================
+
+STUDENT FEATURES:
+─────────────────
+
+  1. AI TUTOR (src/app/student/tutor, /api/tutor)
+     What it does: Chat-based AI tutoring powered by Gemini 2.5 Flash.
+     The tutor NEVER gives direct answers — it uses the Socratic method to
+     guide students. It's personalized using the student's survey data
+     (hobbies, favorite games/movies, dream job, learning style).
+     Data: AITutorLog table stores full conversation history.
+
+  2. ASSIGNMENTS (src/app/student/assignments, /api/assignments, /api/submissions)
+     What it does: Students view assigned work, submit answers (text or file),
+     receive AI-generated feedback and scores. Supports adaptive assignments
+     that modify content per student's learning style.
+
+  3. FOCUS MODE (src/app/student/focus, /api/focus)
+     What it does: Pomodoro-style focus timer. Students select subject/topic,
+     set timer (default 25 min), track distractions. Records focus score.
+
+  4. STUDY PLANNER (src/app/student/study-planner, /api/study-planner)
+     What it does: AI-recommended study schedule. Creates sessions based on
+     upcoming assignments, weak skills (from spaced rep), and learning DNA
+     peak hours. Students can mark sessions complete.
+
+  5. EXAM SIMULATOR (src/app/student/exam-sim, /api/exam-sim)
+     What it does: AI generates practice exams by subject/grade. Timed tests
+     with auto-grading. Shows strengths/weaknesses and predicted real exam score.
+
+  6. KNOWLEDGE ANALYTICS (src/app/student/knowledge, /api/skills, /api/learning-dna)
+     What it does: Visual dashboard of skill mastery, learning DNA profile,
+     mistake patterns, confidence tracking, spaced repetition schedule.
+
+  7. FORUMS (src/app/student/forums, /api/forums)
+     What it does: Course-based discussion boards. Students ask questions,
+     upvote answers, teachers can endorse correct answers.
+
+  8. STUDY GROUPS (src/app/student/study-groups, /api/study-groups)
+     What it does: Create/join study groups. Chat with group members.
+     Share resources. AI can summarize group discussions.
+
+  9. STUDENT INTEREST SURVEY (src/app/student/survey, /api/survey)
+     What it does: Collects student interests (hobbies, favorite games/movies/
+     books, dream job, learning style, motivators, challenges). This data is
+     fed to the AI tutor to personalize responses with relatable analogies.
+
+  10. CLASSROOMS (src/app/student/classrooms, /api/student/classrooms)
+      What it does: View enrolled classrooms, teachers, classmates.
+
+  11. MESSAGES (src/app/student/messages, /api/messages)
+      What it does: Direct messaging with teachers and parents.
+
+  12. PLATFORMS (src/app/student/platforms, /api/platforms)
+      What it does: Connect external learning platforms (Google Classroom, etc.)
+
+  13. GROWTH (src/app/student/growth)
+      What it does: Long-term progress tracking, growth charts, trend analysis.
+
+  14. JOIN DISTRICT (src/app/student/link-district, /api/district-link)
+      What it does: Students without a district can search for and request to
+      join one. Admin approves/denies. Links student to district + school.
+
+TEACHER FEATURES:
+─────────────────
+
+  15. DASHBOARD (src/app/teacher/dashboard)
+      What it does: Overview of classes, pending submissions, quick actions.
+
+  16. ASSIGNMENT CREATION (src/app/teacher/assignments, /api/assignments)
+      What it does: Create assignments with type, rubric, difficulty, skills,
+      due date. Supports adaptive mode (AI adapts per student learning style).
+
+  17. AI GRADING (src/app/teacher/grading, /api/grade)
+      What it does: AI grades submissions against rubric. Shows score,
+      strengths, improvements, encouragement. Teacher can override.
+      Detects misconceptions automatically.
+
+  18. QUIZ GENERATOR (src/app/teacher/quiz-generator, /api/quiz-generator)
+      What it does: AI generates quizzes by subject, grade, topic, difficulty,
+      question count. Saves as reusable templates. Can convert to assignments.
+
+  19. ANALYTICS (src/app/teacher/analytics, /api/analytics)
+      What it does: Class-wide score distributions, skill mastery heatmaps,
+      trending topics, at-risk student identification.
+
+  20. STUDENT MANAGEMENT (src/app/teacher/students)
+      What it does: View individual student profiles, progress, learning DNA,
+      skill records, recent submissions.
+
+  21. REPORTS (src/app/teacher/reports, /api/reports, /api/teacher/reports)
+      What it does: AI-generated progress reports per student. Includes summary,
+      strengths, growth areas, recommendations, parent notes, grade projection.
+      Exportable as PDF.
+
+  22. TEACHING INTELLIGENCE (src/app/teacher/intelligence, /api/teacher/intelligence)
+      What it does: AI-powered teaching assistant. Auto-assigns interventions,
+      suggests differentiation strategies, identifies students needing help.
+
+  23. LEARNING INSIGHTS (src/app/teacher/insights, src/app/teacher/learning-insights)
+      What it does: Deep analysis of class learning patterns, method effectiveness,
+      curriculum gaps, pacing recommendations.
+
+  24. LESSON PLANNER (src/app/teacher/lesson-planner)
+      What it does: AI generates lesson plans by subject, grade, topic, duration.
+      Includes objectives, activities, assessments, differentiation.
+
+  25. CLASSROOM MANAGEMENT (src/app/teacher/classrooms, /api/teacher/classrooms)
+      What it does: Create classrooms, enroll students, set game permissions.
+
+  26. COURSE MANAGEMENT (/api/teacher/courses)
+      What it does: Create/manage courses within district.
+
+  27. RESOURCE EXCHANGE (src/app/teacher/exchange, /api/exchange, /api/marketplace)
+      What it does: Marketplace for sharing/selling teaching resources
+      (lesson plans, worksheets, quizzes). Rate and review.
+
+  28. WORKSHEETS (src/app/teacher/worksheets, /api/worksheets, /api/worksheet-search)
+      What it does: AI worksheet generator + search existing worksheets.
+
+  29. AI BUILDER (src/app/teacher/ai-builder, /api/teacher/ai-builder)
+      What it does: AI-powered assignment builder (generates full assignment
+      from topic + parameters).
+
+  30. AI FEEDBACK (src/app/teacher/ai-feedback, /api/teacher/ai-feedback)
+      What it does: AI generates detailed feedback for student work.
+
+  31. FORUMS (src/app/teacher/forums)
+      What it does: Moderate and participate in course discussion forums.
+
+  32. ONBOARDING (src/app/teacher/onboarding, /api/teacher/onboarding)
+      What it does: Guided setup flow for new teachers.
+
+PARENT FEATURES:
+────────────────
+
+  33. DASHBOARD (src/app/parent/dashboard, /api/parent)
+      What it does: Overview of all children's progress, recent activity.
+
+  34. CHILDREN (src/app/parent/children)
+      What it does: Detailed view of each child's grades, skills, engagement.
+
+  35. REPORTS (src/app/parent/reports, /api/parent/reports)
+      What it does: Weekly AI-generated progress reports per child.
+
+  36. MESSAGES (src/app/parent/messages)
+      What it does: Message teachers about specific children.
+
+  37. AI CHECK-IN (/api/parent/ai-checkin)
+      What it does: AI-powered summary of child's recent activity and mood.
+
+  38. GOALS (/api/parent/goals)
+      What it does: Set and track goals for children.
+
+ADMIN FEATURES:
+───────────────
+
+  39. DASHBOARD (src/app/admin/dashboard)
+      What it does: District overview: user counts, subscription status, alerts.
+
+  40. SCHOOL MANAGEMENT (src/app/admin/schools, /api/district/schools)
+      What it does: Create/edit schools within district.
+
+  41. CLASSROOM MANAGEMENT (src/app/admin/classrooms, /api/district/classrooms)
+      What it does: View/manage all classrooms across schools.
+
+  42. STUDENT MANAGEMENT (src/app/admin/students, /api/district/students)
+      What it does: Create/edit/deactivate student accounts. Bulk CSV import.
+
+  43. EMPLOYEE MANAGEMENT (src/app/admin/employees, /api/district/teachers)
+      What it does: Create/edit teacher and staff accounts.
+
+  44. ANNOUNCEMENTS (src/app/admin/announcements, /api/announcements)
+      What it does: Create district-wide announcements (priority, target roles,
+      pin, expiry).
+
+  45. ANALYTICS (src/app/admin/analytics, /api/analytics)
+      What it does: District-wide analytics, engagement metrics.
+
+  46. PAYMENTS (src/app/admin/payments, /api/payments)
+      What it does: Subscription billing, payment history, tier management.
+
+  47. SECURITY (src/app/admin/security, /api/security)
+      What it does: Security dashboard, login attempt monitoring.
+
+  48. AUDIT LOG (src/app/admin/audit, /api/security/audit)
+      What it does: View security audit trail (FERPA-required 7-year retention).
+
+  49. SETTINGS (src/app/admin/settings, /api/settings)
+      What it does: District configuration, branding.
+
+  50. PROVISIONING (src/app/admin/provision, /api/admin/provision)
+      What it does: Bulk account creation via CSV upload.
+
+  51. LINK REQUESTS (src/app/admin/link-requests, /api/district/link-requests)
+      What it does: Review and approve/deny student district-join requests.
+
+CROSS-ROLE FEATURES:
+────────────────────
+
+  52. DAILY BOOST (/api/daily-boost)
+      What it does: Quick daily practice quiz to maintain streak.
+
+  53. EMOTIONAL CHECK-IN (/api/emotional-checkin)
+      What it does: Students log mood/energy/confidence. AI responds
+      with encouragement or suggestions.
+
+  54. CONCEPT MAP (/api/concept-map)
+      What it does: AI generates visual concept maps for any topic.
+
+  55. VOCABULARY VAULT (/api/vocab)
+      What it does: Personal vocabulary builder with spaced repetition.
+
+  56. MISTAKE REPLAY (/api/mistakes, /api/mistakes/explain)
+      What it does: Review past mistakes, get AI explanations of misconceptions.
+
+  57. GOAL CONTRACTS (/api/goal-contracts)
+      What it does: AI-coached goal setting with checkpoints and rewards.
+
+  58. MICRO-LESSONS (/api/micro-lessons)
+      What it does: AI-generated 3-minute bite-sized lessons.
+
+  59. MATH SOLVER (/api/math-solver)
+      What it does: Step-by-step math problem solving with error detection.
+
+  60. WRITING COACH (/api/writing-coach)
+      What it does: AI writing feedback (mechanics, organization, voice, etc.)
+
+  61. CONFIDENCE TRACKING (/api/confidence)
+      What it does: Track student confidence per question, detect lucky guesses.
+
+  62. NOTIFICATIONS (/api/notifications)
+      What it does: In-app notifications for assignments, grades, achievements.
+
+  63. AI NAVIGATOR (src/components/ai/AINavigator.tsx, /api/ai-navigator)
+      What it does: Floating AI assistant that helps users navigate the platform.
+
+  64. ACCESSIBILITY (src/components/accessibility/AccessibilityPanel.tsx)
+      What it does: High contrast mode, dyslexia-friendly font (OpenDyslexic),
+      adjustable text size. Settings persist in localStorage.
+
+  65. LMS INTEGRATION (/api/lms)
+      What it does: Connect external Learning Management Systems.
+
+  66. GAME STORE (/api/games)
+      What it does: Educational games purchasable with XP. Categories: math,
+      word, puzzle, trivia, typing. Grade-level filtered. Teacher can
+      disable games during class.
+
+
+================================================================================
+7. API ROUTES — ALL 88 ENDPOINTS
+================================================================================
+
+FORMAT: METHOD /path — Description
+
+AUTHENTICATION:
+  POST /api/auth/[...nextauth]  — NextAuth handler (login, logout, session)
+  POST /api/auth/register       — User registration
+  POST /api/auth/forgot-password — Request password reset email
+  POST /api/auth/reset-password  — Complete password reset
+
+HEALTH & STATUS:
+  GET  /api/health              — Health check (returns status, version, uptime)
+  GET  /api/ai-status           — AI configuration status
+
+DEMO:
+  GET  /api/demo                — Demo data for demo mode
+
+STUDENT:
+  GET  /api/student/classrooms  — Student's enrolled classrooms
+  GET  /api/tutor               — AI tutor chat history
+  POST /api/tutor               — Send message to AI tutor
+
+ADAPTIVE LEARNING:
+  GET  /api/adaptive            — Get adaptive learning state
+  GET  /api/skills              — Get skill records
+  POST /api/skills              — Update skill mastery
+  GET  /api/learning-dna        — Get learning DNA profile
+  GET  /api/confidence          — Get confidence ratings
+  POST /api/confidence          — Record confidence rating
+  GET  /api/study-next          — Get next recommended study item (spaced rep)
+  GET  /api/study-planner       — Get study plan sessions
+  POST /api/study-planner       — Create/update study sessions
+  GET  /api/exam-sim            — Get exam attempt history
+  POST /api/exam-sim            — Start/complete exam simulation
+  GET  /api/mistakes            — Get mistake entries
+  GET  /api/mistakes/explain    — AI explanation for a mistake
+  GET  /api/daily-boost         — Get daily boost status
+  POST /api/daily-boost         — Complete daily boost
+
+ASSIGNMENTS & SUBMISSIONS:
+  GET  /api/assignments         — List assignments
+  POST /api/assignments         — Create assignment (teacher)
+  GET  /api/submissions         — List submissions
+  POST /api/submissions         — Submit assignment (student)
+  POST /api/grade               — AI grade a submission
+
+CONTENT GENERATION:
+  POST /api/quiz-generator      — AI generate quiz
+  POST /api/concept-map         — AI generate concept map
+  POST /api/micro-lessons       — AI generate micro-lesson
+  POST /api/math-solver         — AI step-by-step math solving
+  POST /api/writing-coach       — AI writing feedback
+  POST /api/worksheets          — AI generate worksheet
+  GET  /api/worksheet-search    — Search worksheets
+
+AI:
+  POST /api/ai-navigator        — AI navigation assistant
+
+SOCIAL:
+  GET  /api/forums              — Get forum posts
+  POST /api/forums              — Create forum post/reply
+  GET  /api/study-groups        — Get study groups
+  POST /api/study-groups        — Create/join study group
+  GET  /api/messages            — Get messages
+  POST /api/messages            — Send message
+  GET  /api/messages/contacts   — Get message contacts
+  GET  /api/messages/thread     — Get message thread
+
+STUDENT WELLNESS:
+  POST /api/emotional-checkin   — Record emotional check-in
+  GET  /api/focus               — Get focus session history
+  POST /api/focus               — Start/complete focus session
+  GET  /api/survey              — Get student survey
+  POST /api/survey              — Submit/update survey
+
+GAMIFICATION:
+  GET  /api/games               — List available games
+  POST /api/games               — Purchase/play game
+  POST /api/goal-contracts      — Create/update goal contract
+  GET  /api/progress-snapshot   — Get progress snapshots
+
+VOCABULARY:
+  GET  /api/vocab               — Get vocabulary entries
+  POST /api/vocab               — Add vocabulary entry
+
+NOTIFICATIONS:
+  GET  /api/notifications       — Get notifications
+  PUT  /api/notifications       — Mark notifications as read
+  GET  /api/announcements       — Get announcements
+
+PLATFORMS & FILES:
+  GET  /api/platforms           — Get connected platforms
+  POST /api/files               — Upload file
+
+ANALYTICS & REPORTS:
+  GET  /api/analytics           — Get analytics data
+  GET  /api/reports/export      — Export report
+
+DISTRICT LINKING:
+  GET  /api/district-link/search — Search districts (public)
+  POST /api/district-link/route  — Submit link request
+  GET  /api/district-link/manage — Manage link requests (admin)
+  GET  /api/district-link/seed   — Seed demo districts (public)
+  GET  /api/district/link-requests — Admin view link requests
+
+SETTINGS:
+  GET  /api/settings            — Get user settings
+  PUT  /api/settings            — Update settings
+  GET  /api/settings/weights    — Get grading weights (teacher)
+  PUT  /api/settings/weights    — Update grading weights
+
+TEACHER-SPECIFIC:
+  GET  /api/teacher/classrooms   — Teacher's classrooms
+  GET  /api/teacher/courses      — Teacher's courses
+  POST /api/teacher/courses      — Create course
+  GET  /api/teacher/insights     — Teaching insights data
+  GET  /api/teacher/intelligence — AI teaching intelligence
+  POST /api/teacher/auto-assign  — AI auto-assign work
+  POST /api/teacher/interventions — Create intervention plan
+  GET  /api/teacher/learning-insights — Learning method insights
+  GET  /api/teacher/method-insights — Method effectiveness data
+  POST /api/teacher/ai-builder   — AI assignment builder
+  POST /api/teacher/ai-feedback  — AI feedback generator
+  POST /api/teacher/assignment-diff — Assignment differentiation
+  GET  /api/teacher/reports      — Teacher report data
+  POST /api/teacher/onboarding   — Complete onboarding
+
+PARENT-SPECIFIC:
+  GET  /api/parent              — Parent dashboard data
+  GET  /api/parent/reports      — Children's weekly reports
+  POST /api/parent/ai-checkin   — AI check-in for child
+  GET  /api/parent/goals        — Get parent goals
+  POST /api/parent/goals        — Create/update goals
+
+ADMIN-SPECIFIC:
+  GET  /api/district/schools     — List district schools
+  POST /api/district/schools     — Create school
+  GET  /api/district/classrooms  — List district classrooms
+  GET  /api/district/students    — List district students
+  GET  /api/district/teachers    — List district teachers
+  GET  /api/district/access      — District access info
+  GET  /api/district/announcements — District announcements
+  GET  /api/admin/districts      — Admin districts list
+  POST /api/admin/provision      — Bulk account provisioning
+
+SECURITY:
+  GET  /api/security             — Security overview
+  GET  /api/security/audit       — Audit log
+  GET  /api/security/dashboard   — Security dashboard data
+  GET  /api/security/consent     — Consent records
+  POST /api/security/consent     — Grant/revoke consent
+  GET  /api/security/data-deletion — Deletion requests
+  POST /api/security/data-deletion — Submit deletion request
+
+BILLING:
+  GET  /api/payments             — Payment history
+  POST /api/payments             — Process payment
+
+LMS:
+  GET  /api/lms                  — LMS integration data
+
+MARKETPLACE:
+  GET  /api/exchange             — Resource exchange listings
+  POST /api/exchange             — Create listing
+  GET  /api/marketplace          — Browse marketplace
+
+CRON:
+  POST /api/cron/weekly-digest   — Trigger weekly digest emails
+
+
+================================================================================
+8. AI SYSTEM (GEMINI 2.5 FLASH)
+================================================================================
+
+MODEL: gemini-2.5-flash (configurable via AI_MODEL env var)
+SDK:   @google/genai
+KEY:   GEMINI_API_KEY or GOOGLE_API_KEY
+
+HOW AI IS USED:
+  1. AI TUTOR — Socratic method tutoring, personalized via student survey data.
+     System prompt: Never give direct answers, use hints and questions.
+     Temperature: 0.7, Max tokens: 800.
+
+  2. AI GRADING — Evaluates submissions against rubric.
+     Returns JSON: {score, maxScore, feedback, strengths, improvements}.
+     Temperature: 0.3, Max tokens: 1024.
+
+  3. QUIZ GENERATION — Creates questions by subject/grade/difficulty.
+     Returns JSON array of questions with options, answers, explanations.
+
+  4. REPORT GENERATION — Student progress reports with projections.
+     Returns JSON: {summary, strengths, areasForGrowth, recommendations,
+     parentNote, gradeProjection, behavioralNotes, nextSteps}.
+     Temperature: 0.5, Max tokens: 1500.
+
+  5. CURRICULUM ANALYSIS — Skill gap analysis and pacing recommendations.
+     Temperature: 0.4, Max tokens: 1500.
+
+  6. WRITING FEEDBACK — Detailed writing evaluation across 5 categories
+     (mechanics, organization, voice, content, creativity).
+     Temperature: 0.3, Max tokens: 1500.
+
+  7. ASSIGNMENT ADAPTATION — Transforms assignments per student learning style
+     (visual, auditory, ADHD-friendly, structured, kinesthetic).
+
+  8. MATH SOLVER — Step-by-step problem solving with error detection.
+
+  9. CONCEPT MAPS — Generates nodes and edges for topic visualization.
+
+  10. LESSON PLANS — Generates complete lesson plans with activities.
+
+DEMO MODE:
+  When GEMINI_API_KEY is not set or is "demo-mode", all AI functions
+  fall back to pre-written template responses. The demo responses are
+  context-aware (e.g., math questions get math-themed responses).
+  Quiz generation uses extensive question banks in ai-generators.ts
+  with hundreds of real educational questions.
+
+ERROR HANDLING:
+  - Invalid API keys are detected before calling the API (fail fast)
+  - Auth errors, quota limits, safety filters all have specific messages
+  - callGeminiSafe() returns {ok, data} or {ok: false, error} without throwing
+  - extractJSON() handles markdown fences, trailing commas, partial responses
+
+
+================================================================================
+9. SECURITY & COMPLIANCE (COPPA / FERPA / OWASP)
+================================================================================
+
+COPPA (Children's Online Privacy Protection):
+  - ParentalConsent model tracks consent per child + type
+  - Consent types: data_collection, ai_interaction, third_party_sharing
+  - Minimal data collection for minors
+  - /api/security/consent endpoints for managing consent
+
+FERPA (Family Educational Rights and Privacy Act):
+  - DataAccessLog tracks every access to student education records
+  - SecurityAuditLog provides tamper-proof audit trail (7-year retention)
+  - DataDeletionRequest supports right-to-delete
+  - Role-based access control restricts data visibility
+
+OWASP Top 10 Mitigations:
+  - Injection: Input sanitization, parameterized queries (Prisma)
+  - Broken Auth: Brute-force protection, progressive lockout, bcrypt
+  - XSS: CSP headers, input sanitization, React auto-escaping
+  - IDOR: Auth checks on every API route, ownership validation
+  - Security Misconfiguration: HSTS, X-Frame-Options, no server info leaks
+  - CSRF: NextAuth CSRF tokens, SameSite cookies
+  - File Upload: Size limits, type validation
+  - Rate Limiting: Per-IP, per-user, per-endpoint sliding windows
+
+RATE LIMITS:
+  Edge level:  500 req/min global, 30 req/min auth
+  App level:   60 req/min global, 5 login/min, 3 register/min,
+               100 API/min, 10 AI/min, 5 upload/min, 20 PII/min
+
+PASSWORD POLICY (NIST SP 800-63B):
+  Min 10 chars, max 128, require uppercase + lowercase + number.
+  Special characters not required (per NIST recommendation).
+
+ENCRYPTION:
+  PII fields encrypted with AES-256-GCM.
+  Key derived from PII_ENCRYPTION_KEY or AUTH_SECRET.
+
+SECURITY HEADERS (on every response):
+  Strict-Transport-Security, X-Frame-Options: DENY,
+  X-Content-Type-Options: nosniff, X-XSS-Protection,
+  Content-Security-Policy, Referrer-Policy,
+  Permissions-Policy, CORP, COOP
+
+
+================================================================================
+10. GAMIFICATION ENGINE
+================================================================================
+
+XP & LEVELING:
+  - Students earn XP for: completing assignments, tutor sessions, streaks,
+    daily boosts, exam simulations, focus sessions, perfect scores.
+  - Level = function of total XP (progressive thresholds).
+
+STREAKS:
+  - Daily login/activity tracking.
+  - currentStreak, longestStreak in RewardStats.
+  - Daily Boost can "save" a streak.
+
+VIRTUAL CURRENCY:
+  - Virtual coins earned through achievements.
+  - Spent in Game Store to unlock games.
+
+GAME STORE:
+  - Educational games by category (math, word, puzzle, trivia, typing).
+  - Grade-level filtered.
+  - Cost XP to unlock. Track play count, scores, time.
+  - Teachers can disable games during class per classroom.
+
+ACHIEVEMENTS & BADGES:
+  - Unlockable badges stored as JSON array in RewardStats.
+  - Certificates for course completion, milestones.
+  - Unlockable avatars and themes.
+
+SEASON PASS:
+  - Seasonal progression system (like a battle pass).
+  - Tiers: Free, Bronze, Silver, Gold.
+  - Missions for XP, rewards for tier advancement.
+
+CHALLENGES & TOURNAMENTS:
+  - Types: duel, tournament, weekly, seasonal.
+  - XP and coin rewards. Ranked leaderboard.
+
+LEAGUE SYSTEM:
+  - League points in RewardStats.
+  - Season ranking.
+
+
+================================================================================
+11. ADAPTIVE LEARNING & COGNITIVE SCIENCE
+================================================================================
+
+SM-2 SPACED REPETITION:
+  Implements SuperMemo SM-2 algorithm in cognitive-engine.ts.
+  Quality: 0-5 scale (0=complete failure, 5=perfect).
+  Correct (quality >= 3): interval grows exponentially via ease factor.
+  Incorrect: reset to interval=1.
+  Ease factor minimum: 1.3.
+  Used in: SkillRecord, SpacedRepItem, VocabEntry.
+
+ADAPTIVE DIFFICULTY:
+  Targets 70-85% success rate (optimal learning zone).
+  Difficulty levels: BEGINNER, EASY, MEDIUM, HARD, ADVANCED.
+  AI adjusts assignment content per student's skill level.
+
+LEARNING DNA PROFILE:
+  Tracks over time: learning speed, retention rate, preferred modality,
+  peak study hours, average session length, attention span.
+  Modality detection: visual, auditory, kinesthetic, reading.
+  Based on: video completion rate, reading speed, quiz vs project preference,
+  tutor usage patterns.
+
+ASSIGNMENT ADAPTATION:
+  AdaptedAssignment model stores AI-transformed versions.
+  Styles: visual, auditory, adhd_friendly, structured, kinesthetic,
+          reading_writing.
+  Includes: modifications, scaffolding, format changes, method suggestions.
+
+STUDENT SURVEY (Personalization Input):
+  Collects: favorite subjects, hobbies, books, movies, games,
+           dream job, learning style, learning needs (ADHD, dyslexia, etc.),
+           preferred formats, motivators, challenges.
+  Used by: AI tutor for personalized analogies and examples.
+
+
+================================================================================
+12. DEMO MODE — HOW IT WORKS
+================================================================================
+
+Demo mode allows the platform to run WITHOUT a database or API keys.
+
+DEMO ACCOUNTS (password for all: "password123"):
+  Student: lior@ofer-academy.edu (Lior Betzalel, 10th grade)
+  Student: eitan@ofer-academy.edu (Eitan Balan, 9th grade)
+  Student: noam@ofer-academy.edu (Noam Elgarisi, 10th grade)
+  Teacher: strachen@ofer-academy.edu (Gregory Strachen)
+  Admin:   erez@ofer-academy.edu (Erez Ofer)
+  Parent:  david@ofer-academy.edu (David Betzalel)
+  Master:  master@limud.edu / LimudMaster2026! (all access)
+
+Legacy aliases also work:
+  student@limud.edu, teacher@limud.edu, admin@limud.edu, parent@limud.edu
+
+DEMO DISTRICT: Ofer Academy
+  - Premium subscription, 500 max students, 50 max teachers
+  - 4 courses: Biology 101, Algebra II, English Literature, World History
+  - Fully connected data: students enrolled in courses, classrooms,
+    assignments with submissions, grades, skill records, etc.
+
+HOW DEMO DATA FLOWS:
+  1. auth.ts checks email against DEMO_ACCOUNTS before database
+  2. If matched with correct password, returns user object directly
+  3. API routes check session.user.id for "demo-" prefix
+  4. If demo user, return demo data from demo-data.ts
+  5. AI calls fall back to template responses in demo mode
+
+DEMO DATA FILE (src/lib/demo-data.ts):
+  Contains complete mock data for: district, schools, courses, classrooms,
+  students with learning profiles, assignments with submissions, grades,
+  skill records, reward stats, notifications, announcements, and more.
+
+
+================================================================================
+13. INTERNATIONALIZATION (i18n)
+================================================================================
+
+SUPPORTED LANGUAGES:
+  - English (en) — Default
+  - Hebrew (he) — Full RTL support
+  - Spanish (es)
+
+IMPLEMENTATION:
+  - Translation files in /messages/*.json
+  - I18nProvider in Providers.tsx
+  - useI18n() hook for components
+  - Locale stored in 'limud-locale' cookie
+  - Layout reads cookie and sets dir="rtl" for Hebrew/Arabic
+  - Font: Inter (default), OpenDyslexic (accessibility option)
+
+
+================================================================================
+14. PWA & MOBILE (APK)
+================================================================================
+
+PROGRESSIVE WEB APP:
+  manifest.json — App name, icons, shortcuts, standalone display.
+  sw.js — Service Worker with:
+    - Cache-first strategy for static assets
+    - Network-first for API calls
+    - Offline fallback page
+    - Periodic cache cleanup
+  InstallPrompt.tsx — Shows install banner on compatible browsers.
+  ServiceWorkerRegistration.tsx — Registers SW with update detection.
+
+ICONS:
+  15 icons in /public/icons/ (48px to 512px, including maskable variants).
+  Apple touch icon at /public/apple-touch-icon.png.
+
+SHORTCUTS (in manifest):
+  - Student Dashboard: /student/dashboard
+  - AI Tutor: /student/tutor
+
+ANDROID APK (limud-v13.apk):
+  - Built with Bubblewrap (Trusted Web Activity)
+  - Package: co.limud.app
+  - Min SDK: 21 (Android 5.0+)
+  - Signed with limud-keystore.jks
+  - Wraps the web app in a native Android shell
+  - Requires Digital Asset Links verification on limud.co
+    (/.well-known/assetlinks.json with signing key SHA-256 fingerprint)
+
+TO REBUILD APK:
+  1. Install @bubblewrap/cli, Java 17+, Android SDK
+  2. cd /home/user/limud-twa
+  3. Update appVersionCode/appVersionName in twa-manifest.json
+  4. bubblewrap build --skipPwaValidation
+  5. Sign with: jarsigner or apksigner
+
+
+================================================================================
+15. DEPLOYMENT & HOSTING
+================================================================================
+
+PRIMARY: RENDER.COM
+  - render.yaml defines the service
+  - Auto-deploys from GitHub main branch
+  - PostgreSQL database (managed by Render)
+  - Environment variables set in Render dashboard
+
+ALTERNATIVE: CPANEL
+  - deploy-cpanel.sh automates deployment
+  - DEPLOY-CPANEL.md has step-by-step instructions
+  - .htaccess for Apache routing
+  - Passenger (Node.js) as the application server
+
+LOCAL DEVELOPMENT:
+  1. git clone https://github.com/Fansist/Limud.git
+  2. cd Limud && npm install
+  3. cp .env.example .env (fill in values)
+  4. npx prisma generate
+  5. npx prisma db push (or npx prisma migrate dev)
+  6. npm run dev (starts on http://localhost:3000)
+
+BUILD:
+  npm run build
+  → Runs: prisma generate → optional db push → next build → copy static files
+
+START (Production):
+  npm start → runs server.js
+  OR: pm2 start ecosystem.config.cjs
+
+IMPORTANT SERVER.JS BEHAVIOR:
+  - Detects platform (Render, cPanel, generic)
+  - Uses standalone Next.js build if available
+  - Falls back to next() programmatic server
+  - Health endpoint always available at /api/health
+  - Graceful shutdown on SIGTERM/SIGINT
+
+
+================================================================================
+16. ENVIRONMENT VARIABLES
+================================================================================
+
+REQUIRED FOR PRODUCTION:
+  DATABASE_URL         — PostgreSQL connection string
+  NEXTAUTH_URL         — Full production URL (https://limud.co)
+  NEXTAUTH_SECRET      — Random JWT secret (openssl rand -base64 32)
+  GEMINI_API_KEY       — Google Gemini API key
+
+OPTIONAL:
+  AI_MODEL             — Override default model (gemini-2.5-flash)
+  NEXT_PUBLIC_APP_NAME — App display name (default: "Limud")
+  NEXT_PUBLIC_APP_URL  — Public URL
+  NODE_ENV             — production / development
+  RESEND_API_KEY       — For email delivery (password reset, digests)
+  PII_ENCRYPTION_KEY   — AES-256 key for PII encryption (defaults to AUTH_SECRET)
+  GOOGLE_API_KEY       — Alternative to GEMINI_API_KEY
+  CRON_SECRET          — Secret for cron endpoint authentication
+
+DEFAULT BEHAVIOR (zero env vars):
+  Everything works with embedded defaults:
+  - Database: postgresql://postgres:postgres@localhost:5432/limud
+  - Auth secret: embedded stable secret
+  - AI: demo mode (template responses)
+  - Email: logged to console (no-op)
+  - URL: http://localhost:3000
+
+
+================================================================================
+17. KNOWN BUGS & ISSUES
+================================================================================
+
+  1. DEMO STATISTICS IN REAL ACCOUNTS
+     Demo data can leak into real account views in some edge cases.
+     The demo-detection logic (checking for "demo-" prefix in user ID)
+     needs hardening across all API routes.
+
+  2. DISTRICT CLASSROOM FILTERING
+     src/app/api/district/classrooms.ts has districtId filtering that
+     may prevent teachers or students from seeing classrooms in certain
+     account type configurations.
+
+  3. APP_VERSION MISMATCH
+     Some files reference different versions (e.g., middleware says "11.0.0"
+     in X-Limud-Version header while config.ts says "13.0").
+
+  4. DIGITAL ASSET LINKS FOR APK
+     The Android APK requires /.well-known/assetlinks.json on limud.co
+     with the signing key's SHA-256 fingerprint. This has not been
+     configured yet, which means the TWA may show the browser URL bar.
+
+  5. DATABASE MIGRATIONS
+     The project uses "prisma db push" rather than proper migrations.
+     For production, should migrate to "prisma migrate" for safe schema changes.
+
+  6. FILE UPLOAD STORAGE
+     FileUpload model stores base64 in a Text field. For production scale,
+     should move to object storage (S3, R2, etc.).
+
+
+================================================================================
+18. PLANNED FUTURE FEATURES
+================================================================================
+
+  HIGH PRIORITY (should be built next):
+  ──────────────────────────────────────
+
+  1. REAL-TIME NOTIFICATIONS (WebSocket/SSE)
+     Currently notifications are fetched on page load. Need real-time
+     push for grades, messages, announcements.
+
+  2. GOOGLE CLASSROOM SYNC
+     /api/platforms exists but actual Google Classroom API integration
+     is not implemented. Need OAuth + Classroom API for syncing
+     assignments and grades.
+
+  3. PROPER FILE STORAGE
+     Move from base64-in-database to cloud object storage (S3/R2).
+     Support larger files, image processing, PDF previews.
+
+  4. STRIPE PAYMENT INTEGRATION
+     Payment model exists but actual Stripe checkout flow is not
+     implemented. Need: checkout session creation, webhook handling,
+     subscription management, invoice generation.
+
+  5. EMAIL VERIFICATION
+     Registration doesn't require email verification. Add verification
+     flow with Resend for security.
+
+  6. PROPER DATABASE MIGRATIONS
+     Switch from "prisma db push" to "prisma migrate" with migration
+     history for safe production schema changes.
+
+  MEDIUM PRIORITY:
+  ────────────────
+
+  7. SSO (Single Sign-On)
+     Subscription tier includes SSO at Enterprise level. Need SAML/OIDC
+     provider integration for school district SSO.
+
+  8. BULK IMPORT IMPROVEMENTS
+     CSV import exists but needs better error handling, progress tracking,
+     duplicate detection, and rollback on failure.
+
+  9. ADVANCED ANALYTICS DASHBOARD
+     More detailed analytics: cohort analysis, A/B testing for teaching
+     methods, predictive modeling for at-risk students.
+
+  10. VIDEO LESSONS
+      VideoPlayer component exists but no video hosting/streaming
+      integration. Consider: Cloudflare Stream, Mux, YouTube embeds.
+
+  11. COLLABORATIVE WHITEBOARD (REAL-TIME)
+      Whiteboard model exists but needs real-time collaboration
+      (WebSocket/WebRTC). Currently just data storage.
+
+  12. PEER TUTORING SCHEDULING
+      PeerTutorMatch model exists but needs calendar integration,
+      video call support, rating system.
+
+  13. MOBILE APP (NATIVE)
+      Current APK is a TWA wrapper. Consider React Native or Flutter
+      for native mobile experience with push notifications.
+
+  14. HOMEWORK SCANNER (CAMERA)
+      HomeworkScan model exists but actual camera/OCR integration
+      is not implemented. Need: camera access, image upload,
+      OCR (Tesseract or Google Vision API), AI grading.
+
+  LOW PRIORITY / NICE-TO-HAVE:
+  ────────────────────────────
+
+  15. DARK MODE
+      Color theme infrastructure exists (colorTheme field on User).
+      Full dark mode theming needed across all pages.
+
+  16. ACHIEVEMENT SYSTEM EXPANSION
+      More badges, milestone certificates, custom achievement creation
+      by teachers.
+
+  17. PARENT PORTAL EXPANSION
+      More detailed parent features: homework help requests, teacher
+      conference scheduling, payment management.
+
+  18. CUSTOM AI MODELS
+      Enterprise tier includes "custom-ai". Allow districts to fine-tune
+      AI behavior, add custom knowledge bases.
+
+  19. API ACCESS (External)
+      Enterprise tier includes "api-access". Build REST API documentation,
+      API key management, rate limiting for external consumers.
+
+  20. MULTI-LANGUAGE CONTENT
+      Currently only UI is translated. Course content, AI responses,
+      and quiz questions should support multiple languages.
+
+
+================================================================================
+19. HOW TO CONTRIBUTE — GETTING STARTED
+================================================================================
+
+SETUP:
+  1. Clone: git clone https://github.com/Fansist/Limud.git
+  2. Install: npm install
+  3. Copy env: cp .env.example .env
+  4. Database: Set DATABASE_URL to a PostgreSQL instance
+     (Use Neon, Supabase, or local PostgreSQL)
+  5. Generate Prisma: npx prisma generate
+  6. Push schema: npx prisma db push
+  7. (Optional) Seed: npx prisma db seed
+  8. Run: npm run dev → http://localhost:3000
+  9. Use demo accounts or register a new one.
+
+CODING CONVENTIONS:
+  - TypeScript strict mode
+  - Tailwind CSS for all styling (no custom CSS except globals.css)
+  - App Router (src/app/) for all routes
+  - API routes use GET/POST handlers with NextResponse
+  - Prisma for all database access (never raw SQL)
+  - AI calls go through src/lib/ai.ts (never call Gemini directly)
+  - Demo mode must be supported in every feature
+  - All user-facing text should use i18n translations
+
+FILE NAMING:
+  - Pages: src/app/{role}/{feature}/page.tsx
+  - Layouts: src/app/{role}/{feature}/layout.tsx
+  - API routes: src/app/api/{domain}/route.ts
+  - Components: src/components/{category}/{ComponentName}.tsx
+  - Libraries: src/lib/{name}.ts
+
+ADDING A NEW FEATURE:
+  1. Add database model(s) to prisma/schema.prisma
+  2. Run: npx prisma generate && npx prisma db push
+  3. Create API route(s) in src/app/api/{feature}/route.ts
+  4. Create page(s) in src/app/{role}/{feature}/page.tsx
+  5. Add navigation link in DashboardLayout.tsx (GROUPED_NAV)
+  6. Add demo data in src/lib/demo-data.ts
+  7. Add demo fallback in API route (check for "demo-" user IDs)
+  8. Add i18n strings in messages/*.json
+  9. Write tests in __tests__/
+  10. Update this guide!
+
+TESTING:
+  npm test              — Run all tests
+  npm run test:coverage — Run with coverage report
+  npm run test:watch    — Watch mode
+
+GIT WORKFLOW:
+  - Main branch: main
+  - Version bumps in: package.json, src/lib/config.ts (APP_VERSION)
+  - Commit message format: "v{version}: {description} — Update {N}"
+
+
+================================================================================
+20. VERSION HISTORY
+================================================================================
+
+  v13.0 (2026-04-06) — Update 13
+    - Android APK (limud-v13.apk) via Bubblewrap TWA
+    - Full PWA icon set (15 icons)
+    - InstallPrompt + ServiceWorkerRegistration components
+    - Updated manifest.json with shortcuts
+
+  v12.5 (previous) — Update 12.5
+    - Bug fixes, performance improvements
+
+  v10.0 — Major Update
+    - Announcements system (database-backed)
+    - Forum posts (threaded discussions)
+    - Cron job for weekly digest emails
+    - Email service via Resend
+
+  v9.7.11 — AI Upgrade
+    - Migrated to Gemini 2.5 Flash (paid tier 1)
+    - Improved error handling for AI calls
+
+  v9.6 — District Linking
+    - Student-to-district link request system
+    - Public district search
+
+  v9.4 — Adaptive Learning
+    - Assignment adaptation per student learning style
+    - Solving method tracking
+    - Learning style profiles
+
+  v9.3.5 — Auth Overhaul
+    - Zero-env-var authentication
+    - Cookie name fixes (HTTP + HTTPS compatible)
+    - Demo account system with Ofer Academy
+
+  v8.10 — Security & Compliance
+    - COPPA/FERPA compliance models
+    - Security audit logging
+    - Data access tracking
+    - Parental consent management
+    - Data deletion requests
+
+  v4.0 — Game Store & District
+    - Educational game store (XP currency)
+    - Multi-level district admin access
+    - File upload system
+    - Bulk CSV import
+
+  v3.1 — Engagement
+    - Confidence tracking, daily boost, season pass
+    - Study groups, question feed, marketplace
+    - Teacher settings
+
+  v3.0 — Intelligence Features (20 new features)
+    - Learning DNA, focus sessions, emotional check-ins
+    - Micro-lessons, homework scanner, collaborative whiteboard
+    - Goal contracts, concept maps, vocabulary vault
+    - Intervention plans, parent goals, peer tutoring
+    - Progress snapshots, writing coach, math solver
+
+
+================================================================================
+END OF DEVELOPER GUIDE
+================================================================================
+
+This document was generated on 2026-04-07 for Limud v13.0.
+It should be updated whenever major features or architectural changes are made.
+
+For questions, contact the development team or refer to:
+  - README.md for quick-start setup
+  - CHANGELOG.md for detailed version history
+  - DEPLOY-CPANEL.md for cPanel-specific deployment
+  - .env.example for all configuration options
