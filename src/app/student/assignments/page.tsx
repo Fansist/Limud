@@ -150,7 +150,7 @@ export default function StudentAssignments() {
     for (const file of Array.from(files)) {
       if (file.size > 10 * 1024 * 1024) { toast.error(`${file.name} is too large (max 10MB)`); continue; }
       if (isDemo) {
-        setUploadedFiles(prev => [...prev, { id: 'demo-' + Date.now(), originalName: file.name, mimeType: file.type, fileSize: file.size }]);
+        setUploadedFiles(prev => [...prev, { id: 'demo-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), originalName: file.name, mimeType: file.type, fileSize: file.size }]);
         toast.success(`Uploaded ${file.name} (Demo)`);
         continue;
       }
@@ -159,15 +159,20 @@ export default function StudentAssignments() {
         formData.append('file', file);
         formData.append('purpose', 'submission');
         const res = await fetch('/api/files', { method: 'POST', body: formData });
-        if (res.ok) {
-          const data = await res.json();
-          setUploadedFiles(prev => [...prev, data.file]);
-          toast.success(`Uploaded ${file.name}`);
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.file) {
+          toast.error(data?.error || 'Upload failed');
+          continue;
         }
+        setUploadedFiles(prev => [...prev, data.file]);
+        toast.success(`Uploaded ${file.name}`);
       } catch { toast.error(`Failed to upload ${file.name}`); }
     }
-    setUploading(false);
-    e.target.value = '';
+    try {
+      e.target.value = '';
+    } finally {
+      setUploading(false);
+    }
   }
 
   function removeFile(fileId: string) { setUploadedFiles(prev => prev.filter(f => f.id !== fileId)); }

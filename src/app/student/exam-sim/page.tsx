@@ -1,7 +1,7 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,6 +27,7 @@ export default function ExamSimulatorPage() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [startTime, setStartTime] = useState(0);
+  const submittedRef = useRef(false);
 
   useEffect(() => {
     loadHistory();
@@ -74,6 +75,7 @@ export default function ExamSimulatorPage() {
       setStartTime(Date.now());
       setAnswers({});
       setCurrentQ(0);
+      submittedRef.current = false;
       setState('taking');
       setLoading(false);
       return;
@@ -92,6 +94,7 @@ export default function ExamSimulatorPage() {
         setStartTime(Date.now());
         setAnswers({});
         setCurrentQ(0);
+        submittedRef.current = false;
         setState('taking');
       } else toast.error('Failed to generate exam');
     } catch { toast.error('Error starting exam'); }
@@ -99,6 +102,8 @@ export default function ExamSimulatorPage() {
   }
 
   async function submitExam() {
+    if (submittedRef.current) return;
+    submittedRef.current = true;
     setLoading(true);
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     if (isDemo) {

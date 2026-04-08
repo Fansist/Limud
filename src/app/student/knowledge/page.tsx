@@ -102,7 +102,10 @@ function HeatCalendar({ data }: { data: Record<string, number> }) {
       for (let d = 0; d < 7; d++) {
         const date = new Date(today);
         date.setDate(date.getDate() - (11 - w) * 7 - (6 - d));
-        const key = date.toISOString().split('T')[0];
+        const y = date.getFullYear();
+        const m = date.getMonth();
+        const dd = date.getDate();
+        const key = `${y}-${String(m + 1).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
         week.push({ date: key, value: data[key] || 0 });
       }
       result.push(week);

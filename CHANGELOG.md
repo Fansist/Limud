@@ -4,6 +4,61 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.0.0] - 2026-04-08 — Update 5
+
+### Fixed - Student pages & registration bug fixes
+
+**Registration (`src/app/api/auth/register/route.ts`)**:
+
+1. **Child accounts no longer inherit parent password**
+   - **Before**: Children created under a parent account reused the parent's password hash, so any parent password leak compromised every child.
+   - **After**: Each child gets a unique random temporary password generated via `crypto.randomBytes(9)` (base64url). The plaintext is returned exactly once in the registration response so the parent can hand it off.
+
+2. **Subdomain collision on same-millisecond registrations**
+   - **Before**: Self-education, homeschool, and admin subdomains were derived from a timestamp, so two registrations landing in the same millisecond collided.
+   - **After**: A 4-byte random suffix is appended to each generated subdomain.
+
+3. **Orphan districts on partial failures**
+   - **Before**: The district, primary user, and role-specific rows (`DistrictAdmin`, `RewardStats`, default enrollment) were created in sequence; a failure mid-flow left an orphan district behind.
+   - **After**: All of these are created inside a single `prisma.$transaction`, so a failure rolls the whole thing back.
+
+4. **Enrollment failures no longer swallowed**
+   - **Before**: Default-enrollment failures were caught and ignored.
+   - **After**: They are logged and surfaced to the caller as `warnings[]` on the success response.
+
+5. **Empty-name children get a deterministic fallback**
+   - **Before**: A child whose name sanitized to an empty string produced an invalid generated email.
+   - **After**: The name falls back to `child{N}` so the derived email is always valid.
+
+6. **Duplicate email now returns 409**
+   - **Before**: Registering an existing email bubbled up as a generic 500.
+   - **After**: Returns HTTP 409 with `Email already registered`.
+
+7. **Typed error handling**
+   - **Before**: Two `any` casts in the catch block.
+   - **After**: Catch block uses `unknown` with proper Prisma error narrowing — no `any`.
+
+**Student pages**:
+
+1. **`student/assignments` — demo upload robustness**
+   - Demo file uploads now use unique IDs (random suffix) so multiple uploads in one session don't collide.
+   - The upload response is null-checked before use.
+   - `setUploading(false)` is now in a `finally` block so the UI never gets stuck on a failed upload.
+
+2. **`student/exam-sim` — submission race**
+   - The timer-driven auto-submit and the user-clicked submit button could both fire, causing a double-submit.
+   - Guarded by a `submittedRef` so only the first submission runs.
+
+3. **`student/knowledge` — heatmap timezone bug**
+   - Heatmap day-keys were built from `toISOString()`, which is always UTC and produced off-by-one days for any non-UTC timezone.
+   - Switched to local date components (year/month/day) for the key.
+
+4. **`student/tutor` — null deref on full outage**
+   - When both `/api/tutor` and `/api/demo` were unreachable, the client dereferenced a null response.
+   - Now renders a graceful fallback message instead.
+
+---
+
 ## [4.1.2] - 2026-02-28
 
 ### Fixed - Landing Page (Homescreen) Buttons Not Working

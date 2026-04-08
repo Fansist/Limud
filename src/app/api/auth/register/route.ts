@@ -13,6 +13,8 @@
  *   improved error responses to surface actual failure reasons
  */
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
+import { AccountType, Prisma } from '@prisma/client';
 import {
   validatePassword,
   sanitizeEmail,
@@ -45,6 +47,7 @@ export async function POST(req: Request) {
     );
   }
 
+  const warnings: string[] = [];
   try {
     const body = await req.json();
     const {
@@ -120,124 +123,128 @@ export async function POST(req: Request) {
     // v9.6: INDIVIDUAL type for standalone students who will request district linking
     const userAccountType = accountType || (userRole === 'PARENT' && childName ? 'HOMESCHOOL' : userRole === 'ADMIN' ? 'DISTRICT' : 'INDIVIDUAL');
 
-    // v9.4.1: districtId declared before all conditional blocks to avoid ReferenceError
-    let districtId: string | undefined;
-
-    // v9.4.0: SELF_EDUCATION accounts get their own micro-district for self-paced learning
-    if (userAccountType === 'SELF_EDUCATION' && userRole === 'STUDENT') {
-      const district = await prisma.schoolDistrict.create({
-        data: {
-          name: `${cleanName}'s Self Education`,
-          subdomain: `self-edu-${Date.now()}`,
-          contactEmail: cleanEmail,
-          subscriptionStatus: 'TRIAL',
-          subscriptionTier: 'FREE',
-          pricePerYear: 0,
-          maxStudents: 1,
-          maxTeachers: 0,
-          isHomeschool: false,
-        },
-      });
-      districtId = district.id;
-
-      // Create a default "My Studies" course for self-education
-      await prisma.course.create({
-        data: {
-          name: 'My Studies',
-          description: 'Self-paced learning course',
-          subject: 'General',
-          gradeLevel: gradeLevel || 'K-12',
-          districtId: district.id,
-        },
-      });
-      // Enrollment created after user creation below
-    }
-
-    // Create district for ADMIN accounts
-    if (userRole === 'ADMIN') {
-      const cleanDistrictName = sanitizeForDisplay(String(districtName || `${cleanName}'s District`).trim()).substring(0, 200);
-      const district = await prisma.schoolDistrict.create({
-        data: {
-          name: cleanDistrictName,
-          subdomain: `district-${Date.now()}`,
-          contactEmail: cleanEmail,
-          subscriptionStatus: 'TRIAL',
-          subscriptionTier: 'FREE',
-          pricePerYear: 0,
-          maxStudents: 50,
-          maxTeachers: 10,
-          maxSchools: 3,
-          isHomeschool: false,
-        },
-      });
-      districtId = district.id;
-    }
-
-    // Create district for homeschool parents
-    if (userAccountType === 'HOMESCHOOL') {
-      const district = await prisma.schoolDistrict.create({
-        data: {
-          name: `${cleanName}'s Homeschool`,
-          subdomain: `homeschool-${Date.now()}`,
-          contactEmail: cleanEmail,
-          subscriptionStatus: 'TRIAL',
-          subscriptionTier: 'FREE',
-          pricePerYear: 0,
-          maxStudents: 10,
-          maxTeachers: 2,
-          isHomeschool: true,
-        },
-      });
-      districtId = district.id;
-    }
-
     // Build learning style profile for SELF_EDUCATION students
     const initialLearningProfile = (userAccountType === 'SELF_EDUCATION' && learningStyle)
       ? JSON.stringify({ primaryStyle: learningStyle, needs: [], formats: [], updatedAt: new Date().toISOString() })
       : null;
 
-    // Create the user
-    const user = await prisma.user.create({
-      data: {
-        email: cleanEmail,
-        name: cleanName,
-        password: hashedPassword,
-        role: userRole,
-        accountType: userAccountType as any,
-        districtId: districtId || null,
-        gradeLevel: userRole === 'STUDENT' ? gradeLevel || null : null,
-        learningStyleProfile: initialLearningProfile,
-        isActive: true,
-        onboardingComplete: false,
-      },
-    });
+    // v13.x: Atomic create — district (if needed) + user + role-specific rows run
+    // inside a SINGLE transaction so a failure never leaves an orphan district.
+    const { user, districtId } = await prisma.$transaction(async (tx) => {
+      let txDistrictId: string | undefined;
 
-    // Create DistrictAdmin record for ADMIN users
-    if (userRole === 'ADMIN' && districtId) {
-      await prisma.districtAdmin.create({
+      // v9.4.0: SELF_EDUCATION accounts get their own micro-district for self-paced learning
+      if (userAccountType === 'SELF_EDUCATION' && userRole === 'STUDENT') {
+        const selfEduSubdomain = `self-edu-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+        const district = await tx.schoolDistrict.create({
+          data: {
+            name: `${cleanName}'s Self Education`,
+            subdomain: selfEduSubdomain,
+            contactEmail: cleanEmail,
+            subscriptionStatus: 'TRIAL',
+            subscriptionTier: 'FREE',
+            pricePerYear: 0,
+            maxStudents: 1,
+            maxTeachers: 0,
+            isHomeschool: false,
+          },
+        });
+        await tx.course.create({
+          data: {
+            name: 'My Studies',
+            description: 'Self-paced learning course',
+            subject: 'General',
+            gradeLevel: gradeLevel || 'K-12',
+            districtId: district.id,
+          },
+        });
+        txDistrictId = district.id;
+      }
+
+      // Create district for ADMIN accounts
+      if (userRole === 'ADMIN') {
+        const cleanDistrictName = sanitizeForDisplay(String(districtName || `${cleanName}'s District`).trim()).substring(0, 200);
+        const district = await tx.schoolDistrict.create({
+          data: {
+            name: cleanDistrictName,
+            subdomain: `district-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+            contactEmail: cleanEmail,
+            subscriptionStatus: 'TRIAL',
+            subscriptionTier: 'FREE',
+            pricePerYear: 0,
+            maxStudents: 50,
+            maxTeachers: 10,
+            maxSchools: 3,
+            isHomeschool: false,
+          },
+        });
+        txDistrictId = district.id;
+      }
+
+      // Create district for homeschool parents
+      if (userAccountType === 'HOMESCHOOL') {
+        const district = await tx.schoolDistrict.create({
+          data: {
+            name: `${cleanName}'s Homeschool`,
+            subdomain: `homeschool-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+            contactEmail: cleanEmail,
+            subscriptionStatus: 'TRIAL',
+            subscriptionTier: 'FREE',
+            pricePerYear: 0,
+            maxStudents: 10,
+            maxTeachers: 2,
+            isHomeschool: true,
+          },
+        });
+        txDistrictId = district.id;
+      }
+
+      // Create the user (atomic with the district above)
+      const createdUser = await tx.user.create({
         data: {
-          userId: user.id, districtId,
-          accessLevel: 'SUPERINTENDENT',
-          canCreateAccounts: true, canManageSchools: true,
-          canManageBilling: true, canViewAllData: true, canManageClasses: true,
+          email: cleanEmail,
+          name: cleanName,
+          password: hashedPassword,
+          role: userRole,
+          accountType: userAccountType as AccountType,
+          districtId: txDistrictId || null,
+          gradeLevel: userRole === 'STUDENT' ? gradeLevel || null : null,
+          learningStyleProfile: initialLearningProfile,
+          isActive: true,
+          onboardingComplete: false,
         },
       });
-    }
 
-    // If student, create reward stats
-    if (userRole === 'STUDENT') {
-      await prisma.rewardStats.create({ data: { userId: user.id } });
-    }
-
-    // v9.4.0: Enroll self-education students in their default course
-    if (userAccountType === 'SELF_EDUCATION' && districtId) {
-      const selfCourse = await prisma.course.findFirst({ where: { districtId, name: 'My Studies' } });
-      if (selfCourse) {
-        await prisma.enrollment.create({ data: { courseId: selfCourse.id, studentId: user.id } }).catch(() => {});
+      // Create DistrictAdmin record for ADMIN users
+      if (userRole === 'ADMIN' && txDistrictId) {
+        await tx.districtAdmin.create({
+          data: {
+            userId: createdUser.id, districtId: txDistrictId,
+            accessLevel: 'SUPERINTENDENT',
+            canCreateAccounts: true, canManageSchools: true,
+            canManageBilling: true, canViewAllData: true, canManageClasses: true,
+          },
+        });
       }
-    }
+
+      // If student, create reward stats
+      if (userRole === 'STUDENT') {
+        await tx.rewardStats.create({ data: { userId: createdUser.id } });
+      }
+
+      // v9.4.0: Enroll self-education students in their default course
+      if (userAccountType === 'SELF_EDUCATION' && txDistrictId) {
+        const selfCourse = await tx.course.findFirst({ where: { districtId: txDistrictId, name: 'My Studies' } });
+        if (selfCourse) {
+          await tx.enrollment.create({ data: { courseId: selfCourse.id, studentId: createdUser.id } });
+        }
+      }
+
+      return { user: createdUser, districtId: txDistrictId };
+    });
 
     // Handle children creation for homeschool parents (max 20 children)
+    const createdChildren: { email: string; tempPassword: string }[] = [];
     if (userAccountType === 'HOMESCHOOL' && districtId) {
       const childrenToCreate = childrenList || (childName ? [{ name: childName, grade: childGrade }] : []);
 
@@ -248,12 +255,14 @@ export async function POST(req: Request) {
         const childEmailLocal = cleanEmail.split('@')[0];
         const childEmailDomain = cleanEmail.split('@')[1];
         const childCleanName = sanitizeForDisplay(String(child.name).trim()).substring(0, 100);
-        const childEmail = `${childEmailLocal}+${childCleanName.toLowerCase().replace(/[^a-z0-9]/g, '')}@${childEmailDomain}`;
+        const childLocalPart = childCleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || `child${i}`;
+        const childEmail = `${childEmailLocal}+${childLocalPart}@${childEmailDomain}`;
 
         const existingChild = await prisma.user.findUnique({ where: { email: childEmail } });
         if (existingChild) continue;
 
-        const childPassword = await bcrypt.hash(String(password), 12);
+        const childTempPassword = crypto.randomBytes(9).toString('base64url');
+        const childPassword = await bcrypt.hash(childTempPassword, 12);
         const childUser = await prisma.user.create({
           data: {
             email: childEmail,
@@ -268,6 +277,7 @@ export async function POST(req: Request) {
           },
         });
         await prisma.rewardStats.create({ data: { userId: childUser.id } });
+        createdChildren.push({ email: childEmail, tempPassword: childTempPassword });
 
         if (i === 0) {
           const course = await prisma.course.create({
@@ -283,7 +293,10 @@ export async function POST(req: Request) {
         } else {
           const courses = await prisma.course.findMany({ where: { districtId } });
           for (const course of courses) {
-            await prisma.enrollment.create({ data: { courseId: course.id, studentId: childUser.id } }).catch(() => {});
+            await prisma.enrollment.create({ data: { courseId: course.id, studentId: childUser.id } }).catch((err) => {
+              console.error('[register] enrollment failed', err);
+              warnings.push('enrollment_failed');
+            });
           }
         }
       }
@@ -309,43 +322,57 @@ export async function POST(req: Request) {
         role: user.role, accountType: user.accountType,
         districtId: districtId || null,
       },
+      children: createdChildren,
+      warnings,
     }, { status: 201 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errMessage = error instanceof Error ? error.message : undefined;
+    const errStack = error instanceof Error ? error.stack : undefined;
+    const isPrismaKnown = error instanceof Prisma.PrismaClientKnownRequestError;
+    const errCode: string | undefined = isPrismaKnown
+      ? error.code
+      : (error && typeof error === 'object' && 'code' in error && typeof (error as { code: unknown }).code === 'string'
+          ? (error as { code: string }).code
+          : undefined);
+    const errMetaTarget: unknown = isPrismaKnown
+      ? (error.meta as { target?: unknown } | undefined)?.target ?? null
+      : null;
+
     // v9.4.2: Enhanced error logging — full details for debugging
     console.error('[Security] Registration error:', {
-      message: error?.message,
-      code: error?.code,
-      meta: error?.meta,
-      stack: error?.stack?.split('\n').slice(0, 5).join('\n'),
+      message: errMessage,
+      code: errCode,
+      meta: isPrismaKnown ? error.meta : undefined,
+      stack: errStack?.split('\n').slice(0, 5).join('\n'),
     });
 
     createAuditLog({
       action: 'REGISTER', ip, userAgent: ua,
       resource: '/api/auth/register',
       details: {
-        error: error?.code || 'unknown',
-        message: error?.message?.substring(0, 200),
-        prismaCode: error?.meta?.target || null,
+        error: errCode || 'unknown',
+        message: errMessage?.substring(0, 200),
+        prismaCode: errMetaTarget,
       },
       severity: 'warning', success: false,
     });
 
-    if (error?.code === 'P2002') {
-      return NextResponse.json({ error: 'Unable to create account. Please try a different email.' }, { status: 409 });
+    if (errCode === 'P2002') {
+      return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
     }
-    if (error?.code === 'P2003') {
+    if (errCode === 'P2003') {
       return NextResponse.json({ error: 'Invalid reference. Please try again.' }, { status: 400 });
     }
-    if (error?.code === 'P2021' || error?.code === 'P2022') {
+    if (errCode === 'P2021' || errCode === 'P2022') {
       // Table or column doesn't exist — schema out of sync
       console.error('[Security] DATABASE SCHEMA OUT OF SYNC — run prisma db push');
       return NextResponse.json({ error: 'Database configuration error. Please contact support.' }, { status: 503 });
     }
-    if (error?.message?.includes('connect') || error?.message?.includes('ECONNREFUSED') || error?.code === 'P1001') {
+    if (errMessage?.includes('connect') || errMessage?.includes('ECONNREFUSED') || errCode === 'P1001') {
       return NextResponse.json({ error: 'Unable to connect to the database. Please try again later.' }, { status: 503 });
     }
-    if (error?.message?.includes('DATABASE_URL') || error?.message?.includes('prisma')) {
+    if (errMessage?.includes('DATABASE_URL') || errMessage?.includes('prisma')) {
       return NextResponse.json({ error: 'Database not configured. Please contact support.' }, { status: 503 });
     }
 
