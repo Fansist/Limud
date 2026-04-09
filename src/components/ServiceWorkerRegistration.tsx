@@ -12,20 +12,29 @@ export default function ServiceWorkerRegistration() {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator)) return;
 
-    // Register after page load to avoid blocking initial render
-    window.addEventListener('load', () => {
+    let updateIntervalId: ReturnType<typeof setInterval> | null = null;
+
+    const onLoad = () => {
       navigator.serviceWorker
         .register('/sw.js', { scope: '/' })
         .then((registration) => {
           // Check for updates periodically (every 60 minutes)
-          setInterval(() => {
+          updateIntervalId = setInterval(() => {
             registration.update();
           }, 60 * 60 * 1000);
         })
         .catch(() => {
           // Service worker registration failed — app still works without it
         });
-    });
+    };
+
+    // Register after page load to avoid blocking initial render
+    window.addEventListener('load', onLoad);
+
+    return () => {
+      window.removeEventListener('load', onLoad);
+      if (updateIntervalId !== null) clearInterval(updateIntervalId);
+    };
   }, []);
 
   return null;

@@ -81,6 +81,11 @@ export default function AdminLinkRequestsPage() {
   }, [authStatus, isDemo, filter]);
 
   async function fetchRequests() {
+    if (isDemo) {
+      setRequests(DEMO_REQUESTS);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`/api/district-link/manage?status=${filter}`);
@@ -89,7 +94,7 @@ export default function AdminLinkRequestsPage() {
         setRequests(data.requests || []);
       }
     } catch {
-      console.error('Failed to fetch link requests');
+      toast.error('Failed to fetch link requests');
     } finally {
       setLoading(false);
     }

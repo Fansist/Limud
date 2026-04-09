@@ -1042,7 +1042,7 @@ export default function PricingPage() {
 
       {/* Footer */}
       <footer className="border-t border-gray-200/50 py-8 text-center">
-        <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Limud Education Inc. &middot; <Link href="/privacy" className="hover:text-gray-600 transition">Privacy</Link> &middot; <Link href="/terms" className="hover:text-gray-600 transition">Terms</Link> &middot; <Link href="/contact" className="hover:text-gray-600 transition">Contact</Link></p>
+        <p className="text-sm text-gray-400">&copy; 2026 Limud Education Inc. &middot; <Link href="/privacy" className="hover:text-gray-600 transition">Privacy</Link> &middot; <Link href="/terms" className="hover:text-gray-600 transition">Terms</Link> &middot; <Link href="/contact" className="hover:text-gray-600 transition">Contact</Link></p>
       </footer>
     </div>
   );

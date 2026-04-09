@@ -261,7 +261,7 @@ export default function LoginPage() {
           </div>
 
           <div className="text-white/40 text-xs">
-            &copy; {new Date().getFullYear()} Limud Education Inc.
+            &copy; 2026 Limud Education Inc.
           </div>
         </div>
       </div>

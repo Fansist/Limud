@@ -154,8 +154,6 @@ export const PUT = apiHandler(async (req: Request) => {
         },
       });
 
-      await onAssignmentGraded(submission.studentId, result.score, result.maxScore);
-
       results.push({ submissionId: id, success: true, result });
     } catch (error) {
       results.push({ submissionId: id, success: false, error: 'Grading failed' });

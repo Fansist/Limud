@@ -51,11 +51,13 @@ export default function AdminPaymentsPage() {
     }
     try {
       const res = await fetch('/api/payments');
-      if (res.ok) {
-        const data = await res.json();
-        setPayments(data.payments || []);
-        setDistrict(data.district);
+      if (!res.ok) {
+        toast.error('Failed to load payments');
+        return;
       }
+      const data = await res.json();
+      setPayments(data.payments || []);
+      setDistrict(data.district);
     } catch { toast.error('Failed to load billing data'); }
     finally { setLoading(false); }
   }

@@ -1,6 +1,44 @@
 import { NextResponse } from 'next/server';
-import { requireAuth, requireRole, apiHandler, hasTeacherAccess } from '@/lib/middleware';
+import { requireAuth, apiHandler, type UserSession } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+
+// Scope check for a specific submission. Returns true if the user has a legitimate
+// relationship to the submission: the owning student, a teacher of the submission's
+// course, or an admin in the student's district. Master demo is granted access to
+// preserve demo-mode behavior.
+async function canAccessSubmission(
+  user: UserSession,
+  submissionId: string,
+): Promise<boolean> {
+  if (user.isMasterDemo) return true;
+  const submission = await prisma.submission.findUnique({
+    where: { id: submissionId },
+    select: {
+      studentId: true,
+      assignment: {
+        select: {
+          courseId: true,
+          course: { select: { districtId: true } },
+        },
+      },
+      student: { select: { districtId: true } },
+    },
+  });
+  if (!submission) return false;
+  if (submission.studentId === user.id) return true;
+  if (user.role === 'ADMIN' && submission.student.districtId === user.districtId) return true;
+  if (user.role === 'TEACHER' || (user.role === 'PARENT' && user.isHomeschoolParent)) {
+    const link = await prisma.courseTeacher.findFirst({
+      where: {
+        teacherId: user.id,
+        courseId: submission.assignment.courseId,
+      },
+      select: { id: true },
+    });
+    if (link) return true;
+  }
+  return false;
+}
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
@@ -90,10 +128,16 @@ export const GET = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
 
-    // Access check: owner, teacher of the submission's assignment, or admin
-    const canAccess = file.userId === user.id ||
-      user.role === 'ADMIN' ||
-      hasTeacherAccess(user);
+    // Access check: owner, or scoped access to the linked submission.
+    let canAccess = file.userId === user.id;
+    if (!canAccess && file.submissionId) {
+      canAccess = await canAccessSubmission(user, file.submissionId);
+    }
+    // Files not linked to a submission (e.g. profile uploads) fall back to owner-only
+    // unless the caller is the master demo account.
+    if (!canAccess && !file.submissionId && user.isMasterDemo) {
+      canAccess = true;
+    }
 
     if (!canAccess) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
@@ -118,6 +162,10 @@ export const GET = apiHandler(async (req: Request) => {
 
   // List files for a submission
   if (submissionId) {
+    const allowed = await canAccessSubmission(user, submissionId);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
     const files = await prisma.fileUpload.findMany({
       where: { submissionId },
       select: {

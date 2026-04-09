@@ -182,8 +182,18 @@ function getDemoUser(role: string) {
   }
 }
 
+type SessionUser = {
+  role?: string;
+  isMasterDemo?: boolean;
+  isHomeschoolParent?: boolean;
+  selectedAvatar?: string;
+  name?: string | null;
+  email?: string | null;
+};
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
+  const u = session?.user as SessionUser | undefined;
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { liteMode, toggleLiteMode, enableAnimations, enableBlur } = usePerf();
@@ -209,7 +219,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // v9.3.5: Master Demo NEVER enters generic demo mode.
     // The isMasterDemo flag comes from the NextAuth session (checked below)
     // but we also clear any stale localStorage flag here for safety.
-    const sessionIsMaster = (session?.user as any)?.isMasterDemo === true;
+    const sessionIsMaster = u?.isMasterDemo === true;
     if (sessionIsMaster) {
       // Clean up stale demo-mode flags if master demo user
       try {
@@ -246,9 +256,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }
 
-  const sessionRole = (session?.user as any)?.role || 'STUDENT';
-  const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
-  const isHomeschoolParent = isDemo ? false : ((session?.user as any)?.isHomeschoolParent === true);
+  const sessionRole = u?.role || 'STUDENT';
+  const isMasterDemo = u?.isMasterDemo === true;
+  const isHomeschoolParent = isDemo ? false : (u?.isHomeschoolParent === true);
   
   // Master Demo: detect role from pathname to allow cross-role navigation
   const masterRole = isMasterDemo
@@ -267,7 +277,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navSections = GROUPED_NAV[navKey] || GROUPED_NAV[role] || [];
   const navItems = flatNavItems(navSections); // flat for breadcrumbs/title lookup
   const mobileNavItems = MOBILE_NAV[navKey] || MOBILE_NAV[role] || [];
-  const userAvatar = isDemo ? (demoUser?.selectedAvatar || 'default') : ((session?.user as any)?.selectedAvatar || 'default');
+  const userAvatar = isDemo ? (demoUser?.selectedAvatar || 'default') : (u?.selectedAvatar || 'default');
   const avatarEmoji = AVATAR_OPTIONS.find(a => a.id === userAvatar)?.emoji || '👤';
   const roleColor = ROLE_COLORS[navKey] || ROLE_COLORS.STUDENT;
   const roleLabel = ROLE_LABELS[navKey] || 'Portal';

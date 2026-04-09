@@ -256,10 +256,14 @@ export const DELETE = apiHandler(async (req: Request) => {
 
   if (!studentId) return NextResponse.json({ error: 'Student ID required' }, { status: 400 });
 
-  await prisma.user.updateMany({
+  const result = await prisma.user.updateMany({
     where: { id: studentId, districtId: user.districtId, role: 'STUDENT' },
     data: { isActive: false },
   });
+
+  if (result.count === 0) {
+    return NextResponse.json({ error: 'Student not found in your district' }, { status: 404 });
+  }
 
   return NextResponse.json({ success: true });
 });

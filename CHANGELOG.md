@@ -4,6 +4,75 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [7.0.0] - 2026-04-08 — Update 7 (update 2.1)
+
+### Fixed - Website-wide bug sweep
+
+**FERPA / API authorization (`src/app/api/**`)**:
+
+1. **`/api/files` — missing per-submission scope check**
+   - **Before**: The `GET` path granted access on the coarse rule "owner, any `ADMIN`, or any teacher", via `hasTeacherAccess(user)`. This meant any teacher in the platform could download any other teacher's submission files, and any admin in the platform could download files from other districts.
+   - **After**: New `canAccessSubmission(user, submissionId)` helper enforces a tight scope: owner, a teacher of the submission's course (via `CourseTeacher`), or an admin in the owning student's district. Master demo still bypasses so demo mode keeps working. The submission-listing branch now runs the same check before returning metadata.
+
+2. **`/api/messages` — no relationship check on DM send**
+   - **Before**: `POST /api/messages` only verified the receiver existed. Any authenticated user could DM any other user, including arbitrary students in unrelated districts. The `GET` also returned the flat message list alongside conversation summaries, doubling the FERPA surface.
+   - **After**: New `isAllowedDm(sender, receiver)` enforces role-aware relationship rules — `STUDENT` can DM their own linked parent, teachers of their courses, or admins in their district; `TEACHER` can DM enrolled students, those students' parents, or district admins; `PARENT` can DM their children's teachers or district admins; `ADMIN` can DM anyone in their district. Homeschool-parents-as-teachers may DM their own children. Master demo bypasses. `GET` now returns only bounded conversation summaries (no flat history).
+
+3. **`/api/grade` PUT — dangling `onAssignmentGraded` call threw on every bulk grade**
+   - **Before**: Inside the bulk-grade loop, each successful grade called `await onAssignmentGraded(submission.studentId, result.score, result.maxScore)`. This symbol was not imported and not defined anywhere in the codebase, so the catch block logged `ReferenceError: onAssignmentGraded is not defined` and the grade was reported as "Grading failed" even though the DB row was updated.
+   - **After**: The stray call is removed. Notification / side-effects for a completed grade are handled elsewhere in the flow (`POST /api/grade` writes the `Notification` row on the single-grade path).
+
+4. **`/api/district/students` DELETE — silent 200 on wrong-district target**
+   - **Before**: The `DELETE` used `prisma.user.updateMany` and returned `{ success: true }` unconditionally. A caller could fire ids from other districts and never know which succeeded.
+   - **After**: The handler inspects `result.count` and returns `404 Student not found in your district` when nothing was deactivated.
+
+**Middleware (`src/middleware.ts`)**:
+
+5. **`/api/student/*` had no role gate**
+   - **Before**: Only the page path `/student` was gated. API routes under `/api/student/*` relied on each route's own `requireAuth`/`requireRole` calls, and any that forgot or used `requireAuth` (not `requireRole`) leaked to other roles.
+   - **After**: `STUDENT_API_PATHS = ['/api/student']` is added to the middleware's gate list and returns a JSON 403 (not an HTML redirect) for API callers who aren't `STUDENT` or master demo.
+
+**Auth / onboarding pages (`src/app/(auth)/**`)**:
+
+6. **`/onboard` — unchecked payment failure created paid accounts without a valid payment**
+   - **Before**: On a paid plan, the `POST /api/payments` call was fire-and-forget (`await fetch(...)` with no status check). If payment failed, the user was still signed in and the account was created, with no record of the failure.
+   - **After**: The response is captured as `paymentRes`; on `!paymentRes.ok` the flow aborts with `toast.error('Payment processing failed')` and does not sign the user in.
+
+7. **`/onboard` & `/register` — submit buttons missing `type="button"`**
+   - **Before**: The multi-step wizards used `<button onClick={handleSubmit}>` without `type`. Inside a `<form>` these default to `type="submit"` and can trigger native form submission / page reload on Enter keypresses or rapid clicks.
+   - **After**: Explicit `type="button"`.
+
+8. **`/login`, `/pricing` — `new Date().getFullYear()` in footers caused hydration mismatch risk**
+   - **Before**: Two different server/client renders at UTC-boundary minutes could render different years, triggering a React hydration warning.
+   - **After**: Hard-coded `2026` (the current copyright year). Will be bumped annually via release checklist rather than per-render.
+
+**Admin pages (`src/app/admin/**`)**:
+
+9. **`/admin/classrooms` — three silent catches on assignment-helper fetches**
+   - **Before**: `fetchTeachers`, `fetchStudents`, and `fetchSchools` all used `catch { /* silent */ }`. A failed request left the assignment modal's dropdowns empty with no indication why.
+   - **After**: Each catch now surfaces a specific `toast.error('Failed to load teachers|students|schools')`.
+
+10. **`/admin/link-requests` — demo mode hit live API**
+   - **Before**: `fetchRequests` did not short-circuit on `isDemo`, so demo accounts tried `/api/district-link/manage` (which 401s for them) and the page sat in a broken loading state.
+   - **After**: Demo accounts synchronously return `DEMO_REQUESTS` and skip the network call. The live-mode catch now shows a `toast.error` instead of an unsurfaced `console.error`.
+
+11. **`/admin/payments` — silent failure on billing load**
+    - **Before**: `if (res.ok) { ... }` without an else branch meant a 401/500 from `/api/payments` left the page blank with no feedback.
+    - **After**: Early return with `toast.error('Failed to load payments')` on `!res.ok`.
+
+**Components (`src/components/**`)**:
+
+12. **`PDFExportButton` — `error: any` cast and missing button attributes**
+    - **Before**: `catch (error: any)` violated the strict-TS convention, and the `<button>` lacked `type="button"` (so it could submit parent forms) and `aria-label` (so the busy state was invisible to screen readers).
+    - **After**: `catch (error: unknown)` with `error instanceof Error` narrowing; `type="button"` and `aria-label={exporting ? 'Exporting PDF…' : 'Export PDF'}` added.
+
+### Known follow-ups (not in this update)
+
+- A handful of pre-existing `any` casts remain in demo-only code paths (notably `DashboardLayout.tsx` line 288 where `DEMO_NOTIFICATIONS` is cast to the live notification type). These are tech debt, not bugs — the demo payload is shaped correctly at runtime — and are deferred to a dedicated typing pass.
+- The middleware JSON-vs-redirect branching for unauthorized API callers could be factored into a shared helper once teacher/parent/admin API prefixes are consolidated. Left as a follow-up so this update stays minimal.
+
+---
+
 ## [6.0.0] - 2026-04-08 — Update 6
 
 ### Fixed - Teacher & parent pages bug fixes

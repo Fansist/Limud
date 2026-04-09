@@ -124,7 +124,7 @@ const VideoPlayer = memo(function VideoPlayer({ url, title, transcript, onComple
               {transcript.map((entry, i) => {
                 const isCurrent = currentTime >= entry.time && (!transcript[i + 1] || currentTime < transcript[i + 1].time);
                 return (
-                  <div key={i} data-idx={i}
+                  <div key={`${entry.time}-${i}`} data-idx={i}
                     className={`flex gap-2 px-2 py-1 rounded-lg transition cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${isCurrent ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400'}`}>
                     <span className="text-[10px] font-mono text-gray-400 min-w-[36px] pt-0.5">{formatTime(entry.time)}</span>
                     <span className="text-xs leading-relaxed">{entry.text}</span>

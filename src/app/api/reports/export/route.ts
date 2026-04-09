@@ -69,11 +69,25 @@ export const POST = apiHandler(async (req: Request) => {
   // Authorization check
   if (targetStudentId !== user.id) {
     if (user.role === 'TEACHER') {
-      // Teachers can export for students in their courses — check later
+      // Teacher must teach a course the target student is enrolled in.
+      try {
+        const enrollment = await prisma.enrollment.findFirst({
+          where: {
+            studentId: targetStudentId,
+            course: { teachers: { some: { teacherId: user.id } } },
+          },
+          select: { id: true },
+        });
+        if (!enrollment) {
+          return NextResponse.json({ error: 'Not authorized — student is not in your courses' }, { status: 403 });
+        }
+      } catch {
+        // DB unavailable — demo mode will fall through to DEMO_REPORT below.
+      }
     } else if (user.role === 'ADMIN') {
-      // Admins can export for students in their district — check later
+      // Admins can export for students in their district — verified post-query at student fetch.
     } else if (user.role === 'PARENT') {
-      // Parents can export for their children — check later
+      // Parents can export for their children — verified at student fetch via parentId filter.
     } else {
       return NextResponse.json({ error: 'Not authorized to export this report' }, { status: 403 });
     }

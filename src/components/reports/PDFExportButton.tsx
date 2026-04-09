@@ -89,9 +89,10 @@ export default function PDFExportButton({
           toast.success('Report generated (Demo mode — PDF download simulated)');
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[PDF Export]', error);
-      toast.error(error.message || 'Failed to export PDF');
+      const message = error instanceof Error ? error.message : 'Failed to export PDF';
+      toast.error(message);
     } finally {
       setExporting(false);
     }
@@ -103,8 +104,10 @@ export default function PDFExportButton({
 
   return (
     <button
+      type="button"
       onClick={handleExport}
       disabled={exporting}
+      aria-label={exporting ? 'Exporting PDF\u2026' : 'Export PDF'}
       className={`inline-flex items-center ${sizeClasses} rounded-lg font-medium transition
         ${exporting
           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'

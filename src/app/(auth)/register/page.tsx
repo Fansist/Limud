@@ -789,6 +789,7 @@ export default function RegisterPage() {
                     <ArrowLeft size={14} /> Back
                   </button>
                   <button
+                    type="button"
                     onClick={handleRegister}
                     disabled={loading || !canProceedStep3}
                     className={cn(

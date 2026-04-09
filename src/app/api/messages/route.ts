@@ -1,6 +1,101 @@
 import { NextResponse } from 'next/server';
-import { requireAuth, apiHandler } from '@/lib/middleware';
+import { requireAuth, apiHandler, type UserSession } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+
+type DmReceiver = {
+  id: string;
+  role: string;
+  districtId: string | null;
+  parentId: string | null;
+};
+
+// FERPA relationship check for direct messages. Returns true iff the sender and
+// receiver share a legitimate relationship per role. See #6 in CODER brief.
+async function isAllowedDm(sender: UserSession, receiver: DmReceiver): Promise<boolean> {
+  // ADMIN: anyone in their district.
+  if (sender.role === 'ADMIN') {
+    return receiver.districtId === sender.districtId;
+  }
+
+  // STUDENT: teachers of their courses or their own parent.
+  if (sender.role === 'STUDENT') {
+    if (receiver.role === 'PARENT') {
+      // Must be the student's linked parent.
+      const self = await prisma.user.findUnique({
+        where: { id: sender.id },
+        select: { parentId: true },
+      });
+      return !!self?.parentId && self.parentId === receiver.id;
+    }
+    if (receiver.role === 'TEACHER') {
+      const link = await prisma.courseTeacher.findFirst({
+        where: {
+          teacherId: receiver.id,
+          course: { enrollments: { some: { studentId: sender.id } } },
+        },
+        select: { id: true },
+      });
+      return !!link;
+    }
+    if (receiver.role === 'ADMIN') {
+      return receiver.districtId === sender.districtId;
+    }
+    return false;
+  }
+
+  // TEACHER: students in their courses, parents of those students, or any ADMIN in district.
+  if (sender.role === 'TEACHER') {
+    if (receiver.role === 'STUDENT') {
+      const enrollment = await prisma.enrollment.findFirst({
+        where: {
+          studentId: receiver.id,
+          course: { teachers: { some: { teacherId: sender.id } } },
+        },
+        select: { id: true },
+      });
+      return !!enrollment;
+    }
+    if (receiver.role === 'PARENT') {
+      // Parent of a student enrolled in one of the sender's courses.
+      const child = await prisma.user.findFirst({
+        where: {
+          parentId: receiver.id,
+          enrollments: { some: { course: { teachers: { some: { teacherId: sender.id } } } } },
+        },
+        select: { id: true },
+      });
+      return !!child;
+    }
+    if (receiver.role === 'ADMIN') {
+      return receiver.districtId === sender.districtId;
+    }
+    return false;
+  }
+
+  // PARENT: their children's teachers, or ADMIN in district.
+  if (sender.role === 'PARENT') {
+    if (receiver.role === 'TEACHER') {
+      const link = await prisma.courseTeacher.findFirst({
+        where: {
+          teacherId: receiver.id,
+          course: { enrollments: { some: { student: { parentId: sender.id } } } },
+        },
+        select: { id: true },
+      });
+      return !!link;
+    }
+    if (receiver.role === 'ADMIN') {
+      return receiver.districtId === sender.districtId;
+    }
+    // Homeschool parents acting as teachers may also DM their own children.
+    if (sender.isHomeschoolParent && receiver.role === 'STUDENT') {
+      return receiver.parentId === sender.id;
+    }
+    return false;
+  }
+
+  return false;
+}
 
 /**
  * GET /api/messages
@@ -56,11 +151,9 @@ export const GET = apiHandler(async (req: Request) => {
 
   const conversations = Array.from(conversationMap.values());
 
-  return NextResponse.json({ conversations, messages: messages.map(m => ({
-    ...m,
-    senderName: m.sender.name,
-    receiverName: m.receiver.name,
-  })) });
+  // FERPA: do not return the flat message history — only bounded conversation
+  // summaries. Clients load per-conversation history through a scoped endpoint.
+  return NextResponse.json({ conversations });
 });
 
 /**
@@ -81,11 +174,20 @@ export const POST = apiHandler(async (req: Request) => {
   // Verify receiver exists
   const receiver = await prisma.user.findUnique({
     where: { id: receiverId },
-    select: { id: true, name: true },
+    select: { id: true, name: true, role: true, districtId: true, parentId: true },
   });
 
   if (!receiver) {
     return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
+  }
+
+  // FERPA: only allow DMs between users with a legitimate relationship.
+  // Master demo bypasses (demo mode must keep working).
+  if (!user.isMasterDemo && receiverId !== user.id) {
+    const allowed = await isAllowedDm(user, receiver);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Not authorized to message this user' }, { status: 403 });
+    }
   }
 
   const message = await prisma.message.create({

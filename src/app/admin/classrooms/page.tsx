@@ -244,7 +244,7 @@ export default function AdminClassroomsPageEnhanced() {
         const data = await res.json();
         setTeachers(data.teachers || []);
       }
-    } catch { /* silent */ }
+    } catch { toast.error('Failed to load teachers'); }
   }
 
   // v12.4.2: Fetch students for assignment
@@ -268,7 +268,7 @@ export default function AdminClassroomsPageEnhanced() {
         const data = await res.json();
         setStudents(data.students || []);
       }
-    } catch { /* silent */ }
+    } catch { toast.error('Failed to load students'); }
   }
 
   // v12.4.2: Fetch schools for assignment
@@ -287,7 +287,7 @@ export default function AdminClassroomsPageEnhanced() {
         const data = await res.json();
         setDistrictSchools(data.schools || []);
       }
-    } catch { /* silent */ }
+    } catch { toast.error('Failed to load schools'); }
   }
 
   // v12.4: Assign teacher to classroom

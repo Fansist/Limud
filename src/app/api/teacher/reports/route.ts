@@ -68,6 +68,21 @@ export const POST = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
+    // FERPA: a teacher may only generate reports for students enrolled in
+    // a course they teach. Admins and master demo bypass this check.
+    if (user.role === 'TEACHER' && !user.isMasterDemo) {
+      const enrollment = await prisma.enrollment.findFirst({
+        where: {
+          studentId,
+          course: { teachers: { some: { teacherId: user.id } } },
+        },
+        select: { id: true },
+      });
+      if (!enrollment) {
+        return NextResponse.json({ error: 'Not authorized — student is not in your courses' }, { status: 403 });
+      }
+    }
+
     // Gather student data
     const skills = await prisma.skillRecord.findMany({
       where: { userId: studentId },

@@ -1,8 +1,34 @@
 'use client';
 
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useMemo } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Check, X, GripVertical, Sparkles, ArrowRight, RotateCcw, Trophy } from 'lucide-react';
+
+// Deterministic shuffle (Fisher-Yates with a seeded RNG) — avoids hydration mismatch
+function hashString(str: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function seededRandom(seed: number): () => number {
+  let s = seed || 1;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 0xffffffff;
+  };
+}
+function shuffleDeterministic<T>(arr: readonly T[], seed: string): T[] {
+  const out = [...arr];
+  const rnd = seededRandom(hashString(seed));
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
 
 // v12.0.0 — Interactive Exercise Builder (Phase 2.2)
 // Drag-and-drop, fill-in-the-blank, matching, and hotspot question types
@@ -177,8 +203,8 @@ const MatchingWidget = memo(function MatchingWidget({ exercise, onSubmit }: { ex
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<ExerciseResult | null>(null);
 
-  // Shuffle right side
-  const [shuffledRight] = useState(() => [...exercise.pairs].sort(() => Math.random() - 0.5));
+  // Shuffle right side — deterministic by exercise.id to avoid hydration mismatch
+  const shuffledRight = useMemo(() => shuffleDeterministic(exercise.pairs, exercise.id), [exercise.id, exercise.pairs]);
 
   function handleClick(side: 'left' | 'right', id: string) {
     if (submitted) return;

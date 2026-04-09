@@ -132,7 +132,7 @@ export default function OnboardPage() {
         if (res.ok && data.success) {
           // If paid plan, also process the payment
           if (!isFree) {
-            await fetch('/api/payments', {
+            const paymentRes = await fetch('/api/payments', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -143,6 +143,11 @@ export default function OnboardPage() {
                 paymentMethod: form.paymentMethod,
               }),
             });
+            if (!paymentRes.ok) {
+              toast.error('Payment processing failed');
+              setLoading(false);
+              return;
+            }
           }
           toast.success('Account created! Signing you in...');
           const signInResult = await signIn('credentials', {
@@ -653,7 +658,7 @@ export default function OnboardPage() {
                 <button onClick={() => setStep(3)} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
                   <ArrowLeft size={14} /> Back
                 </button>
-                <button onClick={handleSubmit} disabled={loading}
+                <button type="button" onClick={handleSubmit} disabled={loading}
                   className={cn('btn-primary px-8 py-3 text-lg flex items-center gap-2', loading && 'opacity-50 cursor-not-allowed')}>
                   {loading ? (
                     <><div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> Processing...</>

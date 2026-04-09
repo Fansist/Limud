@@ -58,6 +58,7 @@ const TEACHER_PATHS = ['/teacher'];
 const TEACHER_API_PATHS = ['/api/teacher'];
 
 const STUDENT_PATHS = ['/student'];
+const STUDENT_API_PATHS = ['/api/student'];
 
 const PARENT_PATHS = ['/parent'];
 const PARENT_API_PATHS = ['/api/parent'];
@@ -271,8 +272,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // STUDENT paths
-  if (matchesPath(pathname, STUDENT_PATHS)) {
+  if (matchesPath(pathname, STUDENT_PATHS) || matchesPath(pathname, STUDENT_API_PATHS)) {
     if (role !== 'STUDENT' && !isMasterDemo) {
+      if (pathname.startsWith('/api/')) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Forbidden: Student access required' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
       return NextResponse.redirect(new URL('/', request.url));
     }
   }

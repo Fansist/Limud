@@ -13,9 +13,16 @@ import {
 import { cn } from '@/lib/utils';
 
 type Message = {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
 };
+
+let messageIdCounter = 0;
+function nextMessageId(): string {
+  messageIdCounter += 1;
+  return `msg-${messageIdCounter}`;
+}
 
 const QUICK_ACTIONS = [
   { label: 'My assignments', icon: <BookOpen size={14} />, prompt: 'What assignments do I have coming up?' },
@@ -89,7 +96,7 @@ export default function AINavigator() {
     const text = messageText || input.trim();
     if (!text || loading) return;
 
-    const userMsg: Message = { role: 'user', content: text };
+    const userMsg: Message = { id: nextMessageId(), role: 'user', content: text };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
@@ -111,10 +118,11 @@ export default function AINavigator() {
 
       if (res.ok) {
         const data = await res.json();
-        setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+        setMessages(prev => [...prev, { id: nextMessageId(), role: 'assistant', content: data.message }]);
       } else {
         // Fallback demo response
         setMessages(prev => [...prev, {
+          id: nextMessageId(),
           role: 'assistant',
           content: 'I\'m having a bit of trouble right now. Try asking about your **[Assignments](/student/assignments)**, **[Grades](/student/knowledge)**, or **[Study Planner](/student/study-planner)**!',
         }]);
@@ -139,6 +147,7 @@ export default function AINavigator() {
     if (messages.length === 0) {
       // Show welcome message
       setMessages([{
+        id: nextMessageId(),
         role: 'assistant',
         content: 'Hey there! 🧭 I\'m your **Limud Navigator**. I can help you find your assignments, check your grades, track your rewards, or guide you anywhere on the platform.\n\nWhat would you like to know?',
       }]);
@@ -225,9 +234,9 @@ export default function AINavigator() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-          {messages.map((msg, i) => (
+          {messages.map((msg) => (
             <motion.div
-              key={i}
+              key={msg.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}

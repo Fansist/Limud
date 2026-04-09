@@ -24,7 +24,7 @@ export default function InstallPrompt() {
   useEffect(() => {
     // Check if already installed (standalone mode)
     const standalone = window.matchMedia('(display-mode: standalone)').matches
-      || (window.navigator as any).standalone === true;
+      || (window.navigator as { standalone?: boolean }).standalone === true;
     setIsStandalone(standalone);
 
     if (standalone) return; // Don't show prompt if already installed
@@ -40,7 +40,7 @@ export default function InstallPrompt() {
 
     // Detect iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const ios = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream;
+    const ios = /iphone|ipad|ipod/.test(userAgent) && !(window as { MSStream?: unknown }).MSStream;
     setIsIOS(ios);
 
     // Listen for Chrome/Edge install prompt
@@ -52,15 +52,15 @@ export default function InstallPrompt() {
     window.addEventListener('beforeinstallprompt', handler);
 
     // For iOS, show after 30 seconds on first visit
+    let iosTimer: ReturnType<typeof setTimeout> | null = null;
     if (ios) {
-      const timer = setTimeout(() => setShowPrompt(true), 30000);
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener('beforeinstallprompt', handler);
-      };
+      iosTimer = setTimeout(() => setShowPrompt(true), 30000);
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      if (iosTimer !== null) clearTimeout(iosTimer);
+    };
   }, []);
 
   const handleInstall = async () => {
