@@ -4,6 +4,44 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [9.0.0] - 2026-04-09 — Update 9
+
+### Added — Skills Mastery & Review widget on Student Dashboard
+
+**New feature: Students can now see their top mastered skills and skills due for spaced-repetition review directly on their dashboard.**
+
+Previously, students could see their average score and XP but had no visibility into which specific skills they were strongest in or which ones needed review. The Knowledge page existed but was analytics-heavy — students had to navigate away from the dashboard to understand their skill gaps.
+
+**New API route (`src/app/api/student/skills-overview/route.ts`):**
+
+1. **GET /api/student/skills-overview** — Returns the student's skill mastery summary:
+   - `topSkills` — Top 3 skills by mastery level (≥50%, descending)
+   - `reviewSkills` — Up to 3 skills with spaced-rep review due today or tomorrow
+   - `totalSkills` — Count of all tracked skills
+   - `averageMastery` — Average mastery across all skills (rounded)
+   - All 4 queries run in parallel via `Promise.all` for performance
+   - Scoped to the authenticated student's `userId` (FERPA compliant)
+   - Master demo returns hardcoded demo data without DB queries
+
+**Student Dashboard widget (`src/app/student/dashboard/page.tsx`):**
+
+2. **"Top Skills" card** (green theme, Brain icon) — Shows up to 3 strongest skills with mastery percentage bars, subject category badges, and streak flame indicators. Links to `/student/knowledge` for full analytics.
+
+3. **"Ready for Review" card** (orange theme, RefreshCw icon) — Shows up to 3 skills due for spaced-rep review with days-since-last-practice indicators. "TODAY" items highlighted in red. Links to `/student/knowledge` for practice.
+
+4. **Empty states** — Both cards show encouraging messages when no skills are tracked yet or no reviews are due.
+
+5. **Demo mode** — Hardcoded demo data (3 mastered + 3 review skills) loads instantly without API calls, matching the existing demo pattern.
+
+6. **TypeScript cleanup** — Replaced pre-existing `any` types on `assignments` and `rewards` state with proper typed interfaces.
+
+### Verification
+
+- **TESTER**: All 24 checks PASS (auth, demo mode, queries, UI, types)
+- **REVIEWER**: APPROVED — FERPA compliant, no `any` types, middleware coverage confirmed, graceful degradation on API failure
+
+---
+
 ## [8.0.0] - 2026-04-09 — Update 8 (update 2.2)
 
 ### Fixed — Full bug-report sweep (41 bugs across 32 files)

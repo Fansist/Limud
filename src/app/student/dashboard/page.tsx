@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen, MessageCircle, AlertTriangle, ArrowRight, TrendingUp, Calendar, Target, Building2, BarChart3,
-  Zap, Flame, Brain, Sparkles,
+  Zap, Flame, Brain, Sparkles, RefreshCw,
 } from 'lucide-react';
 
 /*
@@ -24,9 +24,26 @@ export default function StudentDashboard() {
   const router = useRouter();
   const isDemo = useIsDemo();
   const needsDemoParam = useNeedsDemoParam();
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [rewards, setRewards] = useState<any>(null);
+  const [assignments, setAssignments] = useState<{
+    id: string;
+    title: string;
+    dueDate: string;
+    totalPoints: number;
+    course?: { name: string };
+    submissions?: { status: string; score: number; maxScore: number }[];
+  }[]>([]);
+  const [rewards, setRewards] = useState<{
+    totalXP: number;
+    currentStreak: number;
+    level: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [skillsOverview, setSkillsOverview] = useState<{
+    topSkills: { id: string; skillName: string; skillCategory: string; masteryLevel: number; streak: number }[];
+    reviewSkills: { id: string; skillName: string; skillCategory: string; masteryLevel: number; nextReview: string; daysSinceReview: number }[];
+    totalSkills: number;
+    averageMastery: number;
+  } | null>(null);
 
   const isUnlinked = status === 'authenticated' && !isDemo &&
     (session?.user as { role?: string })?.role === 'STUDENT' &&
@@ -39,6 +56,20 @@ export default function StudentDashboard() {
       const studentId = (session?.user as { id?: string })?.id || 'demo-student-lior';
       const stats = (DEMO_REWARD_STATS as Record<string, unknown>)?.[studentId] || Object.values(DEMO_REWARD_STATS)[0];
       setRewards(stats);
+      setSkillsOverview({
+        topSkills: [
+          { id: 'demo-skill-1', skillName: 'Fractions & Decimals', skillCategory: 'Math', masteryLevel: 94, streak: 7 },
+          { id: 'demo-skill-2', skillName: 'Photosynthesis', skillCategory: 'Science', masteryLevel: 89, streak: 4 },
+          { id: 'demo-skill-3', skillName: 'Reading Comprehension', skillCategory: 'ELA', masteryLevel: 86, streak: 3 },
+        ],
+        reviewSkills: [
+          { id: 'demo-skill-4', skillName: 'Linear Equations', skillCategory: 'Math', masteryLevel: 62, nextReview: new Date().toISOString(), daysSinceReview: 3 },
+          { id: 'demo-skill-5', skillName: 'Essay Structure', skillCategory: 'ELA', masteryLevel: 55, nextReview: new Date().toISOString(), daysSinceReview: 2 },
+          { id: 'demo-skill-6', skillName: 'Cell Division', skillCategory: 'Science', masteryLevel: 48, nextReview: new Date().toISOString(), daysSinceReview: 0 },
+        ],
+        totalSkills: 15,
+        averageMastery: 72,
+      });
       setLoading(false);
       return;
     }
@@ -72,6 +103,11 @@ export default function StudentDashboard() {
           router.push('/student/survey?first=true');
           return;
         }
+      }
+      const skillsRes = await fetch('/api/student/skills-overview').catch(() => null);
+      if (skillsRes?.ok) {
+        const skillsData = await skillsRes.json();
+        setSkillsOverview(skillsData);
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
@@ -336,6 +372,111 @@ export default function StudentDashboard() {
             </motion.div>
           ))}
         </div>
+
+        {/* Skills Mastery & Review */}
+        {skillsOverview && (
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Top Skills */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="card"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                    <Brain size={16} className="text-green-500" />
+                  </div>
+                  Top Skills
+                </h2>
+                <Link href={`/student/knowledge${demoSuffix}`} className="text-xs text-green-600 font-semibold hover:underline flex items-center gap-1">
+                  See all <ArrowRight size={12} />
+                </Link>
+              </div>
+              <div className="space-y-2.5">
+                {skillsOverview.topSkills.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-3xl mb-2">🧠</div>
+                    <p className="text-gray-400 text-sm">Complete assignments to build your skills!</p>
+                  </div>
+                ) : (
+                  skillsOverview.topSkills.slice(0, 3).map(skill => (
+                    <div key={skill.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all">
+                      <div className={cn(
+                        'w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0',
+                        skill.masteryLevel >= 90 ? 'bg-green-100 text-green-600' :
+                        skill.masteryLevel >= 70 ? 'bg-amber-100 text-amber-600' :
+                        'bg-red-100 text-red-600'
+                      )}>
+                        {Math.round(skill.masteryLevel)}%
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{skill.skillName}</p>
+                        <p className="text-xs text-gray-400">{skill.skillCategory}</p>
+                      </div>
+                      <div className="flex items-center gap-1 text-orange-500">
+                        <Flame size={14} />
+                        <span className="text-xs font-bold">{skill.streak}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+
+            {/* Ready for Review */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="card"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
+                    <RefreshCw size={16} className="text-orange-500" />
+                  </div>
+                  Ready for Review
+                </h2>
+                <Link href={`/student/knowledge${demoSuffix}`} className="text-xs text-orange-600 font-semibold hover:underline flex items-center gap-1">
+                  Practice <ArrowRight size={12} />
+                </Link>
+              </div>
+              <div className="space-y-2.5">
+                {skillsOverview.reviewSkills.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-3xl mb-2">✅</div>
+                    <p className="text-gray-400 text-sm">You&apos;re all caught up — no reviews due!</p>
+                  </div>
+                ) : (
+                  skillsOverview.reviewSkills.slice(0, 3).map(skill => (
+                    <div key={skill.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all">
+                      <div className={cn(
+                        'w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0',
+                        skill.masteryLevel >= 90 ? 'bg-green-100 text-green-600' :
+                        skill.masteryLevel >= 70 ? 'bg-amber-100 text-amber-600' :
+                        'bg-red-100 text-red-600'
+                      )}>
+                        {Math.round(skill.masteryLevel)}%
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{skill.skillName}</p>
+                        <p className="text-xs text-gray-400">{skill.skillCategory}</p>
+                      </div>
+                      <span className={cn(
+                        'text-xs font-medium px-2 py-0.5 rounded-full',
+                        skill.daysSinceReview === 0 ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                      )}>
+                        {skill.daysSinceReview === 0 ? 'TODAY' : `${skill.daysSinceReview}d ago`}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Upcoming Assignments */}
