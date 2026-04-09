@@ -6,7 +6,7 @@ import { sendEmail } from '@/lib/email';
 import { gradePosted } from '@/lib/email-templates';
 
 export const POST = apiHandler(async (req: Request) => {
-  const user = await requireRole('TEACHER', 'ADMIN');
+  const user = await requireRole('TEACHER', 'ADMIN', 'PARENT');
   const { submissionId } = await req.json();
 
   if (!submissionId) {
@@ -109,7 +109,7 @@ export const POST = apiHandler(async (req: Request) => {
 
 // Batch grade endpoint
 export const PUT = apiHandler(async (req: Request) => {
-  const user = await requireRole('TEACHER', 'ADMIN');
+  const user = await requireRole('TEACHER', 'ADMIN', 'PARENT');
   const { submissionIds } = await req.json();
 
   if (!submissionIds || !Array.isArray(submissionIds)) {

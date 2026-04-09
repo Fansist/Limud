@@ -21,13 +21,16 @@ async function canAccessSubmission(
           course: { select: { districtId: true } },
         },
       },
-      student: { select: { districtId: true } },
+      student: { select: { districtId: true, parentId: true } },
     },
   });
   if (!submission) return false;
   if (submission.studentId === user.id) return true;
   if (user.role === 'ADMIN' && submission.student.districtId === user.districtId) return true;
-  if (user.role === 'TEACHER' || (user.role === 'PARENT' && user.isHomeschoolParent)) {
+  if (user.role === 'PARENT') {
+    return submission.student.parentId === user.id;
+  }
+  if (user.role === 'TEACHER') {
     const link = await prisma.courseTeacher.findFirst({
       where: {
         teacherId: user.id,

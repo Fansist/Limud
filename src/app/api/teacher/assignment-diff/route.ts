@@ -53,6 +53,23 @@ export const GET = apiHandler(async (req: Request) => {
   }
 
   // ── With assignmentId: return full diff data ──
+  // FERPA: verify teacher created the assignment or teaches its course
+  if (user.role === 'TEACHER' && !user.isMasterDemo) {
+    const hasAccess = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        OR: [
+          { createdById: user.id },
+          { course: { teachers: { some: { teacherId: user.id } } } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
+  }
+
   const assignment = await prisma.assignment.findUnique({
     where: { id: assignmentId },
     include: {

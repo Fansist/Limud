@@ -30,14 +30,14 @@ const DEMO_CONVERSATIONS = [
 const DEMO_THREAD: Record<string, any[]> = {
   'demo-teacher': [
     { id: 'm1', senderId: 'demo-teacher', senderName: 'Gregory Strachen', content: 'Hi David! I wanted to update you on Lior\'s progress in Biology. He scored 91% on the Gatsby Character Analysis — outstanding work!', createdAt: '2026-03-27T09:00:00', isRead: true, subject: 'Lior\'s Biology Progress' },
-    { id: 'm2', senderId: 'parent', senderName: 'You', content: 'That\'s wonderful! He\'s been talking about how the AI tutor helps him with complex concepts.', createdAt: '2026-03-27T09:15:00', isRead: true, subject: 'Lior\'s Biology Progress' },
+    { id: 'm2', senderId: 'demo-parent', senderName: 'You', content: 'That\'s wonderful! He\'s been talking about how the AI tutor helps him with complex concepts.', createdAt: '2026-03-27T09:15:00', isRead: true, subject: 'Lior\'s Biology Progress' },
     { id: 'm3', senderId: 'demo-teacher', senderName: 'Gregory Strachen', content: 'Lior is doing great in Biology this week! His lab report showed excellent critical thinking. I\'d recommend encouraging his reading on photosynthesis.', createdAt: '2026-03-27T10:30:00', isRead: false, subject: 'Lior\'s Biology Progress' },
   ],
   'demo-teacher-2': [
     { id: 'm4', senderId: 'demo-teacher-2', senderName: 'Rachel Kim', content: 'Hi David! Quick update — the science fair project sign-ups are now open. Lior is very interested and I think he\'d do great with a biology-related project.', createdAt: '2026-03-26T14:15:00', isRead: true, subject: 'Science Fair' },
   ],
   'demo-student-lior': [
-    { id: 'm5', senderId: 'parent', senderName: 'You', content: 'Hey Lior! How was school today?', createdAt: '2026-03-25T17:00:00', isRead: true, subject: 'Daily Update' },
+    { id: 'm5', senderId: 'demo-parent', senderName: 'You', content: 'Hey Lior! How was school today?', createdAt: '2026-03-25T17:00:00', isRead: true, subject: 'Daily Update' },
     { id: 'm6', senderId: 'demo-student-lior', senderName: 'Lior Betzalel', content: 'Dad, I finished my homework! Got a 91 on the Gatsby essay! Can I use the AI tutor for some extra biology practice?', createdAt: '2026-03-25T17:30:00', isRead: false, subject: 'Daily Update' },
   ],
 };
@@ -72,7 +72,7 @@ export default function ParentMessagesPage() {
   const [contactSearch, setContactSearch] = useState('');
   const [showContactDropdown, setShowContactDropdown] = useState(false);
 
-  const currentUserId = isDemo ? 'parent' : (session?.user as any)?.id;
+  const currentUserId = isDemo ? 'demo-parent' : (session?.user as any)?.id;
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [threadMessages]);

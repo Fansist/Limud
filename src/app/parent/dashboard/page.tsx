@@ -227,13 +227,13 @@ export default function ParentDashboard() {
                         <div className="flex items-center gap-2">
                           <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
                             <p className="text-lg font-bold flex items-center gap-1">
-                              <Zap size={12} className="text-purple-300" />Lv.{child.rewards.level}
+                              <Zap size={12} className="text-purple-300" />Lv.{child.rewards?.level}
                             </p>
                             <p className="text-[9px] text-white/50">Level</p>
                           </div>
                           <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
                             <p className="text-lg font-bold flex items-center gap-1">
-                              <Flame size={12} className="text-orange-300" />{child.rewards.currentStreak}
+                              <Flame size={12} className="text-orange-300" />{child.rewards?.currentStreak}
                             </p>
                             <p className="text-[9px] text-white/50">Streak</p>
                           </div>
@@ -299,7 +299,7 @@ export default function ParentDashboard() {
                   </h3>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {child.courses.map((c: any, i: number) => (
-                        <Link key={i} href={`/parent/reports${demoSuffix}`}
+                        <Link key={c.id || `${c.name}-${i}`} href={`/parent/reports${demoSuffix}`}
                           className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer">
                         <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
                           <BookOpen size={16} className="text-primary-600" />
@@ -336,7 +336,7 @@ export default function ParentDashboard() {
                       const pct = sub.score !== null && sub.maxScore ? Math.round((sub.score / sub.maxScore) * 100) : null;
 
                       return (
-                        <Link key={i} href={`/parent/reports${demoSuffix}`}
+                        <Link key={sub.id || `${sub.assignmentTitle}-${i}`} href={`/parent/reports${demoSuffix}`}
                           className="p-4 rounded-xl bg-gray-50 hover:bg-gray-100 hover:shadow-sm transition-all cursor-pointer block">
                           <div className="flex items-center justify-between mb-2">
                             <div>

@@ -77,7 +77,7 @@ export const POST = apiHandler(async (req: Request) => {
   const user = await requireAuth();
 
   // Only admins and teachers can create notifications for others
-  if (user.role !== 'ADMIN' && user.role !== 'TEACHER') {
+  if (user.role !== 'ADMIN' && user.role !== 'TEACHER' && !(user.role === 'PARENT' && user.isHomeschoolParent)) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 

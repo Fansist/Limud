@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     const isDemo = token.isDemo as boolean || token.isMasterDemo as boolean;
 
     // Demo mode: return demo announcements
-    if (isDemo || !districtId) {
+    if (isDemo) {
       const filtered = DEMO_ANNOUNCEMENTS.filter(a =>
         a.targetRoles.includes('ALL') || a.targetRoles.includes(userRole)
       );
@@ -74,6 +74,10 @@ export async function GET(request: NextRequest) {
         announcements: filtered,
         total: filtered.length,
       });
+    }
+
+    if (!districtId) {
+      return NextResponse.json({ error: 'District ID required' }, { status: 401 });
     }
 
     // DB mode: fetch from Prisma

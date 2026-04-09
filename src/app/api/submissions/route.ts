@@ -159,7 +159,13 @@ export const GET = apiHandler(async (req: Request) => {
     // Verify access based on role
     if (user.role === 'TEACHER') {
       const assignment = await prisma.assignment.findFirst({
-        where: { id: assignmentId, createdById: user.id },
+        where: {
+          id: assignmentId,
+          OR: [
+            { createdById: user.id },
+            { course: { teachers: { some: { teacherId: user.id } } } },
+          ],
+        },
       });
       if (!assignment) {
         return NextResponse.json({ error: 'Not authorized' }, { status: 403 });

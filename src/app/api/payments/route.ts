@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import { SubscriptionTier } from '@prisma/client';
 
 // Pricing tiers
 const PRICING: Record<string, { pricePerStudent: number; maxStudents: number; maxTeachers: number; maxSchools: number }> = {
@@ -152,7 +153,7 @@ export const POST = apiHandler(async (req: Request) => {
     }
 
     // Create district
-    const bcrypt = await import('bcryptjs');
+    const bcrypt = (await import('bcryptjs')).default;
     const subdomain = districtName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
 
     const district = await prisma.schoolDistrict.create({
@@ -166,7 +167,7 @@ export const POST = apiHandler(async (req: Request) => {
         state: state || null,
         zipCode: zipCode || null,
         subscriptionStatus: 'ACTIVE',
-        subscriptionTier: (tierKey === 'CUSTOM' ? 'CUSTOM' : tierKey) as any,
+        subscriptionTier: (tierKey === 'CUSTOM' ? 'CUSTOM' : tierKey) as SubscriptionTier,
         subscriptionStart: new Date(),
         subscriptionEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         pricePerYear: amount,
@@ -213,7 +214,7 @@ export const POST = apiHandler(async (req: Request) => {
         status: 'COMPLETED',
         paymentMethod: paymentMethod || 'card',
         description: `${tierKey} plan - ${studentCount} students`,
-        tier: tierKey as any,
+        tier: tierKey as SubscriptionTier,
         studentCount,
         teacherCount: maxTeachers,
         billingEmail: billingEmail || contactEmail,
@@ -278,7 +279,7 @@ export const POST = apiHandler(async (req: Request) => {
       where: { id: user.districtId },
       data: {
         subscriptionStatus: 'ACTIVE',
-        subscriptionTier: tierKey as any,
+        subscriptionTier: tierKey as SubscriptionTier,
         subscriptionStart: new Date(),
         subscriptionEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         pricePerYear: amount,
@@ -296,7 +297,7 @@ export const POST = apiHandler(async (req: Request) => {
         status: 'COMPLETED',
         paymentMethod: paymentMethod || 'card',
         description: `Homeschool ${tierKey} plan upgrade`,
-        tier: tierKey as any,
+        tier: tierKey as SubscriptionTier,
         studentCount: count || 5,
         paidAt: new Date(),
       },
@@ -331,7 +332,7 @@ export const POST = apiHandler(async (req: Request) => {
         status: 'COMPLETED',
         paymentMethod: 'card',
         description: `${action === 'upgrade' ? 'Upgrade' : 'Renewal'} - ${tierKey} plan`,
-        tier: tierKey as any,
+        tier: tierKey as SubscriptionTier,
         studentCount: studentCount || 100,
         paidAt: new Date(),
       },
@@ -341,7 +342,7 @@ export const POST = apiHandler(async (req: Request) => {
     await prisma.schoolDistrict.update({
       where: { id: user.districtId },
       data: {
-        subscriptionTier: tierKey as any,
+        subscriptionTier: tierKey as SubscriptionTier,
         subscriptionStatus: 'ACTIVE',
         subscriptionEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         maxStudents: Math.max(studentCount || 100, tierInfo.maxStudents),

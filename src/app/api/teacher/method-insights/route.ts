@@ -132,6 +132,17 @@ export const GET = apiHandler(async (req: Request) => {
 
   // ── Per-student view: learning style profile and recent methods ──
   if (studentId) {
+    // FERPA: verify teacher teaches a course the student is enrolled in
+    if (user.role === 'TEACHER' && !user.isMasterDemo) {
+      const enrollment = await prisma.enrollment.findFirst({
+        where: { studentId, course: { teachers: { some: { teacherId: user.id } } } },
+        select: { id: true },
+      });
+      if (!enrollment) {
+        return NextResponse.json({ error: 'Not authorized — student is not in your courses' }, { status: 403 });
+      }
+    }
+
     const student = await prisma.user.findUnique({
       where: { id: studentId },
       select: {

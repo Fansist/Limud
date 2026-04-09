@@ -138,6 +138,15 @@ export const PUT = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Only superintendent can change access levels' }, { status: 403 });
   }
 
+  // Verify the target user exists in the admin's district
+  const targetUser = await prisma.user.findFirst({
+    where: { id: adminUserId, districtId: user.districtId },
+    select: { id: true },
+  });
+  if (!targetUser) {
+    return NextResponse.json({ error: 'User not found in your district' }, { status: 404 });
+  }
+
   const permissions = { ...ACCESS_PERMISSIONS[accessLevel], ...customPermissions };
 
   const updated = await prisma.districtAdmin.upsert({

@@ -87,9 +87,10 @@ export default function StudentMessagesPage() {
   const [contactSearch, setContactSearch] = useState('');
   const [showContactDropdown, setShowContactDropdown] = useState(false);
 
-  const currentUserId = isDemo ? 'student' : (session?.user as any)?.id;
+  const currentUserId = isDemo ? 'student' : (session?.user as { id?: string })?.id;
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Note: scrollIntoView is synchronous and does not need cleanup
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [threadMessages]);

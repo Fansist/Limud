@@ -277,6 +277,7 @@ export default function DemoPage() {
                           <button
                             onClick={() => setShowPassword(!showPassword)}
                             className="text-gray-400 hover:text-primary-500 transition"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
                           >
                             {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
                           </button>

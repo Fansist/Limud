@@ -131,7 +131,9 @@ export async function POST(req: Request) {
           type: 'system',
         },
       });
-    } catch { /* non-critical */ }
+    } catch (e) {
+      console.error('[Auth] Notification creation failed:', e instanceof Error ? e.message : e);
+    }
 
     createAuditLog({
       action: 'PASSWORD_CHANGE',

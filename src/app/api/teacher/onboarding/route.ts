@@ -7,6 +7,8 @@
  */
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
     // Try to get session — if authenticated, persist to DB
     let userId: string | null = null;
     try {
-      const session = await getServerSession();
+      const session = await getServerSession(authOptions);
       userId = (session?.user as any)?.id || null;
     } catch {}
 
@@ -29,9 +31,6 @@ export async function POST(request: Request) {
       // In a real production setup, this would save to the database
       // For now, we acknowledge the data and return success
       try {
-        const { PrismaClient } = await import('@prisma/client');
-        const prisma = new PrismaClient();
-
         // Update user's onboarding status
         await prisma.user.update({
           where: { id: userId },
@@ -40,11 +39,9 @@ export async function POST(request: Request) {
             // Store preferences as JSON in metadata field if available
           },
         });
-
-        await prisma.$disconnect();
       } catch (dbError) {
-        // DB save failed — still return success (best-effort)
-        console.warn('[onboarding] DB save failed, returning success anyway:', dbError);
+        console.error('[onboarding] DB save failed:', dbError);
+        return NextResponse.json({ error: 'Failed to save onboarding preferences' }, { status: 500 });
       }
     }
 

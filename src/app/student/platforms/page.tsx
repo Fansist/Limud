@@ -261,8 +261,8 @@ export default function PlatformsPage() {
   useEffect(() => {
     if (isDemo) { setLinked(DEMO_LINKED); setLoading(false); return; }
     fetch('/api/platforms').then(r => r.json())
-      .then(d => setLinked((d.platforms || []).map((p: any) => ({ ...p, status: 'active' }))))
-      .catch(() => {})
+      .then(d => setLinked((d.platforms || []).map((p: { platformId: string; linkedAt: string; syncEnabled: boolean; lastSync: string | null; username: string; syncedItems?: number }) => ({ ...p, status: 'active' as const }))))
+      .catch((err) => { console.error('[Platforms]', err); toast.error('Failed to load platforms'); })
       .finally(() => setLoading(false));
   }, [isDemo]);
 
@@ -309,7 +309,7 @@ export default function PlatformsPage() {
     if (isDemo) {
       setTimeout(() => {
         setLinked(prev => prev.map(p => p.platformId === platformId
-          ? { ...p, lastSync: new Date().toISOString(), status: 'active' as const, syncedItems: (p.syncedItems || 0) + Math.floor(Math.random() * 5) + 1 }
+          ? { ...p, lastSync: new Date().toISOString(), status: 'active' as const, syncedItems: (p.syncedItems || 0) + (Date.now() % 5) + 1 }
           : p));
         setSyncing(null);
         toast.success('Sync complete! New data imported.');

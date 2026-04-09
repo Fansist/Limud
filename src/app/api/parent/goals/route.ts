@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
-import { requireAuth, apiHandler } from '@/lib/middleware';
+import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
 // GET /api/parent/goals
 export const GET = apiHandler(async () => {
-  const user = await requireAuth();
-  if (user.role !== 'PARENT') {
-    return NextResponse.json({ error: 'Parents only' }, { status: 403 });
-  }
+  const user = await requireRole('PARENT', 'ADMIN');
 
   const goals = await prisma.parentGoal.findMany({
     where: { parentId: user.id },
@@ -19,10 +16,7 @@ export const GET = apiHandler(async () => {
 
 // POST /api/parent/goals - Create a new goal for child
 export const POST = apiHandler(async (req: Request) => {
-  const user = await requireAuth();
-  if (user.role !== 'PARENT') {
-    return NextResponse.json({ error: 'Parents only' }, { status: 403 });
-  }
+  const user = await requireRole('PARENT', 'ADMIN');
 
   const { childId, title, category, targetValue, notes } = await req.json();
 
@@ -45,11 +39,7 @@ export const POST = apiHandler(async (req: Request) => {
 
 // PUT /api/parent/goals - Update goal
 export const PUT = apiHandler(async (req: Request) => {
-  const user = await requireAuth();
-  // BUG FIX: Verify user is a PARENT before allowing goal updates
-  if (user.role !== 'PARENT') {
-    return NextResponse.json({ error: 'Parents only' }, { status: 403 });
-  }
+  const user = await requireRole('PARENT', 'ADMIN');
   const { goalId, currentValue, status, milestoneTitle } = await req.json();
 
   const goal = await prisma.parentGoal.findFirst({
@@ -76,4 +66,21 @@ export const PUT = apiHandler(async (req: Request) => {
   });
 
   return NextResponse.json({ goal: updated });
+});
+
+// DELETE /api/parent/goals - Delete a goal
+export const DELETE = apiHandler(async (req: Request) => {
+  const user = await requireRole('PARENT', 'ADMIN');
+  const { searchParams } = new URL(req.url);
+  const goalId = searchParams.get('goalId');
+
+  if (!goalId) {
+    return NextResponse.json({ error: 'Goal ID required' }, { status: 400 });
+  }
+
+  await prisma.parentGoal.deleteMany({
+    where: { id: goalId, parentId: user.id },
+  });
+
+  return NextResponse.json({ success: true });
 });

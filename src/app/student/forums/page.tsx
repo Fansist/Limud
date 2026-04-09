@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useIsDemo, useNeedsDemoParam } from '@/lib/hooks';
@@ -94,7 +93,6 @@ const DEMO_POSTS: ForumPost[] = [
 
 export default function ForumsPage() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
   const isDemo = useIsDemo();
   const needsDemoParam = useNeedsDemoParam();
   const [posts, setPosts] = useState<ForumPost[]>([]);
@@ -109,8 +107,7 @@ export default function ForumsPage() {
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<'all' | 'pinned' | 'unresolved'>('all');
 
-  const isTeacher = (session?.user as any)?.role === 'TEACHER' ||
-    (searchParams.get('demo') === 'true' && typeof window !== 'undefined' && window.location.pathname.startsWith('/teacher'));
+  const isTeacher = (session?.user as { role?: string })?.role === 'TEACHER';
 
   useEffect(() => {
     if (isDemo) {

@@ -37,7 +37,7 @@ const GRADE_LEVELS = [
 export default function LinkDistrictPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
-  const user = session?.user as any;
+  const user = session?.user as { districtId?: string; accountType?: string; districtName?: string } | undefined;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [allDistricts, setAllDistricts] = useState<District[]>([]);
@@ -50,6 +50,7 @@ export default function LinkDistrictPage() {
   const [myRequests, setMyRequests] = useState<LinkRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
   const loadAttemptRef = useRef(0);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Request form
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
@@ -61,6 +62,10 @@ export default function LinkDistrictPage() {
   // v9.6.6: API guarantees non-empty response (hardcoded fallback).
   // Simple fetch with one auto-retry on network error.
   const loadDistricts = useCallback(async () => {
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
     const attempt = ++loadAttemptRef.current;
     setLoading(true);
     setLoadError(null);
@@ -79,7 +84,8 @@ export default function LinkDistrictPage() {
         let parsed: any = null;
         try { parsed = JSON.parse(text); } catch {}
         if (parsed?._diag) setApiDiagnostics(parsed._diag);
-        throw new Error(`HTTP ${res.status}: ${parsed?.error || text.slice(0, 200) || res.statusText}`);
+        const message = parsed?.error || parsed?.message || `Search failed (status ${res.status})`;
+        throw new Error(message);
       }
 
       const data = await res.json();
@@ -91,7 +97,7 @@ export default function LinkDistrictPage() {
       // v9.6.6: If still 0 and first attempt, retry once (seed may need a moment)
       if (list.length === 0 && attempt <= 1) {
         console.log('[LinkDistrict] 0 districts, one retry in 2s');
-        setTimeout(() => loadDistricts(), 2000);
+        retryTimeoutRef.current = setTimeout(() => loadDistricts(), 2000);
         return;
       }
 
@@ -103,7 +109,7 @@ export default function LinkDistrictPage() {
       console.error(`[LinkDistrict] Load error:`, err);
       // Auto-retry once on network error
       if (attempt <= 1) {
-        setTimeout(() => loadDistricts(), 2000);
+        retryTimeoutRef.current = setTimeout(() => loadDistricts(), 2000);
         return;
       }
       setLoadError(err.message || 'Failed to load districts');
@@ -134,6 +140,12 @@ export default function LinkDistrictPage() {
   useEffect(() => {
     loadAttemptRef.current = 0;
     loadDistricts();
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
   }, [loadDistricts]);
 
   // Load requests when authenticated
@@ -183,6 +195,7 @@ export default function LinkDistrictPage() {
         setSearchQuery('');
         fetchMyRequests();
       } else {
+        // Form state intentionally preserved on failure so user can retry
         toast.error(data.error || 'Failed to send request');
       }
     } catch {
@@ -237,7 +250,7 @@ export default function LinkDistrictPage() {
           <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
             <CheckCircle2 className="text-green-600 flex-shrink-0" size={20} />
             <div>
-              <p className="font-medium text-green-800">You are linked to {user.districtName}</p>
+              <p className="font-medium text-green-800">You are linked to {user?.districtName || 'your district'}</p>
               <p className="text-sm text-green-600">You have full district access and features.</p>
             </div>
           </div>

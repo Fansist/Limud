@@ -410,7 +410,7 @@ export default function LoginPage() {
             <div className="grid grid-cols-2 gap-3">
               {DEMO_ACCOUNTS.map(account => (
                 <motion.button
-                  key={account.role}
+                  key={account.email}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleDemoLogin(account.email, account.password)}

@@ -138,8 +138,16 @@ export const PUT = apiHandler(async (req: Request) => {
     if (!studentIds || !Array.isArray(studentIds)) {
       return NextResponse.json({ error: 'studentIds array required' }, { status: 400 });
     }
+    // Validate all student IDs belong to the admin's district
+    const validStudents = await prisma.user.findMany({
+      where: { id: { in: studentIds }, districtId: user.districtId, role: 'STUDENT' },
+      select: { id: true },
+    });
+    const validIds = new Set(validStudents.map(s => s.id));
+
     const created = [];
     for (const sid of studentIds) {
+      if (!validIds.has(sid)) continue; // skip students not in this district
       try {
         await prisma.classroomStudent.create({
           data: { classroomId, studentId: sid },
@@ -151,12 +159,19 @@ export const PUT = apiHandler(async (req: Request) => {
     // v12.4.5: Also enroll students in the classroom's course (if any)
     // so they can see assignments created by the teacher
     if (classroom.courseId && created.length > 0) {
-      for (const sid of created) {
-        try {
-          await prisma.enrollment.create({
-            data: { courseId: classroom.courseId, studentId: sid },
-          });
-        } catch { /* already enrolled */ }
+      // Verify the course belongs to the same district before enrolling
+      const course = await prisma.course.findFirst({
+        where: { id: classroom.courseId, districtId: user.districtId },
+        select: { id: true },
+      });
+      if (course) {
+        for (const sid of created) {
+          try {
+            await prisma.enrollment.create({
+              data: { courseId: classroom.courseId, studentId: sid },
+            });
+          } catch { /* already enrolled */ }
+        }
       }
     }
 

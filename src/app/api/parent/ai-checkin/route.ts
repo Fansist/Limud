@@ -58,6 +58,7 @@ export const POST = apiHandler(async (req: Request) => {
       childId,
       childName: 'Student',
       generatedAt: new Date().toISOString(),
+      prediction: { predictedScore: null, confidence: null, trend: 'stable' },
       summary: { averageScore: null, recentSubmissions: 0, tutorSessions: 0, currentStreak: 0, studyMinutes: 0, level: 1, improvingSkills: [], strugglingSkills: [] },
     });
   }

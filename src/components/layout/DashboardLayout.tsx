@@ -26,6 +26,7 @@ import {
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?: React.ReactNode; };
 type NavSection = { label?: string; items: NavItem[] };
+type DashboardNotification = { id: string; title: string; message: string; type: string; isRead: boolean; createdAt: string; link?: string };
 
 // v9.7.1: Grouped navigation — related pages combined into sections
 const GROUPED_NAV: Record<string, NavSection[]> = {
@@ -200,7 +201,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { locale, setLocale } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   // v9.4.0: Color theme toggle (blue/green)
@@ -285,7 +286,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!demoReady) return;
     if (isDemo) {
-      setNotifications(DEMO_NOTIFICATIONS as any);
+      setNotifications(DEMO_NOTIFICATIONS);
       setUnreadCount(DEMO_NOTIFICATIONS.filter(n => !n.isRead).length);
     } else {
       fetchNotifications();

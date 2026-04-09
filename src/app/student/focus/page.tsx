@@ -93,7 +93,7 @@ export default function FocusModePage() {
         });
         const data = await res.json();
         setSessionId(data.session?.id || null);
-      } catch {}
+      } catch (err) { console.error('[Focus]', err); }
     }
   }, [selectedMinutes, isDemo]);
 
@@ -132,7 +132,7 @@ export default function FocusModePage() {
             itemsCompleted: results.length,
           }),
         });
-      } catch {}
+      } catch (err) { console.error('[Focus]', err); }
     }
   };
 

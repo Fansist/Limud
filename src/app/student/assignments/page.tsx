@@ -41,7 +41,7 @@ export default function StudentAssignments() {
       if (isDemo) {
         // v9.7.5: Merge built-in with teacher-created (shared state) assignments
         const allAssignments = getStudentAssignments();
-        const enhanced = allAssignments.map((a: any, i: number) => ({
+        const enhanced = allAssignments.map((a: { id: string; title: string; description: string; type: string; courseId: string; course: { name: string; subject: string }; dueDate: string; totalPoints: number; isPublished: boolean; submissions: { id: string; status: string; score: number | null; maxScore: number; submittedAt: string; aiFeedback: string | null }[]; createdAt: string }, i: number) => ({
           ...a,
           category: i === 0 ? 'classwork' : i === 1 ? 'homework' : i === 2 ? 'test' : i === 3 ? 'project' : 'quiz',
           isExtraCredit: false,
@@ -150,7 +150,7 @@ export default function StudentAssignments() {
     for (const file of Array.from(files)) {
       if (file.size > 10 * 1024 * 1024) { toast.error(`${file.name} is too large (max 10MB)`); continue; }
       if (isDemo) {
-        setUploadedFiles(prev => [...prev, { id: 'demo-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), originalName: file.name, mimeType: file.type, fileSize: file.size }]);
+        setUploadedFiles(prev => [...prev, { id: 'demo-' + Date.now().toString(36) + '-' + prev.length.toString(36), originalName: file.name, mimeType: file.type, fileSize: file.size }]);
         toast.success(`Uploaded ${file.name} (Demo)`);
         continue;
       }

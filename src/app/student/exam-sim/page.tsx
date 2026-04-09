@@ -55,7 +55,7 @@ export default function ExamSimulatorPage() {
       ]);
       return;
     }
-    fetch('/api/exam-sim').then(r => r.ok ? r.json() : null).then(d => d && setAttempts(d.attempts || [])).catch(() => {});
+    fetch('/api/exam-sim').then(r => r.ok ? r.json() : null).then(d => d && setAttempts(d.attempts || [])).catch((err) => { console.error('[ExamSim]', err); toast.error('Failed to load exam history'); });
   }
 
   async function startExam() {
@@ -324,7 +324,7 @@ export default function ExamSimulatorPage() {
               <div className="card">
                 <h3 className="font-bold text-gray-900 mb-4">Question Review</h3>
                 <div className="space-y-3">
-                  {results.results.map((r: any, i: number) => (
+                  {results.results.map((r: { question: string; correctAnswer: string; userAnswer: string; isCorrect: boolean; explanation?: string }, i: number) => (
                     <div key={i} className={cn('p-4 rounded-xl border', r.isCorrect ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50')}>
                       <div className="flex items-start gap-2">
                         {r.isCorrect ? <CheckCircle size={18} className="text-green-500 mt-0.5" /> : <XCircle size={18} className="text-red-500 mt-0.5" />}

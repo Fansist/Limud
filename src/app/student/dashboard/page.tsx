@@ -29,21 +29,21 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
 
   const isUnlinked = status === 'authenticated' && !isDemo &&
-    (session?.user as any)?.role === 'STUDENT' &&
-    (!(session?.user as any)?.districtId || (session?.user as any)?.accountType === 'INDIVIDUAL');
+    (session?.user as { role?: string })?.role === 'STUDENT' &&
+    (!(session?.user as { districtId?: string })?.districtId || (session?.user as { accountType?: string })?.accountType === 'INDIVIDUAL');
 
   useEffect(() => {
     if (isDemo) {
       setAssignments(getStudentAssignments());
       // Load demo reward stats for the current student
-      const studentId = (session?.user as any)?.id || 'demo-student-lior';
-      const stats = (DEMO_REWARD_STATS as any)?.[studentId] || Object.values(DEMO_REWARD_STATS)[0];
+      const studentId = (session?.user as { id?: string })?.id || 'demo-student-lior';
+      const stats = (DEMO_REWARD_STATS as Record<string, unknown>)?.[studentId] || Object.values(DEMO_REWARD_STATS)[0];
       setRewards(stats);
       setLoading(false);
       return;
     }
     if (status === 'authenticated') {
-      const user = session?.user as any;
+      const user = session?.user as { role?: string };
       if (user?.role !== 'STUDENT') {
         router.push('/'); return;
       }
@@ -103,7 +103,7 @@ export default function StudentDashboard() {
     );
   }
 
-  const avatarId = isDemo ? DEMO_STUDENT.selectedAvatar : ((session?.user as any)?.selectedAvatar || 'default');
+  const avatarId = isDemo ? DEMO_STUDENT.selectedAvatar : ((session?.user as { selectedAvatar?: string })?.selectedAvatar || 'default');
   const avatarEmoji = AVATAR_OPTIONS.find(a => a.id === avatarId)?.emoji || '👤';
   const firstName = isDemo ? DEMO_STUDENT.name.split(' ')[0] : (session?.user?.name?.split(' ')[0] || 'Student');
   const demoSuffix = needsDemoParam ? '?demo=true' : '';
@@ -140,7 +140,7 @@ export default function StudentDashboard() {
   };
 
   // Determine learning style label
-  const learningStyle = isDemo ? 'Auditory Learner' : ((session?.user as any)?.learningStyle || null);
+  const learningStyle = isDemo ? 'Auditory Learner' : ((session?.user as { learningStyle?: string })?.learningStyle || null);
 
   return (
     <DashboardLayout>

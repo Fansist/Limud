@@ -258,7 +258,7 @@ function KnowledgeTab({ data }: { data: any }) {
   const demoSuffix = isDemo ? '?demo=true' : '';
 
   const subjectMap: Record<string, number[]> = {};
-  skills.forEach((s: any) => {
+  skills.forEach((s: { skillCategory: string; masteryLevel: number }) => {
     if (!subjectMap[s.skillCategory]) subjectMap[s.skillCategory] = [];
     subjectMap[s.skillCategory].push(s.masteryLevel);
   });
@@ -368,7 +368,7 @@ function KnowledgeTab({ data }: { data: any }) {
           <span className="text-xs text-gray-400 ml-auto">Click a skill to see details</span>
         </div>
         <div className="grid sm:grid-cols-2 gap-2">
-          {(skills.length > 0 ? skills : getDemoData().skills).slice(0, 8).map((skill: any, i: number) => {
+          {(skills.length > 0 ? skills : getDemoData().skills).slice(0, 8).map((skill: { skillName: string; skillCategory: string; masteryLevel: number; streak: number }, i: number) => {
             const isExpanded = expandedSkill === skill.skillName;
             const studyTip = skill.masteryLevel >= 80
               ? 'Great mastery! Try teaching this to a classmate or attempt challenge problems.'

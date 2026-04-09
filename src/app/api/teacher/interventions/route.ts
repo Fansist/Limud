@@ -17,6 +17,17 @@ export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER');
   const { studentId, targetSkills, title } = await req.json();
 
+  // FERPA: verify teacher teaches a course the student is enrolled in
+  if (user.role === 'TEACHER' && !user.isMasterDemo && studentId) {
+    const enrollment = await prisma.enrollment.findFirst({
+      where: { studentId, course: { teachers: { some: { teacherId: user.id } } } },
+      select: { id: true },
+    });
+    if (!enrollment) {
+      return NextResponse.json({ error: 'Not authorized — student is not in your courses' }, { status: 403 });
+    }
+  }
+
   const strategies = generateInterventionStrategies(targetSkills || []);
 
   const plan = await prisma.interventionPlan.create({

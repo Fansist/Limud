@@ -106,7 +106,11 @@ export const POST = apiHandler(async (req: Request) => {
           where: { siblingGroupId, role: 'STUDENT', districtId: user.districtId },
           select: { parentId: true },
         });
-        if (sibling?.parentId) {
+        if (!sibling) {
+          results.push({ email, success: false, error: 'No matching sibling found in your district' });
+          continue;
+        }
+        if (sibling.parentId) {
           parentId = sibling.parentId;
         }
       }

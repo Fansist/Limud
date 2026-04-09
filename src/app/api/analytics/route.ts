@@ -154,7 +154,7 @@ export const GET = apiHandler(async (req: Request) => {
       assignment: {
         OR: [
           { createdById: user.id },
-          ...(user.districtId ? [{ course: { districtId: user.districtId } }] : []),
+          ...(user.districtId ? [{ course: { teachers: { some: { teacherId: user.id } } } }] : []),
         ],
       },
       status: 'SUBMITTED',
