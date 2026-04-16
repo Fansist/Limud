@@ -17,7 +17,8 @@ export const GET = apiHandler(async (req: Request) => {
         username: (p as any).username || '',
       })),
     });
-  } catch {
+  } catch (err) {
+    console.error('[platforms] GET failed:', err);
     return NextResponse.json({ platforms: [] });
   }
 });
@@ -35,7 +36,8 @@ export const POST = apiHandler(async (req: Request) => {
       },
     });
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (err) {
+    console.error('[platforms] POST failed:', err);
     return NextResponse.json({ success: true });
   }
 });
@@ -44,13 +46,14 @@ export const PUT = apiHandler(async (req: Request) => {
   const user = await requireAuth();
   const body = await req.json();
   if (body.action === 'sync') {
-    // In a real app, this would trigger a sync with the platform
     try {
       await prisma.platformLink.updateMany({
         where: { userId: user.id, platformId: body.platformId },
         data: { lastSync: new Date() },
       });
-    } catch {}
+    } catch (err) {
+      console.error('[platforms] sync failed:', err);
+    }
     return NextResponse.json({ success: true, lastSync: new Date().toISOString() });
   }
   return NextResponse.json({ success: true });
@@ -63,6 +66,8 @@ export const DELETE = apiHandler(async (req: Request) => {
     await prisma.platformLink.deleteMany({
       where: { userId: user.id, platformId: body.platformId },
     });
-  } catch {}
+  } catch (err) {
+    console.error('[platforms] DELETE failed:', err);
+  }
   return NextResponse.json({ success: true });
 });

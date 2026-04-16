@@ -9,7 +9,7 @@ export const GET = apiHandler(async (req: Request) => {
   const subject = searchParams.get('subject');
   const type = searchParams.get('type');
 
-  const where: any = { isPublished: true };
+  const where: Record<string, unknown> = { isPublished: true };
   if (subject) where.subject = subject;
   if (type) where.type = type;
 

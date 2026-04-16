@@ -13,10 +13,17 @@ export const GET = apiHandler(async (req: Request) => {
   const { searchParams } = new URL(req.url);
   const studentId = searchParams.get('studentId') || user.id;
 
-  // Parents can only view their children
-  if (user.role === 'PARENT' && studentId !== user.id) {
-    const child = await prisma.user.findFirst({ where: { id: studentId, parentId: user.id } });
-    if (!child) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  // FERPA: verify relationship to student
+  if (studentId !== user.id) {
+    if (user.role === 'PARENT') {
+      const child = await prisma.user.findFirst({ where: { id: studentId, parentId: user.id } });
+      if (!child) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    } else if (user.role === 'TEACHER') {
+      const hasAccess = await prisma.courseTeacher.findFirst({
+        where: { teacherId: user.id, course: { enrollments: { some: { studentId } } } },
+      });
+      if (!hasAccess) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
   }
 
   // Get all skill records
@@ -47,7 +54,7 @@ export const GET = apiHandler(async (req: Request) => {
   const prediction = predictGrade(recentScores, avg, stats?.currentStreak || 0, stats?.totalStudyMinutes || 0);
 
   // Group skills by category
-  const skillsByCategory: Record<string, any[]> = {};
+  const skillsByCategory: Record<string, typeof skills> = {};
   skills.forEach(skill => {
     const cat = skill.skillCategory;
     if (!skillsByCategory[cat]) skillsByCategory[cat] = [];

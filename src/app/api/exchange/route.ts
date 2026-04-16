@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { requireRole, apiHandler, getSession } from '@/lib/middleware';
+import { requireRole, apiHandler, requireAuth } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
 export const GET = apiHandler(async (req: Request) => {
-  const user = await getSession();
+  const user = await requireAuth();
   const url = new URL(req.url);
   const type = url.searchParams.get('type');
 

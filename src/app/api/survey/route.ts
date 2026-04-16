@@ -7,7 +7,7 @@ export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
 
   // v9.4.0: Allow students AND master demo to access survey
-  if (user.role !== 'STUDENT' && !(user as any).isMasterDemo) {
+  if (user.role !== 'STUDENT' && !user.isMasterDemo) {
     return NextResponse.json({ error: 'Students only' }, { status: 403 });
   }
 
@@ -48,7 +48,7 @@ export const POST = apiHandler(async (req: Request) => {
   const user = await requireAuth();
 
   // v9.4.0: Allow students AND master demo to save survey
-  if (user.role !== 'STUDENT' && !(user as any).isMasterDemo) {
+  if (user.role !== 'STUDENT' && !user.isMasterDemo) {
     return NextResponse.json({ error: 'Students only' }, { status: 403 });
   }
 

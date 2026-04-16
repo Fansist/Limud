@@ -71,7 +71,7 @@ export const GET = apiHandler(async (req: Request) => {
   const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
 
   // Demo mode
-  if (user.isDemo) {
+  if (user.isMasterDemo) {
     const filtered = DEMO_POSTS.filter(p => {
       if (parentId) return p.parentId === parentId;
       if (courseId) return p.courseId === courseId && !p.parentId;
@@ -140,7 +140,7 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   // Demo mode
-  if (user.isDemo) {
+  if (user.isMasterDemo) {
     return NextResponse.json({
       success: true,
       post: {
@@ -188,7 +188,7 @@ export const PATCH = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Post ID is required' }, { status: 400 });
   }
 
-  if (user.isDemo) {
+  if (user.isMasterDemo) {
     return NextResponse.json({ success: true, post: { id, isPinned, isResolved, content } });
   }
 
@@ -234,7 +234,7 @@ export const DELETE = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Post ID is required' }, { status: 400 });
   }
 
-  if (user.isDemo) {
+  if (user.isMasterDemo) {
     return NextResponse.json({ success: true });
   }
 

@@ -13,6 +13,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 import { chatWithTutor } from '@/lib/ai';
+import type { PrismaClient } from '@prisma/client';
 
 function generateSessionId() {
   return 'session-' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
@@ -22,7 +23,7 @@ export const POST = apiHandler(async (req: Request) => {
   const user = await requireAuth();
 
   // Allow STUDENT role, PARENT role (homeschool), or Master Demo (unrestricted)
-  const isMasterDemo = (user as any).isMasterDemo === true;
+  const isMasterDemo = user.isMasterDemo === true;
   if (user.role !== 'STUDENT' && !(user.role === 'PARENT' && user.isHomeschoolParent) && !isMasterDemo) {
     return NextResponse.json({ error: 'Only students can use the tutor' }, { status: 403 });
   }
@@ -36,7 +37,7 @@ export const POST = apiHandler(async (req: Request) => {
   const chatSessionId = sessionId || generateSessionId();
 
   // ── Try to load Prisma (may fail if DB is unavailable) ──
-  let prisma: any = null;
+  let prisma: PrismaClient | null = null;
   try {
     prisma = (await import('@/lib/prisma')).default;
   } catch (e) {
@@ -141,12 +142,12 @@ export const POST = apiHandler(async (req: Request) => {
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
 
-  if (user.role !== 'STUDENT' && !(user.role === 'PARENT' && user.isHomeschoolParent) && !(user as any).isMasterDemo) {
+  if (user.role !== 'STUDENT' && !(user.role === 'PARENT' && user.isHomeschoolParent) && !user.isMasterDemo) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   // ── Try to load Prisma ──
-  let prisma: any = null;
+  let prisma: PrismaClient | null = null;
   try {
     prisma = (await import('@/lib/prisma')).default;
   } catch (e) {

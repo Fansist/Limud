@@ -96,6 +96,16 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
   }
 
+  // Verify teacher owns the course
+  if (user.role === 'TEACHER') {
+    const owns = await prisma.courseTeacher.findFirst({
+      where: { teacherId: user.id, courseId: assignment.courseId },
+    });
+    if (!owns && assignment.course.districtId !== user.districtId) {
+      return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+    }
+  }
+
   if (!assignment.adaptiveEnabled) {
     return NextResponse.json({ error: 'Adaptive mode is not enabled for this assignment' }, { status: 400 });
   }

@@ -8,6 +8,19 @@ export const GET = apiHandler(async (req: Request) => {
   const { searchParams } = new URL(req.url);
   const studentId = searchParams.get('studentId') || user.id;
 
+  // FERPA: verify relationship to student
+  if (studentId !== user.id) {
+    if (user.role === 'TEACHER') {
+      const hasAccess = await prisma.courseTeacher.findFirst({
+        where: { teacherId: user.id, course: { enrollments: { some: { studentId } } } },
+      });
+      if (!hasAccess) return NextResponse.json({ error: 'Not authorized to view this student' }, { status: 403 });
+    } else if (user.role === 'PARENT') {
+      const child = await prisma.user.findFirst({ where: { id: studentId, parentId: user.id } });
+      if (!child) return NextResponse.json({ error: 'Not authorized to view this student' }, { status: 403 });
+    }
+  }
+
   const snapshots = await prisma.progressSnapshot.findMany({
     where: { userId: studentId },
     orderBy: { periodStart: 'desc' },
@@ -22,6 +35,21 @@ export const POST = apiHandler(async (req: Request) => {
   const user = await requireAuth();
   const { period, studentId } = await req.json();
   const targetUserId = studentId || user.id;
+
+  // FERPA: verify relationship to student
+  if (targetUserId !== user.id) {
+    if (user.role === 'TEACHER') {
+      const hasAccess = await prisma.courseTeacher.findFirst({
+        where: { teacherId: user.id, course: { enrollments: { some: { studentId: targetUserId } } } },
+      });
+      if (!hasAccess) return NextResponse.json({ error: 'Not authorized to view this student' }, { status: 403 });
+    } else if (user.role === 'PARENT') {
+      const child = await prisma.user.findFirst({ where: { id: targetUserId, parentId: user.id } });
+      if (!child) return NextResponse.json({ error: 'Not authorized to view this student' }, { status: 403 });
+    } else if (user.role === 'STUDENT') {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
+  }
 
   const now = new Date();
   const periodStart = new Date(now);

@@ -11,7 +11,7 @@ import { callGemini, hasApiKey, extractJSON } from '@/lib/ai';
 import { updateSkillRecord } from '@/lib/cognitive-engine';
 
 function generateDemoExam(subject: string, gradeLevel: string, questionCount: number) {
-  const exams: Record<string, any[]> = {
+  const exams: Record<string, { question: string; options: string[]; correctAnswer: string; skill: string; explanation: string }[]> = {
     Math: [
       { question: 'What is 3/4 + 1/2?', options: ['5/4', '1/2', '4/6', '3/6'], correctAnswer: '5/4', skill: 'Fractions', explanation: 'Convert to common denominator: 3/4 + 2/4 = 5/4' },
       { question: 'Solve for x: 2x + 5 = 15', options: ['x = 5', 'x = 10', 'x = 7.5', 'x = 4'], correctAnswer: 'x = 5', skill: 'Linear Equations', explanation: '2x = 15 - 5 = 10, so x = 5' },
@@ -46,6 +46,19 @@ export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('STUDENT', 'PARENT', 'TEACHER');
   const { searchParams } = new URL(req.url);
   const studentId = searchParams.get('studentId') || user.id;
+
+  // FERPA: verify teacher/parent relationship to student
+  if (studentId !== user.id) {
+    if (user.role === 'TEACHER') {
+      const hasAccess = await prisma.courseTeacher.findFirst({
+        where: { teacherId: user.id, course: { enrollments: { some: { studentId } } } },
+      });
+      if (!hasAccess) return NextResponse.json({ error: 'Not authorized to view this student' }, { status: 403 });
+    } else if (user.role === 'PARENT') {
+      const child = await prisma.user.findFirst({ where: { id: studentId, parentId: user.id } });
+      if (!child) return NextResponse.json({ error: 'Not authorized to view this student' }, { status: 403 });
+    }
+  }
 
   try {
     const attempts = await prisma.examAttempt.findMany({

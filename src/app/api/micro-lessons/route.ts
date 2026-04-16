@@ -9,7 +9,7 @@ export const GET = apiHandler(async (req: Request) => {
   const subject = searchParams.get('subject');
   const difficulty = searchParams.get('difficulty');
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (subject) where.subject = subject;
   if (difficulty) where.difficulty = difficulty;
 
@@ -53,7 +53,7 @@ export const POST = apiHandler(async (req: Request) => {
 
 function generateMicroLesson(subject: string, topic: string, difficulty: string) {
   const diffEmoji = { BEGINNER: '🌱', EASY: '📗', MEDIUM: '📘', HARD: '📕', ADVANCED: '🔥' };
-  const emoji = (diffEmoji as any)[difficulty] || '📘';
+  const emoji = diffEmoji[difficulty as keyof typeof diffEmoji] || '📘';
 
   return {
     slides: [

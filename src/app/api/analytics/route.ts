@@ -9,14 +9,7 @@ export const GET = apiHandler(async (req: Request) => {
   // v12.4.3: Also track students from classroom assignments
   let classroomStudentIds: string[] = [];
 
-  if (user.role === 'PARENT' && user.isHomeschoolParent) {
-    // Homeschool parent: get courses from their district
-    const courses = await prisma.course.findMany({
-      where: { districtId: user.districtId },
-      select: { id: true },
-    });
-    courseIds = courses.map(c => c.id);
-  } else if (user.role === 'TEACHER') {
+  if (user.role === 'TEACHER') {
     // Regular teacher: get their assigned courses
     const courseTeachers = await prisma.courseTeacher.findMany({
       where: { teacherId: user.id },
@@ -67,7 +60,19 @@ export const GET = apiHandler(async (req: Request) => {
   }) : [];
 
   // Aggregate student analytics
-  const studentMap = new Map<string, any>();
+  interface StudentAnalytics {
+    id: string;
+    name: string;
+    email: string;
+    courses: { name: string; subject: string }[];
+    averageScore: number | null;
+    totalSubmissions: number;
+    currentStreak: number;
+    totalXP: number;
+    level: number;
+    riskLevel: string;
+  }
+  const studentMap = new Map<string, StudentAnalytics>();
 
   for (const enrollment of enrollments) {
     const s = enrollment.student;

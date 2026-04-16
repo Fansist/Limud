@@ -87,6 +87,19 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'userId, title, and message are required' }, { status: 400 });
   }
 
+  // Verify relationship: teacher/parent can only notify their students
+  if (userId !== user.id) {
+    if (user.role === 'TEACHER') {
+      const hasAccess = await prisma.courseTeacher.findFirst({
+        where: { teacherId: user.id, course: { enrollments: { some: { studentId: userId } } } },
+      });
+      if (!hasAccess) return NextResponse.json({ error: 'Not authorized to notify this user' }, { status: 403 });
+    } else if (user.role === 'PARENT') {
+      const child = await prisma.user.findFirst({ where: { id: userId, parentId: user.id } });
+      if (!child) return NextResponse.json({ error: 'Not authorized to notify this user' }, { status: 403 });
+    }
+  }
+
   const notification = await prisma.notification.create({
     data: {
       userId,

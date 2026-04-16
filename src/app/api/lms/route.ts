@@ -61,6 +61,12 @@ export const POST = apiHandler(async (req: Request) => {
           return NextResponse.json({ error: 'students and courseId required' }, { status: 400 });
         }
 
+        // Verify teacher owns this course
+        if (user.role === 'TEACHER') {
+          const owns = await prisma.courseTeacher.findFirst({ where: { teacherId: user.id, courseId } });
+          if (!owns) return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+        }
+
         // Map Google Classroom students to Limud users
         const results = [];
         for (const gs of rosterStudents) {
@@ -89,6 +95,12 @@ export const POST = apiHandler(async (req: Request) => {
         const { assignments: gcAssignments, courseId } = data || {};
         if (!gcAssignments || !courseId) {
           return NextResponse.json({ error: 'assignments and courseId required' }, { status: 400 });
+        }
+
+        // Verify teacher owns this course
+        if (user.role === 'TEACHER') {
+          const owns = await prisma.courseTeacher.findFirst({ where: { teacherId: user.id, courseId } });
+          if (!owns) return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
         }
 
         const created = [];

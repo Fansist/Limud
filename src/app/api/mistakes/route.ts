@@ -14,7 +14,20 @@ export const GET = apiHandler(async (req: Request) => {
   const subject = searchParams.get('subject');
   const unresolvedOnly = searchParams.get('unresolved') === 'true';
 
-  const where: any = { userId: studentId };
+  // FERPA: verify teacher/parent relationship to student
+  if (studentId !== user.id) {
+    if (user.role === 'TEACHER') {
+      const hasAccess = await prisma.courseTeacher.findFirst({
+        where: { teacherId: user.id, course: { enrollments: { some: { studentId } } } },
+      });
+      if (!hasAccess) return NextResponse.json({ error: 'Not authorized to view this student' }, { status: 403 });
+    } else if (user.role === 'PARENT') {
+      const child = await prisma.user.findFirst({ where: { id: studentId, parentId: user.id } });
+      if (!child) return NextResponse.json({ error: 'Not authorized to view this student' }, { status: 403 });
+    }
+  }
+
+  const where: Record<string, unknown> = { userId: studentId };
   if (subject) where.subject = subject;
   if (unresolvedOnly) where.resolved = false;
 
@@ -25,7 +38,7 @@ export const GET = apiHandler(async (req: Request) => {
   });
 
   // Group by subject
-  const bySubject: Record<string, any[]> = {};
+  const bySubject: Record<string, typeof mistakes> = {};
   mistakes.forEach(m => {
     if (!bySubject[m.subject]) bySubject[m.subject] = [];
     bySubject[m.subject].push(m);

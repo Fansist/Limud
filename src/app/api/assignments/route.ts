@@ -38,7 +38,7 @@ export const GET = apiHandler(async (req: Request) => {
   if (hasTeacherAccess(user)) {
     // Teachers and homeschool parents see assignments they created
     // For homeschool parents, also show assignments from their district
-    const whereClause: any = {};
+    const whereClause: Record<string, unknown> = {};
 
     if (user.role === 'PARENT' && user.isHomeschoolParent) {
       // Homeschool parent: see assignments they created OR from their district

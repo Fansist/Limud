@@ -16,7 +16,7 @@ export const GET = apiHandler(async (req: Request) => {
   const roleFilter = url.searchParams.get('role');
   const includeExpired = url.searchParams.get('includeExpired') === 'true';
 
-  const where: any = {
+  const where: Record<string, unknown> = {
     districtId: user.districtId,
     isActive: true,
   };

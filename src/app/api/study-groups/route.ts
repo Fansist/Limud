@@ -5,7 +5,8 @@ import prisma from '@/lib/prisma';
 // POST /api/study-groups - Create or join a study group
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireAuth();
-  const { action, name, subject, inviteCode, groupId } = await req.json();
+  const body = await req.json();
+  const { action, name, subject, inviteCode, groupId } = body;
 
   if (action === 'create') {
     const group = await prisma.studyGroup.create({
@@ -30,7 +31,7 @@ export const POST = apiHandler(async (req: Request) => {
   if (action === 'message' && groupId) {
     const member = await prisma.studyGroupMember.findUnique({ where: { groupId_userId: { groupId, userId: user.id } } });
     if (!member) return NextResponse.json({ error: 'Not a member' }, { status: 403 });
-    const { content } = await req.json().catch(() => ({ content: '' }));
+    const { content } = body;
     // Simple content moderation
     const flagged = /badword|hate|violence/i.test(content || '');
     const msg = await prisma.studyGroupMessage.create({

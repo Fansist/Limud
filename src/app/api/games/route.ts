@@ -9,7 +9,7 @@ export const GET = apiHandler(async (req: Request) => {
   const category = searchParams.get('category');
   const purchased = searchParams.get('purchased'); // "true" = only purchased
 
-  const where: any = { isActive: true };
+  const where: Record<string, unknown> = { isActive: true };
   if (category) where.category = category;
 
   const games = await prisma.game.findMany({

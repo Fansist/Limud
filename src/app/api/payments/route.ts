@@ -250,10 +250,15 @@ export const POST = apiHandler(async (req: Request) => {
   // ACTION: homeschool-upgrade - Upgrade a homeschool parent's plan
   // ═══════════════════════════════════════════════════════════════════════
   if (action === 'homeschool-upgrade') {
+    const authUser = await requireAuth();
     const { email, tier, studentCount: count, paymentMethod } = body;
 
     if (!email || !tier) {
       return NextResponse.json({ error: 'email and tier required' }, { status: 400 });
+    }
+
+    if (authUser.email !== email) {
+      return NextResponse.json({ error: 'Not authorized to upgrade this account' }, { status: 403 });
     }
 
     const tierKey = tier.toUpperCase() as keyof typeof PRICING;

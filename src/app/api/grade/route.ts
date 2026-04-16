@@ -27,9 +27,14 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
   }
 
-  // Verify access: teacher must own the assignment, admin must be in same district, homeschool parent must own the district
+  // Verify access: teacher must own assignment or be a course teacher, admin must be in same district
   if (user.role === 'TEACHER' && submission.assignment.createdById !== user.id) {
-    return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    const isCourseTeacher = await prisma.courseTeacher.findFirst({
+      where: { teacherId: user.id, courseId: submission.assignment.courseId },
+    });
+    if (!isCourseTeacher) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
   }
   if (user.role === 'ADMIN' && submission.assignment.course.districtId !== user.districtId) {
     return NextResponse.json({ error: 'Not authorized — assignment is not in your district' }, { status: 403 });
