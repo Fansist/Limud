@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
+
+function generateTempPassword(): string {
+  return crypto.randomBytes(12).toString('base64url');
+}
 
 // GET /api/district/teachers
 export const GET = apiHandler(async (req: Request) => {
@@ -9,7 +15,7 @@ export const GET = apiHandler(async (req: Request) => {
   const { searchParams } = new URL(req.url);
   const schoolId = searchParams.get('schoolId');
 
-  const where: any = { districtId: user.districtId, role: 'TEACHER' };
+  const where: Prisma.UserWhereInput = { districtId: user.districtId, role: 'TEACHER' };
   if (schoolId) where.schoolId = schoolId;
 
   const teachers = await prisma.user.findMany({
@@ -48,8 +54,16 @@ export const POST = apiHandler(async (req: Request) => {
     }, { status: 400 });
   }
 
-  const defaultPw = await bcrypt.hash('limud2024!', 12);
-  const results: any[] = [];
+  // Security: each teacher gets a unique random temp password. Previously they
+  // all shared hardcoded 'limud2024!' which was a credential-reuse vulnerability.
+  interface TeacherResult {
+    email: string;
+    success: boolean;
+    error?: string;
+    teacherId?: string;
+    tempPassword?: string;
+  }
+  const results: TeacherResult[] = [];
 
   for (const t of teachers) {
     try {
@@ -62,7 +76,8 @@ export const POST = apiHandler(async (req: Request) => {
         results.push({ email: t.email, success: false, error: 'Email exists' });
         continue;
       }
-      const hashedPw = t.password ? await bcrypt.hash(t.password, 12) : defaultPw;
+      const tempPassword = t.password || generateTempPassword();
+      const hashedPw = await bcrypt.hash(tempPassword, 12);
       const teacher = await prisma.user.create({
         data: {
           email: t.email,
@@ -78,8 +93,15 @@ export const POST = apiHandler(async (req: Request) => {
           isActive: true,
         },
       });
-      results.push({ email: t.email, success: true, teacherId: teacher.id });
-    } catch {
+      results.push({
+        email: t.email,
+        success: true,
+        teacherId: teacher.id,
+        ...(t.password ? {} : { tempPassword }),
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Creation failed';
+      console.error('[district/teachers] create failed:', msg);
       results.push({ email: t.email, success: false, error: 'Creation failed' });
     }
   }

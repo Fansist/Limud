@@ -16,8 +16,21 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import { callGemini, hasApiKey, extractJSON, getAIStatus } from '@/lib/ai';
 import { generateSpecializedQuiz } from '@/lib/ai-generators';
+import { Difficulty } from '@prisma/client';
 
 export const maxDuration = 60;
+
+const VALID_DIFFICULTIES: Difficulty[] = [
+  Difficulty.BEGINNER,
+  Difficulty.EASY,
+  Difficulty.MEDIUM,
+  Difficulty.HARD,
+  Difficulty.ADVANCED,
+];
+function coerceDifficulty(value: unknown): Difficulty {
+  const upper = typeof value === 'string' ? value.toUpperCase() : '';
+  return (VALID_DIFFICULTIES as string[]).includes(upper) ? (upper as Difficulty) : Difficulty.MEDIUM;
+}
 
 const QUIZ_SYSTEM_PROMPT = `You are an expert K-12 educator and quiz creator. Generate high-quality, curriculum-aligned quiz questions.
 
@@ -87,7 +100,11 @@ export const GET = apiHandler(async (req: Request) => {
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
-  const { subject, gradeLevel, questionCount = 10, difficulty = 'MEDIUM', topic, standards } = await req.json();
+  const body = await req.json();
+  const { subject, gradeLevel, questionCount = 10, topic, standards } = body;
+  // Coerce user-supplied difficulty to a known enum value — previously we cast
+  // to `any`, which let a bogus value reach Prisma and crash the request.
+  const difficulty: Difficulty = coerceDifficulty(body.difficulty);
 
   if (!subject || !gradeLevel) {
     return NextResponse.json({ error: 'Subject and grade level are required' }, { status: 400 });
@@ -196,7 +213,7 @@ export const POST = apiHandler(async (req: Request) => {
           title,
           subject,
           gradeLevel,
-          difficulty: difficulty as any,
+          difficulty,
           questionCount: questions.length,
           questions: JSON.stringify(questions),
           standards: standards ? JSON.stringify(standards) : null,

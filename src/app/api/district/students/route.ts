@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
+
+function generateTempPassword(): string {
+  return crypto.randomBytes(12).toString('base64url');
+}
 
 // GET /api/district/students - List students in district
 export const GET = apiHandler(async (req: Request) => {
@@ -10,7 +16,7 @@ export const GET = apiHandler(async (req: Request) => {
   const schoolId = searchParams.get('schoolId');
   const gradeLevel = searchParams.get('gradeLevel');
 
-  const where: any = { districtId: user.districtId, role: 'STUDENT' };
+  const where: Prisma.UserWhereInput = { districtId: user.districtId, role: 'STUDENT' };
   if (schoolId) where.schoolId = schoolId;
   if (gradeLevel) where.gradeLevel = gradeLevel;
 
@@ -67,8 +73,19 @@ export const POST = apiHandler(async (req: Request) => {
     }, { status: 400 });
   }
 
-  const results: any[] = [];
-  const defaultPassword = await bcrypt.hash('limud2024!', 12);
+  // Security: each student and each auto-generated parent gets a unique random
+  // temp password. Previously all of them shared the hardcoded 'limud2024!',
+  // which was a credential-reuse vulnerability at district scale.
+  interface ProvisionResult {
+    email: string;
+    success: boolean;
+    error?: string;
+    studentId?: string;
+    studentTempPassword?: string;
+    parentAccounts?: { id: string; email: string; role: string; tempPassword: string }[];
+    siblingGroupId?: string | null;
+  }
+  const results: ProvisionResult[] = [];
 
   for (const student of students) {
     try {
@@ -93,7 +110,9 @@ export const POST = apiHandler(async (req: Request) => {
         continue;
       }
 
-      const hashedPw = password ? await bcrypt.hash(password, 12) : defaultPassword;
+      // Generate a unique random temp password per student if none supplied.
+      const studentTempPassword = password || generateTempPassword();
+      const hashedPw = await bcrypt.hash(studentTempPassword, 12);
       const fullName = `${firstName} ${lastName}`;
 
       // Determine if this student is a sibling (shares parents with another student)
@@ -146,7 +165,7 @@ export const POST = apiHandler(async (req: Request) => {
       await prisma.rewardStats.create({ data: { userId: newStudent.id } });
 
       // Auto-create 2 parent accounts if NOT a sibling
-      const parentAccounts: any[] = [];
+      const parentAccounts: { id: string; email: string; role: string; tempPassword: string }[] = [];
       if (!siblingGroupId) {
         const newSiblingGroupId = newStudent.id; // Use student ID as sibling group
 
@@ -160,20 +179,21 @@ export const POST = apiHandler(async (req: Request) => {
         const parent1Email = `parent1.${email.split('@')[0]}@${email.split('@')[1]}`;
         const existingP1 = await prisma.user.findUnique({ where: { email: parent1Email } });
         if (!existingP1) {
+          const p1Temp = generateTempPassword();
           const parent1 = await prisma.user.create({
             data: {
               email: parent1Email,
               name: `Parent of ${fullName}`,
               firstName: `Parent 1`,
               lastName: lastName,
-              password: defaultPassword,
+              password: await bcrypt.hash(p1Temp, 12),
               role: 'PARENT',
               accountType: 'DISTRICT',
               districtId: user.districtId,
               isActive: true,
             },
           });
-          parentAccounts.push({ id: parent1.id, email: parent1Email, role: 'Parent 1' });
+          parentAccounts.push({ id: parent1.id, email: parent1Email, role: 'Parent 1', tempPassword: p1Temp });
 
           // Link student to parent 1
           await prisma.user.update({
@@ -186,20 +206,21 @@ export const POST = apiHandler(async (req: Request) => {
         const parent2Email = `parent2.${email.split('@')[0]}@${email.split('@')[1]}`;
         const existingP2 = await prisma.user.findUnique({ where: { email: parent2Email } });
         if (!existingP2) {
+          const p2Temp = generateTempPassword();
           const parent2 = await prisma.user.create({
             data: {
               email: parent2Email,
               name: `Parent 2 of ${fullName}`,
               firstName: `Parent 2`,
               lastName: lastName,
-              password: defaultPassword,
+              password: await bcrypt.hash(p2Temp, 12),
               role: 'PARENT',
               accountType: 'DISTRICT',
               districtId: user.districtId,
               isActive: true,
             },
           });
-          parentAccounts.push({ id: parent2.id, email: parent2Email, role: 'Parent 2' });
+          parentAccounts.push({ id: parent2.id, email: parent2Email, role: 'Parent 2', tempPassword: p2Temp });
         }
       }
 
@@ -207,11 +228,15 @@ export const POST = apiHandler(async (req: Request) => {
         email,
         success: true,
         studentId: newStudent.id,
+        // Only include tempPassword if we generated one (caller didn't supply).
+        ...(password ? {} : { studentTempPassword }),
         parentAccounts,
         siblingGroupId: actualSiblingGroupId || newStudent.id,
       });
 
     } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Creation failed';
+      console.error('[district/students] create failed:', msg);
       results.push({ email: student.email || 'unknown', success: false, error: 'Creation failed' });
     }
   }
@@ -238,11 +263,13 @@ export const PUT = apiHandler(async (req: Request) => {
   const allowedFields = [
     'firstName', 'lastName', 'gradeLevel', 'schoolId', 'address', 'city',
     'state', 'zipCode', 'phone', 'emergencyContact', 'emergencyPhone', 'isActive',
-  ];
+  ] as const;
 
-  const data: any = {};
+  const data: Prisma.UserUpdateInput = {};
   for (const field of allowedFields) {
-    if (updates[field] !== undefined) data[field] = updates[field];
+    if (updates[field] !== undefined) {
+      (data as Record<string, unknown>)[field] = updates[field];
+    }
   }
   if (updates.firstName || updates.lastName) {
     data.name = `${updates.firstName || student.firstName || ''} ${updates.lastName || student.lastName || ''}`.trim();

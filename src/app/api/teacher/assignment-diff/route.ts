@@ -20,10 +20,12 @@ export const GET = apiHandler(async (req: Request) => {
 
   // ── If no assignmentId: return list of assignments with adapted count ──
   if (!assignmentId) {
+    // Fix: Course has no `teacherId` column — teachers are linked via the
+    // CourseTeacher pivot table. Previously this query crashed for TEACHERs.
     const courses = await prisma.course.findMany({
       where: user.role === 'ADMIN'
         ? { districtId: user.districtId }
-        : { teacherId: user.id },
+        : { teachers: { some: { teacherId: user.id } } },
       select: { id: true },
     });
     const courseIds = courses.map(c => c.id);
@@ -93,7 +95,7 @@ export const GET = apiHandler(async (req: Request) => {
     totalPoints: assignment.totalPoints,
     difficulty: assignment.difficulty,
     adaptations: assignment.adaptedVersions.map(av => {
-      let parsedAdaptations: any = {};
+      let parsedAdaptations: { modifications?: string[]; scaffolding?: string[]; formatChanges?: string[] } = {};
       try { parsedAdaptations = JSON.parse(av.adaptations || '{}'); } catch {}
 
       return {

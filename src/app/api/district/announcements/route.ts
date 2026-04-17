@@ -14,6 +14,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { AUTH_SECRET } from '@/lib/config';
+import { Role } from '@prisma/client';
+
+const VALID_ROLES: Role[] = [Role.STUDENT, Role.TEACHER, Role.PARENT, Role.ADMIN];
+function parseTargetRoles(targetRoles: string): Role[] {
+  return targetRoles
+    .split(',')
+    .map(r => r.trim().toUpperCase())
+    .filter((r): r is Role => VALID_ROLES.includes(r as Role));
+}
 
 // Demo announcements for demo/non-DB mode
 const DEMO_ANNOUNCEMENTS = [
@@ -202,11 +211,14 @@ export async function POST(request: NextRequest) {
 
     // Fire notifications to users in district with matching roles
     try {
-      const roleList = targetRoles.split(',').map((r: string) => r.trim());
+      const roleList = parseTargetRoles(targetRoles);
+      if (roleList.length === 0) {
+        return NextResponse.json({ announcement });
+      }
       const users = await prisma.user.findMany({
         where: {
           districtId,
-          role: { in: roleList as any[] },
+          role: { in: roleList },
           isActive: true,
         },
         select: { id: true },

@@ -2,8 +2,18 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { DistrictAccessLevel } from '@prisma/client';
 
-const ACCESS_PERMISSIONS: Record<string, any> = {
+interface AccessPermissionSet {
+  canCreateAccounts: boolean;
+  canManageSchools: boolean;
+  canManageBilling: boolean;
+  canViewAllData: boolean;
+  canManageClasses: boolean;
+}
+
+const ACCESS_PERMISSIONS: Record<DistrictAccessLevel, AccessPermissionSet> = {
   SUPERINTENDENT: {
     canCreateAccounts: true, canManageSchools: true,
     canManageBilling: true, canViewAllData: true, canManageClasses: true,
@@ -33,6 +43,10 @@ const ACCESS_PERMISSIONS: Record<string, any> = {
     canManageBilling: false, canViewAllData: true, canManageClasses: false,
   },
 };
+
+function isValidAccessLevel(level: unknown): level is DistrictAccessLevel {
+  return typeof level === 'string' && level in ACCESS_PERMISSIONS;
+}
 
 // GET /api/district/access - List admin users and their access levels
 export const GET = apiHandler(async (req: Request) => {
@@ -77,7 +91,7 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'name, email, and accessLevel are required' }, { status: 400 });
   }
 
-  if (!ACCESS_PERMISSIONS[accessLevel]) {
+  if (!isValidAccessLevel(accessLevel)) {
     return NextResponse.json({ error: 'Invalid access level' }, { status: 400 });
   }
 
@@ -91,7 +105,11 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Email already exists' }, { status: 409 });
   }
 
-  const hashedPw = await bcrypt.hash(password || 'limud2024!', 12);
+  // Security: if no password supplied, generate a unique random one. Previously
+  // every admin created without an explicit password shared 'limud2024!', which
+  // was a credential-reuse vulnerability.
+  const tempPassword = password || crypto.randomBytes(12).toString('base64url');
+  const hashedPw = await bcrypt.hash(tempPassword, 12);
 
   const newAdmin = await prisma.user.create({
     data: {
@@ -111,7 +129,7 @@ export const POST = apiHandler(async (req: Request) => {
     data: {
       userId: newAdmin.id,
       districtId: user.districtId,
-      accessLevel: accessLevel as any,
+      accessLevel,
       ...permissions,
     },
   });
@@ -119,6 +137,9 @@ export const POST = apiHandler(async (req: Request) => {
   return NextResponse.json({
     admin: { id: newAdmin.id, email: newAdmin.email, name: newAdmin.name },
     access: adminRecord,
+    // Only surface the plaintext when we generated it — otherwise the caller
+    // already knows what they passed in.
+    ...(password ? {} : { tempPassword }),
   }, { status: 201 });
 });
 
@@ -129,6 +150,10 @@ export const PUT = apiHandler(async (req: Request) => {
 
   if (!adminUserId || !accessLevel) {
     return NextResponse.json({ error: 'adminUserId and accessLevel required' }, { status: 400 });
+  }
+
+  if (!isValidAccessLevel(accessLevel)) {
+    return NextResponse.json({ error: 'Invalid access level' }, { status: 400 });
   }
 
   const myAccess = await prisma.districtAdmin.findUnique({
@@ -154,11 +179,11 @@ export const PUT = apiHandler(async (req: Request) => {
     create: {
       userId: adminUserId,
       districtId: user.districtId,
-      accessLevel: accessLevel as any,
+      accessLevel,
       ...permissions,
     },
     update: {
-      accessLevel: accessLevel as any,
+      accessLevel,
       ...permissions,
     },
   });

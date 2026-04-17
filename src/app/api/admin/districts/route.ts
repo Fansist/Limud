@@ -35,10 +35,17 @@ export const GET = apiHandler(async (req: Request) => {
 
 export const PUT = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
-  const { districtId, subscriptionStatus, subscriptionEnd, pricePerYear, maxStudents, maxTeachers } = await req.json();
+  const { subscriptionStatus, subscriptionEnd, pricePerYear, maxStudents, maxTeachers } = await req.json();
+
+  // Security: admins can only update their OWN district. Ignore any districtId
+  // in the body — previously accepting it allowed cross-district privilege
+  // escalation (any ADMIN could edit any district).
+  if (!user.districtId) {
+    return NextResponse.json({ error: 'Admin has no district assigned' }, { status: 403 });
+  }
 
   const updated = await prisma.schoolDistrict.update({
-    where: { id: districtId || user.districtId },
+    where: { id: user.districtId },
     data: {
       ...(subscriptionStatus ? { subscriptionStatus } : {}),
       ...(subscriptionEnd ? { subscriptionEnd: new Date(subscriptionEnd) } : {}),

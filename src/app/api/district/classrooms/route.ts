@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // GET /api/district/classrooms
 // v12.4.4: Fixed teacher visibility — teachers can see their classrooms
@@ -11,13 +12,13 @@ export const GET = apiHandler(async (req: Request) => {
   const schoolId = searchParams.get('schoolId');
   const includeStudents = searchParams.get('includeStudents') === 'true';
 
-  let where: any;
+  let where: Prisma.ClassroomWhereInput;
 
   if (user.role === 'TEACHER') {
     // v12.4.4: For teachers, query by teacherId directly.
     // Use OR: classrooms in their district OR classrooms assigned to them by any admin.
     // This fixes the bug where teachers with null/empty districtId saw no classrooms.
-    const conditions: any[] = [{ teacherId: user.id }];
+    const conditions: Prisma.ClassroomWhereInput[] = [{ teacherId: user.id }];
     if (user.districtId) {
       conditions.push({ districtId: user.districtId, teacherId: user.id });
     }

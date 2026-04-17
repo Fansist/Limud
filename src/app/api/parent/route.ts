@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { AccountType } from '@prisma/client';
 
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('PARENT');
@@ -67,7 +69,7 @@ export const GET = apiHandler(async (req: Request) => {
   });
 
   // Also get courses in the district for homeschool parents
-  let courses: any[] = [];
+  let courses: { id: string; name: string; subject: string; gradeLevel: string }[] = [];
   if (user.isHomeschoolParent && user.districtId) {
     courses = await prisma.course.findMany({
       where: { districtId: user.districtId },
@@ -91,8 +93,12 @@ export const POST = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'Child name is required' }, { status: 400 });
     }
 
-    // Generate email if not provided
-    const email = childEmail || `${user.email.split('@')[0]}+${childName.toLowerCase().replace(/\s+/g, '')}@${user.email.split('@')[1]}`;
+    // Generate email if not provided. Sanitize name — if result is empty
+    // (all whitespace/punctuation), fall back to a random suffix so we never
+    // produce a malformed local-part like "parent+@domain.com".
+    const sanitizedName = String(childName).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const localSuffix = sanitizedName || crypto.randomBytes(3).toString('hex');
+    const email = childEmail || `${user.email.split('@')[0]}+${localSuffix}@${user.email.split('@')[1]}`;
 
     // Check if email already exists
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -100,9 +106,19 @@ export const POST = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
     }
 
-    // Use provided password or generate a default
-    const password = childPassword || 'limud123!';
+    // Security: if parent didn't supply a password, generate a unique random
+    // temp password. Previously all auto-provisioned children shared the same
+    // hardcoded 'limud123!' which was a credential-reuse vulnerability.
+    const password = childPassword || crypto.randomBytes(9).toString('base64url');
     const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Children inherit parent's account type. HOMESCHOOL / INDIVIDUAL / DISTRICT
+    // are all valid; SELF_EDUCATION parents also work but fall back to INDIVIDUAL.
+    const validAccountTypes: AccountType[] = [AccountType.DISTRICT, AccountType.HOMESCHOOL, AccountType.INDIVIDUAL];
+    const parentAccountType = user.accountType as AccountType | undefined;
+    const childAccountType: AccountType = parentAccountType && validAccountTypes.includes(parentAccountType)
+      ? parentAccountType
+      : AccountType.INDIVIDUAL;
 
     const child = await prisma.user.create({
       data: {
@@ -110,7 +126,7 @@ export const POST = apiHandler(async (req: Request) => {
         name: childName,
         password: hashedPassword,
         role: 'STUDENT',
-        accountType: user.accountType as any || 'INDIVIDUAL',
+        accountType: childAccountType,
         districtId: user.districtId || null,
         gradeLevel: childGrade || null,
         parentId: user.id,
@@ -129,7 +145,13 @@ export const POST = apiHandler(async (req: Request) => {
       for (const course of courses) {
         await prisma.enrollment.create({
           data: { courseId: course.id, studentId: child.id },
-        }).catch(() => {}); // Ignore if already enrolled
+        }).catch((err) => {
+          // P2002 = unique constraint (already enrolled) — ignore silently.
+          // Anything else we log so it isn't swallowed.
+          if ((err as { code?: string })?.code !== 'P2002') {
+            console.warn('[parent] homeschool enrollment failed:', err);
+          }
+        });
       }
     }
 
@@ -174,7 +196,11 @@ export const POST = apiHandler(async (req: Request) => {
     for (const child of children) {
       await prisma.enrollment.create({
         data: { courseId: course.id, studentId: child.id },
-      }).catch(() => {}); // Ignore duplicates
+      }).catch((err) => {
+        if ((err as { code?: string })?.code !== 'P2002') {
+          console.warn('[parent] create-course enrollment failed:', err);
+        }
+      });
     }
 
     return NextResponse.json({ success: true, course }, { status: 201 });

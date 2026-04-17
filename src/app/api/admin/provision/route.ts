@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { Role } from '@prisma/client';
 import prisma from '@/lib/prisma';
+
+// Generate a cryptographically-strong temp password (URL-safe, 16 chars)
+function generateTempPassword(): string {
+  return crypto.randomBytes(12).toString('base64url');
+}
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
@@ -15,8 +22,11 @@ export const POST = apiHandler(async (req: Request) => {
     );
   }
 
-  const results: { email: string; success: boolean; error?: string }[] = [];
-  const defaultPassword = await bcrypt.hash('limud2024', 12);
+  // Security: each provisioned user gets a UNIQUE random temp password.
+  // Previously every provisioned user shared the hardcoded 'limud2024' which
+  // was a critical credential-reuse vulnerability. The admin receives the
+  // plaintext once in the response so they can share it with each user.
+  const results: { email: string; success: boolean; tempPassword?: string; error?: string }[] = [];
 
   for (const entry of users) {
     try {
@@ -25,11 +35,12 @@ export const POST = apiHandler(async (req: Request) => {
         continue;
       }
 
-      const role = entry.role.toUpperCase();
-      if (!['STUDENT', 'TEACHER', 'PARENT'].includes(role)) {
+      const roleStr = String(entry.role).toUpperCase();
+      if (!['STUDENT', 'TEACHER', 'PARENT'].includes(roleStr)) {
         results.push({ email: entry.email, success: false, error: 'Invalid role' });
         continue;
       }
+      const role = roleStr as Role;
 
       // Check existing user
       const existing = await prisma.user.findUnique({ where: { email: entry.email } });
@@ -38,12 +49,15 @@ export const POST = apiHandler(async (req: Request) => {
         continue;
       }
 
-      await prisma.user.create({
+      const tempPassword = generateTempPassword();
+      const hashed = await bcrypt.hash(tempPassword, 12);
+
+      const created = await prisma.user.create({
         data: {
           email: entry.email,
           name: entry.name,
-          password: defaultPassword,
-          role: role as any,
+          password: hashed,
+          role,
           districtId: user.districtId,
           gradeLevel: entry.gradeLevel || null,
           isActive: true,
@@ -52,14 +66,13 @@ export const POST = apiHandler(async (req: Request) => {
 
       // Create reward stats for students
       if (role === 'STUDENT') {
-        const newUser = await prisma.user.findUnique({ where: { email: entry.email } });
-        if (newUser) {
-          await prisma.rewardStats.create({ data: { userId: newUser.id } });
-        }
+        await prisma.rewardStats.create({ data: { userId: created.id } });
       }
 
-      results.push({ email: entry.email, success: true });
+      results.push({ email: entry.email, success: true, tempPassword });
     } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Creation failed';
+      console.error('[admin/provision] create failed:', msg);
       results.push({ email: entry.email, success: false, error: 'Creation failed' });
     }
   }
@@ -69,6 +82,7 @@ export const POST = apiHandler(async (req: Request) => {
 
   return NextResponse.json({
     message: `Created ${successCount} users. ${failCount} failed.`,
+    note: 'Each successful user has a unique tempPassword in this response. Share it once — it is not retrievable later.',
     results,
   });
 });

@@ -205,11 +205,11 @@ export const PATCH = secureApiHandler(
         await prisma.submission.deleteMany({ where: { studentId: subjectId } });
       }
       if (scope.includes('all') || scope.includes('behavioral')) {
-        await prisma.emotionalCheckin.deleteMany({ where: { userId: subjectId } }).catch(() => {});
-        await prisma.focusSession.deleteMany({ where: { userId: subjectId } }).catch(() => {});
+        await prisma.emotionalCheckin.deleteMany({ where: { userId: subjectId } });
+        await prisma.focusSession.deleteMany({ where: { userId: subjectId } });
       }
       if (scope.includes('all') || scope.includes('ai_interactions')) {
-        await prisma.aiTutorLog.deleteMany({ where: { userId: subjectId } }).catch(() => {});
+        await prisma.aiTutorLog.deleteMany({ where: { userId: subjectId } });
       }
 
       // Mark as completed
@@ -234,8 +234,9 @@ export const PATCH = secureApiHandler(
         status: 'completed',
         deletedCategories: scope,
       });
-    } catch (error: any) {
-      console.error('[Security] Data deletion error:', error?.message);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('[Security] Data deletion error:', msg);
       await prisma.dataDeletionRequest.update({
         where: { id: requestId },
         data: { status: 'pending' }, // Revert to pending on failure

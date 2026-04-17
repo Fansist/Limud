@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import { generateStudentReport, analyzeCurriculum, analyzeWriting } from '@/lib/ai';
+import type { WeeklyReport } from '@prisma/client';
 
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
@@ -41,7 +42,7 @@ export const GET = apiHandler(async (req: Request) => {
   }));
 
   // Get weekly reports if student specified
-  let reports: any[] = [];
+  let reports: WeeklyReport[] = [];
   if (studentId) {
     reports = await prisma.weeklyReport.findMany({
       where: { userId: studentId },
@@ -145,6 +146,19 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   if (reportType === 'curriculum' && courseId) {
+    // FERPA: teachers can only generate curriculum reports for courses they
+    // actually teach. Previously this route looked up any course by ID,
+    // which leaked enrolled-student data across courses.
+    if (user.role === 'TEACHER' && !user.isMasterDemo) {
+      const owns = await prisma.courseTeacher.findFirst({
+        where: { teacherId: user.id, courseId },
+        select: { id: true },
+      });
+      if (!owns) {
+        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      }
+    }
+
     // Generate curriculum analysis
     const course = await prisma.course.findUnique({
       where: { id: courseId },
@@ -153,6 +167,11 @@ export const POST = apiHandler(async (req: Request) => {
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+
+    // Admins can only analyze courses in their own district
+    if (user.role === 'ADMIN' && course.districtId !== user.districtId) {
+      return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
     }
 
     const studentIds = course.enrollments.map(e => e.studentId);

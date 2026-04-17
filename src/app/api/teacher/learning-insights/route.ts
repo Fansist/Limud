@@ -17,9 +17,13 @@ export const GET = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Teachers and admins only' }, { status: 403 });
   }
 
-  // Get all courses the teacher teaches
+  // Get all courses the teacher teaches. Course has no `teacherId` column —
+  // teachers are linked via the CourseTeacher pivot table. Admins see
+  // district-wide.
   const courses = await prisma.course.findMany({
-    where: { teacherId: user.id },
+    where: user.role === 'ADMIN'
+      ? { districtId: user.districtId }
+      : { teachers: { some: { teacherId: user.id } } },
     select: { id: true, name: true },
   });
 
