@@ -110,7 +110,7 @@ export async function POST(req: Request) {
           type: 'system',
         },
       });
-    } catch { /* non-critical */ }
+    } catch (e) { console.warn('[forgot-password] notify failed:', e); }
 
     createAuditLog({
       action: 'PASSWORD_RESET',

@@ -7,6 +7,17 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import { callGemini, isGeminiConfigured } from '@/lib/ai';
 import prisma from '@/lib/prisma';
+import type { Prisma, Submission, SkillRecord, StudyPlanSession, RewardStats } from '@prisma/client';
+
+// v2.5 — H-9: eliminate `any` across this parent-facing endpoint. Untyped
+// child/submission/skill arrays were the leading indicator of future FERPA
+// leaks — narrow every shape to a Prisma-payload type.
+type ChildWithReward = Prisma.UserGetPayload<{
+  include: {
+    rewardStats: true;
+    enrollments: { include: { course: { select: { name: true; subject: true } } } };
+  };
+}>;
 
 const CHECKIN_SYSTEM_PROMPT = `You are Limud AI, a caring and insightful educational assistant helping parents monitor their children's academic wellbeing. Generate a comprehensive but concise check-in report based on the student data provided.
 
@@ -30,11 +41,11 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   // Try to verify child and gather data — return demo report if DB is unavailable
-  let child: any = null;
-  let recentSubmissions: any[] = [];
+  let child: ChildWithReward | null = null;
+  let recentSubmissions: Submission[] = [];
   let tutorSessions = 0;
-  let skills: any[] = [];
-  let studySessions: any[] = [];
+  let skills: SkillRecord[] = [];
+  let studySessions: StudyPlanSession[] = [];
 
   try {
     child = await prisma.user.findFirst({
@@ -212,21 +223,21 @@ export const GET = apiHandler(async (req: Request) => {
           where: { studentId: child.id, status: 'GRADED', score: { not: null }, submittedAt: { gte: twoWeeksAgo } },
         });
         avgScore = recentGraded.length > 0
-          ? Math.round(recentGraded.reduce((sum: number, s: any) => sum + ((s.score || 0) / (s.maxScore || 100)) * 100, 0) / recentGraded.length)
+          ? Math.round(recentGraded.reduce((sum: number, s: Submission) => sum + ((s.score || 0) / (s.maxScore || 100)) * 100, 0) / recentGraded.length)
           : null;
-      } catch { /* skip */ }
+      } catch (e) { console.warn('[AI-CHECKIN GET] avgScore fetch:', e); }
 
       try {
         tutorCount = await prisma.aITutorLog.count({
           where: { userId: child.id, role: 'user', createdAt: { gte: twoWeeksAgo } },
         });
-      } catch { /* skip */ }
+      } catch (e) { console.warn('[AI-CHECKIN GET] tutorCount fetch:', e); }
 
       return {
         id: child.id,
         name: child.name,
         gradeLevel: child.gradeLevel,
-        courses: child.enrollments.map((e: any) => e.course.name),
+        courses: child.enrollments.map((e) => e.course.name),
         averageScore: avgScore,
         currentStreak: child.rewardStats?.currentStreak || 0,
         level: child.rewardStats?.level || 1,
@@ -243,7 +254,7 @@ export const GET = apiHandler(async (req: Request) => {
 });
 
 function generateFallbackReport(
-  name: string, avgScore: number | null, stats: any,
+  name: string, avgScore: number | null, stats: RewardStats | null | undefined,
   tutorSessions: number, improving: string[], struggling: string[],
   gradedCount: number, studyMinutes: number
 ): string {

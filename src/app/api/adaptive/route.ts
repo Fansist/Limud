@@ -122,8 +122,15 @@ export const POST = apiHandler(async (req: Request) => {
   for (const enrollment of assignment.course.enrollments) {
     const student = enrollment.student;
     const survey = surveyMap.get(student.id);
-    let profileData: any = null;
-    try { profileData = student.learningStyleProfile ? JSON.parse(student.learningStyleProfile) : null; } catch {}
+    // v2.5 — M-8/M-17: narrow the learning-style profile to a known shape and
+    // log parse failures instead of silently falling back to defaults.
+    interface LearningStyleProfile { primaryStyle?: string; [key: string]: unknown }
+    let profileData: LearningStyleProfile | null = null;
+    try {
+      profileData = student.learningStyleProfile ? JSON.parse(student.learningStyleProfile) as LearningStyleProfile : null;
+    } catch (e) {
+      console.warn('[adaptive] profile parse failed for user', student.id, (e as Error).message);
+    }
 
     // Determine primary learning style
     const primaryStyle = profileData?.primaryStyle || survey?.learningStyle || 'structured';

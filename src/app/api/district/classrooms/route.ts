@@ -96,7 +96,7 @@ export const POST = apiHandler(async (req: Request) => {
       await prisma.courseTeacher.create({
         data: { courseId: finalCourseId, teacherId },
       });
-    } catch { /* already exists */ }
+    } catch (e) { if ((e as { code?: string }).code !== 'P2002') console.warn('[classrooms] course-teacher create:', e); }
   }
 
   const classroom = await prisma.classroom.create({
@@ -123,12 +123,10 @@ export const PUT = apiHandler(async (req: Request) => {
   if (!classroomId) return NextResponse.json({ error: 'classroomId required' }, { status: 400 });
 
   // v12.4.4: For teachers, allow access by teacherId without requiring districtId match
-  let where: any;
-  if (user.role === 'TEACHER') {
-    where = { id: classroomId, teacherId: user.id };
-  } else {
-    where = { id: classroomId, districtId: user.districtId };
-  }
+  // v2.5 — M-11: typed WhereInput instead of `any`.
+  const where: Prisma.ClassroomWhereInput = user.role === 'TEACHER'
+    ? { id: classroomId, teacherId: user.id }
+    : { id: classroomId, districtId: user.districtId };
 
   const classroom = await prisma.classroom.findFirst({ where });
   if (!classroom) return NextResponse.json({ error: 'Classroom not found' }, { status: 404 });
@@ -154,7 +152,7 @@ export const PUT = apiHandler(async (req: Request) => {
           data: { classroomId, studentId: sid },
         });
         created.push(sid);
-      } catch { /* duplicate */ }
+      } catch (e) { if ((e as { code?: string }).code !== 'P2002') console.warn('[classrooms] classroom-student create:', e); }
     }
 
     // v12.4.5: Also enroll students in the classroom's course (if any)
@@ -171,7 +169,7 @@ export const PUT = apiHandler(async (req: Request) => {
             await prisma.enrollment.create({
               data: { courseId: classroom.courseId, studentId: sid },
             });
-          } catch { /* already enrolled */ }
+          } catch (e) { if ((e as { code?: string }).code !== 'P2002') console.warn('[classrooms] enrollment:', e); }
         }
       }
     }
@@ -273,10 +271,14 @@ export const PUT = apiHandler(async (req: Request) => {
   }
 
   // Update classroom info
-  const allowedFields = ['name', 'schoolId', 'gradeLevel', 'subject', 'period', 'teacherId', 'courseId', 'isActive'];
-  const updateData: any = {};
+  // v2.5 — M-11: typed UpdateInput with explicit allow-list to prevent mass-assignment.
+  const allowedFields = ['name', 'schoolId', 'gradeLevel', 'subject', 'period', 'teacherId', 'courseId', 'isActive'] as const;
+  const updateData: Prisma.ClassroomUpdateInput = {};
   for (const f of allowedFields) {
-    if (data[f] !== undefined) updateData[f] = data[f];
+    const value = (data as Record<string, unknown>)[f];
+    if (value !== undefined) {
+      (updateData as Record<string, unknown>)[f] = value;
+    }
   }
 
   const updated = await prisma.classroom.update({ where: { id: classroomId }, data: updateData });

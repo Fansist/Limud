@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     }
 
     // ── Sanitize name (XSS prevention) ──
-    const cleanName = sanitizeForDisplay(String(name).trim()).substring(0, SECURITY_CONFIG.MAX_NAME_LENGTH);
+    const cleanName = sanitizeForDisplay(String(name).trim()).substring(0, SECURITY_CONFIG.input.maxNameLength);
     if (!cleanName || cleanName.length < 2) {
       return NextResponse.json({ error: 'Name must be at least 2 characters' }, { status: 400 });
     }

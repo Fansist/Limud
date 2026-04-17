@@ -6,9 +6,11 @@
  * Works in both demo mode (returns success) and real DB mode (persists data).
  */
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession, type Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+
+interface OnboardingClass { name?: string }
 
 export async function POST(request: Request) {
   try {
@@ -20,12 +22,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'At least one subject is required' }, { status: 400 });
     }
 
-    // Try to get session — if authenticated, persist to DB
+    // v2.5 — M-2: stop swallowing session errors silently.
     let userId: string | null = null;
     try {
-      const session = await getServerSession(authOptions);
-      userId = (session?.user as any)?.id || null;
-    } catch {}
+      const session: Session | null = await getServerSession(authOptions);
+      userId = (session?.user as { id?: string } | undefined)?.id || null;
+    } catch (e) { console.warn('[onboarding] session lookup failed:', e); }
 
     if (userId) {
       // In a real production setup, this would save to the database
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
       data: {
         subjects,
         gradeRange: gradeRange || 'not specified',
-        classCount: (classes || []).filter((c: any) => c.name).length,
+        classCount: (classes as OnboardingClass[] | undefined || []).filter(c => c.name).length,
         aiPreferences: aiPreferences || [],
       },
     });

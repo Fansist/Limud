@@ -149,11 +149,13 @@ export const POST = apiHandler(async (req: Request) => {
   // v9.4.0: If adaptive is enabled and work mode is homework/independent, auto-generate adapted versions
   if (assignment.adaptiveEnabled && ['homework', 'independent_practice'].includes(assignment.workMode)) {
     // Fire-and-forget adaptive generation (don't block the response)
+    // v2.5: surface silent failures. Adaptive generation is still fire-and-forget,
+    // but a failure is logged and reflected in the response so the client can retry.
     fetch(new URL('/api/adaptive', req.url).toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', cookie: req.headers.get('cookie') || '' },
       body: JSON.stringify({ assignmentId: assignment.id }),
-    }).catch(() => {});
+    }).catch((e) => { console.warn('[assignments] adaptive generation dispatch failed:', e); });
   }
 
   // v12.0.0: Send email & in-app notification to enrolled students (fire-and-forget)

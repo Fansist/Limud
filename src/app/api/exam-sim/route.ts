@@ -180,8 +180,9 @@ export const PUT = apiHandler(async (req: Request) => {
       if (!weaknesses.includes(q.skill)) weaknesses.push(q.skill);
     }
 
-    // Update skill tracking
-    updateSkillRecord(user.id, q.skill, attempt.subject, isCorrect, isCorrect ? 100 : 0).catch(() => {});
+    // v2.5: skill-tracking failures were silently dropped; now warn so regressions are observable.
+    updateSkillRecord(user.id, q.skill, attempt.subject, isCorrect, isCorrect ? 100 : 0)
+      .catch((e) => { console.warn('[exam-sim] skill-record update failed:', e); });
 
     return {
       question: q.question,
@@ -225,7 +226,7 @@ export const PUT = apiHandler(async (req: Request) => {
           correctAnswer: result.correctAnswer,
           explanation: result.explanation,
         },
-      }).catch(() => {});
+      }).catch((e) => { console.warn('[exam-sim] mistake-entry create failed:', e); });
     }
   }
 

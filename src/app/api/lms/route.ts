@@ -39,6 +39,14 @@ export const GET = apiHandler(async (req: Request) => {
   });
 });
 
+// v2.5 — M-15: whitelist of allowed (provider, action) pairs. Previously any
+// string passed as `action` fell through to the switch and a bad value silently
+// hit the default branch without 400ing. Reject unknown actions up front.
+const VALID_PROVIDERS = ['google-classroom', 'canvas'] as const;
+const VALID_ACTIONS = ['sync-roster', 'sync-assignments', 'push-grades'] as const;
+type LmsProvider = typeof VALID_PROVIDERS[number];
+type LmsAction = typeof VALID_ACTIONS[number];
+
 // POST /api/lms - Handle LMS sync operations
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
@@ -49,6 +57,25 @@ export const POST = apiHandler(async (req: Request) => {
       { error: 'provider and action are required' },
       { status: 400 }
     );
+  }
+
+  if (!VALID_PROVIDERS.includes(provider as LmsProvider) || !VALID_ACTIONS.includes(action as LmsAction)) {
+    return NextResponse.json(
+      { error: `Unknown provider/action. provider must be one of [${VALID_PROVIDERS.join(', ')}], action must be one of [${VALID_ACTIONS.join(', ')}]` },
+      { status: 400 }
+    );
+  }
+
+  // v2.5 — M-15: every course-scoped operation verifies district ownership up
+  // front for ADMINs (TEACHER ownership is already checked inside each branch).
+  if (user.role === 'ADMIN' && data?.courseId) {
+    const course = await prisma.course.findFirst({
+      where: { id: data.courseId },
+      select: { districtId: true },
+    });
+    if (!course || course.districtId !== user.districtId) {
+      return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+    }
   }
 
   // Google Classroom integration hooks

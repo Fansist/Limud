@@ -219,7 +219,7 @@ export const GET = apiHandler(async (req: Request) => {
             formats: JSON.parse(survey.preferredFormats || '[]'),
           };
         }
-      } catch {}
+      } catch (e) { console.warn('[submissions] survey fetch failed:', e); }
 
       // Get adapted version info if it exists
       let adaptedInfo = null;
@@ -229,7 +229,7 @@ export const GET = apiHandler(async (req: Request) => {
           select: { learningStyle: true, methodSuggestion: true, difficulty: true },
         });
         if (adapted) adaptedInfo = adapted;
-      } catch {}
+      } catch (e) { console.warn('[submissions] adapted-assignment fetch failed:', e); }
 
       return {
         ...s,

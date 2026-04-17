@@ -23,6 +23,15 @@ export const GET = apiHandler(async (req: Request) => {
         where: { teacherId: user.id, course: { enrollments: { some: { studentId } } } },
       });
       if (!hasAccess) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    } else if (user.role === 'ADMIN') {
+      const student = await prisma.user.findUnique({
+        where: { id: studentId },
+        select: { districtId: true },
+      });
+      if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+      if (student.districtId !== user.districtId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      }
     }
   }
 

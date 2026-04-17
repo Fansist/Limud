@@ -44,6 +44,16 @@ export const PUT = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Admin has no district assigned' }, { status: 403 });
   }
 
+  // v2.5 — H-3: billing-adjacent fields (subscription*, pricePerYear, seat caps)
+  // require canManageBilling. Without it, return 403 before any write.
+  const adminRecord = await prisma.districtAdmin.findUnique({
+    where: { userId_districtId: { userId: user.id, districtId: user.districtId } },
+    select: { canManageBilling: true },
+  });
+  if (!adminRecord || !adminRecord.canManageBilling) {
+    return NextResponse.json({ error: 'Billing permission required' }, { status: 403 });
+  }
+
   const updated = await prisma.schoolDistrict.update({
     where: { id: user.districtId },
     data: {

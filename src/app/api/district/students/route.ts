@@ -44,11 +44,16 @@ export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
   const body = await req.json();
 
-  // Check district admin access level
+  // v2.5 — H-4: enforce canCreateAccounts as a HARD gate. Previously the check
+  // only fired when a DistrictAdmin row existed; an ADMIN with no row silently
+  // bypassed the permission. Now missing row ⇒ 403.
+  if (!user.districtId) {
+    return NextResponse.json({ error: 'Admin has no district assigned' }, { status: 403 });
+  }
   const adminRecord = await prisma.districtAdmin.findUnique({
     where: { userId_districtId: { userId: user.id, districtId: user.districtId } },
   });
-  if (adminRecord && !adminRecord.canCreateAccounts) {
+  if (!adminRecord || !adminRecord.canCreateAccounts) {
     return NextResponse.json({ error: 'You do not have permission to create accounts' }, { status: 403 });
   }
 

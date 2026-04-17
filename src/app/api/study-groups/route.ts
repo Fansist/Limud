@@ -50,6 +50,13 @@ export const GET = apiHandler(async (req: Request) => {
   const groupId = searchParams.get('groupId');
 
   if (groupId) {
+    const membership = await prisma.studyGroupMember.findFirst({
+      where: { groupId, userId: user.id },
+      select: { id: true },
+    });
+    if (!membership && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Not a member' }, { status: 403 });
+    }
     const group = await prisma.studyGroup.findUnique({
       where: { id: groupId },
       include: {

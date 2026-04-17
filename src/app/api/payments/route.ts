@@ -322,6 +322,19 @@ export const POST = apiHandler(async (req: Request) => {
     const user = await requireRole('ADMIN');
     const { tier, studentCount } = body;
 
+    // v2.5 — H-2: billing actions require canManageBilling on the DistrictAdmin row.
+    // Previously any ADMIN could upgrade/renew, incurring charges outside their scope.
+    if (!user.districtId) {
+      return NextResponse.json({ error: 'Admin has no district assigned' }, { status: 403 });
+    }
+    const adminRecord = await prisma.districtAdmin.findUnique({
+      where: { userId_districtId: { userId: user.id, districtId: user.districtId } },
+      select: { canManageBilling: true },
+    });
+    if (!adminRecord || !adminRecord.canManageBilling) {
+      return NextResponse.json({ error: 'Billing permission required' }, { status: 403 });
+    }
+
     const tierKey = (tier || 'STANDARD').toUpperCase() as keyof typeof PRICING;
     const tierInfo = PRICING[tierKey];
     if (!tierInfo) {

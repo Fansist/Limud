@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import { isAllowedDm } from '../route';
 
 /**
  * GET /api/messages/thread?userId=<other_user_id>
@@ -18,11 +19,22 @@ export const GET = apiHandler(async (req: Request) => {
   // Get other user info
   const otherUser = await prisma.user.findUnique({
     where: { id: otherUserId },
-    select: { id: true, name: true, role: true, email: true },
+    select: { id: true, name: true, role: true, email: true, districtId: true, parentId: true },
   });
 
   if (!otherUser) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  // COPPA/FERPA: verify the caller is allowed to DM this user.
+  const allowed = await isAllowedDm(user, {
+    id: otherUser.id,
+    role: otherUser.role,
+    districtId: otherUser.districtId,
+    parentId: otherUser.parentId,
+  });
+  if (!allowed) {
+    return NextResponse.json({ error: 'Not allowed' }, { status: 403 });
   }
 
   // Get all messages between the two users

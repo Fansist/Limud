@@ -85,6 +85,43 @@ export const GET = apiHandler(async (req: Request) => {
     });
   }
 
+  // FERPA: when a courseId is supplied, enforce caller has access to that course
+  if (courseId) {
+    if (user.role === 'STUDENT') {
+      const enrollment = await prisma.enrollment.findFirst({
+        where: { courseId, studentId: user.id },
+        select: { id: true },
+      });
+      if (!enrollment) {
+        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      }
+    } else if (user.role === 'TEACHER') {
+      const courseTeacher = await prisma.courseTeacher.findFirst({
+        where: { courseId, teacherId: user.id },
+        select: { id: true },
+      });
+      if (!courseTeacher) {
+        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      }
+    } else if (user.role === 'ADMIN') {
+      const course = await prisma.course.findFirst({
+        where: { id: courseId },
+        select: { districtId: true },
+      });
+      if (!course || course.districtId !== user.districtId) {
+        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      }
+    } else if (user.role === 'PARENT') {
+      const childEnrollment = await prisma.enrollment.findFirst({
+        where: { courseId, student: { parentId: user.id } },
+        select: { id: true },
+      });
+      if (!childEnrollment) {
+        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      }
+    }
+  }
+
   try {
     const where: Record<string, unknown> = {};
     if (parentId) {

@@ -11,7 +11,7 @@ type DmReceiver = {
 
 // FERPA relationship check for direct messages. Returns true iff the sender and
 // receiver share a legitimate relationship per role. See #6 in CODER brief.
-async function isAllowedDm(sender: UserSession, receiver: DmReceiver): Promise<boolean> {
+export async function isAllowedDm(sender: UserSession, receiver: DmReceiver): Promise<boolean> {
   // ADMIN: anyone in their district.
   if (sender.role === 'ADMIN') {
     return receiver.districtId === sender.districtId;

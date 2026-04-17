@@ -1,73 +1,33 @@
+/**
+ * v2.5 — H-8: `PlatformLink` is not in `prisma/schema.prisma`. The prior route
+ * used `(p as any)` casts and swallowed errors, leaving clients with mock-success
+ * responses when the DB failed. Return 501 until the model is defined.
+ */
 import { NextResponse } from 'next/server';
-import { requireAuth, apiHandler } from '@/lib/middleware';
-import prisma from '@/lib/prisma';
+import { apiHandler, requireAuth } from '@/lib/middleware';
 
-export const GET = apiHandler(async (req: Request) => {
-  const user = await requireAuth();
-  try {
-    const platforms = await prisma.platformLink.findMany({
-      where: { userId: user.id },
-    });
-    return NextResponse.json({
-      platforms: platforms.map(p => ({
-        platformId: (p as any).platformId,
-        linkedAt: p.createdAt,
-        syncEnabled: (p as any).syncEnabled ?? true,
-        lastSync: (p as any).lastSync || null,
-        username: (p as any).username || '',
-      })),
-    });
-  } catch (err) {
-    console.error('[platforms] GET failed:', err);
-    return NextResponse.json({ platforms: [] });
-  }
+const NOT_AVAILABLE = {
+  error: 'Platform linking is not yet available in this deployment.',
+  code: 'FEATURE_NOT_AVAILABLE',
+  platforms: [],
+};
+
+export const GET = apiHandler(async () => {
+  await requireAuth();
+  return NextResponse.json(NOT_AVAILABLE, { status: 501 });
 });
 
-export const POST = apiHandler(async (req: Request) => {
-  const user = await requireAuth();
-  const body = await req.json();
-  try {
-    await prisma.platformLink.create({
-      data: {
-        userId: user.id,
-        platformId: body.platformId,
-        username: body.username,
-        syncEnabled: true,
-      },
-    });
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error('[platforms] POST failed:', err);
-    return NextResponse.json({ success: true });
-  }
+export const POST = apiHandler(async () => {
+  await requireAuth();
+  return NextResponse.json(NOT_AVAILABLE, { status: 501 });
 });
 
-export const PUT = apiHandler(async (req: Request) => {
-  const user = await requireAuth();
-  const body = await req.json();
-  if (body.action === 'sync') {
-    try {
-      await prisma.platformLink.updateMany({
-        where: { userId: user.id, platformId: body.platformId },
-        data: { lastSync: new Date() },
-      });
-    } catch (err) {
-      console.error('[platforms] sync failed:', err);
-    }
-    return NextResponse.json({ success: true, lastSync: new Date().toISOString() });
-  }
-  return NextResponse.json({ success: true });
+export const PUT = apiHandler(async () => {
+  await requireAuth();
+  return NextResponse.json(NOT_AVAILABLE, { status: 501 });
 });
 
-export const DELETE = apiHandler(async (req: Request) => {
-  const user = await requireAuth();
-  const body = await req.json();
-  try {
-    await prisma.platformLink.deleteMany({
-      where: { userId: user.id, platformId: body.platformId },
-    });
-  } catch (err) {
-    console.error('[platforms] DELETE failed:', err);
-  }
-  return NextResponse.json({ success: true });
+export const DELETE = apiHandler(async () => {
+  await requireAuth();
+  return NextResponse.json(NOT_AVAILABLE, { status: 501 });
 });

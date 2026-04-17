@@ -41,6 +41,18 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'teachers array required' }, { status: 400 });
   }
 
+  // v2.5 — H-4: enforce canCreateAccounts on DistrictAdmin. No bypass for missing row.
+  if (!user.districtId) {
+    return NextResponse.json({ error: 'Admin has no district assigned' }, { status: 403 });
+  }
+  const adminRecord = await prisma.districtAdmin.findUnique({
+    where: { userId_districtId: { userId: user.id, districtId: user.districtId } },
+    select: { canCreateAccounts: true },
+  });
+  if (!adminRecord || !adminRecord.canCreateAccounts) {
+    return NextResponse.json({ error: 'You do not have permission to create accounts' }, { status: 403 });
+  }
+
   // Check capacity
   const district = await prisma.schoolDistrict.findUnique({ where: { id: user.districtId } });
   if (!district) return NextResponse.json({ error: 'District not found' }, { status: 404 });

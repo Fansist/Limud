@@ -96,7 +96,7 @@ export const POST = apiHandler(async (req: Request) => {
         maxScore: result.maxScore,
         feedback: result.feedback || undefined,
       }),
-    }).catch(() => { /* email is best-effort */ });
+    }).catch((e) => { console.warn('[grade] email notify failed:', e); });
 
     return NextResponse.json({
       submission: updated,

@@ -17,6 +17,25 @@ export const GET = apiHandler(async (req: Request) => {
     where: { teacherId: user.id },
     include: { course: true },
   });
+
+  // v2.5 — H-5: when a courseId is supplied, verify the caller owns the course
+  // (TEACHER) or is same-district (ADMIN). Previously courseId was trusted and a
+  // teacher could read insights for any course.
+  if (courseId) {
+    if (user.role === 'TEACHER' && !user.isMasterDemo) {
+      const owns = courseTeachers.some(ct => ct.courseId === courseId);
+      if (!owns) return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+    } else if (user.role === 'ADMIN') {
+      const course = await prisma.course.findFirst({
+        where: { id: courseId },
+        select: { districtId: true },
+      });
+      if (!course || course.districtId !== user.districtId) {
+        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      }
+    }
+  }
+
   const courseIds = courseId ? [courseId] : courseTeachers.map(ct => ct.courseId);
 
   // Get all students in those courses

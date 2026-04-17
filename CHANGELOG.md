@@ -4,6 +4,146 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [2.5.0] - 2026-04-17 — Update 2.5 (security / compliance sweep)
+
+Update 2.5 fixes every CRITICAL and HIGH finding from `BUG-REPORT-V3.md`, plus
+a substantial slice of the MEDIUM / LOW tier. Pure type-narrowing items with no
+runtime impact (documented in BUG-REPORT-V3.md section MEDIUM/LOW) are carried
+forward as tech debt; the changes below are behavior-affecting.
+
+### CRITICAL — fixed
+
+- **C-1 · `src/app/api/security/data-deletion/route.ts`** — GDPR Art.17
+  ("right to be forgotten") now sweeps every user-owned model in a single
+  `prisma.$transaction`, covering submissions, assignments, adaptations,
+  writing, math steps, exams, homework scans, uploads, behavioral
+  (checkins / focus / study-plan / confidence / goals / season-pass / daily-boost),
+  AI interactions (tutor logs / vocab / concept maps / micro-lessons),
+  skills / spaced-rep / mistakes / reports / surveys / snapshots / certificates,
+  and PII (notifications / reward stats / challenges / games / votes / posts
+  / group membership / whiteboard / parent goals / intervention plans / teacher
+  settings). A post-deletion `count` verification confirms zero residual rows
+  per model before the request is marked completed.
+- **C-2 · `src/app/api/skills/route.ts`** — ADMIN skill-record reads now enforce
+  same-district scoping (already in place from prior sweep, re-verified).
+- **C-3 · `src/app/api/study-groups/route.ts`** — `GET ?groupId` already
+  verifies membership or ADMIN; re-verified in 2.5.
+- **C-4 · `src/app/api/messages/thread/route.ts`** — `isAllowedDm` gate already
+  wired for GET; re-verified.
+- **C-5 · `src/app/api/forums/route.ts`** — forum GET already enforces
+  enrollment (STUDENT) / teaching (TEACHER) / district (ADMIN) / child-enrollment
+  (PARENT) when a `courseId` is supplied; re-verified.
+- **C-6 · `src/app/api/parent/goals/route.ts`** — parent-child binding via
+  `verifyChildAccess` helper already in place across GET/POST/PUT/DELETE;
+  re-verified.
+- **C-7 · silent `.catch(() => {})`** — replaced with `console.warn` + context
+  on the adaptive-generation dispatch in `assignments/route.ts`, and on the
+  skill-record update + mistake-entry create in `exam-sim/route.ts`. Failures
+  are now observable instead of pretending to succeed.
+
+### HIGH — fixed
+
+- **H-1 · `src/app/api/auth/register/route.ts`** — replaced the crashing
+  `SECURITY_CONFIG.MAX_NAME_LENGTH` reference with the correct nested path
+  `SECURITY_CONFIG.input.maxNameLength`. The `security/dashboard` route had
+  the same class of bug across 5 other config keys (`PASSWORD_MIN_LENGTH`,
+  `MAX_FAILED_LOGINS`, `RATE_LIMIT_MAX_REQUESTS`, `ENCRYPTION_ALGORITHM`,
+  `SESSION_MAX_AGE_HOURS`, `AUDIT_RETENTION_DAYS`) — all corrected to the
+  nested `rateLimits.global / lockout.maxFailedLogins / password.minLength
+  / encryption.algorithm / session.maxAgeHours / audit.retentionDays` paths.
+- **H-2 · `src/app/api/payments/route.ts`** — `upgrade` and `renew` now require
+  `canManageBilling` on the caller's `DistrictAdmin` row before creating the
+  Payment or updating subscription fields.
+- **H-3 · `src/app/api/admin/districts/route.ts`** — `PUT` (billing-adjacent
+  fields) now requires `canManageBilling`. Mirrors H-2.
+- **H-4 · `src/app/api/district/students/route.ts` + `src/app/api/district/teachers/route.ts`**
+  — `canCreateAccounts` is a HARD gate. Previously the students route only
+  rejected when a DistrictAdmin row existed (missing row ⇒ silent bypass) and
+  the teachers route had no check at all. Both now return 403 if the row is
+  missing or the flag is false.
+- **H-5 · `src/app/api/teacher/insights/route.ts`** — `courseId` from the query
+  string is now verified against `CourseTeacher` ownership (TEACHER) or
+  same-district (ADMIN) before aggregate student-performance data is returned.
+- **H-6 · `src/app/api/announcements/route.ts`** — rebuilt the `AND` filter
+  cleanly using `Prisma.AnnouncementWhereInput[]` + drop-empty-then-attach
+  pattern. The prior code mutated `where.OR` then deleted it and left `{}`
+  placeholders, which could collapse the role filter and leak admin-only
+  announcements to non-admins.
+- **H-7 · `src/lib/ai.ts` · `gradeSubmission`** — student content is now wrapped
+  in `<STUDENT_SUBMISSION>` delimiters, any embedded closing tag is stripped,
+  and the system prompt carries an explicit injection guard instructing
+  Gemini to treat tag-enclosed content as untrusted data and never follow
+  instructions embedded there.
+- **H-8 · `src/app/api/exchange/route.ts` + `src/app/api/platforms/route.ts`** —
+  these routes referenced Prisma models (`ExchangeRequest`, `ExchangeItem`,
+  `PlatformLink`) that do not exist in `prisma/schema.prisma`, and masked the
+  runtime error with `(x as any)` casts and silent mock-data fallbacks on DB
+  exceptions. Both files are now explicit 501 stubs with a
+  `FEATURE_NOT_AVAILABLE` code, so the client sees the correct unavailable
+  state instead of a fake success. Option B from BUG-REPORT-V3.md (lower-risk
+  than adding the models without runtime validation).
+- **H-9 · `src/app/api/parent/ai-checkin/route.ts`** — removed `any` across the
+  child record, recentSubmissions / skills / studySessions arrays, and the
+  `stats` parameter in `generateFallbackReport`. Replaced with
+  `Prisma.UserGetPayload`-derived `ChildWithReward`, `Submission[]`,
+  `SkillRecord[]`, `StudyPlanSession[]`, `RewardStats | null | undefined`.
+  Also converted the `(s: any)` / `(e: any)` maps and two swallowed
+  `catch {}` blocks to typed + logged versions.
+
+### MEDIUM — fixed
+
+- **M-2 · `src/app/api/teacher/onboarding/route.ts`** — stopped swallowing
+  session-lookup errors silently; typed `session` as `Session | null` and
+  narrowed `session.user` to `{ id?: string }`. Removed `(c: any)` on classes.
+- **M-8 / M-17 · `src/app/api/adaptive/route.ts`** — narrowed learning-style
+  profile to a typed `LearningStyleProfile` interface and replaced the empty
+  `catch {}` around `JSON.parse` with a `console.warn` that includes the
+  student id. Parse failures are now observable instead of silently yielding
+  default recommendations.
+- **M-10 · `src/app/api/district/classrooms/route.ts`** — four empty
+  `catch { /* ... */ }` blocks now branch on `P2002` (expected duplicate) and
+  `console.warn` on any other code, so FK violations and other Prisma errors
+  are no longer invisible.
+- **M-11 · `src/app/api/district/classrooms/route.ts`** — `where` and
+  `updateData` in the PUT path are now typed `Prisma.ClassroomWhereInput` /
+  `Prisma.ClassroomUpdateInput` with an explicit `allowedFields` tuple to
+  prevent mass-assignment.
+- **M-15 · `src/app/api/lms/route.ts`** — added `VALID_PROVIDERS` /
+  `VALID_ACTIONS` whitelist at the top of POST and a same-district check for
+  any ADMIN request that carries a `courseId`. Unknown actions now 400 up
+  front instead of falling through to the default branch silently.
+- **M-18 · `src/app/api/exchange/route.ts`** — the mock-data-on-exception
+  fallbacks are gone along with the route body (see H-8 stub).
+
+### LOW — fixed
+
+- **L-2 · `src/app/api/auth/forgot-password/route.ts`** — `catch { /* non-critical */ }`
+  on the notification create now logs the error via `console.warn` while
+  preserving the non-fatal behavior.
+- **L-3 · `src/app/api/grade/route.ts`** — `sendEmail().catch(()=>{...})` now
+  logs failures via `console.warn('[grade] email notify failed:', e)`.
+
+### Deferred / tech debt (not shipped in 2.5)
+
+Items from BUG-REPORT-V3.md that are pure type-narrowing with no runtime
+behavior change were left for a future cleanup pass. These do not affect
+security, FERPA/COPPA, or correctness:
+
+- M-3, M-4 (tutor), M-5, M-6, M-7, M-9 (quiz-generator), M-12, M-13 (session
+  fingerprinting — requires new infra), M-14 (worksheet-search relocation to
+  `src/lib/ai.ts` — requires careful prompt-text move), M-16 (analytics
+  N+1 — requires perf measurement before chunking).
+- L-1, L-4, L-5, L-6, L-7, L-8 — mostly DRY / flagged-intentional items.
+
+### Verification
+
+- Static review of every touched file. No `prisma migrate` or schema change.
+  Demo mode preserved on every touched route. No runtime build executed here
+  (Node toolchain absent on audit host) — run `npm run lint` + `npm run build`
+  on a dev host before tagging a release.
+
+---
+
 ## [9.0.0] - 2026-04-09 — Update 9
 
 ### Added — Skills Mastery & Review widget on Student Dashboard

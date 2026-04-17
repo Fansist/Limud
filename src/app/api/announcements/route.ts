@@ -9,49 +9,42 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
   const url = new URL(req.url);
-  const roleFilter = url.searchParams.get('role');
   const includeExpired = url.searchParams.get('includeExpired') === 'true';
 
-  const where: Record<string, unknown> = {
-    districtId: user.districtId,
-    isActive: true,
-  };
+  // v2.5 — H-6: the prior implementation mutated where.OR then ran delete +
+  // rebuilt AND with `{}` placeholders, which could collapse the role filter
+  // for non-admins and leak admin-only announcements. Rebuild cleanly from
+  // explicit AND clauses, drop empty ones, and only attach when non-empty.
+  const and: Prisma.AnnouncementWhereInput[] = [];
 
-  // Filter by target roles if user is not admin
   if (user.role !== 'ADMIN') {
-    where.OR = [
-      { targetRoles: { contains: user.role } },
-      { targetRoles: { contains: 'STUDENT,TEACHER,PARENT,ADMIN' } },
-    ];
+    and.push({
+      OR: [
+        { targetRoles: { contains: user.role } },
+        { targetRoles: { contains: 'STUDENT,TEACHER,PARENT,ADMIN' } },
+      ],
+    });
   }
 
   if (!includeExpired) {
-    where.OR = [
-      ...(where.OR || []),
-      { expiresAt: null },
-      { expiresAt: { gte: new Date() } },
-    ];
-    // Fix: proper filtering for non-expired
-    delete where.OR;
-    where.AND = [
-      user.role !== 'ADMIN' ? {
-        OR: [
-          { targetRoles: { contains: user.role } },
-          { targetRoles: { contains: 'STUDENT,TEACHER,PARENT,ADMIN' } },
-        ],
-      } : {},
-      {
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gte: new Date() } },
-        ],
-      },
-    ];
+    and.push({
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: new Date() } },
+      ],
+    });
   }
+
+  const where: Prisma.AnnouncementWhereInput = {
+    districtId: user.districtId,
+    isActive: true,
+    ...(and.length > 0 ? { AND: and } : {}),
+  };
 
   const announcements = await prisma.announcement.findMany({
     where,

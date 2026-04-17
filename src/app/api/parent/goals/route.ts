@@ -2,9 +2,48 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
+type GoalUpdateInput = {
+  updatedAt: Date;
+  currentValue?: string;
+  status?: string;
+  milestones?: string;
+};
+
+async function verifyChildAccess(
+  childId: string,
+  user: { id: string; role: string; districtId?: string | null },
+): Promise<boolean> {
+  if (user.role === 'ADMIN') {
+    const child = await prisma.user.findFirst({
+      where: { id: childId },
+      select: { districtId: true },
+    });
+    if (!child) return false;
+    return !!user.districtId && child.districtId === user.districtId;
+  }
+  const child = await prisma.user.findFirst({
+    where: { id: childId, parentId: user.id },
+    select: { id: true },
+  });
+  return !!child;
+}
+
 // GET /api/parent/goals
-export const GET = apiHandler(async () => {
+export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('PARENT', 'ADMIN');
+  const { searchParams } = new URL(req.url);
+  const childId = searchParams.get('childId');
+
+  if (childId) {
+    const ok = await verifyChildAccess(childId, user);
+    if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    const goals = await prisma.parentGoal.findMany({
+      where: user.role === 'ADMIN' ? { childId } : { parentId: user.id, childId },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return NextResponse.json({ goals });
+  }
 
   const goals = await prisma.parentGoal.findMany({
     where: { parentId: user.id },
@@ -19,6 +58,11 @@ export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('PARENT', 'ADMIN');
 
   const { childId, title, category, targetValue, notes } = await req.json();
+
+  if (childId) {
+    const ok = await verifyChildAccess(childId, user);
+    if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
   const goal = await prisma.parentGoal.create({
     data: {
@@ -40,17 +84,24 @@ export const POST = apiHandler(async (req: Request) => {
 // PUT /api/parent/goals - Update goal
 export const PUT = apiHandler(async (req: Request) => {
   const user = await requireRole('PARENT', 'ADMIN');
-  const { goalId, currentValue, status, milestoneTitle } = await req.json();
+  const { goalId, childId, currentValue, status, milestoneTitle } = await req.json();
 
   const goal = await prisma.parentGoal.findFirst({
-    where: { id: goalId, parentId: user.id },
+    where: user.role === 'ADMIN' ? { id: goalId } : { id: goalId, parentId: user.id },
   });
 
   if (!goal) {
     return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
   }
 
-  const updateData: any = { updatedAt: new Date() };
+  // If the caller references a childId in body, verify access to that child
+  const childToCheck = childId || goal.childId;
+  if (childToCheck) {
+    const ok = await verifyChildAccess(childToCheck, user);
+    if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  const updateData: GoalUpdateInput = { updatedAt: new Date() };
   if (currentValue !== undefined) updateData.currentValue = currentValue;
   if (status) updateData.status = status;
 
@@ -73,13 +124,28 @@ export const DELETE = apiHandler(async (req: Request) => {
   const user = await requireRole('PARENT', 'ADMIN');
   const { searchParams } = new URL(req.url);
   const goalId = searchParams.get('goalId');
+  const childId = searchParams.get('childId');
 
   if (!goalId) {
     return NextResponse.json({ error: 'Goal ID required' }, { status: 400 });
   }
 
+  const existing = await prisma.parentGoal.findFirst({
+    where: user.role === 'ADMIN' ? { id: goalId } : { id: goalId, parentId: user.id },
+    select: { id: true, childId: true },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  const childToCheck = childId || existing.childId;
+  if (childToCheck) {
+    const ok = await verifyChildAccess(childToCheck, user);
+    if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   await prisma.parentGoal.deleteMany({
-    where: { id: goalId, parentId: user.id },
+    where: user.role === 'ADMIN' ? { id: goalId } : { id: goalId, parentId: user.id },
   });
 
   return NextResponse.json({ success: true });

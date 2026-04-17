@@ -9,6 +9,7 @@
  * Under COPPA, parents can request deletion of any data collected from children under 13.
  */
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { secureApiHandler } from '@/lib/middleware';
 import {
   createAuditLog,
@@ -193,23 +194,93 @@ export const PATCH = secureApiHandler(
       },
     });
 
-    // Execute deletion based on scope
+    // v2.5 / GDPR Art.17 ("right to be forgotten"):
+    // Deletion must be COMPREHENSIVE. Earlier revisions only cleared 5 models,
+    // leaving PII across 30+ user-owned tables. We now iterate every model that
+    // carries a direct reference to the subject user, in a single transaction,
+    // then run a count-verification sweep before marking the request completed.
     const scope = JSON.parse(request.deletionScope || '["all"]');
     const subjectId = request.subjectId;
+    const all = scope.includes('all');
 
     try {
-      if (scope.includes('all') || scope.includes('messages')) {
-        await prisma.message.deleteMany({ where: { OR: [{ senderId: subjectId }, { receiverId: subjectId }] } });
+      const ops: Prisma.PrismaPromise<unknown>[] = [];
+
+      if (all || scope.includes('messages')) {
+        ops.push(prisma.message.deleteMany({ where: { OR: [{ senderId: subjectId }, { receiverId: subjectId }] } }));
+        ops.push(prisma.studyGroupMessage.deleteMany({ where: { authorId: subjectId } }));
       }
-      if (scope.includes('all') || scope.includes('assignments')) {
-        await prisma.submission.deleteMany({ where: { studentId: subjectId } });
+      if (all || scope.includes('assignments')) {
+        ops.push(prisma.submission.deleteMany({ where: { studentId: subjectId } }));
+        ops.push(prisma.adaptedAssignment.deleteMany({ where: { studentId: subjectId } }));
+        ops.push(prisma.enrollment.deleteMany({ where: { studentId: subjectId } }));
+        ops.push(prisma.writingSubmission.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.mathStepAttempt.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.examAttempt.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.homeworkScan.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.fileUpload.deleteMany({ where: { userId: subjectId } }));
       }
-      if (scope.includes('all') || scope.includes('behavioral')) {
-        await prisma.emotionalCheckin.deleteMany({ where: { userId: subjectId } });
-        await prisma.focusSession.deleteMany({ where: { userId: subjectId } });
+      if (all || scope.includes('behavioral')) {
+        ops.push(prisma.emotionalCheckin.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.focusSession.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.confidenceRating.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.dailyBoost.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.studyPlanSession.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.goalContract.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.seasonPassProgress.deleteMany({ where: { userId: subjectId } }));
       }
-      if (scope.includes('all') || scope.includes('ai_interactions')) {
-        await prisma.aiTutorLog.deleteMany({ where: { userId: subjectId } });
+      if (all || scope.includes('ai_interactions')) {
+        ops.push(prisma.aITutorLog.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.vocabEntry.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.conceptMap.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.microLesson.deleteMany({ where: { userId: subjectId } }));
+      }
+      if (all || scope.includes('grades') || scope.includes('assignments')) {
+        ops.push(prisma.skillRecord.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.spacedRepItem.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.mistakeEntry.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.weeklyReport.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.learningDNA.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.studentSurvey.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.progressSnapshot.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.certificate.deleteMany({ where: { userId: subjectId } }));
+      }
+      if (all || scope.includes('pii')) {
+        ops.push(prisma.notification.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.rewardStats.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.challengeParticipant.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.gameSession.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.gamePurchase.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.questionVote.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.questionPost.deleteMany({ where: { authorId: subjectId } }));
+        ops.push(prisma.forumPost.deleteMany({ where: { authorId: subjectId } }));
+        ops.push(prisma.studyGroupMember.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.whiteboardMember.deleteMany({ where: { userId: subjectId } }));
+        ops.push(prisma.parentGoal.deleteMany({ where: { OR: [{ parentId: subjectId }, { childId: subjectId }] } }));
+        ops.push(prisma.interventionPlan.deleteMany({ where: { OR: [{ teacherId: subjectId }, { studentId: subjectId }] } }));
+        ops.push(prisma.teacherSettings.deleteMany({ where: { userId: subjectId } }));
+      }
+
+      await prisma.$transaction(ops);
+
+      // v2.5: Post-deletion verification. If any residual rows remain under
+      // the "all" scope, revert to processing and refuse to mark completed.
+      if (all) {
+        type CountCheck = { label: string; count: number };
+        const checks: CountCheck[] = await Promise.all([
+          prisma.submission.count({ where: { studentId: subjectId } }).then(count => ({ label: 'submission', count })),
+          prisma.message.count({ where: { OR: [{ senderId: subjectId }, { receiverId: subjectId }] } }).then(count => ({ label: 'message', count })),
+          prisma.skillRecord.count({ where: { userId: subjectId } }).then(count => ({ label: 'skillRecord', count })),
+          prisma.aITutorLog.count({ where: { userId: subjectId } }).then(count => ({ label: 'aITutorLog', count })),
+          prisma.emotionalCheckin.count({ where: { userId: subjectId } }).then(count => ({ label: 'emotionalCheckin', count })),
+          prisma.focusSession.count({ where: { userId: subjectId } }).then(count => ({ label: 'focusSession', count })),
+          prisma.enrollment.count({ where: { studentId: subjectId } }).then(count => ({ label: 'enrollment', count })),
+          prisma.notification.count({ where: { userId: subjectId } }).then(count => ({ label: 'notification', count })),
+        ]);
+        const residual = checks.filter(c => c.count > 0);
+        if (residual.length > 0) {
+          throw new Error(`Deletion incomplete; residual rows: ${residual.map(r => `${r.label}=${r.count}`).join(', ')}`);
+        }
       }
 
       // Mark as completed
