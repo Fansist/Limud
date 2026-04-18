@@ -4,6 +4,93 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [2.6.0] - 2026-04-18 — Update 2.6 (Student Mistake Review)
+
+A single-feature update that ships a surface for the retrieval-practice loop
+Limud was previously missing. The underlying `MistakeEntry` model and the
+`/api/mistakes` + `/api/mistakes/explain` endpoints have existed since 9.x but
+were orphaned — no page consumed them. Update 2.6 closes that gap.
+
+### Added
+
+- **`src/app/student/review/page.tsx` (new)** — Flashcard-style student page
+  that walks a learner through their own unresolved mistakes one card at a
+  time. States: loading → question → hint (on miss) → resolved (on correct) →
+  finished (empty queue). Reuses `DashboardLayout`, `framer-motion`,
+  `react-hot-toast`, and the project's existing Tailwind utility classes. The
+  hint region is `aria-live="polite"`; the answer textarea auto-focuses on
+  each new card; Enter submits, Shift+Enter adds a newline.
+- **`src/app/api/student/review/next/route.ts` (new)** — `GET` returns the
+  caller's next unresolved mistake or `{ done: true }` when the queue is
+  empty. Scoped strictly to `user.id` from the session — no `?studentId=`
+  accepted. Payload deliberately omits `correctAnswer` and `explanation` so
+  retrieval practice isn't short-circuited. Demo-mode branch serves a seeded
+  5-item queue (Linear Equations · Fractions · Photosynthesis · Grammar ·
+  Exponents) from an in-memory fixture; production branch issues a single
+  `findFirst` + `count` via `Promise.all`.
+- **`src/app/api/student/review/answer/route.ts` (new)** — `POST` takes
+  `{ mistakeId, studentAnswer }`. Normalizes both answers (trim / lowercase /
+  whitespace collapse / trailing-punctuation strip) and compares. On match:
+  flips `resolved=true`, increments `reviewCount`, returns the stored
+  `explanation` + `correctAnswer`. On miss: increments `reviewCount` only and
+  asks Gemini through `callGeminiSafe` for a single Socratic hint (≤ 40
+  words, no answer leak); on Gemini failure or in demo mode, falls back to a
+  deterministic template keyed by `misconceptionType`. Ownership check via
+  `findFirst({ id, userId: user.id })` is the IDOR defense.
+- **`src/app/student/dashboard/page.tsx`** — Quick-action grid gains a
+  "Mistake Review" card (rose → pink gradient, `Brain` icon) that deep-links
+  into `/student/review` with the existing `demoSuffix` pattern. No other
+  dashboard changes; stats strip untouched.
+
+### Security / FERPA
+
+- Both new endpoints run under `secureApiHandler` with `roles: ['STUDENT']`.
+  The next-card endpoint uses the `api` rate-limit category; the answer
+  endpoint uses `ai` because a miss triggers a Gemini call.
+- Identity on both routes is always `user.id` from the session. Neither route
+  accepts a `studentId` parameter — the teacher / parent read-only variant
+  stays in `/api/mistakes` where the existing enrollment / parentId gates
+  live. Cross-student access is physically impossible on the new routes.
+- Audit logging relies on `auditAction: 'API_ACCESS'`. Route handlers do not
+  log `studentAnswer`, `question`, `wrongAnswer`, `correctAnswer`, or Gemini
+  response text — FERPA-sensitive fields stay out of server logs.
+
+### AI integration
+
+- Socratic hint prompt is inline in the answer route (not added to
+  `src/lib/ai.ts`). System message instructs the model to return one short
+  hint ending in a probing question and explicitly forbids revealing the
+  answer. `temperature: 0.6`, `maxTokens: 120`. Gemini unavailability is
+  handled by the deterministic template table, which is also what demo mode
+  returns on miss — demo users never burn quota.
+
+### Data model
+
+- **No schema change.** `MistakeEntry` already has `resolved`, `reviewCount`,
+  `misconceptionType`, `explanation`, `wrongAnswer`, `correctAnswer`,
+  `question`, `skillName`, `subject`. `prisma db push` was not needed.
+
+### Demo-mode behavior
+
+- Master Demo + Ofer Academy demo students see a 5-mistake queue. Resolved
+  state is kept in a module-scope `Map<userId, Set<mistakeId>>` that resets
+  on server restart (acceptable for a demo environment). No DB reads, no DB
+  writes in demo paths.
+
+### Deferred / tech debt
+
+- Real stats in the stats strip for demo mode (`/api/mistakes` has no demo
+  branch, so demo students see zeros in the top strip; the review loop
+  itself still works).
+- True SM-2 spaced-repetition ordering on mistakes (v1 uses `reviewCount asc`
+  then `createdAt asc` — simple FIFO).
+- Teacher read-only "review this student's mistakes" view.
+- Parent dashboard widget summarizing a child's review streak.
+- Focus Mode integration (surfacing the review queue inside `/student/focus`).
+- Levenshtein / fuzzy answer matching.
+
+---
+
 ## [2.5.0] - 2026-04-17 — Update 2.5 (security / compliance sweep)
 
 Update 2.5 fixes every CRITICAL and HIGH finding from `BUG-REPORT-V3.md`, plus

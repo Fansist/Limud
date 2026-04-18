@@ -305,6 +305,14 @@ export default function StudentDashboard() {
               shadow: 'shadow-purple-500/20',
             },
             {
+              href: `/student/review${demoSuffix}`,
+              icon: <Brain size={22} />,
+              title: 'Mistake Review',
+              desc: 'Flashcards from your misses',
+              color: 'from-rose-500 to-pink-600',
+              shadow: 'shadow-rose-500/20',
+            },
+            {
               href: `/student/focus${demoSuffix}`,
               icon: <Target size={22} />,
               title: 'Focus Mode',
