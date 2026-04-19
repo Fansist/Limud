@@ -4,6 +4,103 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [2.7.0] - 2026-04-18 — Update 2.7 (Cross-Role Linkage)
+
+A correctness update that audits how STUDENT, TEACHER, PARENT, and ADMIN see
+each other's work and plugs the gaps. Three parallel researcher sweeps surfaced
+11 linkage bugs; this release ships fixes for the CRITICAL and HIGH items.
+No schema changes.
+
+### Added
+
+- **`src/app/api/student/goals/route.ts` (new)** — `GET` returns the
+  authenticated student's `ParentGoal` rows (read-only). Previously parents
+  could set goals for their children via `/api/parent/goals`, but the child
+  had no endpoint to read them — a dead feature. Students still cannot create,
+  edit, or delete goals; write access stays on the parent route. Demo mode
+  returns one canned "Read 20 pages this week" goal.
+- **`src/app/api/district/courses/route.ts` (new)** — `GET`/`POST`/`DELETE`
+  for direct course management by district admins. Before this, courses only
+  came into existence as a side-effect of creating a classroom, which meant an
+  admin had no UI path to create a course without also seeding a classroom.
+  All three methods gate on `DistrictAdmin.canCreateAccounts`. `GET` returns
+  `_count` for teachers, enrollments, and assignments.
+- **`DELETE /api/district/teachers?id=<teacherId>`** — admins can now offboard
+  a teacher. Drops all `CourseTeacher` rows for the teacher in a transaction
+  and flips `User.isActive=false`. Courses and student enrollments are
+  preserved (other teachers may remain on the course). Same
+  `canCreateAccounts` gate as POST.
+
+### Changed
+
+- **Parent dashboard surfaces child's teachers.** `/api/parent/route.ts`
+  `GET` now pre-loads `Course.teachers` (via the `CourseTeacher` pivot) with
+  teacher name + email, and the response shape gains `courses[].teachers[]`.
+  Before, parents could only discover a child's teacher by trial-and-error
+  through the messaging contact list.
+- **Graded submissions update RewardStats + notify parents.** Both the single
+  POST and batch PUT paths in `/api/grade/route.ts` call a new shared
+  `applyGradeSideEffects` helper that (1) upserts `RewardStats` — XP,
+  `assignmentsCompleted`, `perfectScores`, level — (2) awards the
+  `first_graded` / `ten_assignments` / `perfect_3` badges when thresholds
+  cross, and (3) creates a `Notification` for the student's parent if
+  `parentId` is set. Before, grading simply marked the submission `GRADED`
+  and notified the student only; the whole gamification feedback loop was
+  dead and parents learned about grades only via the weekly digest email.
+  XP formula: `clamp(10..100, 25 + round(score/maxScore * 50))`. Level:
+  `floor(totalXP / 100) + 1`. Demo mode skips all writes.
+- **New assignments notify parents too.** `/api/assignments/route.ts` `POST`
+  now extends its enrollment select with `student.parentId` and fans a second
+  `createMany` out to parent userIds alongside the existing student
+  `createMany`. Message text reads "New assignment for your child — {title}
+  due {date} ({course})" and links to `/parent/dashboard`. Previously
+  assignments surfaced to the student dashboard but never the parent
+  dashboard.
+- **Batch grading now notifies students.** The PUT path in
+  `/api/grade/route.ts` previously updated the submission status but never
+  wrote a student `Notification`. It now creates the same `Assignment Graded!`
+  notification the single-grade POST has always produced, in addition to
+  firing `applyGradeSideEffects`.
+
+### Security / Correctness
+
+- **Forum reply writes are now gated by course access.** `/api/forums/route.ts`
+  `POST` previously validated enrollment on `GET` but not on write, so a
+  non-enrolled caller could create an orphaned reply under a course-scoped
+  thread. When `parentId` is supplied and the parent post has a `courseId`,
+  the POST now runs the same role-specific access check the GET path runs:
+  STUDENT needs an `Enrollment`, TEACHER needs a `CourseTeacher`, ADMIN needs
+  matching `districtId`, PARENT needs a child enrolled in the course. 403
+  otherwise. Demo mode short-circuits above this check, so the demo write
+  path is unchanged.
+
+### Out of scope / deferred
+
+- **Bulk import atomicity for district students** — two-step classroom+student
+  linking is tolerable; wrapping it in a transaction is a refactor, not a
+  linkage fix.
+- **Admin bypass in `parent/goals/route.ts` `verifyChildAccess`** — on
+  re-reading, ADMIN access is already district-scoped correctly. No change
+  needed.
+- **Parent-teacher meeting scheduler** — would require a new Prisma model
+  and is not a CRITICAL/HIGH linkage gap. Punted.
+- **Badge-system expansion** — the three inline badge checks are deliberately
+  minimal. A full badge framework is a separate initiative.
+
+### Files touched
+
+- `src/app/api/district/teachers/route.ts` — added `DELETE`.
+- `src/app/api/district/courses/route.ts` — new.
+- `src/app/api/grade/route.ts` — added `applyGradeSideEffects`; wired into
+  POST + PUT; added student notification on PUT.
+- `src/app/api/assignments/route.ts` — parent notifications on publish.
+- `src/app/api/forums/route.ts` — access check on reply POST.
+- `src/app/api/parent/route.ts` — surfaces `courses[].teachers[]`.
+- `src/app/api/student/goals/route.ts` — new.
+- `CHANGELOG.md`, `package.json` (13.2.6 → 13.2.7).
+
+---
+
 ## [2.6.0] - 2026-04-18 — Update 2.6 (Student Mistake Review)
 
 A single-feature update that ships a surface for the retrieval-practice loop

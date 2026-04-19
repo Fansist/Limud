@@ -164,7 +164,7 @@ export const POST = apiHandler(async (req: Request) => {
       try {
         const enrollments = await prisma.enrollment.findMany({
           where: { courseId },
-          include: { student: { select: { id: true, name: true, email: true } } },
+          include: { student: { select: { id: true, name: true, email: true, parentId: true } } },
         });
         const dueStr = new Date(dueDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
         // In-app notifications
@@ -178,6 +178,24 @@ export const POST = apiHandler(async (req: Request) => {
               link: '/student/assignments',
             })),
           });
+
+          // v2.7 — also notify parents of enrolled students so the parent
+          // dashboard reflects the new assignment.
+          const parentNotifs: { userId: string; title: string; message: string; type: string; link: string }[] = [];
+          for (const e of enrollments) {
+            if (e.student.parentId) {
+              parentNotifs.push({
+                userId: e.student.parentId,
+                title: 'New assignment for your child',
+                message: `${assignment.title} — due ${dueStr} (${assignment.course.name})`,
+                type: 'assignment',
+                link: '/parent/dashboard',
+              });
+            }
+          }
+          if (parentNotifs.length > 0) {
+            await prisma.notification.createMany({ data: parentNotifs });
+          }
         }
         // Email notifications (best-effort)
         for (const e of enrollments) {

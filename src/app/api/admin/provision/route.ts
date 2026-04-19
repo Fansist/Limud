@@ -12,6 +12,16 @@ function generateTempPassword(): string {
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
+
+  // Demo mode short-circuit: master demo account must never write to the real DB.
+  if (user.isMasterDemo) {
+    return NextResponse.json({
+      message: 'Demo provision OK',
+      note: 'Demo mode — no users were created.',
+      results: [],
+    });
+  }
+
   const body = await req.json();
   const { users } = body;
 
@@ -20,6 +30,19 @@ export const POST = apiHandler(async (req: Request) => {
       { error: 'users array is required. Each entry: { email, name, role, gradeLevel? }' },
       { status: 400 }
     );
+  }
+
+  // v2.7 — enforce canCreateAccounts on DistrictAdmin (mirror district/teachers pattern).
+  // No bypass for missing DistrictAdmin row.
+  if (!user.districtId) {
+    return NextResponse.json({ error: 'Admin has no district assigned' }, { status: 403 });
+  }
+  const adminRecord = await prisma.districtAdmin.findUnique({
+    where: { userId_districtId: { userId: user.id, districtId: user.districtId } },
+    select: { canCreateAccounts: true },
+  });
+  if (!adminRecord || !adminRecord.canCreateAccounts) {
+    return NextResponse.json({ error: 'You do not have permission to create accounts' }, { status: 403 });
   }
 
   // Security: each provisioned user gets a UNIQUE random temp password.

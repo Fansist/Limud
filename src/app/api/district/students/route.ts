@@ -284,20 +284,37 @@ export const PUT = apiHandler(async (req: Request) => {
   return NextResponse.json({ student: updated });
 });
 
-// DELETE /api/district/students - Deactivate student
+// DELETE /api/district/students - Deactivate student and drop active memberships
 export const DELETE = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
+
+  // Demo mode: never write to the real DB.
+  if (user.isMasterDemo) return NextResponse.json({ success: true });
+
   const { searchParams } = new URL(req.url);
   const studentId = searchParams.get('id');
 
   if (!studentId) return NextResponse.json({ error: 'Student ID required' }, { status: 400 });
 
-  const result = await prisma.user.updateMany({
+  // Verify student belongs to the admin's district before mutating anything.
+  const student = await prisma.user.findFirst({
     where: { id: studentId, districtId: user.districtId, role: 'STUDENT' },
-    data: { isActive: false },
+    select: { id: true },
   });
+  if (!student) {
+    return NextResponse.json({ error: 'Student not found in your district' }, { status: 404 });
+  }
 
-  if (result.count === 0) {
+  const [, , deactivation] = await prisma.$transaction([
+    prisma.classroomStudent.deleteMany({ where: { studentId: studentId } }),
+    prisma.enrollment.deleteMany({ where: { studentId: studentId } }),
+    prisma.user.updateMany({
+      where: { id: studentId, districtId: user.districtId, role: 'STUDENT' },
+      data: { isActive: false },
+    }),
+  ]);
+
+  if (deactivation.count === 0) {
     return NextResponse.json({ error: 'Student not found in your district' }, { status: 404 });
   }
 

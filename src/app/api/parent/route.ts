@@ -23,7 +23,21 @@ export const GET = apiHandler(async (req: Request) => {
         take: 10,
       },
       enrollments: {
-        include: { course: { select: { id: true, name: true, subject: true } } },
+        include: {
+          course: {
+            select: {
+              id: true,
+              name: true,
+              subject: true,
+              // v2.7 — pre-load each course's teachers so parents can see who is
+              // teaching their child without having to dig through the messaging
+              // directory.
+              teachers: {
+                include: { teacher: { select: { id: true, name: true, email: true } } },
+              },
+            },
+          },
+        },
       },
     },
   });
@@ -42,7 +56,16 @@ export const GET = apiHandler(async (req: Request) => {
       name: child.name,
       email: child.email,
       gradeLevel: child.gradeLevel,
-      courses: child.enrollments.map(e => ({ id: e.course.id, name: e.course.name, subject: e.course.subject })),
+      courses: child.enrollments.map(e => ({
+        id: e.course.id,
+        name: e.course.name,
+        subject: e.course.subject,
+        teachers: e.course.teachers.map(ct => ({
+          id: ct.teacher.id,
+          name: ct.teacher.name,
+          email: ct.teacher.email,
+        })),
+      })),
       recentSubmissions: child.submissions.map(s => ({
         assignmentTitle: s.assignment.title,
         courseName: s.assignment.course.name,

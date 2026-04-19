@@ -199,6 +199,47 @@ export const POST = apiHandler(async (req: Request) => {
     });
   }
 
+  // v2.7 — when replying to a course-scoped post, verify the replier has access
+  // to that course. GET already gates visibility, but POST could accept an
+  // orphaned reply from a non-enrolled caller. Tighten the write path too.
+  if (parentId) {
+    const parentPost = await prisma.forumPost.findUnique({
+      where: { id: parentId },
+      select: { courseId: true },
+    });
+    if (parentPost?.courseId) {
+      let allowed = false;
+      if (user.role === 'STUDENT') {
+        const enrollment = await prisma.enrollment.findFirst({
+          where: { courseId: parentPost.courseId, studentId: user.id },
+          select: { id: true },
+        });
+        allowed = !!enrollment;
+      } else if (user.role === 'TEACHER') {
+        const courseTeacher = await prisma.courseTeacher.findFirst({
+          where: { courseId: parentPost.courseId, teacherId: user.id },
+          select: { id: true },
+        });
+        allowed = !!courseTeacher;
+      } else if (user.role === 'ADMIN') {
+        const course = await prisma.course.findFirst({
+          where: { id: parentPost.courseId },
+          select: { districtId: true },
+        });
+        allowed = !!course && course.districtId === user.districtId;
+      } else if (user.role === 'PARENT') {
+        const childEnrollment = await prisma.enrollment.findFirst({
+          where: { courseId: parentPost.courseId, student: { parentId: user.id } },
+          select: { id: true },
+        });
+        allowed = !!childEnrollment;
+      }
+      if (!allowed) {
+        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      }
+    }
+  }
+
   const post = await prisma.forumPost.create({
     data: {
       courseId: courseId || null,

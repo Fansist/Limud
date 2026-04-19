@@ -5,6 +5,91 @@ import prisma from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { gradePosted } from '@/lib/email-templates';
 
+/**
+ * v2.7 — Shared post-grade side effects. Called from both POST (single) and
+ * PUT (batch) so every graded submission updates RewardStats and fans the
+ * notification out to the student's parent.
+ *
+ * Side effects (skipped entirely in demo mode):
+ *   1. RewardStats upsert — XP, assignmentsCompleted, perfectScores, level
+ *   2. Badge checks — first_graded, ten_assignments, perfect_3
+ *   3. Parent notification — if student.parentId is set
+ */
+async function applyGradeSideEffects(
+  submission: { id: string; studentId: string },
+  result: { score: number; maxScore: number },
+  assignmentTitle: string,
+  isDemo: boolean
+): Promise<void> {
+  if (isDemo) return;
+
+  const maxScore = result.maxScore > 0 ? result.maxScore : 100;
+  const xpEarned = Math.max(
+    10,
+    Math.min(100, 25 + Math.round((result.score / maxScore) * 50))
+  );
+  const perfect = result.score === result.maxScore && result.maxScore > 0;
+
+  // 1. Upsert RewardStats. `unlockedBadges` is stored as a JSON string.
+  const stats = await prisma.rewardStats.upsert({
+    where: { userId: submission.studentId },
+    create: {
+      userId: submission.studentId,
+      totalXP: xpEarned,
+      assignmentsCompleted: 1,
+      perfectScores: perfect ? 1 : 0,
+      level: 1,
+    },
+    update: {
+      totalXP: { increment: xpEarned },
+      assignmentsCompleted: { increment: 1 },
+      ...(perfect ? { perfectScores: { increment: 1 } } : {}),
+    },
+  });
+
+  // 2. Recompute level + award badges.
+  const currentBadges: string[] = (() => {
+    try {
+      const parsed = JSON.parse(stats.unlockedBadges || '[]');
+      return Array.isArray(parsed) ? parsed.filter((b): b is string => typeof b === 'string') : [];
+    } catch {
+      return [];
+    }
+  })();
+  const nextBadges = [...currentBadges];
+  if (stats.assignmentsCompleted >= 1 && !nextBadges.includes('first_graded')) nextBadges.push('first_graded');
+  if (stats.assignmentsCompleted >= 10 && !nextBadges.includes('ten_assignments')) nextBadges.push('ten_assignments');
+  if (stats.perfectScores >= 3 && !nextBadges.includes('perfect_3')) nextBadges.push('perfect_3');
+
+  const newLevel = Math.floor(stats.totalXP / 100) + 1;
+  if (newLevel !== stats.level || nextBadges.length !== currentBadges.length) {
+    await prisma.rewardStats.update({
+      where: { userId: submission.studentId },
+      data: {
+        level: newLevel,
+        unlockedBadges: JSON.stringify(nextBadges),
+      },
+    });
+  }
+
+  // 3. Parent notification — surface the grade to the parent dashboard.
+  const child = await prisma.user.findUnique({
+    where: { id: submission.studentId },
+    select: { parentId: true, name: true },
+  });
+  if (child?.parentId) {
+    await prisma.notification.create({
+      data: {
+        userId: child.parentId,
+        title: 'Your child received a grade',
+        message: `${child.name ?? 'Your child'} scored ${result.score}/${result.maxScore} on "${assignmentTitle}"`,
+        type: 'grade',
+        link: '/parent/dashboard',
+      },
+    }).catch((e) => { console.warn('[grade] parent notify failed:', e); });
+  }
+}
+
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN', 'PARENT');
   const { submissionId } = await req.json();
@@ -85,6 +170,14 @@ export const POST = apiHandler(async (req: Request) => {
       },
     });
 
+    // v2.7 — bump RewardStats and notify the parent (single-grade path).
+    await applyGradeSideEffects(
+      { id: submission.id, studentId: submission.studentId },
+      { score: result.score, maxScore: result.maxScore },
+      submission.assignment.title,
+      user.isMasterDemo ?? false
+    );
+
     // Send email notification (non-blocking)
     sendEmail({
       to: submission.student.email,
@@ -158,6 +251,24 @@ export const PUT = apiHandler(async (req: Request) => {
           gradedAt: new Date(),
         },
       });
+
+      // v2.7 — notify student + parent and bump RewardStats for batch grading too.
+      await prisma.notification.create({
+        data: {
+          userId: submission.studentId,
+          title: 'Assignment Graded!',
+          message: `Your "${submission.assignment.title}" has been graded. Score: ${result.score}/${result.maxScore}`,
+          type: 'grade',
+          link: '/student/assignments',
+        },
+      }).catch((e) => { console.warn('[grade batch] student notify failed:', e); });
+
+      await applyGradeSideEffects(
+        { id, studentId: submission.studentId },
+        { score: result.score, maxScore: result.maxScore },
+        submission.assignment.title,
+        user.isMasterDemo ?? false
+      );
 
       results.push({ submissionId: id, success: true, result });
     } catch (error) {
