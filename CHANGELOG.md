@@ -4,6 +4,55 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [2.7.1] - 2026-04-18 — Post-2.7 follow-ups
+
+Works the three "next steps" from the 2.7 release: wiring the student-facing
+surface for the goals API, making the grade-side-effects math unit-testable,
+and documenting what could not be run from the sandbox.
+
+### Added
+
+- **`src/app/student/dashboard/page.tsx`** — a new "Goals from Your Parent"
+  card renders between the skills section and the assignments/grades grid.
+  Fetches `GET /api/student/goals` on mount, renders each goal with a
+  progress bar when `targetValue` parses as a positive number, otherwise
+  falls back to a plain target label. Hidden entirely when the student has
+  no parent goals on file. Demo mode pre-seeds one card matching the canned
+  row the API serves. Closes the 2.7 gap where the read API shipped without
+  a consumer.
+- **`src/lib/gamification.ts`** — extracted pure helpers
+  (`computeXpEarned`, `computeLevel`, `isPerfectScore`, `parseBadges`,
+  `computeBadges`) from the inline math inside
+  `src/app/api/grade/route.ts::applyGradeSideEffects`. No behavior change in
+  production — `applyGradeSideEffects` now calls the helpers instead of
+  repeating the math.
+- **`__tests__/lib/gamification.test.ts`** — 24 assertions covering the XP
+  formula clamps, level breakpoints, perfect-score semantics, badge
+  thresholds (first_graded / ten_assignments / perfect_3), idempotency, and
+  malformed-JSON handling for `unlockedBadges`. Stands in for the "manual
+  E2E: grade a submission → verify XP + badges" step from the 2.7 next-step
+  list — the math path is now regression-tested without a running DB.
+
+### Out of scope / notes
+
+- **`npm run build` and `npm run lint`** could not be executed from the
+  sandbox (no node in the runtime PATH). Run locally to confirm strict TS
+  passes.
+- **Manual E2E of the grade → parent Notification fan-out** still requires
+  a running Postgres + a teacher session. The unit test above covers the
+  XP/level/badge math; the Notification row creation is straight-line
+  Prisma code reviewed on the diff.
+
+### Files touched
+
+- `src/app/student/dashboard/page.tsx` — widget + fetch + demo seed.
+- `src/app/api/grade/route.ts` — inline math replaced with helper calls.
+- `src/lib/gamification.ts` — new.
+- `__tests__/lib/gamification.test.ts` — new.
+- `CHANGELOG.md`, `package.json` (13.2.7 → 13.2.8).
+
+---
+
 ## [2.7.0] - 2026-04-18 — Update 2.7 (Cross-Role Linkage)
 
 A correctness update that audits how STUDENT, TEACHER, PARENT, and ADMIN see

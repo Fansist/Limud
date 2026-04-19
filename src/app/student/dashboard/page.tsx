@@ -11,8 +11,21 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen, MessageCircle, AlertTriangle, ArrowRight, TrendingUp, Calendar, Target, Building2, BarChart3,
-  Zap, Flame, Brain, Sparkles, RefreshCw,
+  Zap, Flame, Brain, Sparkles, RefreshCw, Heart,
 } from 'lucide-react';
+
+// v2.7.1 — shape of the GET /api/student/goals response payload.
+type ParentGoalCard = {
+  id: string;
+  title: string;
+  category: string;
+  targetValue: string;
+  currentValue: string | null;
+  status: string;
+  notes: string | null;
+  updatedAt: string;
+  parent: { id: string; name: string | null } | null;
+};
 
 /*
  * Student Dashboard v12.4 — "The Sylvester Experience"
@@ -44,6 +57,8 @@ export default function StudentDashboard() {
     totalSkills: number;
     averageMastery: number;
   } | null>(null);
+  // v2.7.1 — goals set by the student's parent (read-only here).
+  const [parentGoals, setParentGoals] = useState<ParentGoalCard[]>([]);
 
   const isUnlinked = status === 'authenticated' && !isDemo &&
     (session?.user as { role?: string })?.role === 'STUDENT' &&
@@ -70,6 +85,20 @@ export default function StudentDashboard() {
         totalSkills: 15,
         averageMastery: 72,
       });
+      // Demo parent goals — matches the canned row served by /api/student/goals.
+      setParentGoals([
+        {
+          id: 'demo-goal-1',
+          title: 'Read 20 pages this week',
+          category: 'reading',
+          targetValue: '20',
+          currentValue: '5',
+          status: 'active',
+          notes: null,
+          updatedAt: new Date(Date.now() - 86400000).toISOString(),
+          parent: { id: 'demo-parent', name: 'Demo Parent' },
+        },
+      ]);
       setLoading(false);
       return;
     }
@@ -108,6 +137,15 @@ export default function StudentDashboard() {
       if (skillsRes?.ok) {
         const skillsData = await skillsRes.json();
         setSkillsOverview(skillsData);
+      }
+      // v2.7.1 — fetch parent-set goals. Non-blocking; an empty list is the
+      // common case (student has no parent on file or parent set no goals).
+      const goalsRes = await fetch('/api/student/goals').catch(() => null);
+      if (goalsRes?.ok) {
+        const goalsData = await goalsRes.json();
+        if (Array.isArray(goalsData?.goals)) {
+          setParentGoals(goalsData.goals as ParentGoalCard[]);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
@@ -484,6 +522,71 @@ export default function StudentDashboard() {
               </div>
             </motion.div>
           </div>
+        )}
+
+        {/* v2.7.1 — Goals from Your Parent. Hidden when the student has none. */}
+        {parentGoals.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 }}
+            className="card"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <div className="w-8 h-8 bg-rose-50 rounded-lg flex items-center justify-center">
+                  <Heart size={16} className="text-rose-500" />
+                </div>
+                Goals from Your Parent
+              </h2>
+              <span className="text-xs text-gray-400">{parentGoals.length} active</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {parentGoals.slice(0, 6).map(goal => {
+                const target = Number(goal.targetValue);
+                const current = Number(goal.currentValue ?? '0');
+                const hasNumericTarget = Number.isFinite(target) && target > 0;
+                const pct = hasNumericTarget
+                  ? Math.max(0, Math.min(100, Math.round((current / target) * 100)))
+                  : null;
+                return (
+                  <div
+                    key={goal.id}
+                    className="p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <p className="text-sm font-semibold text-gray-900 leading-tight">{goal.title}</p>
+                      <span className="text-[10px] uppercase tracking-wide text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                        {goal.category}
+                      </span>
+                    </div>
+                    {goal.parent?.name && (
+                      <p className="text-xs text-gray-400 mb-2">Set by {goal.parent.name}</p>
+                    )}
+                    {pct !== null ? (
+                      <>
+                        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                          <span>{current} / {target}</span>
+                          <span className="font-semibold text-gray-700">{pct}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              'h-full rounded-full transition-all',
+                              pct >= 100 ? 'bg-green-500' : pct >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+                            )}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-500">Target: {goal.targetValue}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
         )}
 
         <div className="grid lg:grid-cols-2 gap-6">

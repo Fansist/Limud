@@ -4,6 +4,13 @@ import { gradeSubmission } from '@/lib/ai';
 import prisma from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { gradePosted } from '@/lib/email-templates';
+import {
+  computeXpEarned,
+  computeLevel,
+  isPerfectScore,
+  parseBadges,
+  computeBadges,
+} from '@/lib/gamification';
 
 /**
  * v2.7 — Shared post-grade side effects. Called from both POST (single) and
@@ -23,12 +30,8 @@ async function applyGradeSideEffects(
 ): Promise<void> {
   if (isDemo) return;
 
-  const maxScore = result.maxScore > 0 ? result.maxScore : 100;
-  const xpEarned = Math.max(
-    10,
-    Math.min(100, 25 + Math.round((result.score / maxScore) * 50))
-  );
-  const perfect = result.score === result.maxScore && result.maxScore > 0;
+  const xpEarned = computeXpEarned(result.score, result.maxScore);
+  const perfect = isPerfectScore(result.score, result.maxScore);
 
   // 1. Upsert RewardStats. `unlockedBadges` is stored as a JSON string.
   const stats = await prisma.rewardStats.upsert({
@@ -47,21 +50,14 @@ async function applyGradeSideEffects(
     },
   });
 
-  // 2. Recompute level + award badges.
-  const currentBadges: string[] = (() => {
-    try {
-      const parsed = JSON.parse(stats.unlockedBadges || '[]');
-      return Array.isArray(parsed) ? parsed.filter((b): b is string => typeof b === 'string') : [];
-    } catch {
-      return [];
-    }
-  })();
-  const nextBadges = [...currentBadges];
-  if (stats.assignmentsCompleted >= 1 && !nextBadges.includes('first_graded')) nextBadges.push('first_graded');
-  if (stats.assignmentsCompleted >= 10 && !nextBadges.includes('ten_assignments')) nextBadges.push('ten_assignments');
-  if (stats.perfectScores >= 3 && !nextBadges.includes('perfect_3')) nextBadges.push('perfect_3');
+  // 2. Recompute level + award badges using pure helpers.
+  const currentBadges = parseBadges(stats.unlockedBadges);
+  const nextBadges = computeBadges(currentBadges, {
+    assignmentsCompleted: stats.assignmentsCompleted,
+    perfectScores: stats.perfectScores,
+  });
+  const newLevel = computeLevel(stats.totalXP);
 
-  const newLevel = Math.floor(stats.totalXP / 100) + 1;
   if (newLevel !== stats.level || nextBadges.length !== currentBadges.length) {
     await prisma.rewardStats.update({
       where: { userId: submission.studentId },
