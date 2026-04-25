@@ -76,6 +76,15 @@ Let me help you think through this. The best way to understand something deeply 
 What part would you like to explore first? I'm right here to help! ✨`;
 }
 
+// v13.3.0 (Update 2.8): tiny status type for the AI-configured badge. Uses
+// only the fields the UI reads — keeps us decoupled from the full diagnostic
+// shape returned by /api/ai-status.
+type AIStatusBadge = {
+  configured: boolean;
+  reason?: string;
+  lastError?: { message: string; at: number } | null;
+};
+
 export default function TutorPage() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
@@ -84,11 +93,42 @@ export default function TutorPage() {
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [subject, setSubject] = useState<string>('');
+  const [aiStatus, setAiStatus] = useState<AIStatusBadge | null>(null);
+  // v13.3.0 (Update 2.8): dedupe aiError toasts so retries don't spam.
+  // useRef (not useState) because we don't need a re-render when it changes.
+  const shownErrorsRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // v13.3.0 (Update 2.8): fetch AI status once on mount so the UI can show
+  // "AI active" vs "demo mode" instead of silently serving canned responses.
+  // Only runs for real (non-demo) sessions — the demo account has its own flow.
+  useEffect(() => {
+    if (isDemo) {
+      setAiStatus({ configured: false, reason: 'Demo account — AI calls are mocked' });
+      return;
+    }
+    let cancelled = false;
+    fetch('/api/ai-status')
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (cancelled || !data) return;
+        setAiStatus({
+          configured: Boolean(data.configured),
+          reason: typeof data.reason === 'string' ? data.reason : undefined,
+          lastError: data.lastError ?? null,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setAiStatus({ configured: false, reason: 'AI status unavailable' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isDemo]);
 
   async function sendMessage(messageText?: string) {
     const text = messageText || input.trim();
@@ -139,6 +179,16 @@ export default function TutorPage() {
         };
       }
 
+      // v13.3.0 (Update 2.8): if the tutor route reported a real AI error,
+      // surface it once per error message so the user knows why the reply
+      // looks generic. Dedupe so spammy retries don't produce 20 toasts.
+      if (typeof data.aiError === 'string' && data.aiError.length > 0) {
+        if (!shownErrorsRef.current.has(data.aiError)) {
+          shownErrorsRef.current.add(data.aiError);
+          toast.error(`AI unavailable: ${data.aiError.substring(0, 120)}`);
+        }
+      }
+
       setSessionId(data.sessionId || sessionId);
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     } catch {
@@ -177,6 +227,30 @@ export default function TutorPage() {
             <div>
               <h1 className="text-xl font-bold text-gray-900">AI Tutor</h1>
               <p className="text-xs text-gray-400">I help you learn — not just give answers!</p>
+              {/* v13.3.0 (Update 2.8): AI status badge. Tells the student
+                  whether their tutor replies are coming from real Gemini or
+                  from the offline/demo fallback. Hidden while status loads. */}
+              {aiStatus && (
+                <div className="mt-1">
+                  {aiStatus.configured ? (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700"
+                      title="Connected to Gemini"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      AI active
+                    </span>
+                  ) : (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700"
+                      title={aiStatus.lastError?.message || aiStatus.reason || 'Fallback mode'}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      Offline mode
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">

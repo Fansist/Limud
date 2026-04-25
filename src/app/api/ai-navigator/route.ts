@@ -245,7 +245,13 @@ export const POST = apiHandler(async (req: Request) => {
     // Continue without context
   }
 
-  if (isGeminiConfigured()) {
+  // v13.3.1 (Update 2.8.1): surface aiError on demo fallback so the client
+  // can distinguish "no key configured" from "Gemini call failed".
+  let aiError: string | undefined;
+
+  if (!isGeminiConfigured()) {
+    aiError = 'GEMINI_API_KEY is not configured on the server';
+  } else {
     try {
       const messages = [
         { role: 'system', content: NAVIGATOR_SYSTEM_PROMPT + studentContext },
@@ -256,13 +262,19 @@ export const POST = apiHandler(async (req: Request) => {
       console.log('[AI-NAV] Calling Gemini for navigation help...');
       const content = await callGemini(messages, { temperature: 0.5, maxTokens: 500 });
       console.log(`[AI-NAV] SUCCESS: ${content.length} chars`);
-      return NextResponse.json({ message: content });
+      return NextResponse.json({ message: content, aiGenerated: true });
     } catch (e) {
-      console.error('[AI-NAV] Gemini navigator error, falling back to demo:', (e as Error).message);
+      const msg = (e as Error).message || 'Unknown AI error';
+      console.error('[AI-NAV] Gemini navigator error, falling back to demo:', msg);
+      aiError = msg;
     }
   }
 
   // Demo fallback
   const content = getDemoNavigatorResponse(message);
-  return NextResponse.json({ message: content });
+  return NextResponse.json({
+    message: content,
+    aiGenerated: false,
+    ...(aiError ? { aiError } : {}),
+  });
 });

@@ -98,7 +98,14 @@ export const POST = apiHandler(async (req: Request) => {
   const level = gradeLevel || user.gradeLevel || '8th';
   let questions;
 
-  if (hasApiKey()) {
+  // v13.3.1 (Update 2.8.1): surface aiError so the student-facing exam UI
+  // can show a banner when AI exams fall back to the static demo bank.
+  let aiError: string | undefined;
+  let aiGenerated = false;
+
+  if (!hasApiKey()) {
+    aiError = 'GEMINI_API_KEY is not configured on the server';
+  } else {
     try {
       const prompt = `Generate ${questionCount} multiple-choice exam questions for a ${level} grade ${subject} exam. Each question should have 4 options.
 Return ONLY a JSON array, no markdown fences, no extra text:
@@ -110,13 +117,19 @@ Return ONLY a JSON array, no markdown fences, no extra text:
         const parsed = JSON.parse(jsonStr);
         if (Array.isArray(parsed) && parsed.length > 0) {
           questions = parsed;
+          aiGenerated = true;
           console.log(`[EXAM-SIM] SUCCESS: ${parsed.length} AI-generated exam questions`);
+        } else {
+          aiError = 'AI returned an empty or non-array question list';
         }
       } else {
         console.warn('[EXAM-SIM] extractJSON returned null. Preview:', response.substring(0, 300));
+        aiError = 'AI response could not be parsed as a JSON array';
       }
     } catch (err) {
-      console.error('[EXAM-SIM] AI generation failed:', (err as Error).message);
+      const msg = (err as Error).message || 'Unknown AI error';
+      console.error('[EXAM-SIM] AI generation failed:', msg);
+      aiError = msg;
     }
   }
 
@@ -146,11 +159,23 @@ Return ONLY a JSON array, no markdown fences, no extra text:
         questions: JSON.stringify(questions),
       },
     });
-    return NextResponse.json({ attemptId: attempt.id, questions: safeQuestions, timeLimit: attempt.timeLimitSec });
+    return NextResponse.json({
+      attemptId: attempt.id,
+      questions: safeQuestions,
+      timeLimit: attempt.timeLimitSec,
+      aiGenerated,
+      ...(aiError ? { aiError } : {}),
+    });
   } catch (e) {
     console.warn('[EXAM-SIM POST] DB save failed:', (e as Error).message);
     // Return a temp ID so the frontend still works
-    return NextResponse.json({ attemptId: `temp-${Date.now()}`, questions: safeQuestions, timeLimit: timeLimitVal });
+    return NextResponse.json({
+      attemptId: `temp-${Date.now()}`,
+      questions: safeQuestions,
+      timeLimit: timeLimitVal,
+      aiGenerated,
+      ...(aiError ? { aiError } : {}),
+    });
   }
 });
 

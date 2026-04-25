@@ -111,7 +111,9 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   // ── Get AI response (always works — has built-in demo fallback) ──
-  const { content, tokensUsed, aiGenerated } = await chatWithTutor(messages, subject, surveyData);
+  // v13.3.0 (Update 2.8): capture aiError so the client can tell when the
+  // response is demo filler vs. a real AI answer.
+  const { content, tokensUsed, aiGenerated, aiError } = await chatWithTutor(messages, subject, surveyData);
 
   // ── Save AI response to DB (best-effort) ──
   if (prisma) {
@@ -136,6 +138,7 @@ export const POST = apiHandler(async (req: Request) => {
     message: content,
     tokensUsed,
     aiGenerated,
+    ...(aiError ? { aiError } : {}),
   });
 });
 

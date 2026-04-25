@@ -106,9 +106,14 @@ export const POST = apiHandler(async (req: Request) => {
 
   let feedback: any = null;
   let aiGenerated = false;
+  // v13.3.1 (Update 2.8.1): track failure reason so the client can
+  // distinguish a genuine heuristic fallback from a hidden Gemini failure.
+  let aiError: string | undefined;
 
   // ── Attempt real AI generation ──
-  if (hasApiKey()) {
+  if (!hasApiKey()) {
+    aiError = 'GEMINI_API_KEY is not configured on the server';
+  } else {
     const userPrompt = [
       `Student: ${studentName || 'Anonymous'}`,
       `Grade: ${grade || 'Unknown'}`,
@@ -143,12 +148,16 @@ export const POST = apiHandler(async (req: Request) => {
           console.log(`[AI-FEEDBACK] SUCCESS: AI feedback generated, score=${parsed.score}`);
         } else {
           console.warn('[AI-FEEDBACK] Parsed JSON missing required fields (score/detailedFeedback)');
+          aiError = 'AI returned malformed JSON (missing score or detailedFeedback)';
         }
       } else {
         console.warn('[AI-FEEDBACK] extractJSON returned null. Preview:', response.substring(0, 300));
+        aiError = 'AI response could not be parsed as JSON';
       }
     } catch (err) {
-      console.error('[AI-FEEDBACK] AI generation failed:', (err as Error).message);
+      const msg = (err as Error).message || 'Unknown AI error';
+      console.error('[AI-FEEDBACK] AI generation failed:', msg);
+      aiError = msg;
     }
   }
 
@@ -161,6 +170,7 @@ export const POST = apiHandler(async (req: Request) => {
     feedback,
     aiGenerated,
     aiStatus: getAIStatus(),
+    ...(aiError ? { aiError } : {}),
   });
 });
 
@@ -178,11 +188,19 @@ export const PUT = apiHandler(async (req: Request) => {
   }
 
   const results = [];
+  // v13.3.1 (Update 2.8.1): track per-submission aiError + a roll-up
+  // bulkAiError so the teacher's UI can show a single banner if everything
+  // fell back to heuristics (e.g. missing API key, quota exhausted).
+  let bulkAiError: string | undefined;
+
   for (const sub of submissions.slice(0, 20)) { // cap at 20
     let feedback: any = null;
     let aiGenerated = false;
+    let aiError: string | undefined;
 
-    if (hasApiKey()) {
+    if (!hasApiKey()) {
+      aiError = 'GEMINI_API_KEY is not configured on the server';
+    } else {
       try {
         const userPrompt = [
           `Student: ${sub.studentName || 'Anonymous'}`,
@@ -209,10 +227,16 @@ export const PUT = apiHandler(async (req: Request) => {
           if (parsed.score !== undefined && parsed.detailedFeedback) {
             feedback = parsed;
             aiGenerated = true;
+          } else {
+            aiError = 'AI returned malformed JSON (missing score or detailedFeedback)';
           }
+        } else {
+          aiError = 'AI response could not be parsed as JSON';
         }
       } catch (err) {
-        console.warn(`[AI-FEEDBACK BULK] Failed for ${sub.studentName}:`, (err as Error).message);
+        const msg = (err as Error).message || 'Unknown AI error';
+        console.warn(`[AI-FEEDBACK BULK] Failed for ${sub.studentName}:`, msg);
+        aiError = msg;
       }
     }
 
@@ -226,13 +250,19 @@ export const PUT = apiHandler(async (req: Request) => {
       });
     }
 
+    if (aiError && !bulkAiError) bulkAiError = aiError;
+
     results.push({
       id: sub.id,
       studentName: sub.studentName,
       feedback,
       aiGenerated,
+      ...(aiError ? { aiError } : {}),
     });
   }
 
-  return NextResponse.json({ results });
+  return NextResponse.json({
+    results,
+    ...(bulkAiError ? { aiError: bulkAiError } : {}),
+  });
 });

@@ -1,6 +1,18 @@
 /**
- * LIMUD v9.7.11 — AI Service
+ * LIMUD v13.3.0 (Update 2.8) — AI Service
  * Google Gemini API via @google/genai with robust error handling & demo fallback
+ *
+ * v13.3.0 (Update 2.8): Fix "AI doesn't work" — make real failures visible
+ *   - extractResponseText() falls back to candidates[0].content.parts when the
+ *     SDK's response.text getter returns undefined (e.g. partial safety trims,
+ *     non-text parts). Eliminates spurious "empty response" throws that used
+ *     to drop users into demo mode even when Gemini returned real content.
+ *   - Module-level lastAIError captures the most recent real failure so
+ *     /api/ai-status can show operators WHY AI fell back, not just that it did.
+ *   - Every public function (chatWithTutor, gradeSubmission, generateStudentReport,
+ *     analyzeCurriculum, analyzeWriting) now returns an optional aiError string
+ *     alongside aiGenerated so routes/UIs can surface real problems instead of
+ *     silently showing demo content.
  *
  * v9.7.11: Upgraded to Gemini 2.5 Flash (paid tier 1)
  *   - Default model changed from gemini-2.0-flash to gemini-2.5-flash
@@ -151,6 +163,24 @@ export function hasApiKey(): boolean {
   return isGeminiConfigured();
 }
 
+// v13.3.0 (Update 2.8): module-level record of the most recent real AI failure.
+// Populated by callGemini() whenever a Gemini call throws, read by getAIStatus()
+// so /api/ai-status can surface the actual error to operators. This is the
+// signal that was missing when users reported "AI doesn't work" but all logs
+// showed 200 responses — the error was being swallowed by each caller's demo
+// fallback. See also the aiError field now returned by every public function.
+let lastAIError: { message: string; at: number } | null = null;
+
+/** Reset the last-error record. Useful for tests. */
+export function clearLastAIError(): void {
+  lastAIError = null;
+}
+
+/** Read the last-error record without clearing it. */
+export function getLastAIError(): { message: string; at: number } | null {
+  return lastAIError;
+}
+
 /**
  * Return a structured AI status object for API responses.
  * Helps frontend display accurate AI status to the user.
@@ -159,18 +189,50 @@ export function getAIStatus(): {
   configured: boolean;
   model: string;
   reason?: string;
+  lastError?: { message: string; at: number } | null;
 } {
   const key = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
   const model = process.env.AI_MODEL || 'gemini-2.5-flash';
 
   if (!key || key.length < 10) {
-    return { configured: false, model, reason: 'No API key configured' };
+    return { configured: false, model, reason: 'No API key configured', lastError: lastAIError };
   }
   const lower = key.toLowerCase();
   if (INVALID_KEY_PATTERNS.some(p => lower.includes(p))) {
-    return { configured: false, model, reason: `API key appears to be a placeholder (contains invalid pattern)` };
+    return { configured: false, model, reason: `API key appears to be a placeholder (contains invalid pattern)`, lastError: lastAIError };
   }
-  return { configured: true, model };
+  return { configured: true, model, lastError: lastAIError };
+}
+
+/**
+ * Extract readable text from a Gemini response.
+ * v13.3.0: response.text is a getter in @google/genai v1.x that returns
+ * undefined when candidates have no top-level text (e.g. partial safety trims,
+ * structured-output responses where text lives in parts). Before this patch we
+ * threw "Gemini returned an empty response" and the caller dropped to demo
+ * mode. Now we fall back to joining candidates[0].content.parts[*].text first.
+ */
+function extractResponseText(response: any): string {
+  // Primary path: SDK-provided getter
+  const direct = response?.text;
+  if (typeof direct === 'string' && direct.trim().length > 0) {
+    return direct;
+  }
+
+  // Fallback: walk candidates[0].content.parts and join text parts
+  const candidates = response?.candidates;
+  if (Array.isArray(candidates) && candidates.length > 0) {
+    const parts = candidates[0]?.content?.parts;
+    if (Array.isArray(parts)) {
+      const joined = parts
+        .map((p: any) => (typeof p?.text === 'string' ? p.text : ''))
+        .filter(Boolean)
+        .join('');
+      if (joined.trim().length > 0) return joined;
+    }
+  }
+
+  return '';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -328,25 +390,34 @@ export async function callGemini(
     const msg = apiError?.message || String(apiError);
     console.error(`[GEMINI] API call FAILED (model=${model}):`, msg.substring(0, 300));
 
+    let wrapped: string;
     if (msg.includes('API_KEY_INVALID') || msg.includes('PERMISSION_DENIED') ||
         msg.includes('INVALID_ARGUMENT') ||
         msg.includes('401') || msg.includes('403') || msg.includes('400') ||
         msg.includes('invalid API key') || msg.includes('API key not valid')) {
-      throw new Error(`Gemini auth error: ${msg.substring(0, 200)}`);
+      wrapped = `Gemini auth error: ${msg.substring(0, 200)}`;
+    } else if (msg.includes('RESOURCE_EXHAUSTED') || msg.includes('429') || msg.includes('quota') || msg.includes('RATE_LIMIT')) {
+      wrapped = `Gemini quota/rate limit exceeded (paid tier 1): ${msg.substring(0, 200)}`;
+    } else if (msg.includes('SAFETY') || msg.includes('blocked') || msg.includes('HARM_CATEGORY')) {
+      wrapped = `Gemini safety filter: ${msg.substring(0, 200)}`;
+    } else {
+      wrapped = `Gemini error: ${msg.substring(0, 200)}`;
     }
-    if (msg.includes('RESOURCE_EXHAUSTED') || msg.includes('429') || msg.includes('quota') || msg.includes('RATE_LIMIT')) {
-      throw new Error(`Gemini quota/rate limit exceeded (paid tier 1): ${msg.substring(0, 200)}`);
-    }
-    if (msg.includes('SAFETY') || msg.includes('blocked') || msg.includes('HARM_CATEGORY')) {
-      throw new Error(`Gemini safety filter: ${msg.substring(0, 200)}`);
-    }
-    throw new Error(`Gemini error: ${msg.substring(0, 200)}`);
+    lastAIError = { message: wrapped, at: Date.now() };
+    throw new Error(wrapped);
   }
 
-  const content = response?.text || '';
+  // v13.3.0 (Update 2.8): use the hardened extractor, which falls back to
+  // candidates[0].content.parts when the top-level `text` getter is undefined.
+  const content = extractResponseText(response);
   if (!content || content.trim().length === 0) {
-    console.warn('[GEMINI] Empty response received from model');
-    throw new Error('Gemini returned an empty response');
+    console.warn('[GEMINI] Empty response received from model (text getter + parts fallback both empty)');
+    const finishReason = response?.candidates?.[0]?.finishReason;
+    const emptyMsg = finishReason
+      ? `Gemini returned an empty response (finishReason=${finishReason})`
+      : 'Gemini returned an empty response';
+    lastAIError = { message: emptyMsg, at: Date.now() };
+    throw new Error(emptyMsg);
   }
 
   console.log(`[GEMINI] Response received: ${content.length} chars`);
@@ -357,7 +428,9 @@ export async function callGemini(
       lowerContent.includes('quota exceeded') ||
       lowerContent.includes('insufficient_quota') ||
       (lowerContent.includes('please visit') && lowerContent.includes('pricing'))) {
-    throw new Error(`AI API error: ${content.substring(0, 200)}`);
+    const billingMsg = `AI API error: ${content.substring(0, 200)}`;
+    lastAIError = { message: billingMsg, at: Date.now() };
+    throw new Error(billingMsg);
   }
 
   return content;
@@ -468,7 +541,8 @@ export async function chatWithTutor(
   messages: { role: string; content: string }[],
   subject?: string,
   surveyData?: any
-): Promise<{ content: string; tokensUsed: number; aiGenerated: boolean }> {
+): Promise<{ content: string; tokensUsed: number; aiGenerated: boolean; aiError?: string }> {
+  let aiError: string | undefined;
   if (isGeminiConfigured()) {
     try {
       console.log('[TUTOR] Calling Gemini for tutor response...');
@@ -481,14 +555,17 @@ export async function chatWithTutor(
       console.log(`[TUTOR] SUCCESS: ${content.length} chars`);
       return { content, tokensUsed: content.split(' ').length * 2, aiGenerated: true };
     } catch (e) {
-      console.error('[TUTOR] Gemini tutor error, falling back to demo:', (e as Error).message);
+      aiError = (e as Error).message;
+      console.error('[TUTOR] Gemini tutor error, falling back to demo:', aiError);
     }
+  } else {
+    aiError = 'AI not configured (no valid GEMINI_API_KEY)';
   }
 
   // Demo mode - personalized fallback
   const lastUserMessage = messages.filter(m => m.role === 'user').pop();
   const content = getDemoTutorResponse(lastUserMessage?.content || '', surveyData);
-  return { content, tokensUsed: 0, aiGenerated: false };
+  return { content, tokensUsed: 0, aiGenerated: false, aiError };
 }
 
 export async function gradeSubmission(
@@ -503,7 +580,10 @@ export async function gradeSubmission(
   strengths: string[];
   improvements: string[];
   encouragement: string;
+  aiGenerated?: boolean;
+  aiError?: string;
 }> {
+  let aiError: string | undefined;
   if (isGeminiConfigured()) {
     try {
       console.log('[GRADER] Calling Gemini for grading...');
@@ -525,17 +605,21 @@ export async function gradeSubmission(
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
         console.log(`[GRADER] SUCCESS: AI grading score=${parsed.score}`);
-        return parsed;
+        return { ...parsed, aiGenerated: true };
       }
+      aiError = 'Grader AI returned unparseable JSON';
       console.warn('[GRADER] extractJSON returned null, using fallback');
     } catch (e) {
-      console.error('[GRADER] Gemini grading error, falling back to demo:', (e as Error).message);
+      aiError = (e as Error).message;
+      console.error('[GRADER] Gemini grading error, falling back to demo:', aiError);
     }
+  } else {
+    aiError = 'AI not configured (no valid GEMINI_API_KEY)';
   }
 
   // Demo mode
   const result = getDemoGradeResponse(studentContent, rubric, maxScore);
-  return JSON.parse(result);
+  return { ...JSON.parse(result), aiGenerated: false, aiError };
 }
 
 export { TUTOR_SYSTEM_PROMPT, GRADER_SYSTEM_PROMPT, callGemini as callOpenAIRaw, extractJSON as extractJSONFromAI };
@@ -616,6 +700,7 @@ export async function generateStudentReport(
     recentScores: number[];
   }
 ): Promise<any> {
+  let aiError: string | undefined;
   if (isGeminiConfigured()) {
     try {
       console.log(`[REPORT] Calling Gemini for ${studentData.name} report...`);
@@ -631,10 +716,16 @@ export async function generateStudentReport(
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
         console.log(`[REPORT] SUCCESS: AI report generated`);
-        return parsed;
+        return { ...parsed, aiGenerated: true };
       }
+      aiError = 'Report AI returned unparseable JSON';
       console.warn('[REPORT] extractJSON returned null, using fallback');
-    } catch (e) { console.error('[REPORT] Report generation error:', (e as Error).message); }
+    } catch (e) {
+      aiError = (e as Error).message;
+      console.error('[REPORT] Report generation error:', aiError);
+    }
+  } else {
+    aiError = 'AI not configured (no valid GEMINI_API_KEY)';
   }
 
   // Demo fallback
@@ -662,6 +753,8 @@ export async function generateStudentReport(
       'Review spaced repetition recommendations',
       'Complete upcoming assignments before due dates',
     ],
+    aiGenerated: false,
+    aiError,
   };
 }
 
@@ -676,6 +769,7 @@ export async function analyzeCurriculum(
     overallAvg: number;
   }
 ): Promise<any> {
+  let aiError: string | undefined;
   if (isGeminiConfigured()) {
     try {
       console.log(`[CURRICULUM] Calling Gemini for ${classData.gradeLevel} ${classData.subject} analysis...`);
@@ -691,10 +785,16 @@ export async function analyzeCurriculum(
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
         console.log(`[CURRICULUM] SUCCESS: AI curriculum analysis generated`);
-        return parsed;
+        return { ...parsed, aiGenerated: true };
       }
+      aiError = 'Curriculum AI returned unparseable JSON';
       console.warn('[CURRICULUM] extractJSON returned null, using fallback');
-    } catch (e) { console.error('[CURRICULUM] Curriculum analysis error:', (e as Error).message); }
+    } catch (e) {
+      aiError = (e as Error).message;
+      console.error('[CURRICULUM] Curriculum analysis error:', aiError);
+    }
+  } else {
+    aiError = 'AI not configured (no valid GEMINI_API_KEY)';
   }
 
   // Demo fallback
@@ -726,6 +826,8 @@ export async function analyzeCurriculum(
       'Integrate writing activities to deepen understanding',
       'Use technology tools for interactive practice',
     ],
+    aiGenerated: false,
+    aiError,
   };
 }
 
@@ -737,6 +839,7 @@ export async function analyzeWriting(
   gradeLevel: string,
   assignmentType: string
 ): Promise<any> {
+  let aiError: string | undefined;
   if (isGeminiConfigured()) {
     try {
       console.log(`[WRITING] Calling Gemini for ${gradeLevel} writing analysis...`);
@@ -752,10 +855,16 @@ export async function analyzeWriting(
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
         console.log(`[WRITING] SUCCESS: AI writing analysis generated, score=${parsed.overallScore}`);
-        return parsed;
+        return { ...parsed, aiGenerated: true };
       }
+      aiError = 'Writing AI returned unparseable JSON';
       console.warn('[WRITING] extractJSON returned null, using fallback');
-    } catch (e) { console.error('[WRITING] Writing analysis error:', (e as Error).message); }
+    } catch (e) {
+      aiError = (e as Error).message;
+      console.error('[WRITING] Writing analysis error:', aiError);
+    }
+  } else {
+    aiError = 'AI not configured (no valid GEMINI_API_KEY)';
   }
 
   // Demo fallback
@@ -775,5 +884,7 @@ export async function analyzeWriting(
     strengths: ['Addresses the assignment prompt', 'Shows understanding of the topic'],
     revisionSuggestions: ['Add more specific examples to support your points', 'Consider varying sentence structure for better flow'],
     encouragement: 'Great effort! Your writing is improving with each assignment. Keep practicing!',
+    aiGenerated: false,
+    aiError,
   };
 }

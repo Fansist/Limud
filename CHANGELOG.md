@@ -4,6 +4,177 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [2.8.1] - 2026-04-24 — Update 2.8.1 (AI visibility extended to feedback, navigator, exam-sim)
+
+After 2.8.0 a user reported "AI features still do not work." Investigation
+showed two things: (1) the 2.8.0 commit was never pushed, so production was
+still serving 2.7.1 and never had the diagnostic infrastructure; (2) three of
+the routes called out as out-of-scope in 2.8.0 — `/api/teacher/ai-feedback`,
+`/api/ai-navigator`, `/api/exam-sim` — silently swallow Gemini failures and
+fall back to heuristic / canned content with no signal to the client. From
+the operator's view, those three features looked exactly the same whether AI
+was working perfectly, throttled, or completely down. This patch threads the
+same `aiError` field that 2.8.0 added to the tutor route through to all three.
+SDK shape was independently re-audited (RESEARCHER agent vs. published
+`@google/genai` v1.46 docs) and confirmed correct — there is no latent SDK
+bug; the symptom is purely visibility.
+
+### Changed
+
+- **`src/app/api/teacher/ai-feedback/route.ts`** — both POST (single
+  submission) and PUT (bulk, capped at 20) now track an `aiError` per
+  submission. Failures from `extractJSON` returning null, parsed JSON
+  missing required fields (`score` / `detailedFeedback`), or thrown
+  exceptions all populate it. POST returns it inline alongside `feedback` /
+  `aiGenerated`. PUT returns it per-submission AND as a roll-up
+  `aiError` at the response root (first failure wins) so a teacher
+  generating bulk feedback sees a single banner instead of 20 toasts. Demo
+  / heuristic payloads themselves are unchanged.
+- **`src/app/api/ai-navigator/route.ts`** — adds explicit `aiGenerated`
+  flag (true on the success path, false on demo fallback) and `aiError`
+  on the demo-fallback response. Distinguishes "GEMINI_API_KEY is not
+  configured on the server" from runtime call failures, so a deployment
+  without the key shows that exact message instead of a generic offline
+  state.
+- **`src/app/api/exam-sim/route.ts` POST** — now sets `aiGenerated` and
+  `aiError` on every code path (no key, empty/non-array result, JSON parse
+  failure, thrown exception). Both the success-DB-save and DB-failed-fall-
+  through-to-temp-id branches return them, so the student exam UI gets a
+  consistent shape regardless of which fallback fired.
+
+### Why this update is small
+
+The remaining AI-consuming routes called out in 2.8.0 — `grade`, `adaptive`,
+`quiz-generator`, `ai-builder`, `writing-coach`, `parent/ai-checkin`,
+`teacher/reports` (report rows already carry `aiError` via `parsed: report`),
+`student/review/answer` — either already propagate `aiError` through the lib
+return shape, or have UIs that don't yet consume the field. Doing the
+remaining UI threading is a separate concern from making the data available,
+which is what this patch delivers. The three routes touched here are the
+ones a teacher / student is most likely to test when verifying "is AI
+working".
+
+### Verification
+
+- All three routes' patches reviewed line-by-line: every demo-fallback
+  branch now sets `aiError` from one of: (a) "GEMINI_API_KEY is not
+  configured on the server" when `hasApiKey()` / `isGeminiConfigured()`
+  returns false, (b) a parse-shape message when `extractJSON` returns
+  null or the parsed object is malformed, (c) the thrown error's
+  `.message` (with "Unknown AI error" guard).
+- TypeScript: all new fields are optional (`aiError?: string`) and added
+  with conditional spreads, so no existing client breaks.
+- `npm run lint` and `npm run build` could not be run from the sandbox
+  (npm/npx not on PATH). Run locally before deployment to confirm strict
+  TS passes.
+- No schema changes. No `prisma db push` required.
+- Demo mode unchanged on every touched route.
+
+### Out of scope / notes
+
+- **No new dependencies.** `@google/genai` stays at `^1.46.0`.
+- **FERPA.** All `aiError` strings are infrastructure messages
+  (auth / quota / safety / parse / billing / "key not configured") —
+  never student content. Reviewed for cross-student leak; none possible.
+- **Operator note.** The single source of truth for "is AI working right
+  now" remains `GET /api/ai-status?test=true`. If that returns
+  `lastError: null` and `keyPresent: true`, AI is up. If users still see
+  demo responses with `aiGenerated: false`, the per-route `aiError` field
+  now tells you why — most commonly an unset env var on the deployment
+  host.
+
+### Files touched
+
+- `src/app/api/teacher/ai-feedback/route.ts` — POST + PUT aiError threading.
+- `src/app/api/ai-navigator/route.ts` — aiError + aiGenerated on fallback.
+- `src/app/api/exam-sim/route.ts` — aiError + aiGenerated on POST returns.
+- `CHANGELOG.md`, `package.json` (13.3.0 → 13.3.1).
+
+---
+
+## [2.8.0] - 2026-04-21 — Update 2.8 (AI Features Work Again)
+
+Users reported "the AI features do not work." The symptom was real Gemini calls
+silently falling through to canned demo responses, so tutor replies, auto-grade
+feedback, curriculum analysis, and writing feedback all looked generic even
+when a valid `GEMINI_API_KEY` was configured. The root causes were in
+`src/lib/ai.ts`: (1) `response?.text` in `@google/genai` v1.46 returns
+`undefined` when Gemini fills `candidates[0].content.parts[*].text` instead of
+the top-level `text` getter (partial safety trims, certain structured-output
+responses), which made `callGemini` throw "Gemini returned an empty response"
+even when real content was present; (2) every caller caught that throw and
+served a demo response with no signal to the route or UI that anything had
+gone wrong. This release fixes the extraction bug, keeps the diagnostic after
+the catch, and surfaces it to operators and students.
+
+### Changed
+
+- **`src/lib/ai.ts`** — new private `extractResponseText(response)` helper.
+  Tries `response.text` first (fast path, unchanged behavior for correct
+  responses) and falls back to joining `candidates[0].content.parts[*].text`
+  when the getter is empty. Only throws "empty response" if both paths yield
+  zero characters, and the throw message now includes `finishReason` so
+  operators can tell `STOP` from `SAFETY`/`MAX_TOKENS`/`RECITATION`.
+- **`src/lib/ai.ts`** — new module-level `lastAIError` captured by every
+  `callGemini` failure path (auth, quota, safety, empty, billing). Exposed via
+  `getLastAIError()` and included in `getAIStatus().lastError` so
+  `/api/ai-status` reports the most recent real failure, not just the current
+  config state. `clearLastAIError()` is exported for tests.
+- **`src/lib/ai.ts`** — `chatWithTutor`, `gradeSubmission`,
+  `generateStudentReport`, `analyzeCurriculum`, and `analyzeWriting` now
+  return an optional `aiError?: string` and, where it was missing, an
+  `aiGenerated?: boolean` flag. Callers (routes, UI) can finally tell real AI
+  responses from demo fillers. The demo payloads themselves are unchanged.
+- **`src/app/api/tutor/route.ts`** — threads the new `aiError` from
+  `chatWithTutor` through to the response body (only included when present,
+  so clean responses stay clean).
+- **`src/app/api/ai-status/route.ts`** — no direct edit; `getAIStatus()`'s
+  new `lastError` field is automatically picked up by the existing
+  `...status` spread in the diagnostic response.
+- **`src/app/student/tutor/page.tsx`** — fetches `/api/ai-status` once on
+  mount (for non-demo sessions) and renders a small status pill next to the
+  page title: **AI active** (green) when Gemini is reachable, **Offline
+  mode** (amber, with `title` tooltip showing the last error) when it is
+  not. When `/api/tutor` returns an `aiError` payload, the UI toasts it
+  once per unique message (deduped with a ref-backed Set) so retries don't
+  spam.
+
+### Why these lines and not more
+
+This patch intentionally does NOT thread `aiError` through every AI-consuming
+route (grade, adaptive, quiz-generator, ai-builder, ai-navigator,
+writing-coach, parent/ai-checkin, teacher/reports, student/review/answer,
+teacher/ai-feedback, exam-sim). That surface is ~14 routes; doing them in one
+release would balloon the diff and risk subtle behavior changes. The
+lib-level `lastAIError` plus the `/api/ai-status?test=true` probe already
+give operators a single canonical signal for "is AI working right now", and
+the tutor UI is the most visible consumer. Per-route UI threading is tracked
+as next-step work.
+
+### Files touched
+
+- `src/lib/ai.ts` — extractor, lastAIError, aiError on every public function.
+- `src/app/api/tutor/route.ts` — propagate aiError.
+- `src/app/student/tutor/page.tsx` — status badge + aiError toast.
+- `CHANGELOG.md`, `package.json` (13.2.8 → 13.3.0).
+
+### Out of scope / notes
+
+- **No schema changes.** No `prisma db push` required.
+- **No new dependencies.** `@google/genai` stays at `^1.46.0`.
+- **`npm run build` and `npm run lint`** could not be executed from the
+  sandbox (node_modules not installed). Run locally before release to
+  confirm strict TS passes. All callers of the modified public functions
+  were audited; the new fields are additive and optional.
+- **Demo mode unchanged.** The master demo account still never hits
+  `/api/tutor` — its path through `/api/demo` is untouched. The badge shows
+  "Offline mode" with the tooltip "Demo account — AI calls are mocked",
+  which is accurate.
+- **FERPA.** `aiError` strings are infrastructure messages (auth / quota /
+  safety / empty / billing) — never student content. No cross-student leak.
+
+---
+
 ## [2.7.1] - 2026-04-18 — Post-2.7 follow-ups
 
 Works the three "next steps" from the 2.7 release: wiring the student-facing
