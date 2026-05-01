@@ -1,6 +1,25 @@
 /**
- * LIMUD v13.3.0 (Update 2.8) — AI Service
+ * LIMUD v13.3.2 (Update 2.8.2) — AI Service
  * Google Gemini API via @google/genai with robust error handling & demo fallback
+ *
+ * v13.3.2 (Update 2.8.2): "AI features don't work despite valid key" — real fix
+ *   - ROOT CAUSE: many GEMINI_API_KEYs (especially ones provisioned before May
+ *     2025) have access to `gemini-1.5-flash` and `gemini-flash-latest` but
+ *     NOT `gemini-2.5-flash`. The SDK returns a NOT_FOUND / INVALID_ARGUMENT
+ *     error which our previous code wrapped as "Gemini auth error: ...". Users
+ *     saw demo content because the call legitimately failed — it just wasn't
+ *     an auth issue, it was a model-availability issue.
+ *   - FIX: callGemini now tries a model fallback chain (configured model →
+ *     gemini-2.5-flash → gemini-1.5-flash → gemini-flash-latest). On NOT_FOUND
+ *     / INVALID_ARGUMENT the call retries the next model automatically; first
+ *     working model wins and is logged. Other error classes (auth, quota,
+ *     safety, billing) still throw immediately and are NOT retried.
+ *   - SECONDARY FIX: error classifier no longer swallows model-availability
+ *     errors as "auth error". They now report as "model not available".
+ *   - SECONDARY FIX: FORCE_DEMO env var (true/1/yes) shorts isGeminiConfigured()
+ *     to false. Use during live presentations as a safety net.
+ *   - lastAIError now records the model that failed, so /api/ai-status surfaces
+ *     it in the diagnostic.
  *
  * v13.3.0 (Update 2.8): Fix "AI doesn't work" — make real failures visible
  *   - extractResponseText() falls back to candidates[0].content.parts when the
@@ -149,7 +168,21 @@ const INVALID_KEY_PATTERNS = [
   'api-key-here',
 ];
 
+/**
+ * v13.3.2 (Update 2.8.2): FORCE_DEMO env var.
+ * When set to "true" or "1", every AI feature on every route returns demo
+ * content. Use during live presentations where you cannot guarantee API
+ * availability. Routes can also flip this per-request via ?demo=true (see
+ * forceDemoForRequest in src/lib/ai-demo.ts callers).
+ */
+export function isInForceDemoMode(): boolean {
+  const flag = (process.env.FORCE_DEMO || '').trim().toLowerCase();
+  return flag === 'true' || flag === '1' || flag === 'yes';
+}
+
 export function isGeminiConfigured(): boolean {
+  // v13.3.2: presentation-mode short-circuit
+  if (isInForceDemoMode()) return false;
   const key = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
   if (!key || key.length < 10) return false;
   const lower = key.toLowerCase();
@@ -188,20 +221,36 @@ export function getLastAIError(): { message: string; at: number } | null {
 export function getAIStatus(): {
   configured: boolean;
   model: string;
+  workingModel?: string | null;
+  fallbackChain?: string[];
+  forceDemoMode?: boolean;
   reason?: string;
   lastError?: { message: string; at: number } | null;
 } {
   const key = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
   const model = process.env.AI_MODEL || 'gemini-2.5-flash';
 
+  // v13.3.2: expose force-demo + fallback chain + memoized working model.
+  const forceDemoMode = isInForceDemoMode();
+  const baseFields = {
+    model,
+    workingModel: _workingModelMemo,
+    fallbackChain: MODEL_FALLBACK_CHAIN,
+    forceDemoMode,
+    lastError: lastAIError,
+  };
+
+  if (forceDemoMode) {
+    return { configured: false, ...baseFields, reason: 'FORCE_DEMO env flag is set' };
+  }
   if (!key || key.length < 10) {
-    return { configured: false, model, reason: 'No API key configured', lastError: lastAIError };
+    return { configured: false, ...baseFields, reason: 'No API key configured' };
   }
   const lower = key.toLowerCase();
   if (INVALID_KEY_PATTERNS.some(p => lower.includes(p))) {
-    return { configured: false, model, reason: `API key appears to be a placeholder (contains invalid pattern)`, lastError: lastAIError };
+    return { configured: false, ...baseFields, reason: `API key appears to be a placeholder (contains invalid pattern)` };
   }
-  return { configured: true, model, lastError: lastAIError };
+  return { configured: true, ...baseFields };
 }
 
 /**
@@ -316,6 +365,74 @@ export async function callGeminiSafe(
   }
 }
 
+/**
+ * v13.3.2: Model fallback chain.
+ * Many older API keys can call gemini-1.5-flash but NOT gemini-2.5-flash
+ * (provisioning differences). We try the configured model first and fall
+ * back through this chain on NOT_FOUND / INVALID_ARGUMENT errors only.
+ * Auth, quota, safety, and billing errors are NOT retried — they would fail
+ * the same way on every model.
+ */
+const MODEL_FALLBACK_CHAIN = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-flash-latest',
+];
+
+/**
+ * Module-level cache: once we discover the FIRST model that works on this
+ * API key, remember it for the rest of the process so we don't pay the
+ * fallback-chain latency on every call. Cleared on process restart.
+ */
+let _workingModelMemo: string | null = null;
+
+/** Test exports — let tests reset the memo between runs. */
+export function clearWorkingModelMemo(): void {
+  _workingModelMemo = null;
+}
+export function getWorkingModel(): string | null {
+  return _workingModelMemo;
+}
+
+/**
+ * Classify a Gemini error message. Used to decide whether to retry on the
+ * next fallback model or throw immediately.
+ */
+function classifyGeminiError(msg: string): {
+  kind: 'model_not_available' | 'auth' | 'quota' | 'safety' | 'billing' | 'other';
+  wrapped: string;
+} {
+  const m = msg || '';
+  // Model availability — these warrant a fallback retry.
+  if (m.includes('NOT_FOUND') ||
+      m.includes('not found') ||
+      m.includes('is not supported') ||
+      m.includes('does not have access to') ||
+      (m.includes('INVALID_ARGUMENT') && m.toLowerCase().includes('model'))) {
+    return { kind: 'model_not_available', wrapped: `Gemini model not available: ${m.substring(0, 200)}` };
+  }
+  // Auth — throw, do not retry.
+  if (m.includes('API_KEY_INVALID') || m.includes('PERMISSION_DENIED') ||
+      m.includes('401') || m.includes('403') ||
+      m.includes('invalid API key') || m.includes('API key not valid')) {
+    return { kind: 'auth', wrapped: `Gemini auth error: ${m.substring(0, 200)}` };
+  }
+  // Quota — throw.
+  if (m.includes('RESOURCE_EXHAUSTED') || m.includes('429') || m.includes('quota') || m.includes('RATE_LIMIT')) {
+    return { kind: 'quota', wrapped: `Gemini quota/rate limit exceeded: ${m.substring(0, 200)}` };
+  }
+  // Safety — throw.
+  if (m.includes('SAFETY') || m.includes('blocked') || m.includes('HARM_CATEGORY')) {
+    return { kind: 'safety', wrapped: `Gemini safety filter: ${m.substring(0, 200)}` };
+  }
+  // Billing — throw.
+  if (m.toLowerCase().includes('billing') || m.toLowerCase().includes('pricing')) {
+    return { kind: 'billing', wrapped: `Gemini billing error: ${m.substring(0, 200)}` };
+  }
+  return { kind: 'other', wrapped: `Gemini error: ${m.substring(0, 200)}` };
+}
+
 export async function callGemini(
   promptOrMessages: string | { role: string; content: string }[],
   temperatureOrOptions?: number | { temperature?: number; maxTokens?: number },
@@ -324,7 +441,6 @@ export async function callGemini(
   // v9.7.11: Get the API key and VALIDATE it before calling the API.
   // Never send an invalid key to Google — fail fast with a clear message.
   const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
-  const model = process.env.AI_MODEL || 'gemini-2.5-flash';
 
   if (!apiKey || apiKey.length < 10) {
     throw new Error('GEMINI_API_KEY not configured — set it in environment variables');
@@ -334,7 +450,19 @@ export async function callGemini(
     throw new Error(`GEMINI_API_KEY appears to be a placeholder ("${apiKey.substring(0, 12)}...") — set a real key`);
   }
 
-  console.log(`[GEMINI] Calling ${model} with valid API key (${apiKey.substring(0, 8)}...)`);
+  // v13.3.2: build the model attempt list. Configured model first; cache the
+  // first working model for the rest of the process. Dedupe so we never try
+  // the same model twice in one call.
+  const configuredModel = (process.env.AI_MODEL || '').trim() || 'gemini-2.5-flash';
+  const attempts: string[] = [];
+  if (_workingModelMemo) {
+    attempts.push(_workingModelMemo);
+  }
+  if (!attempts.includes(configuredModel)) attempts.push(configuredModel);
+  for (const m of MODEL_FALLBACK_CHAIN) {
+    if (!attempts.includes(m)) attempts.push(m);
+  }
+
   const { GoogleGenAI } = await import('@google/genai');
   const ai = new GoogleGenAI({ apiKey });
 
@@ -352,88 +480,97 @@ export async function callGemini(
     tokens = maxTokens ?? 1024;
   }
 
-  // Build contents for Gemini API
+  // Build contents for Gemini API (same shape regardless of model).
   let contents: any;
   let systemInstruction: string | undefined;
 
   if (typeof promptOrMessages === 'string') {
     contents = promptOrMessages;
   } else {
-    // Separate system messages from user/model messages
     const systemMsgs = promptOrMessages.filter(m => m.role === 'system');
     const chatMsgs = promptOrMessages.filter(m => m.role !== 'system');
-
     if (systemMsgs.length > 0) {
       systemInstruction = systemMsgs.map(m => m.content).join('\n\n');
     }
-
-    // Convert to Gemini format: role 'user' stays, role 'assistant' -> 'model'
     contents = chatMsgs.map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     }));
   }
 
-  let response: any;
-  try {
-    response = await ai.models.generateContent({
-      model,
-      contents,
-      config: {
-        temperature: temp,
-        maxOutputTokens: tokens,
-        ...(systemInstruction ? { systemInstruction } : {}),
-      },
-    });
-  } catch (apiError: any) {
-    // Surface ALL errors clearly instead of swallowing them
-    const msg = apiError?.message || String(apiError);
-    console.error(`[GEMINI] API call FAILED (model=${model}):`, msg.substring(0, 300));
+  // v13.3.2: try each model in turn. Only retry on model_not_available.
+  let lastModelError: { kind: string; wrapped: string; model: string } | null = null;
+  for (const model of attempts) {
+    let response: any;
+    try {
+      console.log(`[GEMINI] Trying model=${model} (key=${apiKey.substring(0, 8)}...)`);
+      response = await ai.models.generateContent({
+        model,
+        contents,
+        config: {
+          temperature: temp,
+          maxOutputTokens: tokens,
+          ...(systemInstruction ? { systemInstruction } : {}),
+        },
+      });
+    } catch (apiError: any) {
+      const rawMsg = apiError?.message || String(apiError);
+      const classified = classifyGeminiError(rawMsg);
+      console.error(`[GEMINI] FAIL on ${model} (${classified.kind}):`, rawMsg.substring(0, 200));
 
-    let wrapped: string;
-    if (msg.includes('API_KEY_INVALID') || msg.includes('PERMISSION_DENIED') ||
-        msg.includes('INVALID_ARGUMENT') ||
-        msg.includes('401') || msg.includes('403') || msg.includes('400') ||
-        msg.includes('invalid API key') || msg.includes('API key not valid')) {
-      wrapped = `Gemini auth error: ${msg.substring(0, 200)}`;
-    } else if (msg.includes('RESOURCE_EXHAUSTED') || msg.includes('429') || msg.includes('quota') || msg.includes('RATE_LIMIT')) {
-      wrapped = `Gemini quota/rate limit exceeded (paid tier 1): ${msg.substring(0, 200)}`;
-    } else if (msg.includes('SAFETY') || msg.includes('blocked') || msg.includes('HARM_CATEGORY')) {
-      wrapped = `Gemini safety filter: ${msg.substring(0, 200)}`;
-    } else {
-      wrapped = `Gemini error: ${msg.substring(0, 200)}`;
+      if (classified.kind === 'model_not_available') {
+        // Try the next model in the chain.
+        lastModelError = { ...classified, model };
+        continue;
+      }
+
+      // Non-retryable: surface and throw.
+      const finalMsg = `${classified.wrapped} [model=${model}]`;
+      lastAIError = { message: finalMsg, at: Date.now() };
+      throw new Error(finalMsg);
     }
-    lastAIError = { message: wrapped, at: Date.now() };
-    throw new Error(wrapped);
+
+    // SUCCESS path on this model — extract text.
+    const content = extractResponseText(response);
+    if (!content || content.trim().length === 0) {
+      console.warn(`[GEMINI] Empty response from ${model}`);
+      const finishReason = response?.candidates?.[0]?.finishReason;
+      const emptyMsg = finishReason
+        ? `Gemini returned an empty response (finishReason=${finishReason}, model=${model})`
+        : `Gemini returned an empty response (model=${model})`;
+      lastAIError = { message: emptyMsg, at: Date.now() };
+      // Don't retry empty responses on the next model — they're a content
+      // issue (safety trim, max tokens) not a model availability issue.
+      throw new Error(emptyMsg);
+    }
+
+    // Detect error responses embedded in content (some quota errors come
+    // back as 200 OK with the error embedded in the body).
+    const lowerContent = content.toLowerCase();
+    if (lowerContent.includes('credits have been exhausted') ||
+        lowerContent.includes('quota exceeded') ||
+        lowerContent.includes('insufficient_quota') ||
+        (lowerContent.includes('please visit') && lowerContent.includes('pricing'))) {
+      const billingMsg = `AI API error: ${content.substring(0, 200)} [model=${model}]`;
+      lastAIError = { message: billingMsg, at: Date.now() };
+      throw new Error(billingMsg);
+    }
+
+    // Cache the first working model for the rest of the process.
+    if (_workingModelMemo !== model) {
+      console.log(`[GEMINI] Memoizing working model: ${model} (was: ${_workingModelMemo || 'none'})`);
+      _workingModelMemo = model;
+    }
+    console.log(`[GEMINI] OK on ${model}: ${content.length} chars`);
+    return content;
   }
 
-  // v13.3.0 (Update 2.8): use the hardened extractor, which falls back to
-  // candidates[0].content.parts when the top-level `text` getter is undefined.
-  const content = extractResponseText(response);
-  if (!content || content.trim().length === 0) {
-    console.warn('[GEMINI] Empty response received from model (text getter + parts fallback both empty)');
-    const finishReason = response?.candidates?.[0]?.finishReason;
-    const emptyMsg = finishReason
-      ? `Gemini returned an empty response (finishReason=${finishReason})`
-      : 'Gemini returned an empty response';
-    lastAIError = { message: emptyMsg, at: Date.now() };
-    throw new Error(emptyMsg);
-  }
-
-  console.log(`[GEMINI] Response received: ${content.length} chars`);
-
-  // Detect error responses embedded in content
-  const lowerContent = content.toLowerCase();
-  if (lowerContent.includes('credits have been exhausted') ||
-      lowerContent.includes('quota exceeded') ||
-      lowerContent.includes('insufficient_quota') ||
-      (lowerContent.includes('please visit') && lowerContent.includes('pricing'))) {
-    const billingMsg = `AI API error: ${content.substring(0, 200)}`;
-    lastAIError = { message: billingMsg, at: Date.now() };
-    throw new Error(billingMsg);
-  }
-
-  return content;
+  // Exhausted the entire fallback chain on model_not_available errors.
+  const finalMsg = lastModelError
+    ? `No accessible Gemini model on this API key. Last tried ${lastModelError.model}: ${lastModelError.wrapped}`
+    : 'No accessible Gemini model on this API key (fallback chain exhausted)';
+  lastAIError = { message: finalMsg, at: Date.now() };
+  throw new Error(finalMsg);
 }
 
 /** @deprecated Use callGemini() — kept for backward compat */

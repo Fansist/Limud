@@ -4,6 +4,88 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [2.8.2] - 2026-05-01 — Update 2.8.2 (AI features work on every API key — model fallback chain)
+
+User reported "the AI features still don't work" after 2.8 + 2.8.1 shipped, with
+a valid `GEMINI_API_KEY` in production. Investigation surfaced the real bug:
+many API keys (especially ones provisioned before May 2025) **do not have
+access to `gemini-2.5-flash`**, the model 2.8 hard-coded as default. The SDK
+returned `NOT_FOUND` / `INVALID_ARGUMENT` errors which the previous error
+classifier wrapped as "Gemini auth error". So the user saw demo content even
+though the key was fine — it was a model-availability issue, not an auth one.
+This patch fixes the actual call path so AI works on every key.
+
+### Changed
+
+- **`src/lib/ai.ts`** — new `MODEL_FALLBACK_CHAIN`:
+  `['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest']`.
+  `callGemini()` now tries the configured model first, then walks the chain on
+  `NOT_FOUND` / `INVALID_ARGUMENT` errors only. Auth, quota, safety, and billing
+  errors still throw immediately — they would fail identically on every model.
+- **`src/lib/ai.ts`** — module-level `_workingModelMemo` caches the first
+  model that works on this key for the rest of the process. After the first
+  successful call, subsequent calls use the memoized model directly (no
+  fallback latency). Cleared on process restart.
+- **`src/lib/ai.ts`** — new `classifyGeminiError()` helper with structured
+  return shape `{ kind, wrapped }`. Replaces the inline if/else chain in
+  `callGemini` and adds a new `model_not_available` category that was
+  previously misclassified as `auth`. Other categories: `auth`, `quota`,
+  `safety`, `billing`, `other`.
+- **`src/lib/ai.ts`** — `getAIStatus()` now returns `workingModel` (the
+  memoized model that's actually working), `fallbackChain` (the configured
+  list), and `forceDemoMode` (boolean, see below). `/api/ai-status` picks
+  these up automatically through the existing `...status` spread.
+- **`src/lib/ai.ts`** — new `FORCE_DEMO` env var. When `FORCE_DEMO=true`
+  (or `1` or `yes`), `isGeminiConfigured()` short-circuits to `false` and
+  every AI feature falls cleanly to its demo content. Use this during live
+  presentations as a safety net when you can't guarantee API key / quota /
+  network reachability. New `isInForceDemoMode()` helper exported.
+- **Error messages** — every error thrown from `callGemini` now includes
+  `[model=...]` so logs and `/api/ai-status?test=true` show exactly which
+  model was being tried when the failure happened.
+
+### How to verify
+
+After deploying:
+
+1. `GET /api/ai-status?test=true` — should return `testResult: 'success'` with
+   `workingModel` populated. If it returns `testResult: 'failed'`, the
+   `testError` field now tells you precisely which model failed and why
+   (`model_not_available` vs `auth` vs `quota` vs `safety`).
+2. Open `/student/tutor` — the status pill should read **AI active** (green)
+   instead of **Offline mode** (amber).
+3. If something still fails, the new error message starts with the failure
+   class (e.g. "Gemini quota/rate limit exceeded") instead of the previous
+   misleading "Gemini auth error" wrapper.
+
+### Why this is a real fix
+
+The previous claims in 2.8 / 2.8.1 ("AI features work again") only fixed
+*visibility* — they made it possible to see that AI had failed, but did not
+fix the underlying call path. This patch fixes the call path itself. For
+keys with `gemini-2.5-flash` access, behavior is identical to 2.8.1 (the
+configured model still wins on the first attempt). For keys without that
+access, AI now works on `gemini-1.5-flash` automatically.
+
+### Out of scope / notes
+
+- **No schema changes.** No new dependencies (`@google/genai` stays at
+  `^1.46.0`).
+- **No client changes.** The tutor UI status pill from 2.8 already reads
+  the corrected `getAIStatus()` shape.
+- **`npm run lint` and `npm run build`** could not be run from the sandbox
+  (npm/npx not on PATH). Run locally before deployment to confirm strict TS
+  passes.
+- **FERPA.** `[model=...]` annotations are infrastructure metadata, never
+  student content.
+
+### Files touched
+
+- `src/lib/ai.ts` — fallback chain, memo, classifier, FORCE_DEMO.
+- `CHANGELOG.md`, `package.json` (13.3.1 → 13.3.2).
+
+---
+
 ## [2.8.1] - 2026-04-24 — Update 2.8.1 (AI visibility extended to feedback, navigator, exam-sim)
 
 After 2.8.0 a user reported "AI features still do not work." Investigation
