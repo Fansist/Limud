@@ -4,6 +4,89 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [2.9.1] - 2026-05-02 — Update 2.9.1 (AI works for the Master Demo account)
+
+User reported: "AI features don't work for the Master demo even though it is
+supposed to have complete access to every feature." After 2.8.2 fixed the
+server-side model fallback, the master demo account STILL saw canned
+client-side fallback responses on every AI feature. Root cause was on the
+client, not the server.
+
+### Root cause
+
+`useIsDemo()` in `src/lib/hooks.ts` returns `true` for the master demo
+account (a v9.7.7 fix to keep stat-driven dashboards from breaking when the
+demo DB is empty). Every AI-consuming client component reads `isDemo` and,
+when true, shows the canned client-side fallback instead of calling the
+server. So the v2.8.2 server-side model fallback was being bypassed entirely
+for master demo — the request never left the browser.
+
+### Changed
+
+- **`src/lib/hooks.ts`** — `useIsDemo()` now accepts an
+  `{ excludeMasterDemo?: boolean }` option. When passed `true`, the master
+  demo account is treated as a real authenticated user (returns `false`).
+  Default behavior is unchanged for the other 40+ callers — stat-driven
+  dashboards still get demo data.
+- **`src/app/student/tutor/page.tsx`** — passes
+  `useIsDemo({ excludeMasterDemo: true })` so master demo hits `/api/tutor`
+  and the v2.8.2 model fallback chain.
+- **`src/app/student/exam-sim/page.tsx`** — same opt-in.
+- **`src/app/teacher/quiz-generator/page.tsx`** — same opt-in.
+- **`src/app/teacher/ai-feedback/page.tsx`** — same opt-in.
+- **`src/app/teacher/ai-builder/page.tsx`** — same opt-in.
+- **`src/components/ai/AINavigator.tsx`** — same opt-in.
+
+### Why a per-component opt-in (not a global flip)
+
+48 client components currently call `useIsDemo()`. Most are stat-driven
+dashboards (admin/teacher/parent/student summaries, classroom rosters,
+analytics) that rely on the v9.7.7 demo-data path because the live demo
+DB is intentionally empty. Flipping `useIsDemo()` to return `false` for
+master demo by default would break those screens. The opt-in keeps every
+existing screen working while letting the AI-consuming six bypass the
+canned fallback explicitly.
+
+### How to verify
+
+1. Sign in as the master demo account (`master@limud.edu`).
+2. Open `/student/tutor`. The status pill should read **AI active**, not
+   **Offline mode**.
+3. Send a message. The response should be a real Gemini reply (not the
+   four-branch canned fallback). Inspect `/api/ai-status?test=true` —
+   `workingModel` should be populated with whatever model the v2.8.2
+   chain settled on (`gemini-2.5-flash`, `gemini-1.5-flash`, or
+   `gemini-flash-latest`).
+4. Repeat on `/teacher/quiz-generator`, `/teacher/ai-feedback`,
+   `/teacher/ai-builder`, `/student/exam-sim`. All five should produce
+   real AI output for the master demo.
+
+### Files touched
+
+- `src/lib/hooks.ts` — new options interface, master-demo bypass logic.
+- `src/app/student/tutor/page.tsx`
+- `src/app/student/exam-sim/page.tsx`
+- `src/app/teacher/quiz-generator/page.tsx`
+- `src/app/teacher/ai-feedback/page.tsx`
+- `src/app/teacher/ai-builder/page.tsx`
+- `src/components/ai/AINavigator.tsx`
+- `CHANGELOG.md`, `package.json` (13.3.2 → 13.4.1).
+
+### Out of scope / notes
+
+- **No schema changes.** No new dependencies.
+- **DashboardLayout** behavior unchanged — the role-switcher / demo-banner
+  distinction for master demo still works.
+- **`/teacher/reports`, `/teacher/lesson-planner`, `/teacher/intelligence`**
+  also call `useIsDemo()` and may use AI in places. Not opted-in here
+  because their AI usage is indirect (server-rendered) and their primary
+  view is dashboard data that the v9.7.7 path still wants to keep on demo
+  data. Re-evaluate per feature.
+- **Build / lint** could not be run from the sandbox. Run locally before
+  deployment.
+
+---
+
 ## [2.8.2] - 2026-05-01 — Update 2.8.2 (AI features work on every API key — model fallback chain)
 
 User reported "the AI features still don't work" after 2.8 + 2.8.1 shipped, with

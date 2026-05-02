@@ -31,7 +31,8 @@ const DIFF_LABELS: Record<string, string> = {
 };
 
 export default function QuizGeneratorPage() {
-  const isDemo = useIsDemo();
+  // v13.4.1 (Update 2.9.1): master demo gets real AI-generated quizzes.
+  const isDemo = useIsDemo({ excludeMasterDemo: true });
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);

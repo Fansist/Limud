@@ -14,7 +14,8 @@ import {
 type ExamState = 'setup' | 'taking' | 'results' | 'history';
 
 export default function ExamSimulatorPage() {
-  const isDemo = useIsDemo();
+  // v13.4.1 (Update 2.9.1): master demo gets real AI exam questions.
+  const isDemo = useIsDemo({ excludeMasterDemo: true });
   const [state, setState] = useState<ExamState>('setup');
   const [subject, setSubject] = useState('Math');
   const [questionCount, setQuestionCount] = useState(8);

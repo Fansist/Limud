@@ -193,7 +193,8 @@ function generateFeedback(submission: typeof DEMO_SUBMISSIONS[0]): {
 
 export default function AIFeedbackPage() {
   const { data: session } = useSession();
-  const isDemo = useIsDemo();
+  // v13.4.1 (Update 2.9.1): master demo gets real AI feedback.
+  const isDemo = useIsDemo({ excludeMasterDemo: true });
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);

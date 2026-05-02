@@ -67,7 +67,8 @@ function NavigatorMessage({ content, onNavigate }: { content: string; onNavigate
 
 export default function AINavigator() {
   const router = useRouter();
-  const isDemo = useIsDemo();
+  // v13.4.1 (Update 2.9.1): master demo gets real AI navigation responses.
+  const isDemo = useIsDemo({ excludeMasterDemo: true });
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);

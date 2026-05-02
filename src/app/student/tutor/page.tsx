@@ -87,7 +87,8 @@ type AIStatusBadge = {
 
 export default function TutorPage() {
   const { data: session } = useSession();
-  const isDemo = useIsDemo();
+  // v13.4.1 (Update 2.9.1): master demo gets real AI, not client-side fallback.
+  const isDemo = useIsDemo({ excludeMasterDemo: true });
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

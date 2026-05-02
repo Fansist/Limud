@@ -24,27 +24,50 @@ const DEMO_EMAILS = new Set([
 
 /**
  * Hook to detect if we're in demo mode.
- * v9.7.7 FIX: Master Demo now returns TRUE so all pages use demo data.
- * Previously master demo was excluded, causing pages to call real APIs
- * that failed with no database, resulting in empty student lists.
  *
- * The DashboardLayout handles the visual distinction (role switcher vs
- * demo banner) using its own isDemo/isMasterDemo state — it does NOT
- * use this hook.
+ * v13.4.1 (Update 2.9.1): added the `excludeMasterDemo` option. AI-consuming
+ * client components (tutor chat, quiz generator, AI feedback, AI builder,
+ * exam-sim, AI navigator) pass `{ excludeMasterDemo: true }` so master demo
+ * flows through to the real AI calls instead of the canned client-side
+ * fallback. Master demo is supposed to have FULL access to every feature —
+ * the v9.7.7 short-circuit was correct for stat-driven dashboards (where
+ * the DB might be empty in production demo) but wrong for AI features
+ * (which now have a model fallback chain in src/lib/ai.ts v2.8.2 that
+ * works on any GEMINI_API_KEY). Default behavior is unchanged for the
+ * other 40+ callers.
+ *
+ * v9.7.7: Master Demo returns TRUE so dashboard pages use demo data.
  *
  * Detection priority:
- * 1. Master Demo → true (uses demo data, DashboardLayout shows role switcher)
- * 2. Authenticated with real (non-demo) email → always false + clear stale flags
- * 3. URL ?demo=true → true
- * 4. Session email matches known demo account → true
- * 5. localStorage 'limud-demo-mode' (fallback for unauthenticated demo browsing)
+ * 1. {excludeMasterDemo: true} + master demo → false (NEW v13.4.1)
+ * 2. Master Demo → true (uses demo data, DashboardLayout shows role switcher)
+ * 3. Authenticated with real (non-demo) email → false + clear stale flags
+ * 4. URL ?demo=true → true
+ * 5. Session email matches known demo account → true
+ * 6. localStorage 'limud-demo-mode' (fallback for unauthenticated demo browsing)
  */
-export function useIsDemo(): boolean {
+export interface UseIsDemoOptions {
+  /**
+   * When true, the master demo account is treated as a REAL authenticated
+   * user (returns false). Pass this from AI-consuming client components so
+   * master demo hits the real AI instead of the client-side canned fallback.
+   */
+  excludeMasterDemo?: boolean;
+}
+
+export function useIsDemo(options?: UseIsDemoOptions): boolean {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
 
-  // v9.7.7: Master Demo now returns true — demo data for all pages
   const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
+
+  // v13.4.1: AI-consuming components opt out of demo behavior for master demo.
+  // We bypass BOTH the master-demo short-circuit AND the DEMO_EMAILS match
+  // (master@limud.edu is in DEMO_EMAILS — that's why a plain return false
+  // here is safe; it short-circuits the email check too).
+  if (options?.excludeMasterDemo && isMasterDemo) return false;
+
+  // v9.7.7: Master Demo returns true — demo data for stat-driven dashboards
   if (isMasterDemo) return true;
 
   const sessionEmail = session?.user?.email?.toLowerCase() || '';

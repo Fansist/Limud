@@ -93,7 +93,8 @@ function generateDemoAssignment(content: string, subject: string, grade: string,
 
 export default function AIBuilderPage() {
   const { data: session } = useSession();
-  const isDemo = useIsDemo();
+  // v13.4.1 (Update 2.9.1): master demo gets real AI-built assignments.
+  const isDemo = useIsDemo({ excludeMasterDemo: true });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step management
