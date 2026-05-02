@@ -4,6 +4,89 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [2.9.2] - 2026-05-02 — Update 2.9.2 (Per-course grade breakdown for students)
+
+Students could see one overall average on the dashboard but had no way to
+tell which course was carrying the average and which was dragging it. This
+patch adds a dedicated `/student/grades` page that groups every graded
+submission by course, shows the per-course average + letter grade + a
+small sparkline of recent scores + an improving / slipping / steady trend
+pill, and surfaces the count of pending (ungraded) submissions per course
+so students know where they're waiting on a teacher.
+
+### Added
+
+- **`src/app/api/student/grades-by-course/route.ts`** — new GET endpoint.
+  Pulls the student's enrolled classrooms (joined to `courseId`) and every
+  submission with a non-null score, groups submissions by course, and
+  returns `{ courses: [{ id, name, subject, avgScore, letterGrade,
+  gradedCount, pendingCount, recentScores[], lastGradedAt }], overall, ... }`.
+  - Seeds buckets from classrooms so courses with NO grades still appear
+    with a clear `—` placeholder (instead of silently disappearing from
+    the student's view).
+  - Lumps stray submissions whose course has been archived into an "Other
+    Coursework" row so nothing is lost.
+  - Best-effort Prisma import + try/catch on every DB call (matches the
+    pattern hardened in v2.8 / 2.8.1).
+  - Master demo and DB-unavailable callers get a canned 6-course response
+    that mirrors `DEFAULT_STUDENT_CLASSROOMS` from `/student/classrooms`.
+- **`src/app/student/grades/page.tsx`** — new page. Renders:
+  - An overall summary card (big letter grade + percentage + course count)
+  - A per-course list with subject icon, big grade badge, sparkline of the
+    last ≤5 graded scores, color-coded performance bands, and a trend pill
+    (Improving / Slipping / Steady / New).
+  - Empty state: friendly message + return link to classrooms.
+  - Achievement footer: "You're running an A in N courses" when at least
+    one course is at 90%+ with ≥3 graded submissions.
+  - Pending banner when any course has ungraded submissions in flight.
+
+### Changed
+
+- **`src/app/student/classrooms/page.tsx`** — header now has a "View
+  grades by course" button (emerald CTA, top-right). The classroom list
+  also keeps showing assignments — this is purely additive.
+
+### Why this shape
+
+The student schema is `Submission → Assignment → Course`, but the screen a
+student looks at most is `/student/classrooms` (which uses the `Classroom`
+model, joined to `Course` via the optional `Classroom.courseId`). The new
+API joins both so the per-classroom view a student already understands
+becomes the per-course grade view they're asking for, with no new mental
+model.
+
+### Verify
+
+1. Sign in as a student (or master demo).
+2. Open `/student/classrooms`. The header has a new "View grades by course"
+   button.
+3. Click it. You should land on `/student/grades` and see one row per
+   course, each with the average percent, letter grade, sparkline, and
+   trend pill. Pending submissions are noted but don't affect the average.
+4. Demo / master demo / DB-down all render the 6-course canned response.
+
+### Files touched
+
+- `src/app/api/student/grades-by-course/route.ts` (NEW)
+- `src/app/student/grades/page.tsx` (NEW)
+- `src/app/student/classrooms/page.tsx` (added link in header)
+- `CHANGELOG.md`, `package.json` (13.4.1 → 13.4.2)
+
+### Out of scope / notes
+
+- **No schema changes.** Uses existing `Submission`, `Assignment`,
+  `Course`, `Classroom`, `ClassroomStudent` relations.
+- **No new dependencies.**
+- **`/parent/grades` for parents** to see their children's per-course
+  grades — separate feature, deferred.
+- **Per-assignment drill-down inside a course** — students click the
+  course row today and route back to `/student/assignments`. A nested
+  per-course assignment list is deferred.
+- **`npm run build` / `npm run lint`** could not be run from the sandbox.
+  Run locally before deployment to confirm strict TS passes.
+
+---
+
 ## [2.9.1] - 2026-05-02 — Update 2.9.1 (AI works for the Master Demo account)
 
 User reported: "AI features don't work for the Master demo even though it is

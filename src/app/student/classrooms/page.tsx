@@ -200,7 +200,7 @@ export default function MyClassroomsPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white">
                 <GraduationCap size={20} />
@@ -212,6 +212,13 @@ export default function MyClassroomsPage() {
                 </p>
               </div>
             </div>
+            {/* v13.4.2 (Update 2.9.2): per-course grade breakdown link. */}
+            <Link
+              href={`/student/grades${needsDemoParam ? '?demo=true' : ''}`}
+              className="inline-flex items-center gap-2 bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-emerald-700 transition shadow-sm shadow-emerald-600/20"
+            >
+              <Star size={14} /> View grades by course <ChevronRight size={14} />
+            </Link>
           </div>
         </motion.div>
 
