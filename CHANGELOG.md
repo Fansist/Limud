@@ -4,6 +4,207 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [3.0.0] - 2026-05-07 — Update 3.0 (The Two-Upload Release)
+
+The biggest product change since Limud started: teachers now upload **two
+separate things** per unit, and the AI personalizes one of them per student.
+
+- **ASSIGNMENT** — the graded artifact. Identical for every student.
+  Fairness in evaluation is non-negotiable.
+- **MATERIAL** — the teaching content. The AI rewrites it per student
+  based on their learning style and self-reported interests. A visual
+  learner who loves Marvel gets the chapter as a comic-book script. A
+  student who loves rap gets the same chapter as a lyrical breakdown
+  with rhyming stanzas. A kinesthetic learner who loves cooking gets a
+  hands-on step-by-step walkthrough. **Same facts. Same dates. Same
+  final assignment. Different doorways in.**
+
+This release also rewrites the README from a deployment manual into an
+actual representation of what Limud is as a product.
+
+### Added
+
+- **`prisma/schema.prisma`** — two new models.
+  - `Material` — teacher-uploaded teaching content (title, body, subject,
+    gradeLevel, courseId | classroomId, createdById, optional
+    assignmentId pairing). Distinct from `Assignment` (which remains the
+    uniform graded artifact). Indexed on course/classroom/creator.
+  - `PersonalizedMaterial` — caches the AI rewrite per `(materialId,
+    studentId)` pair. Fields: content, format, learningStyle,
+    interestsUsed, aiGenerated, refreshedAt. Unique on
+    `[materialId, studentId]` so re-reads are instant and we don't
+    re-spend tokens on every page view.
+  - Back-relations added on `Course.materials`, `Classroom.materials`,
+    and `User.createdMaterials`.
+
+- **`src/lib/ai.ts`** — new public function `personalizeMaterial(input)`.
+  Takes the teacher's original body + the student's `StudentSurvey`,
+  returns `{ content, format, interestsUsed, aiGenerated, aiError? }`.
+  Format is picked first by interest signal (comics → comic-book script,
+  rap → lyrical breakdown, gaming → interactive branching, cooking →
+  step-by-step), then falls back to learning style. The prompt enforces
+  hard rules: cover every objective, do not invent facts, match reading
+  level to grade, ±30% length, end with a reflection question tied to
+  one of the student's interests, output the rewritten material only.
+  Failures degrade gracefully to the original body with a visible
+  `aiError`.
+
+- **`src/app/api/teacher/materials/route.ts`** — GET (list teacher's
+  own materials), POST (create one tied to a course or classroom the
+  teacher owns; tenant-checked via `CourseTeacher` or `Classroom.teacherId`),
+  DELETE (id-scoped, only by the creator). Master-demo accounts are
+  detected and routed to the client-side demo state instead of the DB.
+  Body validation via `zod`.
+
+- **`src/app/api/student/materials/route.ts`** — GET. Returns the list
+  of materials the student can see (joined via `Enrollment` and
+  `ClassroomStudent`, filtered to `isPublished`). Includes a one-row
+  preview of the `PersonalizedMaterial` cache so the UI can show
+  "personalized for you" vs. "tap to personalize".
+
+- **`src/app/api/student/materials/[id]/route.ts`** — the heart of the
+  feature. Auth-gates and tenant-gates the student. Returns the cached
+  `PersonalizedMaterial` if one exists (and `?refresh=true` was not
+  passed). Otherwise pulls the student's `StudentSurvey`, calls
+  `personalizeMaterial(...)`, upserts the cache row, returns the
+  rewritten content. AI failures return the original body with a visible
+  `aiError` — never silent demo content.
+
+- **`src/app/teacher/materials/page.tsx`** — new teacher UI. Card-based
+  list with a 1→28 hero ("one material, twenty-eight readers") that
+  explains the two-upload model in one paragraph. Inline form to post
+  a new material (title + subject + grade + body, ≤50 KB). Demo mode
+  persists via `addTeacherMaterial`; real mode POSTs the API.
+
+- **`src/app/student/materials/page.tsx`** — new student list page.
+  Shows every available material across the student's classes with a
+  green "personalized for you" pill once the AI rewrite has been
+  cached.
+
+- **`src/app/student/materials/[id]/page.tsx`** — new student reader.
+  Fetches the personalized rewrite, shows a format badge ("comic
+  script", "story", "lyrical breakdown", etc.), renders content via
+  `react-markdown` for prose formats and a styled `<pre>` for
+  comic/rap formats, has a Refresh button to re-personalize against
+  the latest survey, and a footer note that reminds the student that
+  the underlying assignment is identical for everyone.
+
+- **`src/lib/demo-data.ts`** — `DEMO_MATERIALS` seed. Two hand-authored
+  materials (the French Revolution and Photosynthesis) with five
+  pre-rendered samples between them across every supported format
+  (comic, story, rap, diagram_walkthrough, step_by_step, interactive,
+  plain). Lets the demo show the two-upload story without a Gemini key.
+
+- **`src/lib/demo-state.ts`** — three new helpers:
+  - `addTeacherMaterial(material)` — mirror of `addTeacherAssignment`,
+    persists across role-switches via localStorage.
+  - `getDemoMaterials()` — merges seeds with session-added materials.
+  - `getDemoPersonalizedSample(materialId, profile)` — picks the right
+    pre-rendered sample for a demo student based on their learning
+    style and interest blob, mirroring what the live AI does.
+  - Extended `DemoState` with `teacherCreatedMaterials`.
+
+- **`README.md`** — full rewrite. The previous README was a 2,262-line
+  hybrid of marketing intro, deployment manual, env-var tables, and an
+  inlined changelog. The new README is ~280 lines, product-first:
+  - What Limud is, in one paragraph (the engagement crisis + the
+    second-teacher metaphor).
+  - **The Two-Upload Model** with the worked example (Maya gets the
+    comic, Diego gets the rap, Priya gets the kitchen).
+  - The Detect → Personalize → Intervene engine.
+  - How it feels for each role (student, teacher, parent, district).
+  - Pages by role (the actual route inventory).
+  - The visual language (color, type, shape, motion, accessibility).
+  - Demo mode, AI wiring, non-negotiables, tech stack, project layout,
+    contributing, license.
+  - Operator content (deployment, env vars, db setup) is now referenced
+    as living in `LIMUD-DEVELOPER-GUIDE.txt`, not duplicated inline.
+  - Inlined `[2.5] – [9.0]` changelog history is gone — `CHANGELOG.md`
+    is the source of truth for that.
+
+### Why this shape
+
+- **Two separate models, not extensions of `Assignment`.** Material and
+  Assignment are conceptually different things (teaching vs. evaluating)
+  and would have made `Assignment.description` even more overloaded
+  than it already is. Keeping them separate means the grading authority
+  remains uniform while the teaching surface becomes plural.
+
+- **Cache table, not on-the-fly only.** The Calvin-cycle-of-LLM-calls
+  problem: a student who re-opens the same material five times in a
+  week shouldn't trigger five Gemini calls. `PersonalizedMaterial` is
+  the read-through cache. Forcing a refresh is one query parameter
+  (`?refresh=true`) and overwrites the cache row.
+
+- **Format chosen by interest signal first, learning style second.** A
+  visual learner who loves comics gets a comic — not just a "visual
+  walkthrough". The interest blob (hobbies + favoriteBooks +
+  favoriteMovies + favoriteGames + funFacts) is keyword-scanned for
+  comics / rap / gaming / cooking / story — those are the strongest
+  signals. Learning style is the fallback. This matches how engagement
+  actually works: a kid who *cares* about something pays attention;
+  a "preferred modality" is a weaker pull.
+
+- **Visible failure, never silent demo.** If Gemini is down or the
+  key has no model access, the student sees the original body with an
+  amber "AI offline" badge — never a fake comic that wasn't actually
+  AI-generated. Same principle as the v2.8 AI-visibility work.
+
+- **Demo mode is hand-authored on purpose.** Live demos shouldn't depend
+  on the network. The seeded samples are the same content the real AI
+  produces against the same prompt — they're authentic, not imitations.
+
+### Verify
+
+After deploying:
+- Schema picks up automatically — `npm run build` runs
+  `prisma generate && prisma db push` as part of the build script.
+- As a teacher: visit `/teacher/materials`, post a 5-paragraph chapter,
+  confirm the card appears with a "0 personalized versions" badge.
+- As a demo student (Lior, the visual learner who loves comics): visit
+  `/student/materials/demo-mat-french-rev`, confirm the comic-book
+  panels render with a green "Personalized for you" badge.
+- Re-open the same material — confirm "From cache" badge.
+- Force-demo `FORCE_DEMO=true`: confirm the reader still works (uses
+  hand-authored sample) and shows the original-with-amber-badge for
+  any session-uploaded material.
+- Master-demo `master@limud.edu`: same as above; teacher upload
+  persists via localStorage cross-role.
+
+### Files touched
+
+- `prisma/schema.prisma` (Material + PersonalizedMaterial + back-rels)
+- `src/lib/ai.ts` (personalizeMaterial + helpers)
+- `src/lib/demo-data.ts` (DEMO_MATERIALS + sample bank)
+- `src/lib/demo-state.ts` (addTeacherMaterial, getDemoMaterials,
+  getDemoPersonalizedSample, DemoMaterialEntry, state field)
+- `src/app/api/teacher/materials/route.ts` (NEW — GET/POST/DELETE)
+- `src/app/api/student/materials/route.ts` (NEW — GET list)
+- `src/app/api/student/materials/[id]/route.ts` (NEW — personalized GET)
+- `src/app/teacher/materials/page.tsx` (NEW — upload UI)
+- `src/app/student/materials/page.tsx` (NEW — list UI)
+- `src/app/student/materials/[id]/page.tsx` (NEW — reader UI)
+- `README.md` (full rewrite)
+- `CHANGELOG.md` (this entry)
+- `package.json` (`13.4.2` → `14.0.0`)
+
+### Out of scope / notes
+
+- Course/classroom picker on `/teacher/materials` upload form is
+  deferred; the API requires `courseId` or `classroomId`, so for now
+  the demo flow is the primary path until the picker ships in 3.0.1.
+- Lexile / reading-level field is still not on `User` or
+  `StudentSurvey`. Personalization currently uses `gradeLevel` and
+  `ageGroup` as proxies — fine for now. Adding `lexile` is a small,
+  separate change.
+- The `Worksheet` model referenced by `src/app/api/worksheets/route.ts`
+  but missing from the schema is unchanged here — flagged for a
+  separate cleanup pass.
+- v3.0 is the changelog/marketing version; `package.json` is bumping
+  `13.4.2 → 14.0.0` to reflect the major-feature line.
+
+---
+
 ## [2.9.2] - 2026-05-02 — Update 2.9.2 (Per-course grade breakdown for students)
 
 Students could see one overall average on the dashboard but had no way to

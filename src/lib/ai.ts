@@ -671,8 +671,178 @@ function getDemoGradeResponse(content: string, rubric: string | null, maxScore: 
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// PUBLIC API: TUTOR, GRADER, REPORTS, CURRICULUM, WRITING
+// PUBLIC API: TUTOR, GRADER, REPORTS, CURRICULUM, WRITING, PERSONALIZE
 // ═══════════════════════════════════════════════════════════════════
+
+/**
+ * v14.0.0 (Update 3.0) — Two-Upload personalization
+ *
+ * Rewrites a teacher-uploaded MATERIAL into a student-specific version that
+ * leverages the student's learning style and self-reported interests. This is
+ * the core engine of the "every mind learns differently" promise.
+ *
+ * Critical product invariant: this function NEVER changes the underlying
+ * facts, learning objectives, or difficulty. It changes the *delivery* —
+ * format, examples, narrative wrapper, analogies. The same kid still has to
+ * pass the same uniform Assignment afterward.
+ */
+
+export interface PersonalizeMaterialInput {
+  title: string;
+  body: string;
+  subject?: string | null;
+  gradeLevel?: string | null;
+  survey: {
+    favoriteSubjects?: string[] | null;
+    hobbies?: string[] | null;
+    favoriteBooks?: string | null;
+    favoriteMovies?: string | null;
+    favoriteGames?: string | null;
+    dreamJob?: string | null;
+    learningStyle?: string | null;
+    motivators?: string[] | null;
+    challenges?: string[] | null;
+    funFacts?: string | null;
+    ageGroup?: string | null;
+  } | null;
+}
+
+export interface PersonalizeMaterialResult {
+  content: string;
+  format: string;          // "comic" | "story" | "rap" | "diagram_walkthrough" | "step_by_step" | "interactive" | "plain"
+  interestsUsed: string[]; // human-readable list, for audit / display
+  aiGenerated: boolean;
+  aiError?: string;
+}
+
+const FORMAT_BY_STYLE: Record<string, string> = {
+  visual: 'diagram_walkthrough',
+  auditory: 'story',
+  kinesthetic: 'step_by_step',
+  reading_writing: 'plain',
+  reading: 'plain',
+  adhd_friendly: 'interactive',
+  structured: 'step_by_step',
+};
+
+function pickFormatFromInterests(survey: PersonalizeMaterialInput['survey']): string | null {
+  if (!survey) return null;
+  const blob = [
+    ...(survey.hobbies || []),
+    survey.favoriteBooks || '',
+    survey.favoriteMovies || '',
+    survey.favoriteGames || '',
+    survey.funFacts || '',
+  ].join(' ').toLowerCase();
+  if (/comic|manga|marvel|dc|graphic novel|superhero/.test(blob)) return 'comic';
+  if (/rap|hip[- ]?hop|lyric|song|music|rhyme/.test(blob)) return 'rap';
+  if (/cooking|baking|chef|recipe/.test(blob)) return 'step_by_step';
+  if (/game|gaming|minecraft|fortnite|roblox|rpg|video game/.test(blob)) return 'interactive';
+  if (/story|novel|book|fantasy|sci[- ]?fi/.test(blob)) return 'story';
+  return null;
+}
+
+function buildPersonalizationPrompt(input: PersonalizeMaterialInput, format: string): string {
+  const { title, body, subject, gradeLevel, survey } = input;
+  const interestLines: string[] = [];
+  const interestsUsed: string[] = [];
+  if (survey) {
+    if (survey.hobbies?.length) {
+      interestLines.push(`Hobbies: ${survey.hobbies.join(', ')}`);
+      interestsUsed.push(...survey.hobbies);
+    }
+    if (survey.favoriteGames) { interestLines.push(`Favorite games: ${survey.favoriteGames}`); interestsUsed.push(survey.favoriteGames); }
+    if (survey.favoriteMovies) { interestLines.push(`Favorite movies/TV: ${survey.favoriteMovies}`); interestsUsed.push(survey.favoriteMovies); }
+    if (survey.favoriteBooks) { interestLines.push(`Favorite books: ${survey.favoriteBooks}`); interestsUsed.push(survey.favoriteBooks); }
+    if (survey.dreamJob) interestLines.push(`Dream job: ${survey.dreamJob}`);
+    if (survey.funFacts) interestLines.push(`Fun fact: ${survey.funFacts}`);
+  }
+
+  const formatGuides: Record<string, string> = {
+    comic: 'Render the material as a COMIC BOOK SCRIPT. Use panel-by-panel descriptions: PANEL 1, PANEL 2, etc. Each panel has a SETTING line, a CHARACTERS line, and dialogue in **bold quotes**. Add SFX (sound effects) like BAM!, WHOOSH!, AHA! Build a continuous narrative across panels. Embed every learning objective inside the action and dialogue.',
+    story: 'Render the material as an ENGAGING SHORT STORY with characters and a plot arc. The plot must teach the same concepts. Use vivid sensory description for auditory/visual learners. Sprinkle the actual facts and definitions inside the narrative naturally — never break the fourth wall to "explain".',
+    rap: 'Render the material as a RAP / LYRICAL BREAKDOWN. Use stanzas of 4 lines with consistent rhyme. Every key term, date, formula, or person must appear inside the lyrics, not as footnotes. Include a chorus that summarizes the core concept and repeats between stanzas.',
+    diagram_walkthrough: 'Render the material as a VISUAL WALKTHROUGH. Describe what the reader should imagine seeing, step by step ("Picture a tree with three branches…"). Use ASCII or simple Markdown diagrams when helpful. Color, shape, position, motion. Walk the reader through the diagram once, then explain each piece.',
+    step_by_step: 'Render the material as a HANDS-ON STEP-BY-STEP GUIDE. Use numbered steps. Each step starts with a verb. Whenever possible, frame it as something the student physically does or builds, even mentally. Include "checkpoint" moments where the student tries something themselves.',
+    interactive: 'Render the material as an INTERACTIVE BRANCHING EXPLAINER for a student with a short attention span. Short paragraphs (max 3 sentences). After every mini-section, ask one direct question and label it "→ Try it:". Use bold for key terms. Bullet over prose. No long unbroken text.',
+    plain: 'Render the material as a CLEAN, WELL-STRUCTURED WRITTEN EXPLANATION. Headings (##), short paragraphs, bullet lists where structure helps. Bold key terms on first use. Suggest note-taking opportunities ("Worth writing down:"). No gimmicks — this learner prefers reading.',
+  };
+
+  return `You are Limud's Material Personalization engine. Your job: rewrite the same teaching content in a way that this specific student will actually engage with, drawing on their interests and learning style. You are NOT changing facts, definitions, or learning objectives. You are changing the wrapper.
+
+ORIGINAL MATERIAL TITLE: ${title}
+${subject ? `SUBJECT: ${subject}` : ''}
+${gradeLevel ? `GRADE LEVEL: ${gradeLevel}` : ''}
+
+ORIGINAL MATERIAL CONTENT:
+<<<MATERIAL
+${body}
+MATERIAL>>>
+
+THIS STUDENT:
+${interestLines.length ? interestLines.map(l => `- ${l}`).join('\n') : '- (No interests on file — use neutral relatable examples.)'}
+${survey?.learningStyle ? `- Self-reported learning style: ${survey.learningStyle}` : ''}
+${survey?.challenges?.length ? `- Subjects they find hard: ${survey.challenges.join(', ')}` : ''}
+${survey?.motivators?.length ? `- What motivates them: ${survey.motivators.join(', ')}` : ''}
+${survey?.ageGroup ? `- Age group: ${survey.ageGroup}` : ''}
+
+OUTPUT FORMAT — ${format.toUpperCase()}:
+${formatGuides[format] || formatGuides.plain}
+
+HARD RULES:
+1. Cover every learning objective and key fact from the original. Do not omit anything.
+2. Do not invent facts. If the original says the French Revolution started in 1789, your version says 1789.
+3. Reading level should match the student's grade level (or simpler if they have reading challenges).
+4. Length: similar to the original (~ ±30%). Do not pad.
+5. End with one short reflection question that ties the concept back to one of the student's interests.
+6. Output ONLY the rewritten material. No preamble, no "here's your personalized version", no JSON wrapper.
+
+Begin:`;
+}
+
+export async function personalizeMaterial(
+  input: PersonalizeMaterialInput
+): Promise<PersonalizeMaterialResult> {
+  const styleFormat = FORMAT_BY_STYLE[input.survey?.learningStyle || ''] || 'plain';
+  const interestFormat = pickFormatFromInterests(input.survey);
+  // Interest-driven format wins when the student has a strong signal (e.g. comics).
+  const format = interestFormat || styleFormat;
+  const interestsUsed: string[] = [];
+  if (input.survey?.hobbies?.length) interestsUsed.push(...input.survey.hobbies);
+  if (input.survey?.favoriteGames) interestsUsed.push(input.survey.favoriteGames);
+  if (input.survey?.favoriteMovies) interestsUsed.push(input.survey.favoriteMovies);
+  if (input.survey?.favoriteBooks) interestsUsed.push(input.survey.favoriteBooks);
+
+  if (isGeminiConfigured()) {
+    try {
+      console.log(`[PERSONALIZE] Calling Gemini for material "${input.title}" (format=${format})...`);
+      const prompt = buildPersonalizationPrompt(input, format);
+      const content = await callGemini(prompt, { temperature: 0.85, maxTokens: 2000 });
+      console.log(`[PERSONALIZE] SUCCESS: ${content.length} chars`);
+      return { content, format, interestsUsed, aiGenerated: true };
+    } catch (e) {
+      const aiError = (e as Error).message;
+      console.error('[PERSONALIZE] Gemini error, falling back to original:', aiError);
+      return {
+        content: input.body,
+        format: 'plain',
+        interestsUsed: [],
+        aiGenerated: false,
+        aiError,
+      };
+    }
+  }
+
+  // No AI configured → return the original material so the student still
+  // sees the content. The UI will show an "AI offline" badge.
+  return {
+    content: input.body,
+    format: 'plain',
+    interestsUsed: [],
+    aiGenerated: false,
+    aiError: 'AI not configured (no valid GEMINI_API_KEY)',
+  };
+}
 
 export async function chatWithTutor(
   messages: { role: string; content: string }[],

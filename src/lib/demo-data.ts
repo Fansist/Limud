@@ -820,6 +820,366 @@ export const DEMO_LEARNING_INSIGHTS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// DEMO MATERIALS (v14.0.0 / Update 3.0 — Two-Upload Personalization)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// MATERIAL is the teaching content — the textbook chapter, the lecture notes
+// — that the AI rewrites per student based on their learning style and
+// interests. ASSIGNMENT is the uniform graded artifact (DEMO_ASSIGNMENTS,
+// DEMO_TEACHER_ASSIGNMENTS) and stays the same for every student. The two
+// must never be conflated.
+//
+// Each Material below has an `originalBody` (what the teacher uploaded) and
+// a `samples` map keyed by learning-style/interest combo, showing what the
+// AI rewrites it into. The student-side reader picks the right sample based
+// on the demo student's profile, mirroring what the live AI does in
+// production.
+
+export interface DemoMaterialSample {
+  format: string;          // "comic" | "story" | "rap" | "step_by_step" | "diagram_walkthrough" | "interactive" | "plain"
+  for: string;             // human-readable label, e.g. "Visual learner who loves comics"
+  content: string;         // the rewritten content
+}
+
+export interface DemoMaterialSeed {
+  id: string;
+  title: string;
+  subject: string;
+  gradeLevel: string;
+  courseId: string;
+  classroomId?: string;
+  assignmentId?: string;
+  teacherId: string;
+  teacherName: string;
+  originalBody: string;
+  samples: Record<string, DemoMaterialSample>;  // key = learning style or interest tag
+  isPublished: boolean;
+  createdAt: string;
+}
+
+export const DEMO_MATERIALS: DemoMaterialSeed[] = [
+  {
+    id: 'demo-mat-french-rev',
+    title: 'The French Revolution: Causes & Key Events (1789–1799)',
+    subject: 'History',
+    gradeLevel: '10',
+    courseId: 'demo-course-history-10',
+    teacherId: 'demo-teacher-strachen',
+    teacherName: 'Gregory Strachen',
+    isPublished: true,
+    createdAt: '2026-04-28T12:00:00.000Z',
+    originalBody:
+`The French Revolution began in 1789 and lasted until 1799. France was ruled by King Louis XVI, with three estates: the clergy (First Estate), the nobility (Second Estate), and everyone else — about 97% of the population — in the Third Estate. The Third Estate paid almost all the taxes while the First and Second Estates paid almost none.
+
+Key causes:
+- Massive national debt from wars (American Revolution, Seven Years' War)
+- Bread shortages and rising prices for ordinary people
+- Enlightenment ideas: liberty, equality, citizenship (Voltaire, Rousseau, Montesquieu)
+- An out-of-touch monarchy living lavishly at Versailles
+
+Key events:
+- May 1789: Estates-General convened
+- June 1789: Tennis Court Oath — Third Estate vows not to disband until France has a constitution
+- July 14, 1789: Storming of the Bastille
+- August 1789: Declaration of the Rights of Man and of the Citizen
+- 1793: Execution of King Louis XVI
+- 1793–94: The Reign of Terror under Robespierre — about 17,000 executions
+- 1799: Napoleon Bonaparte seizes power, ending the revolution
+
+Outcome: France abolished the monarchy, established (briefly) a republic, ended feudal privilege, and exported revolutionary ideas across Europe.`,
+    samples: {
+      'visual+comics': {
+        format: 'comic',
+        for: 'Visual learner who loves comics',
+        content:
+`PANEL 1
+SETTING: A grand palace at Versailles, gold-leafed walls, candles dripping wax.
+CHARACTERS: King Louis XVI in silk robes, eating a turkey leg.
+"**Another tax on the peasants? Brilliant idea, sire.**"
+SFX: *NOM NOM*
+
+PANEL 2
+SETTING: A muddy Paris street outside a bakery. A queue stretches around the block. A small child clutches an empty basket.
+CHARACTERS: A baker shrugs at the line, hands empty.
+"**No bread today. Maybe tomorrow.**"
+SFX: *RUMBLE* (stomachs)
+
+PANEL 3
+SETTING: A coffee house. Voltaire, Rousseau, and Montesquieu sit at a table covered in parchment.
+**VOLTAIRE:** "What if everyone had RIGHTS?"
+**ROUSSEAU:** "What if power came from THE PEOPLE?"
+**MONTESQUIEU:** "What if we split government into THREE BRANCHES?"
+SFX: *AHA!*
+
+PANEL 4
+SETTING: Estates-General, May 1789. The Third Estate (97% of France!) is locked out of the room.
+**THIRD ESTATE:** "We're staying RIGHT HERE until France has a constitution!"
+SFX: *SLAM!* (door)
+LABEL: TENNIS COURT OATH — June 1789
+
+PANEL 5
+SETTING: A massive stone fortress with cannons. A crowd of thousands carries pikes and torches.
+**CROWD:** "BASTILLE!! BASTILLE!! BASTILLE!!"
+LABEL: July 14, 1789 — STORMING OF THE BASTILLE
+SFX: *BOOOOM!*
+
+PANEL 6
+SETTING: National Assembly. A scroll unfurls in dramatic close-up: "DECLARATION OF THE RIGHTS OF MAN."
+**NARRATOR (caption):** August 1789. Liberty. Equality. Citizenship. Written down in ink.
+
+PANEL 7
+SETTING: A guillotine on a Paris square. King Louis XVI ascends the steps, grim-faced.
+LABEL: 1793 — Execution of Louis XVI
+SFX: *DROP*
+
+PANEL 8
+SETTING: A dark Paris alley. Maximilien Robespierre in shadow.
+**ROBESPIERRE:** "Anyone who disagrees... is a traitor."
+LABEL: REIGN OF TERROR — 17,000 EXECUTIONS — 1793–94
+SFX: *SHUNK SHUNK SHUNK*
+
+PANEL 9
+SETTING: Sunrise. Napoleon Bonaparte on horseback in a tricorn hat, sword raised.
+**NAPOLEON:** "The Revolution is over. I am France now."
+LABEL: 1799 — NAPOLEON SEIZES POWER
+
+REFLECTION: If you were inventing a superhero from this era, would they fight for the Third Estate or stand against Robespierre — and why?`,
+      },
+      'visual+default': {
+        format: 'diagram_walkthrough',
+        for: 'Visual learner (no comic interest)',
+        content:
+`Picture a triangle. At the top, a tiny dot — that's the FIRST ESTATE (clergy, ~0.5% of France). Just below it, another tiny dot — the SECOND ESTATE (nobility, ~1.5%). Now picture the entire bottom of the triangle, the wide flat base. That's the THIRD ESTATE — 97% of France.
+
+Now draw an arrow labeled "TAXES" pointing UP from the wide base to the tiny dots. Almost all of France's tax money flows up. Now draw an arrow labeled "PRIVILEGE" pointing DOWN from the dots to the base. Almost none flows back.
+
+That imbalance is the whole story. Hold that triangle in your mind.
+
+Step 1 — IMAGINE 1789. King Louis XVI on a gold throne at Versailles. France is broke from wars (the American Revolution helped sink them financially). Bread costs three days' wages. People are hungry.
+
+Step 2 — IMAGINE A COFFEE HOUSE. Voltaire, Rousseau, Montesquieu — Enlightenment philosophers. Their ideas: LIBERTY, EQUALITY, CITIZENSHIP. Picture these three words floating above the coffee cups.
+
+Step 3 — TIMELINE (visualize a horizontal line):
+  May 1789     ─── Estates-General called
+  June 1789    ─── Tennis Court Oath (Third Estate refuses to disband)
+  Jul 14 1789  ─── STORMING OF THE BASTILLE  ← the spark
+  Aug 1789     ─── Declaration of the Rights of Man
+  1793         ─── King Louis XVI executed
+  1793–94      ─── REIGN OF TERROR (~17,000 executions, Robespierre)
+  1799         ─── Napoleon takes power
+
+Step 4 — VISUALIZE THE OUTCOME. The triangle from before? It collapses. Feudal privilege ends. France becomes (briefly) a republic. Revolutionary ideas spread across Europe like ink in water.
+
+Reflection: Sketch your own version of that triangle and the timeline. Which event do you think was the true point of no return?`,
+      },
+      auditory: {
+        format: 'story',
+        for: 'Auditory learner — story format',
+        content:
+`In the spring of 1789, the streets of Paris carried a sound that France hadn't heard before. It was the murmur of three estates remembering they were supposed to be one country.
+
+For generations, the kingdom had been carved into three parts. The clergy. The nobility. And then everyone else — bakers, blacksmiths, mothers, sailors, farmers, schoolteachers — ninety-seven of every hundred people. They were the Third Estate, and they paid for everything while the other two paid for almost nothing.
+
+King Louis XVI was twenty-two when he inherited France, and the country was already drowning in debt. America's revolution had been expensive to support. The Seven Years' War had been worse. Bread, the food everyone in Paris depended on, kept getting more expensive — until a loaf cost a working family three days' wages.
+
+Meanwhile, in the smoky coffee houses, three thinkers — Voltaire, Rousseau, Montesquieu — kept turning the same words over in their mouths. *Liberty. Equality. Citizenship.* The words were dangerous. The words were also true.
+
+In May, the king called the Estates-General. In June, the Third Estate gathered in a tennis court and swore — out loud, hands raised — that they would not go home until France had a constitution. On July fourteenth, a crowd of Parisians, hungry and finished with waiting, stormed a stone fortress called the Bastille. The walls fell. The sound echoed across Europe.
+
+By August, France had written down the Declaration of the Rights of Man and of the Citizen. By 1793, the king had been executed. And then came a darker chapter — the Reign of Terror, where a man named Robespierre decided that anyone who disagreed was a traitor. Seventeen thousand people went to the guillotine in a single year.
+
+Finally, in 1799, a young general named Napoleon Bonaparte stepped out of the chaos and declared that the Revolution was over. He kept many of its laws. He kept its memory. And France, and Europe, would never sound the same.
+
+Reflection: If you could record one sound from those ten years and play it back, which moment would you pick — the murmur of the coffee houses, the boom of the Bastille, or the silence after the king's execution?`,
+      },
+      kinesthetic: {
+        format: 'step_by_step',
+        for: 'Kinesthetic learner — hands-on',
+        content:
+`Try this: build a model of pre-Revolution France with three groups of objects. (Coins, paperclips, anything.)
+
+Step 1. Take 100 small objects. These represent the people of France.
+Step 2. Set 1 aside. That's the First Estate (clergy).
+Step 3. Set 2 more aside. That's the Second Estate (nobility).
+Step 4. The remaining 97 are the Third Estate.
+Step 5. Now imagine taxes. Almost all the money the country needs to run comes from those 97 objects. The 3 contribute almost nothing.
+
+That imbalance is the engine that drives everything that follows.
+
+Step 6. Add a "debt" pile next to the king. Make it big — France was deep in the red after backing the American Revolution and fighting the Seven Years' War.
+Step 7. Add a "hunger" pile next to the 97. Bread cost three days' wages. Stack three coins on the bread to feel that pressure.
+
+Now run the timeline. Move objects as the events happen:
+
+Step 8. May 1789 — Convene the Estates-General. Bring the three groups together at a table.
+Step 9. June 1789 — Tennis Court Oath. The 97 lock arms — they refuse to leave until they have a constitution. (Build a small barrier with your hand.)
+Step 10. July 14, 1789 — Storming of the Bastille. Knock over a tower of blocks representing the fortress. Hear it. Feel it.
+Step 11. August 1789 — Declaration of the Rights of Man. Place a sheet of paper on the table — the new rules.
+Step 12. 1793 — Execution of Louis XVI. Remove the king piece.
+Step 13. 1793–94 — Reign of Terror. Add a guillotine card. Robespierre executed about 17,000 people. Stack 17 chips and pause; that's the weight.
+Step 14. 1799 — Napoleon takes over. Replace the empty throne with a new figure.
+
+CHECKPOINT: Put the model away. Without looking, walk yourself through the timeline out loud. Where did you hesitate? That's where to re-read.
+
+Reflection: Build a one-word label for each step. Then test yourself: can you say what happened from just the labels?`,
+      },
+      'reading_writing': {
+        format: 'plain',
+        for: 'Reading/writing learner — clean structured prose',
+        content:
+`## The French Revolution (1789–1799)
+
+### The setup
+France in 1789 was divided into three estates. The First Estate (clergy) and Second Estate (nobility) made up about 3% of the population. The Third Estate — everyone else, about 97% — paid nearly all of the country's taxes. King Louis XVI ruled an absolute monarchy from Versailles.
+
+### The pressure
+- **Debt.** France was financially exhausted from the Seven Years' War and from supporting the American Revolution.
+- **Hunger.** Bread, the staple food, cost roughly three days' wages.
+- **Ideas.** Enlightenment thinkers — Voltaire, Rousseau, Montesquieu — were popularizing concepts like *liberty*, *equality*, and *citizenship*.
+- **Disconnect.** The court at Versailles continued to spend lavishly while ordinary people starved.
+
+### Timeline of key events
+- **May 1789** — Estates-General convened by Louis XVI.
+- **June 1789** — *Tennis Court Oath*: the Third Estate vows not to disband until France has a constitution.
+- **July 14, 1789** — *Storming of the Bastille*. The traditional date marking the start of the Revolution.
+- **August 1789** — *Declaration of the Rights of Man and of the Citizen*: foundational document of modern human rights.
+- **1793** — Execution of Louis XVI.
+- **1793–94** — *Reign of Terror* under Maximilien Robespierre. Approximately 17,000 executions.
+- **1799** — Napoleon Bonaparte seizes power in the Coup of 18 Brumaire, ending the Revolution.
+
+### Outcome
+The monarchy was abolished. Feudal privilege was dismantled. France briefly became a republic. Revolutionary principles — liberty, equality, citizenship — spread across Europe and reshaped political thought for the next two centuries.
+
+Worth writing down: *The single largest cause of the Revolution was the gap between the Third Estate's burden and its lack of representation.*
+
+Reflection: Write a one-paragraph response to: was the Reign of Terror an inevitable consequence of the Revolution, or a betrayal of its principles?`,
+      },
+    },
+  },
+  {
+    id: 'demo-mat-photosynthesis',
+    title: 'Photosynthesis: How Plants Turn Light Into Food',
+    subject: 'Biology',
+    gradeLevel: '9',
+    courseId: 'demo-course-bio-9',
+    teacherId: 'demo-teacher-strachen',
+    teacherName: 'Gregory Strachen',
+    isPublished: true,
+    createdAt: '2026-04-29T12:00:00.000Z',
+    originalBody:
+`Photosynthesis is the process by which plants, algae, and some bacteria use sunlight to make food. The overall reaction:
+
+6 CO2 + 6 H2O + light energy → C6H12O6 (glucose) + 6 O2
+
+Inputs: carbon dioxide (from air, through stomata), water (from soil, through roots), light (from the sun, captured by chlorophyll in chloroplasts).
+
+Outputs: glucose (the plant's energy source) and oxygen (released as a byproduct).
+
+Two stages:
+1. Light-dependent reactions (in the thylakoid membranes): light energy splits water molecules, generating ATP and NADPH, releasing O2.
+2. Light-independent reactions / Calvin cycle (in the stroma): ATP and NADPH from stage 1 are used to "fix" CO2 into glucose.
+
+Why it matters: photosynthesis is how nearly all energy enters the food chain. The oxygen we breathe is a byproduct of this process.`,
+    samples: {
+      'kinesthetic+gaming': {
+        format: 'interactive',
+        for: 'Kinesthetic learner who loves video games',
+        content:
+`**LEVEL: PHOTOSYNTHESIS — A factory-builder strategy game.**
+
+You're managing a green factory. The factory is a leaf. Your job: turn raw resources into FOOD ENERGY.
+
+**Resources to gather:**
+- ☀️ **SUNLIGHT** — caught by your chlorophyll antennas (think of them as solar panels). Drops constantly during daytime.
+- 💧 **WATER (H₂O)** — pumped up from the roots. You need 6 units per craft.
+- 🌫️ **CO₂** — sucked in through tiny vents called *stomata*. You need 6 units per craft.
+
+**The crafting recipe:**
+\`\`\`
+6 CO₂  +  6 H₂O  +  ☀️  →  1 GLUCOSE (food)  +  6 O₂ (waste — vented)
+\`\`\`
+
+→ **Try it:** What's the rate-limiting resource on a cloudy day? (Hint: look at the recipe.)
+
+**The factory has two production lines:**
+
+🏭 **LINE 1 — Light-Dependent Reactions** (runs in the thylakoid)
+- Boss: *Photosystem II*
+- Splits H₂O into H⁺, electrons, and O₂ (vented out)
+- Powers up two batteries: **ATP** and **NADPH**
+
+🏭 **LINE 2 — Calvin Cycle** (runs in the stroma)
+- Doesn't need direct sunlight, but burns the ATP and NADPH from Line 1
+- Captures CO₂ and combines it with the batteries' energy to build GLUCOSE
+- This is where your XP (energy) is stored
+
+→ **Try it:** Which line shuts down first when the sun goes down? Which line keeps going until the batteries are empty?
+
+**Boss tip:** Without chlorophyll antennas, the whole base offline. Without water, Line 1 can't fire. Without CO₂, Line 2 has nothing to assemble.
+
+**Why this matters across the whole game world:** every player on the map (animals, you) eats food that came — directly or indirectly — from a factory like this one. The O₂ vented as "waste" is what every animal breathes.
+
+Reflection: If you had to design a more efficient version of this factory, would you upgrade Line 1, Line 2, or the resource intake — and why?`,
+      },
+      visual: {
+        format: 'diagram_walkthrough',
+        for: 'Visual learner',
+        content:
+`Picture a leaf in close-up. Now zoom in. Inside one cell, see the chloroplast — a green oval, like a tiny lima bean.
+
+Inside the chloroplast, draw stacks of disks. Each stack looks like a roll of green coins — those are the *thylakoids*. Stage 1 happens here.
+
+Around the disks, fill in a pale gel — that's the *stroma*. Stage 2 happens here.
+
+Now, the inputs flowing in:
+- ☀️ Light energy hits the disks from above.
+- 💧 Water enters from below (roots → stem → leaf).
+- 🌫️ CO₂ floats in through tiny mouths on the leaf called *stomata*.
+
+Stage 1 (in the thylakoid disks): light energy splits the H₂O. Picture a hammer of light cracking the water molecule into two pieces. Out comes O₂ (released to the air) and the energy is captured into two molecules: ATP and NADPH. Imagine these as glowing batteries.
+
+Stage 2 (in the surrounding stroma): the glowing batteries float into the gel. CO₂ molecules are pulled in. Using the batteries' energy, the chloroplast assembles them into a glucose molecule (C₆H₁₂O₆). Picture six CO₂ atoms snapping together in a ring.
+
+The full picture in one image: light + water + air-CO₂ → glucose (food, stored) + oxygen (released, what we breathe).
+
+Reflection: Sketch the chloroplast with the two stages labeled. Where is the boundary between Stage 1 and Stage 2 in your drawing?`,
+      },
+      'reading_writing': {
+        format: 'plain',
+        for: 'Reading/writing learner',
+        content:
+`## Photosynthesis
+
+Photosynthesis is the biochemical process by which plants, algae, and certain bacteria convert light energy into chemical energy stored in glucose.
+
+**Overall equation:**
+> 6 CO₂ + 6 H₂O + light energy → C₆H₁₂O₆ + 6 O₂
+
+### Inputs
+- **Carbon dioxide** — drawn in from the atmosphere through stomata.
+- **Water** — absorbed by roots, transported via xylem to the leaves.
+- **Light** — captured by **chlorophyll**, the pigment housed in **chloroplasts**.
+
+### Outputs
+- **Glucose** — used by the plant for energy and as the building block of cellulose.
+- **Oxygen** — released as a byproduct.
+
+### The two stages
+1. **Light-dependent reactions** (thylakoid membranes): photons split water molecules. The energy is captured in ATP and NADPH; oxygen is released.
+2. **Calvin cycle** (stroma): ATP and NADPH from stage 1 power the conversion of CO₂ into glucose. This stage does not require light directly, but it depends on the products of stage 1.
+
+### Significance
+Photosynthesis is the foundation of nearly every food chain on Earth. The oxygen in our atmosphere is overwhelmingly a byproduct of this process.
+
+Worth writing down: *Without chlorophyll, no light is captured. Without light, no ATP is made. Without ATP, no glucose is built.*
+
+Reflection: Write a paragraph explaining why a plant kept in total darkness eventually dies, even if it has plenty of water and CO₂.`,
+      },
+    },
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
 // DEMO ACCOUNT CREDENTIALS (for login page display)
 // ═══════════════════════════════════════════════════════════════════════════
 

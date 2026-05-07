@@ -14,6 +14,7 @@ import {
   DEMO_ASSIGNMENTS, DEMO_TEACHER_ASSIGNMENTS, DEMO_NOTIFICATIONS,
   DEMO_MESSAGES, DEMO_ALL_STUDENTS,
   DEMO_COURSES, DEMO_CLASSROOMS, DEMO_TEACHER, DEMO_ADMIN,
+  DEMO_MATERIALS, DemoMaterialSeed,
 } from './demo-data';
 
 const STORAGE_KEY = 'limud-demo-shared-state';
@@ -99,6 +100,8 @@ export interface DemoClassroom {
 interface DemoState {
   // Assignments created by teacher (visible to students)
   teacherCreatedAssignments: DemoAssignment[];
+  // v14.0.0: Materials created by teacher (visible to students, personalized at read time)
+  teacherCreatedMaterials?: DemoMaterialEntry[];
   // Student submissions (visible to teacher grading)
   studentSubmissions: Record<string, any[]>; // assignmentId -> submissions
   // Announcements created by admin (visible to all)
@@ -402,6 +405,113 @@ export function getDemoClassrooms(): DemoClassroom[] {
   const ids = new Set(custom.map(c => c.id));
   const builtIn = (DEMO_CLASSROOMS as DemoClassroom[]).filter(c => !ids.has(c.id));
   return [...custom, ...builtIn];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MATERIALS (v14.0.0 / Update 3.0 — Two-Upload Personalization)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface DemoMaterialEntry {
+  id: string;
+  title: string;
+  body: string;
+  subject: string;
+  gradeLevel: string;
+  courseId: string;
+  classroomId?: string;
+  assignmentId?: string;
+  teacherId: string;
+  teacherName: string;
+  isPublished: boolean;
+  createdAt: string;
+}
+
+/**
+ * Teacher-uploaded material (in-session). Mirrors addTeacherAssignment.
+ */
+export function addTeacherMaterial(material: DemoMaterialEntry): void {
+  const state = loadDemoState();
+  if (!state.teacherCreatedMaterials) state.teacherCreatedMaterials = [];
+  state.teacherCreatedMaterials.unshift(material);
+  state.notifications.unshift({
+    id: `notif-${Date.now()}`,
+    title: 'New Material',
+    message: `${material.teacherName} added "${material.title}" — open it for your personalized version.`,
+    type: 'material',
+    isRead: false,
+    createdAt: new Date().toISOString(),
+    forRole: 'STUDENT',
+  });
+  saveDemoState(state);
+}
+
+/**
+ * Get every material a demo student can read — built-in seeds + any
+ * teacher-uploaded ones from the current demo session.
+ */
+export function getDemoMaterials(): Array<DemoMaterialEntry & {
+  hasPersonalized?: boolean;
+  course: { id: string; name: string; subject: string };
+}> {
+  const state = loadDemoState();
+  const seeds = (DEMO_MATERIALS as DemoMaterialSeed[]).map((m) => ({
+    id: m.id,
+    title: m.title,
+    body: m.originalBody,
+    subject: m.subject,
+    gradeLevel: m.gradeLevel,
+    courseId: m.courseId,
+    classroomId: m.classroomId,
+    assignmentId: m.assignmentId,
+    teacherId: m.teacherId,
+    teacherName: m.teacherName,
+    isPublished: m.isPublished,
+    createdAt: m.createdAt,
+    hasPersonalized: true,
+    course: {
+      id: m.courseId,
+      name: m.subject + ' ' + m.gradeLevel,
+      subject: m.subject,
+    },
+  }));
+  const sessionAdded = (state.teacherCreatedMaterials || []).map((m) => ({
+    ...m,
+    hasPersonalized: false,
+    course: { id: m.courseId, name: m.subject + ' ' + m.gradeLevel, subject: m.subject },
+  }));
+  // Most recent first; session-added shows above seeds
+  return [...sessionAdded, ...seeds];
+}
+
+/**
+ * Pick the best DEMO sample for a given seed material based on the demo
+ * student's profile. Mirrors what live AI does in production.
+ *
+ * Profile is a loose shape — pass at minimum learningStyle and a hobby/interest
+ * blob. The function returns the sample whose key best matches.
+ */
+export function getDemoPersonalizedSample(
+  materialId: string,
+  profile: { learningStyle?: string | null; interestBlob?: string | null } | null
+): { format: string; content: string; for: string } | null {
+  const seed = (DEMO_MATERIALS as DemoMaterialSeed[]).find((m) => m.id === materialId);
+  if (!seed) return null;
+  const ls = (profile?.learningStyle || 'visual').toLowerCase();
+  const blob = (profile?.interestBlob || '').toLowerCase();
+
+  // Try learning_style + interest tag combos first
+  const candidates: string[] = [];
+  if (/comic|manga|marvel|superhero/.test(blob)) candidates.push(`${ls}+comics`);
+  if (/game|gaming|minecraft|fortnite|roblox|rpg/.test(blob)) candidates.push(`${ls}+gaming`);
+  candidates.push(`${ls}+default`, ls);
+
+  for (const k of candidates) {
+    if (seed.samples[k]) return seed.samples[k];
+  }
+  // Fallback: first available sample
+  const firstKey = Object.keys(seed.samples)[0];
+  if (firstKey) return seed.samples[firstKey];
+  return null;
 }
 
 /**

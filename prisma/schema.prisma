@@ -172,6 +172,7 @@ model Classroom {
   school     School?        @relation(fields: [schoolId], references: [id], onDelete: SetNull)
   district   SchoolDistrict @relation(fields: [districtId], references: [id], onDelete: Cascade)
   students   ClassroomStudent[]
+  materials  Material[]
 
   @@index([schoolId])
   @@index([districtId])
@@ -345,6 +346,7 @@ model User {
   // Teacher relations
   taughtCourses  CourseTeacher[]
   createdAssignments Assignment[]
+  createdMaterials   Material[]
   quizTemplates  QuizTemplate[]
 
   // Student relations
@@ -493,6 +495,7 @@ model Course {
   teachers    CourseTeacher[]
   enrollments Enrollment[]
   assignments Assignment[]
+  materials   Material[]
   skillRecords SkillRecord[]
 
   @@index([districtId])
@@ -591,6 +594,61 @@ model Submission {
   @@index([studentId])
   @@index([status])
   @@map("submissions")
+}
+
+// ─── MATERIAL (v14.0.0 / Update 3.0 — Two-Upload Model) ─────────────────────
+// MATERIAL is the teaching content that the AI rewrites per-student based on
+// learning style + interests. Distinct from Assignment (which is the uniform
+// graded artifact). One Material can belong to a Course (or Classroom) and is
+// authored by a teacher.
+
+model Material {
+  id          String   @id @default(cuid())
+  title       String
+  body        String   @db.Text             // The original teacher-uploaded content (text or markdown)
+  subject     String?                       // Snapshot from course; helps the AI specialize
+  gradeLevel  String?                       // Snapshot for prompt context
+  courseId    String?
+  classroomId String?
+  createdById String
+  isPublished Boolean  @default(true)
+  // Optional pairing — when set, this Material is the teaching content for an
+  // Assignment. Reading the Material counts as prep, not submission.
+  assignmentId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course      Course?    @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  classroom   Classroom? @relation(fields: [classroomId], references: [id], onDelete: SetNull)
+  createdBy   User       @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  personalizedVersions PersonalizedMaterial[]
+
+  @@index([courseId])
+  @@index([classroomId])
+  @@index([createdById])
+  @@map("materials")
+}
+
+// PersonalizedMaterial caches the AI rewrite for a single (material, student)
+// pair. Storing it means subsequent reads are instant and we don't re-spend
+// AI tokens on every page load.
+model PersonalizedMaterial {
+  id              String   @id @default(cuid())
+  materialId      String
+  studentId       String
+  content         String   @db.Text          // AI-rewritten content for this student
+  format          String                     // "comic" | "story" | "rap" | "diagram_walkthrough" | "step_by_step" | "interactive" | "plain"
+  learningStyle   String                     // Snapshot of the style used at render time
+  interestsUsed   String?  @db.Text          // JSON: which interests the AI drew from
+  aiGenerated     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  refreshedAt     DateTime @default(now())
+
+  material  Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, studentId])
+  @@index([studentId])
+  @@map("personalized_materials")
 }
 
 // ─── ADAPTED ASSIGNMENT (v9.4.0 — Per-Student Personalized Versions) ────
