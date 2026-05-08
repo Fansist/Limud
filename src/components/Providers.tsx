@@ -5,7 +5,6 @@ import { Toaster } from 'react-hot-toast';
 import { ReactNode, createContext, useContext, useState, useEffect } from 'react';
 import { PerfProvider } from '@/lib/performance';
 import { I18nProvider } from '@/lib/i18n';
-import InstallPrompt from './InstallPrompt';
 import ServiceWorkerRegistration from './ServiceWorkerRegistration';
 
 // Accessibility context
@@ -102,7 +101,6 @@ export default function Providers({ children }: { children: ReactNode }) {
               error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
             }}
           />
-          <InstallPrompt />
           <ServiceWorkerRegistration />
         </AccessibilityProvider>
         </I18nProvider>

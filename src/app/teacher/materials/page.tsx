@@ -287,7 +287,7 @@ export default function TeacherMaterialsPage() {
                   >
                     <option value="">(auto)</option>
                     {SUBJECTS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                      <option key={s.value} value={s.value}>{s.icon} {s.value}</option>
                     ))}
                   </select>
                 </div>

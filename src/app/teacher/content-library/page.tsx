@@ -178,7 +178,8 @@ export default function ContentLibraryPage() {
             <div className="flex items-center gap-1.5">
               <GraduationCap size={14} className="text-gray-400" />
               <select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="input-field text-xs py-1.5">
-                {SUBJECTS.map(s => <option key={s}>{s}</option>)}
+                <option value="">All subjects</option>
+                {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.icon} {s.value}</option>)}
               </select>
             </div>
             <div className="flex items-center gap-1.5">

@@ -509,7 +509,7 @@ export default function AdminClassroomsPageEnhanced() {
                   <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject</label>
                     <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} className="input-field">
                       <option value="">Select subject</option>
-                      {SUBJECTS.filter(s => s !== 'All').map(s => <option key={s} value={s}>{s}</option>)}
+                      {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.icon} {s.value}</option>)}
                     </select></div>
                   <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Grade Level</label>
                     <input value={form.gradeLevel} onChange={e => setForm(f => ({ ...f, gradeLevel: e.target.value }))} className="input-field" placeholder="e.g., 6th" /></div>
@@ -648,7 +648,8 @@ export default function AdminClassroomsPageEnhanced() {
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Subject</label>
                     <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)} className="input-field text-sm">
-                      {SUBJECTS.map(s => <option key={s} value={s}>{s === 'All' ? 'All Subjects' : s}</option>)}
+                      <option value="">All Subjects</option>
+                      {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.icon} {s.value}</option>)}
                     </select>
                   </div>
                   <div>
