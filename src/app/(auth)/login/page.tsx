@@ -210,7 +210,7 @@ export default function LoginPage() {
                 Every mind learns<br />differently.
               </h2>
               <p className="text-white/70 leading-relaxed">
-                AI-powered tutoring, automated grading, per-student material rewrites, and parent visibility. Built for families. Scales to schools and districts.
+                AI-powered tutoring, automated grading, per-student material rewrites, and parent visibility. Built for districts and families &mdash; same product, every tier.
               </p>
             </motion.div>
 

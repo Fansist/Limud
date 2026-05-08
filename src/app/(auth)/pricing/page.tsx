@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 // ─── PRICING DATA ───────────────────────────────────────────────────────
 const PLANS = [
   {
-    tier: 'FAMILY', price: 0, label: '/month', headline: 'For families with kids in school — at any school',
+    tier: 'FAMILY', price: 0, label: '/month', headline: 'Free for parents with K–12 kids — at any school',
     icon: <Home size={20} />, color: 'from-gray-400 to-gray-500',
     cta: 'Create family account', href: '/register', ctaStyle: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
   },
@@ -775,7 +775,7 @@ export default function PricingPage() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Zap size={14} /> Transparent Pricing</div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Plans for every learning journey</h1>
-          <p className="text-lg text-gray-500 mt-3 max-w-2xl mx-auto">From single families to statewide districts. Start free, upgrade when your scale demands more.</p>
+          <p className="text-lg text-gray-500 mt-3 max-w-2xl mx-auto">Built for districts and families. Same engine, same outcomes — pricing scales to your size.</p>
         </div>
 
         {/* Billing Toggle */}
@@ -989,19 +989,33 @@ export default function PricingPage() {
           </motion.div>
         </div>
 
-        {/* Family Callout */}
+        {/* District + Family parity callouts */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-          className="mt-8 bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-          <span className="text-4xl">👨‍👩‍👦</span>
-          <div className="flex-1">
-            <h3 className="font-bold text-gray-900">Built for families, not just classrooms</h3>
-            <p className="text-sm text-gray-600 mt-1">
-              The Family plan covers up to 5 kids in one parent account &mdash; no school district required. Personalized material rewrites, AI tutor, parent dashboard, and weekly check-ins included.
+          className="mt-8 grid sm:grid-cols-2 gap-4">
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6 flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🏛️</span>
+              <h3 className="font-bold text-gray-900">For districts</h3>
+            </div>
+            <p className="text-sm text-gray-600">
+              Multi-school deployments with SSO/SAML, district-wide analytics, custom AI training, and dedicated account management. Per-seat pricing scales from a single school to statewide.
             </p>
+            <Link href="/contact" className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition whitespace-nowrap inline-flex items-center gap-2 self-start">
+              Contact district sales <ArrowRight size={14} />
+            </Link>
           </div>
-          <Link href="/register" className="bg-primary-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-700 transition whitespace-nowrap flex items-center gap-2">
-            Create family account <ArrowRight size={14} />
-          </Link>
+          <div className="bg-gradient-to-br from-primary-50 to-blue-50 border border-primary-200 rounded-2xl p-6 flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">👨‍👩‍👦</span>
+              <h3 className="font-bold text-gray-900">For families</h3>
+            </div>
+            <p className="text-sm text-gray-600">
+              Up to 5 kids in one parent account, free. Personalized material rewrites, AI tutor, parent dashboard, weekly check-ins, and optional Family Teaching Mode &mdash; included for any family with K&ndash;12 kids.
+            </p>
+            <Link href="/register" className="bg-primary-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-700 transition whitespace-nowrap inline-flex items-center gap-2 self-start">
+              Create family account <ArrowRight size={14} />
+            </Link>
+          </div>
         </motion.div>
 
         {/* FAQ */}
@@ -1010,6 +1024,7 @@ export default function PricingPage() {
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">Pricing FAQ</h2>
           <div className="space-y-4">
             {[
+              { q: 'Who is Limud built for?', a: 'Districts and families, equally. Districts run multi-school deployments with SSO/SAML, district-wide analytics, custom AI training, and dedicated support. Families run a parent account with up to 5 kids — wherever those kids go to school. Same engine, same AI, same outcomes; the difference is capacity, controls, and integrations.' },
               { q: 'Is the Family plan really free?', a: 'Yes. The Family plan covers up to 5 children in one parent account, no time limit, no credit card. You get 50 AI Tutor sessions/month, 3 quiz generations/month, adaptive material rewrites, the parent dashboard, weekly check-ins, and community support — for any family with kids in any school setting.' },
               { q: 'What happens when I hit a limit?', a: 'You will see a friendly notification and can either upgrade or wait for your monthly limit to reset. We never cut off access to existing work — students can always view their past assignments, grades, and progress.' },
               { q: 'Can I switch plans at any time?', a: 'Absolutely. Upgrade instantly and we will prorate the difference. Downgrade at the end of your billing cycle. Your data is always preserved regardless of plan changes.' },

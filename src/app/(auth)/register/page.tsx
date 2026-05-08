@@ -26,6 +26,15 @@ const QUICK_LEARNING_STYLES = [
 
 const ACCOUNT_OPTIONS = [
   {
+    value: 'admin' as const,
+    label: 'School or District',
+    icon: Building2,
+    color: 'from-indigo-500 to-purple-600',
+    desc: 'I run or manage a school or district',
+    detail: 'Create an admin account to manage schools, teachers, and students. SSO/SAML, district-wide analytics, custom AI training, and dedicated support available on paid tiers.',
+    tags: ['Multi-school', 'Bulk provisioning', 'SSO/SAML', 'Plans from $2/student/mo'],
+  },
+  {
     value: 'homeschool' as const,
     label: 'Family',
     icon: Home,
@@ -51,15 +60,6 @@ const ACCOUNT_OPTIONS = [
     desc: 'I want to learn on my own',
     detail: 'Create a student account and learn independently with AI-powered personalized methods. No school or parent account required.',
     tags: ['Free', 'AI Tutor', 'Personalized learning', 'Self-paced'],
-  },
-  {
-    value: 'admin' as const,
-    label: 'School or District',
-    icon: Building2,
-    color: 'from-purple-500 to-indigo-600',
-    desc: 'I run or manage a school or district',
-    detail: 'Create an admin account to manage schools, teachers, and students. Choose a plan to unlock features for your school or district.',
-    tags: ['Multi-school', 'Bulk provisioning', 'Plans from $2/student/mo'],
   },
 ];
 
@@ -308,7 +308,7 @@ export default function RegisterPage() {
           {[
             { icon: '🧠', text: 'AI adapts to each student\u2019s learning style' },
             { icon: '⚡', text: 'ADHD-friendly, visual, auditory & more formats' },
-            { icon: '👨‍👩‍👦', text: 'Family, student, or school/district accounts' },
+            { icon: '🏛️', text: 'School/district, family, or student accounts' },
             { icon: '✨', text: 'Personalized material rewrites for every student' },
           ].map((item, i) => (
             <motion.div

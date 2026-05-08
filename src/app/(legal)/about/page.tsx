@@ -27,7 +27,7 @@ export default function AboutPage() {
           { icon: <BarChart3 size={22} />, title: 'Predictive Analytics', desc: 'AI-powered early warning system identifies at-risk students before they fall behind.', color: 'bg-green-50 text-green-600' },
           { icon: <GraduationCap size={22} />, title: 'Smart Auto-Grading', desc: 'AI grades essays, math work, and projects against rubrics in seconds with personalized feedback.', color: 'bg-pink-50 text-pink-600' },
           { icon: <Shield size={22} />, title: 'FERPA & COPPA Compliant', desc: 'Enterprise-grade security with role-based access, encryption, and strict data protection.', color: 'bg-indigo-50 text-indigo-600' },
-          { icon: <Users size={22} />, title: 'Built for Families', desc: 'Parents see real progress per child, message teachers directly, and get plain-English AI summaries — no district account required.', color: 'bg-orange-50 text-orange-600' },
+          { icon: <Users size={22} />, title: 'Districts and Families', desc: 'Districts run multi-school deployments with SSO and analytics. Families run a parent account with up to 5 kids. Same engine, same outcomes — just different scale.', color: 'bg-orange-50 text-orange-600' },
           { icon: <Heart size={22} />, title: 'Wellbeing First', desc: 'Burnout detection, struggle alerts, and balanced engagement systems that prioritize student wellbeing.', color: 'bg-red-50 text-red-600' },
         ].map(item => (
           <div key={item.title} className="flex gap-4 p-5 rounded-2xl border border-gray-100 hover:shadow-md transition">

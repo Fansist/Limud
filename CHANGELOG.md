@@ -4,6 +4,84 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [3.1.1] - 2026-05-07 — Update 3.1.1 (District + Family parity)
+
+A correction to the framing introduced in 3.1. That release pivoted the
+voice toward families, but landed a degree too far: the marketing read as
+"family-first, with districts as a scale-up," which under-represents
+districts as a primary commercial customer. **Districts and families are
+both first-class.** Same product, same engine, same outcomes — the
+difference is capacity, controls, and integrations.
+
+This is a copy-only release. No schema changes, no API changes, no
+behavior changes.
+
+### Changed
+
+- **`ROLES-GUIDE.md`** — rule 14 rewritten. Was "Family-first marketing voice." Now reads: "Districts and families are both first-class. Limud is for districts AND families — neither is the lead. Avoid copy that puts one ahead of the other ('family-first,' 'district-led,' 'scales up to districts')."
+
+- **`src/components/landing/LandingPage.tsx`** —
+  - Hero subtitle: "Built for families, schools, and districts — same product, every tier" → "Built for districts and families — same engine, same outcomes, every tier."
+  - Hero trust pill: "Free for families up to 5 kids" → "For districts and families."
+  - JSON-LD FAQ schema: "Is Limud really free?" answer rewritten to put the District/School tier on equal footing with Family.
+  - Pricing teaser tagline: "Free for families. Paid tiers when your school or district is ready." → "Districts and families. Same product. Pricing scales to your size."
+  - Pricing tier display reordered: District / School / Family (was Family / School / District). District tier description and feature list expanded.
+  - FAQ: added a new lead question "Who is Limud built for?" with the parity answer.
+  - Final CTA: subtitle reworded; secondary CTA changed from "Sign in" to **"Talk to district sales"** (`/contact`); trust pill reworded.
+  - Pillar 4 sub-headline: "transparency, plain-English reporting, no district required" → "transparency and plain-English reporting, whether his kid is in a district school or learning at home" (the previous wording read as district-shaming).
+  - Footer tagline: "Built for families, schools, and districts" → "Built for districts and families."
+
+- **`src/app/(auth)/pricing/page.tsx`** —
+  - Hero subtitle reframed for parity.
+  - The single 👨‍👩‍👦 "Built for families, not just classrooms" callout block was replaced with a **two-card parity row**: 🏛️ "For districts" (with Contact district sales CTA, indigo gradient) on the left, 👨‍👩‍👦 "For families" (Create family account CTA, primary gradient) on the right.
+  - FAMILY tier headline reworded.
+  - FAQ: added "Who is Limud built for?" as the new lead question.
+
+- **`src/app/(auth)/login/page.tsx`** — branding sub-headline reworded: "Built for families. Scales to schools and districts." → "Built for districts and families — same product, every tier."
+
+- **`src/app/(auth)/register/page.tsx`** — account-type picker reordered. "School or District" is now the **first** option (was last), then Family, then Student, then Independent Learner. Color promoted from purple to a more prominent indigo→purple gradient. Detail copy expanded to mention SSO/SAML, district-wide analytics, custom AI training, and dedicated support. Right-side branding feature: "Family, student, or school/district accounts" → "School/district, family, or student accounts."
+
+- **`src/app/(legal)/about/page.tsx`** — feature card "Built for Families" → "Districts and Families" with the parity description.
+
+- **`README.md`** —
+  - Header tagline: "Free for families. Built to scale to schools and districts." → "Built for districts and families. Same engine, same outcomes, every tier."
+  - Version banner bumped to `v14.1.1 · Update 3.1.1 · District + Family parity`.
+  - "Who Limud is for" section completely rewritten. Was "three audiences in priority order (Families → Schools → Districts)." Now two parity audiences (Districts, Families) with explicit text: "Neither is the lead. Neither is an afterthought." Schools/co-ops are noted as on the same paid track as Districts but at smaller seat counts, not as a separate tier.
+  - Non-negotiable rule 14 restated for parity.
+
+### Why this shape
+
+- **3.1 over-corrected.** The 3.0 → 3.1 swing went from "homeschool-friendly" to "family-first," but **the actual revenue model is district-driven**. Districts pay; families are free. A landing page that reads "Free for families. Paid tiers when your school or district is ready." accidentally tells the most-valuable customer they're an afterthought. Fixed.
+- **Parity, not equality of size.** The product is identical for both audiences — same AI, same materials engine, same UI. The difference is at the edges (SSO, district analytics, custom AI training for districts; family teaching mode and weekly digests for families). The marketing should reflect that the *core experience* is the same and the *scale* differs, not that one audience is a scaled-up version of the other.
+- **Content stays calm.** No banners, no badges, no "for districts!!!" callouts. The parity is delivered through equal weight in copy, equal weight in pricing tiers, and an explicit "neither is the lead" rule in the engineering guide so future sessions don't drift back.
+
+### Verify
+
+- Visit `/` — hero says "Built for districts and families." Pricing tiers show District / School / Family in that order. Final CTA secondary button reads "Talk to district sales." JSON-LD FAQ schema put-Districts-on-equal-footing.
+- Visit `/pricing` — top of comparison shows two parity callouts (🏛️ For districts + 👨‍👩‍👦 For families) side-by-side. FAQ leads with "Who is Limud built for?".
+- Visit `/register` — first account-type option is **School or District**, not Family.
+- Visit `/login` — sub-headline reads "Built for districts and families — same product, every tier."
+- `git grep "family-first\|family first\|families first\|Family First"` — should return zero matches.
+- `git grep "scale to districts\|scales to districts\|scale up to districts"` — should return zero matches.
+
+### Files touched
+
+- `ROLES-GUIDE.md`
+- `README.md`
+- `CHANGELOG.md`
+- `package.json` (`14.1.0` → `14.1.1`)
+- `src/components/landing/LandingPage.tsx`
+- `src/app/(auth)/pricing/page.tsx`
+- `src/app/(auth)/login/page.tsx`
+- `src/app/(auth)/register/page.tsx`
+- `src/app/(legal)/about/page.tsx`
+
+### Out of scope
+
+- No schema, API, or behavior changes. RewardStats, demo mode plumbing, the dormant gamification module, the two-upload Material/PersonalizedMaterial models — all unchanged from 3.1.
+
+---
+
 ## [3.1.0] - 2026-05-07 — Update 3.1 (Production Polish)
 
 Three product-shape changes in one release: gamification removed from the

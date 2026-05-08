@@ -14,11 +14,11 @@
 </p>
 
 <p align="center">
-  Free for families. Built to scale to schools and districts.
+  Built for districts and families. Same engine, same outcomes, every tier.
 </p>
 
 <p align="center">
-  <code>v14.1.0 · Update 3.1 · Production Polish</code>
+  <code>v14.1.1 · Update 3.1.1 · District + Family parity</code>
 </p>
 
 ---
@@ -177,22 +177,33 @@ The visual brief lives in `tailwind.config.js` and `src/app/globals.css` as the 
 
 ## Who Limud is for
 
-Limud serves three audiences, in this order:
+Limud has two first-class audiences. Neither is the lead. Neither is an
+afterthought. Same engine, same AI, same outcomes — the difference is
+capacity, controls, and integrations.
 
-1. **Families** — parents of K–12 kids. Free for up to 5 children in one
-   parent account. The kids can be in a regular school, homeschooled, or
-   learning independently — Limud doesn't care. Optional **Family Teaching
-   Mode** unlocks the full teacher toolkit (assignment authoring, AI
-   grading, materials upload, AI Check-In) on the same parent account, for
-   parents who teach at home full-time or supplementally.
-2. **Schools** — small schools, classrooms, and co-ops on per-seat pricing
-   from $2/student/month (annual). Same product, more capacity.
-3. **Districts** — multi-school deployments with SSO/SAML, district-wide
-   analytics, custom AI training, and dedicated account management.
+- **Districts** — multi-school deployments with SSO/SAML, district-wide
+  analytics, custom AI training, FERPA/COPPA-grade audit logging, bulk
+  provisioning, and dedicated account management. Per-seat pricing
+  scales from a single school ($2/student/month annual) up through
+  statewide deployments. Schools and co-ops are on the same paid track,
+  with smaller seat counts.
 
-The free tier is **not a homeschool-only or solo-learner product**. It's
-the family front door. Most of what's on the homepage and in the docs
-applies equally regardless of where your kids go to school.
+- **Families** — parents of K–12 kids running a single parent account
+  with up to 5 children, free. The kids can be in a regular district
+  school, homeschooled, or learning independently — Limud doesn't
+  treat any of those as primary. Optional **Family Teaching Mode**
+  unlocks the full teacher toolkit (assignment authoring, AI grading,
+  materials upload, AI Check-In) on the same parent account, for
+  parents who teach at home full-time or supplementally.
+
+The free Family tier is **not a homeschool-only or solo-learner
+product**. It's a real product, in production, that families with kids
+in any school setting can use. The paid District/School tiers are
+**not "free with extra controls"** — they're the actual commercial
+heart of the business, with capabilities (SSO, district analytics,
+custom AI training, dedicated support) that families don't need.
+
+Read those again. We mean both.
 
 ## Local development & demo mode
 
@@ -268,7 +279,7 @@ the design principles. Nothing in `src/app/**` imports from it today.
 - **The teacher remains the authority.** Limud assists; it does not replace.
 - **Production presents as a real product, not a demo.** Demo mode exists for prospects and local development, but the public surface (landing, pricing, login, README) leads with the real product.
 - **Demo mode still works for prospects** without a database — every feature has a demo path.
-- **Family-first marketing voice.** Limud serves families (parents + kids in any school setting), schools, and districts. The free tier is not a homeschool-only or solo-learner product.
+- **Districts and families are both first-class.** Limud is for districts AND families — neither is the lead. Avoid copy that puts one ahead of the other ("family-first," "district-led," "scales up to districts"). Same product, same engine, same outcomes. Pricing scales with size.
 - **AI failures are visible.** We never silently fall back to fake content and pretend it was real.
 - **README stays current.** Every meaningful update revises this file in the same commit. Skip the README only for trivial bug fixes that don't change product behavior.
 - **No `any`. No `@ts-ignore`. No `prisma migrate`** (Limud uses `prisma db push`).
