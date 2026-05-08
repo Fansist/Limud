@@ -30,7 +30,7 @@ import { AUTH_SECRET, COOKIE_SECURE } from '@/lib/config';
 
 // Master Demo account — full access to all features across all roles
 const MASTER_DEMO = {
-  email: 'master@limud.edu',
+  email: 'erez.ofer4@gmail.com',
   password: 'LimudMaster2026!',
   user: {
     id: 'master-demo',
