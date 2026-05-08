@@ -22,6 +22,12 @@ import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import { personalizeMaterial } from '@/lib/ai';
 
+// v3.3: comic-format personalizations now generate real panel illustrations
+// via Gemini's image model. Six panels at ~3–6s each = ~20–30s wall clock
+// on first read, so we extend the route's max duration. Subsequent reads
+// hit the PersonalizedMaterial cache and complete instantly.
+export const maxDuration = 60;
+
 export const GET = apiHandler(async (req: Request, ctx: { params: { id: string } }) => {
   const user = await requireRole('STUDENT');
   const materialId = ctx.params.id;

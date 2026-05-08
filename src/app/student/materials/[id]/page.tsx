@@ -165,9 +165,12 @@ export default function PersonalizedMaterialReader() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="card flex items-center justify-center py-24">
-          <Loader2 className="animate-spin text-primary-500" />
-          <span className="ml-3 text-sm text-gray-600">Personalizing your version…</span>
+        <div className="card flex flex-col items-center justify-center py-24 gap-3">
+          <Loader2 className="animate-spin text-primary-500" size={32} />
+          <span className="text-sm font-medium text-gray-700">Personalizing your version…</span>
+          <span className="text-xs text-gray-400 max-w-xs text-center">
+            If your version is a comic, the AI is also drawing each panel. This can take 20–30 seconds the first time. Future reads are instant.
+          </span>
         </div>
       </DashboardLayout>
     );
@@ -251,9 +254,21 @@ export default function PersonalizedMaterialReader() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.05 }}
-        className="card prose prose-sm sm:prose-base max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-li:text-gray-700"
+        className="card prose prose-sm sm:prose-base max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-li:text-gray-700 prose-img:rounded-2xl prose-img:shadow-md prose-img:my-4 prose-img:w-full prose-img:max-w-2xl prose-img:mx-auto"
       >
-        {personalized.format === 'plain' || personalized.format === 'diagram_walkthrough' || personalized.format === 'interactive' ? (
+        {personalized.format === 'comic' ? (
+          // v3.3: comic format gets generated panel illustrations inlined as
+          // markdown images, plus the panel script around them. Render with
+          // ReactMarkdown so the <img> tags resolve, but preserve the raw
+          // line breaks that comic scripts rely on.
+          <ReactMarkdown
+            components={{
+              p: ({ children }) => <p className="whitespace-pre-wrap leading-relaxed">{children}</p>,
+            }}
+          >
+            {personalized.content}
+          </ReactMarkdown>
+        ) : personalized.format === 'plain' || personalized.format === 'diagram_walkthrough' || personalized.format === 'interactive' ? (
           <ReactMarkdown>{personalized.content}</ReactMarkdown>
         ) : (
           <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-800">

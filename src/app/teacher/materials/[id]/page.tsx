@@ -406,7 +406,21 @@ export default function TeacherMaterialViewerPage() {
                     <Loader2 className="animate-spin text-primary-500" />
                   </div>
                 ) : viewContent ? (
-                  viewContent.format === 'plain' || viewContent.format === 'diagram_walkthrough' || viewContent.format === 'interactive' ? (
+                  viewContent.format === 'comic' ? (
+                    // v3.3: comic format may include AI-generated panel
+                    // illustrations as inline markdown images. Render via
+                    // ReactMarkdown so they resolve, but keep raw line breaks
+                    // because the script formatting matters between panels.
+                    <article className="prose prose-sm max-w-none prose-img:rounded-2xl prose-img:shadow-md prose-img:my-4 prose-img:w-full prose-img:mx-auto">
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p className="whitespace-pre-wrap leading-relaxed">{children}</p>,
+                        }}
+                      >
+                        {viewContent.content}
+                      </ReactMarkdown>
+                    </article>
+                  ) : viewContent.format === 'plain' || viewContent.format === 'diagram_walkthrough' || viewContent.format === 'interactive' ? (
                     <article className="prose prose-sm max-w-none">
                       <ReactMarkdown>{viewContent.content}</ReactMarkdown>
                     </article>

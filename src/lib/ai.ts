@@ -800,6 +800,228 @@ HARD RULES:
 Begin:`;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// IMAGE GENERATION (v3.3 — real comic-book panels)
+// ═══════════════════════════════════════════════════════════════════
+//
+// Uses Gemini's image-capable model (gemini-2.5-flash-image-preview by
+// default; override with GEMINI_IMAGE_MODEL). Returns a base64 data URL
+// the caller can drop straight into a markdown <img> tag.
+//
+// The same GEMINI_API_KEY drives this. If the key's tier doesn't include
+// image generation, the call fails and the helper returns null with a
+// surfaced aiError — the caller falls back to text-only.
+
+const IMAGE_MODEL_FALLBACK_CHAIN = [
+  'gemini-2.5-flash-image-preview',
+  'gemini-2.0-flash-exp-image-generation',
+  'imagen-3.0-generate-002',
+];
+
+let _workingImageModelMemo: string | null = null;
+
+export async function generateImage(
+  prompt: string,
+  opts?: { aspectRatio?: '1:1' | '16:9' | '4:3' | '3:4' }
+): Promise<{ dataUrl: string | null; model?: string; error?: string }> {
+  if (isInForceDemoMode()) {
+    return { dataUrl: null, error: 'FORCE_DEMO env flag is set' };
+  }
+  if (!isGeminiConfigured()) {
+    return { dataUrl: null, error: 'AI not configured (no valid GEMINI_API_KEY)' };
+  }
+
+  const apiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
+  const { GoogleGenAI } = await import('@google/genai');
+  const ai = new GoogleGenAI({ apiKey });
+
+  const configuredModel = (process.env.GEMINI_IMAGE_MODEL || '').trim();
+  const attempts: string[] = [];
+  if (_workingImageModelMemo) attempts.push(_workingImageModelMemo);
+  if (configuredModel && !attempts.includes(configuredModel)) attempts.push(configuredModel);
+  for (const m of IMAGE_MODEL_FALLBACK_CHAIN) {
+    if (!attempts.includes(m)) attempts.push(m);
+  }
+
+  let lastErr: string | undefined;
+  for (const model of attempts) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        // Per @google/genai v1.x docs: image-capable models accept
+        // responseModalities to request inline image parts.
+        // Some models default to TEXT only; setting both is safe.
+        config: {
+          responseModalities: ['IMAGE', 'TEXT'] as any,
+          ...(opts?.aspectRatio ? { imageConfig: { aspectRatio: opts.aspectRatio } as any } : {}),
+        } as any,
+      });
+
+      const candidates = (response as any)?.candidates;
+      if (Array.isArray(candidates)) {
+        for (const cand of candidates) {
+          const parts = cand?.content?.parts;
+          if (!Array.isArray(parts)) continue;
+          for (const part of parts) {
+            const inline = part?.inlineData || part?.inline_data;
+            const data = inline?.data;
+            if (typeof data === 'string' && data.length > 0) {
+              const mime = inline.mimeType || inline.mime_type || 'image/png';
+              _workingImageModelMemo = model;
+              return { dataUrl: `data:${mime};base64,${data}`, model };
+            }
+          }
+        }
+      }
+      lastErr = `Model "${model}" returned no image data`;
+    } catch (e) {
+      lastErr = `Model "${model}" failed: ${(e as Error).message}`;
+      const kind = classifyGeminiError(lastErr);
+      // Auth / quota / billing errors won't be fixed by trying another model.
+      if (kind === 'auth' || kind === 'billing' || kind === 'quota') {
+        break;
+      }
+    }
+  }
+
+  return { dataUrl: null, error: lastErr || 'Image generation failed' };
+}
+
+// Parse a comic-book script into per-panel chunks. The personalize prompt
+// instructs the writer model to use the form:
+//   PANEL N
+//   SETTING: ...
+//   CHARACTERS: ...
+//   "...dialogue..."
+//   SFX: *BOOM!*
+// We split on "PANEL N" headings (line-anchored, case-insensitive) and pull
+// out the SETTING, CHARACTERS, and the rest as the action body.
+export interface ComicPanel {
+  index: number;
+  raw: string;
+  setting: string;
+  characters: string;
+  body: string;
+}
+
+export function parseComicPanels(script: string): ComicPanel[] {
+  if (!script) return [];
+  const lines = script.split(/\r?\n/);
+  const blocks: { index: number; lines: string[] }[] = [];
+  let current: { index: number; lines: string[] } | null = null;
+  const panelHeading = /^\s*PANEL\s+(\d+)\b.*$/i;
+
+  for (const line of lines) {
+    const m = line.match(panelHeading);
+    if (m) {
+      if (current) blocks.push(current);
+      current = { index: parseInt(m[1], 10), lines: [] };
+    } else if (current) {
+      current.lines.push(line);
+    }
+  }
+  if (current) blocks.push(current);
+
+  return blocks.map((b) => {
+    const raw = b.lines.join('\n').trim();
+    const setting = (raw.match(/^\s*SETTING:\s*(.+)$/im)?.[1] || '').trim();
+    const characters = (raw.match(/^\s*CHARACTERS:\s*(.+)$/im)?.[1] || '').trim();
+    return { index: b.index, raw, setting, characters, body: raw };
+  });
+}
+
+function buildPanelImagePrompt(panel: ComicPanel, materialTitle: string): string {
+  const setting = panel.setting || 'A relevant scene from the lesson';
+  const characters = panel.characters || 'Educational characters in age-appropriate clothing';
+  // Use only the first ~200 chars of the body as additional context.
+  const action = panel.body.replace(/\bSETTING:.*$|\bCHARACTERS:.*$/gim, '').trim().slice(0, 280);
+  return [
+    `Comic-book panel illustration. Single panel, no border or speech bubbles.`,
+    `Setting: ${setting}`,
+    `Characters: ${characters}`,
+    action ? `Action and mood: ${action}` : '',
+    `Visual style: vibrant comic-book art with bold inked outlines, dramatic shadows, dynamic composition, vivid saturated colors, clear silhouettes. Cinematic lighting.`,
+    `Subject: a panel from a K–12 educational comic about "${materialTitle}". Family-friendly. No text, captions, speech bubbles, or written words anywhere in the image — pure visual storytelling.`,
+  ].filter(Boolean).join('\n');
+}
+
+/**
+ * Generate images for a comic script and inject them into the markdown so
+ * each PANEL N heading is followed by its rendered illustration. Runs
+ * generations in parallel with a concurrency cap to keep total wall-clock
+ * time reasonable (~10–20s for a 6-panel comic on most tiers).
+ *
+ * Cost guardrail: caps at LIMUD_COMIC_IMAGE_LIMIT panels (default 6). The
+ * remaining panels are still in the script — they just don't get images.
+ */
+export async function enrichComicWithImages(
+  script: string,
+  materialTitle: string
+): Promise<{ content: string; imagesGenerated: number; aiError?: string }> {
+  const enabled = (process.env.LIMUD_COMIC_IMAGES ?? 'true').toLowerCase() !== 'false';
+  if (!enabled) {
+    return { content: script, imagesGenerated: 0, aiError: 'Comic image generation disabled by env' };
+  }
+
+  const limit = parseInt(process.env.LIMUD_COMIC_IMAGE_LIMIT || '6', 10);
+  const panels = parseComicPanels(script);
+  if (panels.length === 0) {
+    return { content: script, imagesGenerated: 0 };
+  }
+
+  const targets = panels.slice(0, Math.max(0, limit));
+  const concurrency = Math.max(1, parseInt(process.env.LIMUD_COMIC_IMAGE_CONCURRENCY || '3', 10));
+
+  // Run with a simple promise pool.
+  const images: (string | null)[] = new Array(targets.length).fill(null);
+  let i = 0;
+  let lastError: string | undefined;
+  async function worker() {
+    while (true) {
+      const idx = i++;
+      if (idx >= targets.length) return;
+      const panel = targets[idx];
+      const prompt = buildPanelImagePrompt(panel, materialTitle);
+      const result = await generateImage(prompt, { aspectRatio: '4:3' });
+      if (result.dataUrl) {
+        images[idx] = result.dataUrl;
+      } else if (result.error) {
+        lastError = result.error;
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, () => worker()));
+
+  let generated = 0;
+  // Inject the images by rebuilding the script panel-by-panel. Iterate the
+  // original full-panel list so panels beyond `limit` still appear (just
+  // without an image).
+  const panelHeading = /^\s*PANEL\s+(\d+)\b.*$/im;
+  let result = script;
+  // Use a forward scan with regex; build a new string.
+  const out: string[] = [];
+  const lines = script.split(/\r?\n/);
+  let panelOrder = 0;
+  for (let l = 0; l < lines.length; l++) {
+    const line = lines[l];
+    if (panelHeading.test(line)) {
+      // Insert image markdown above the panel heading if we have one.
+      const targetIdx = panelOrder; // images[] is keyed by original panel order
+      if (targetIdx < images.length && images[targetIdx]) {
+        out.push(`![Panel ${panels[targetIdx].index}](${images[targetIdx]})`);
+        out.push('');
+        generated += 1;
+      }
+      panelOrder += 1;
+    }
+    out.push(line);
+  }
+  result = out.join('\n');
+
+  return { content: result, imagesGenerated: generated, aiError: generated === 0 ? lastError : undefined };
+}
+
 export async function personalizeMaterial(
   input: PersonalizeMaterialInput
 ): Promise<PersonalizeMaterialResult> {
@@ -817,9 +1039,38 @@ export async function personalizeMaterial(
     try {
       console.log(`[PERSONALIZE] Calling Gemini for material "${input.title}" (format=${format})...`);
       const prompt = buildPersonalizationPrompt(input, format);
-      const content = await callGemini(prompt, { temperature: 0.85, maxTokens: 2000 });
+      let content = await callGemini(prompt, { temperature: 0.85, maxTokens: 2000 });
       console.log(`[PERSONALIZE] SUCCESS: ${content.length} chars`);
-      return { content, format, interestsUsed, aiGenerated: true };
+
+      // For comic format, generate real panel illustrations and inject them
+      // into the script. This is the "every chapter, rewritten in your style"
+      // promise made literal — a comic-book reader gets a comic with pictures,
+      // not just a screenplay.
+      let imagesGenerated = 0;
+      let imageError: string | undefined;
+      if (format === 'comic') {
+        try {
+          const enriched = await enrichComicWithImages(content, input.title);
+          content = enriched.content;
+          imagesGenerated = enriched.imagesGenerated;
+          imageError = enriched.aiError;
+          console.log(`[PERSONALIZE] Comic images: ${imagesGenerated} generated${imageError ? ` (${imageError})` : ''}`);
+        } catch (e) {
+          imageError = (e as Error).message;
+          console.error('[PERSONALIZE] Comic image generation threw:', imageError);
+        }
+      }
+
+      return {
+        content,
+        format,
+        interestsUsed,
+        aiGenerated: true,
+        // Surface a subtle aiError if comic format expected images but got none.
+        ...(format === 'comic' && imagesGenerated === 0 && imageError
+          ? { aiError: `Images unavailable: ${imageError}` }
+          : {}),
+      };
     } catch (e) {
       const aiError = (e as Error).message;
       console.error('[PERSONALIZE] Gemini error, falling back to original:', aiError);

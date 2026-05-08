@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v14.2.0 · Update 3.2 · Coursework hub & per-student visibility</code>
+  <code>v14.3.0 · Update 3.3 · Real comic-book panel images</code>
 </p>
 
 ---
@@ -229,9 +229,21 @@ available.
 All AI calls go through one file: `src/lib/ai.ts`. Routes never call Gemini
 directly. Public exports include:
 
-- `personalizeMaterial(input)` — *new in 3.0* — the two-upload engine. Picks
-  format from learning style + interests, builds the prompt, calls Gemini,
-  returns `{ content, format, interestsUsed, aiGenerated, aiError? }`.
+- `personalizeMaterial(input)` — *new in 3.0, extended in 3.3* — the
+  two-upload engine. Picks format from learning style + interests, builds
+  the prompt, calls Gemini, returns `{ content, format, interestsUsed,
+  aiGenerated, aiError? }`. **For comic-book format, also generates
+  real panel illustrations** via Gemini's image model and inlines them as
+  markdown images in the returned content.
+- `generateImage(prompt, opts?)` — *new in 3.3* — single-shot image
+  generation via Gemini's image-capable model
+  (`gemini-2.5-flash-image-preview` by default; override with
+  `GEMINI_IMAGE_MODEL`). Returns a base64 data URL or `{ error }`.
+- `enrichComicWithImages(script, title)` — *new in 3.3* — parses a comic
+  script for `PANEL N` blocks, generates an illustration per panel
+  (parallel, concurrency-limited), injects them as markdown images above
+  each panel heading. Capped at `LIMUD_COMIC_IMAGE_LIMIT` panels (default
+  6). Set `LIMUD_COMIC_IMAGES=false` to disable entirely.
 - `chatWithTutor(messages, subject?, surveyData?)` — Socratic tutor with
   per-student personalization built in.
 - `gradeSubmission(content, description, rubric, maxScore)` — AI grading,

@@ -4,6 +4,153 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [3.3.0] - 2026-05-07 — Update 3.3 (Real comic-book panel images)
+
+The two-upload promise is now literal: a student whose profile says
+"visual learner who loves Marvel comics" gets an actual comic, not just
+a screenplay. Gemini's image model generates one illustration per panel
+in parallel, the AI engine inlines them as markdown images, and the
+reader renders the result as a true comic page — panel art on top,
+script underneath.
+
+The same `GEMINI_API_KEY` drives this. If your key's tier doesn't include
+image generation, the call fails gracefully and the student gets the
+text-only comic script with a visible "Images unavailable" badge — no
+silent fakes.
+
+### Added
+
+- **`src/lib/ai.ts → generateImage(prompt, opts?)`** — single-shot image
+  generation via Gemini's image-capable model. Tries
+  `gemini-2.5-flash-image-preview` first, falls back through
+  `gemini-2.0-flash-exp-image-generation` and `imagen-3.0-generate-002`
+  on availability errors (same fallback-chain pattern as text). The
+  first working image model is memoized per process. Auth/quota/billing
+  errors bail out immediately. Returns
+  `{ dataUrl: 'data:image/png;base64,...', model } | { dataUrl: null, error }`.
+- **`src/lib/ai.ts → parseComicPanels(script)`** — parses a comic script
+  into per-panel chunks. Splits on line-anchored `PANEL N` headings,
+  pulls out `SETTING:` and `CHARACTERS:` lines, returns the rest as
+  the action body.
+- **`src/lib/ai.ts → enrichComicWithImages(script, title)`** — the
+  orchestrator. Generates one image per panel using a tightly-scoped
+  prompt (vibrant comic-book style, bold inked outlines, dramatic
+  shadows, **no text/speech bubbles in the image** so the script
+  underneath isn't duplicated). Runs with concurrency cap
+  `LIMUD_COMIC_IMAGE_CONCURRENCY` (default 3) and a panel cap
+  `LIMUD_COMIC_IMAGE_LIMIT` (default 6) for cost control. Injects each
+  image as `![Panel N](data:image/png;base64,...)` immediately above
+  its `PANEL N` heading in the script.
+- **`src/lib/ai.ts → personalizeMaterial(...)`** now post-processes the
+  comic format: after the writer model returns the script, it calls
+  `enrichComicWithImages` and replaces the content. If image generation
+  fails (key tier, quota, etc.) the script still returns and the result
+  carries `aiError: "Images unavailable: ..."` so the UI can flag it.
+
+### Changed
+
+- **`src/app/api/student/materials/[id]/route.ts`** — added
+  `export const maxDuration = 60` so the personalized-content route can
+  run long enough on first read to generate 6 panel images in parallel
+  (~20–30s wall clock typical). Subsequent reads hit the
+  `PersonalizedMaterial` cache and complete instantly.
+- **`src/app/student/materials/[id]/page.tsx`** — the reader now uses
+  `<ReactMarkdown>` for the comic format so the inlined `<img>` panels
+  render. Panel images get `prose-img:rounded-2xl prose-img:shadow-md`
+  styling, max-width 2xl, centered, with vertical breathing room
+  between panel and script. Loading message extended: "If your version
+  is a comic, the AI is also drawing each panel. This can take 20–30
+  seconds the first time. Future reads are instant."
+- **`src/app/teacher/materials/[id]/page.tsx`** (per-student viewer
+  modal) — same treatment. Teachers see exactly the comic — images and
+  all — that the student saw.
+- **`README.md`** — version banner bumped to
+  `v14.3.0 · Update 3.3 · Real comic-book panel images`. The "How AI
+  is wired" section adds `generateImage`, `enrichComicWithImages`, and
+  documents the comic-format extension to `personalizeMaterial`.
+
+### Configuration (all optional, all already-existing key)
+
+- `GEMINI_API_KEY` — same key the rest of the AI uses. No new env var
+  required for the basic case.
+- `GEMINI_IMAGE_MODEL` — override the default image model.
+- `LIMUD_COMIC_IMAGES=false` — turn off comic image generation entirely
+  (text-only comics ship without trying to render pictures).
+- `LIMUD_COMIC_IMAGE_LIMIT` — max panels per comic that get an image
+  (default 6; cost guardrail).
+- `LIMUD_COMIC_IMAGE_CONCURRENCY` — how many panels to generate in
+  parallel (default 3).
+
+### Why this shape
+
+- **Inline base64 storage.** Each panel image is ~150–250KB base64.
+  Six panels = ~1–1.5MB inlined in `PersonalizedMaterial.content`
+  (Postgres `TEXT` column, well under the 1GB ceiling). Storing as
+  data URLs means zero infra dependencies — no S3 bucket to provision,
+  no signed-URL plumbing, no asset host. The cache row carries
+  everything the reader needs in one query.
+- **Cap and parallelize.** A 6-panel comic at ~5s/image serial would
+  be 30+ seconds. Parallel-3 cuts that to ~10–12s. Beyond 6 panels we
+  stop generating images (cost), but the script panels still render —
+  the student just sees text-only for the tail panels.
+- **No text in images.** The image prompt explicitly forbids text,
+  speech bubbles, and captions. The script under the image already
+  carries the dialogue. This avoids the LLM-generated-comic problem
+  where the image renders garbled fake text on top of the real script.
+- **Visible failure, never silent fakes.** If the key's tier doesn't
+  include image generation, the API call returns null and the engine
+  surfaces `aiError: "Images unavailable: ..."` to the client. The
+  student gets a real (if text-only) comic script, not a fake image,
+  and the failure is visible in the reader.
+
+### Verify
+
+After deploying:
+- As a student whose interest blob mentions comics/Marvel/manga, open
+  the French Revolution material. Confirm panel images render between
+  the panel headings.
+- First read: ~20–30s with the new loading copy. Re-open: instant
+  (cache hit).
+- Click Refresh on the reader → re-renders content + new images
+  (overwrites cache).
+- As a teacher, open `/teacher/materials/[id]` → click "View" on a
+  student row whose format is `comic` → modal shows their actual
+  illustrated comic.
+- Set `LIMUD_COMIC_IMAGES=false` and redeploy → comics return as
+  text-only with an "Images unavailable" badge; everything else
+  unchanged.
+- Use a Gemini key without image-tier access → calls fail, student
+  gets text-only comic with the visible error message; no silent
+  fallback to fake imagery.
+
+### Files touched
+
+- `src/lib/ai.ts` (new helpers + extension to `personalizeMaterial`)
+- `src/app/api/student/materials/[id]/route.ts` (`maxDuration`)
+- `src/app/student/materials/[id]/page.tsx` (markdown comic + loading copy)
+- `src/app/teacher/materials/[id]/page.tsx` (markdown comic in modal)
+- `package.json` (`14.2.0` → `14.3.0`)
+- `README.md`
+- `CHANGELOG.md`
+
+### Out of scope / notes
+
+- Other personalization formats (rap, story, walkthrough, etc.)
+  remain text-only for now. Adding visuals to those is a future
+  iteration; comic was the highest-impact gap.
+- Image cache invalidation: refreshing a personalized material
+  regenerates both the script AND the images. We don't yet support
+  "regenerate one panel" — the whole comic re-renders. Cheap on
+  Gemini's flash image tier, but worth tightening if costs grow.
+- Postgres TEXT field handles the inlined base64 fine. If a deployment
+  ever wants to externalize images to a CDN, the swap point is in
+  `enrichComicWithImages` — replace the data URL with an uploaded URL.
+- The teacher viewer modal still uses the same content the student
+  saw — it does not regenerate. Teachers see exactly what the student
+  experienced.
+
+---
+
 ## [3.2.0] - 2026-05-07 — Update 3.2 (Coursework hub & per-student visibility)
 
 Two new dedicated places, one new question answered.
