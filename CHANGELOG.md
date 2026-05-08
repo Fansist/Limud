@@ -4,6 +4,185 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [3.2.0] - 2026-05-07 — Update 3.2 (Coursework hub & per-student visibility)
+
+Two new dedicated places, one new question answered.
+
+**For students** — `/student/coursework` is now the single home for
+everything their teacher posts: Materials (the AI-personalized teaching
+content) on one tab, Assignments (the uniform graded artifacts) on the
+other. The two-upload model on the receiving end. Counts visible at a
+glance; deep-link goes straight to the personalized reader.
+
+**For teachers** — `/teacher/coursework` mirrors the student hub: same
+two tabs, same spine, plus a running total of how many personalized
+renders the AI has produced across all materials. From any material
+card the teacher drills into the new viewer at `/teacher/materials/[id]`,
+which shows the **original chapter on the left** and **every personalized
+render on the right** — the format the AI picked for each student
+(comic-script / rap / step-by-step / etc.), the interests it drew on,
+and a click-to-read button that loads exactly what that student saw.
+
+This is the visibility piece teachers asked for: not just "the AI did
+something" but "here is what Lior saw, what Eitan saw, what Noam saw,
+side-by-side." Same product invariant: the AI changes the *delivery*,
+never the facts; the graded assignment is identical for everyone.
+
+### Added
+
+- **`src/app/api/teacher/materials/[id]/personalized/route.ts`** — GET.
+  Returns `{ material, personalized[], stats }` for a Material the
+  teacher owns. Tenant-checked: 403 if `material.createdById !== user.id`.
+  `personalized[]` rows include studentId, studentName, format,
+  learningStyle, interestsUsed (parsed JSON array), contentLength,
+  refreshedAt, aiGenerated. Pulls all student names in a single batch
+  query. `stats.formats` tallies format mix across the class. Master
+  demo path returns a canned 3-row sample mirroring the demo profiles.
+
+- **`src/app/api/teacher/materials/[id]/personalized/[studentId]/route.ts`**
+  — GET. Returns the full personalized content for one (material,
+  student) pair so the teacher can read exactly what their student saw.
+  Tenant-checked end-to-end (caller must own the material; row must
+  exist for that student). Master demo returns a stub; the client
+  reads the matching hand-authored sample via
+  `getDemoPersonalizedSample()` instead.
+
+- **`src/app/student/coursework/page.tsx`** — new unified hub for
+  students. Two tabs (Materials, Assignments) with live counts in pill
+  badges. Tab state persisted in `?tab=` URL param. Materials grid
+  links straight to `/student/materials/[id]` (the personalized
+  reader). Assignments grid mirrors the existing
+  `/student/assignments` row layout but trimmed for hub-density. Demo
+  mode reads from `getDemoMaterials()` and `DEMO_ASSIGNMENTS`.
+
+- **`src/app/teacher/coursework/page.tsx`** — new unified hub for
+  teachers. Same two-tab structure plus a "two-upload model" mesh-
+  gradient explainer card and a live total of personalized renders
+  across all materials. Page header has dual CTAs (New material / New
+  assignment) so teachers can post either without bouncing between
+  routes. Demo mode reads from `getDemoMaterials()` and
+  `getTeacherAssignments()`.
+
+- **`src/app/teacher/materials/[id]/page.tsx`** — the per-student
+  visibility viewer. Two-column layout: the original material on the
+  left, a list of every PersonalizedMaterial row on the right. Each
+  row shows the format pill (color-coded — comic = pink, rap = purple,
+  step-by-step = emerald, visual walkthrough = blue, story = amber,
+  interactive = indigo, plain = gray), the learning style, the
+  interests the AI drew on, the content length, and the last-refreshed
+  timestamp. A "View" button on each row opens a modal with that
+  student's exact rendered content (markdown for prose formats, styled
+  `<pre>` for comic / rap / step-by-step). Format-mix summary chips at
+  the top of the list show the class-wide breakdown
+  (e.g. "Comic-book script · 3, Lyrical breakdown · 2"). Demo mode
+  pretends the three demo students have opened the material and
+  synthesizes their personalized rows from `getDemoPersonalizedSample`.
+
+### Changed
+
+- **`src/components/layout/DashboardLayout.tsx`** — sidebar nav.
+  - Student "Learning" group: `/student/assignments` (label
+    "Assignments") replaced with `/student/coursework` (label
+    "Coursework"). The standalone `/student/assignments` route still
+    works; it just no longer has a top-level nav entry.
+  - Teacher "Assignments" group renamed to "Coursework," and the
+    `/teacher/assignments` link (label "My Assignments") is replaced
+    with `/teacher/coursework` (label "Coursework"). The teacher's
+    standalone `/teacher/assignments` and `/teacher/materials` pages
+    still work; the hub is now the canonical entry point. AI Builder
+    stays in the same group.
+  - Mobile bottom nav: student "Tasks" tile now points to
+    `/student/coursework` (label "Coursework"). Teacher "Assign" tile
+    now points to `/teacher/coursework` (label "Coursework").
+
+- **`README.md`** — version banner bumped to
+  `v14.2.0 · Update 3.2 · Coursework hub & per-student visibility`.
+  Pages-by-role inventory updated: added `/student/coursework`,
+  `/teacher/coursework`, and `/teacher/materials/[id]` with one-line
+  descriptions. Existing per-page links still listed for direct deep
+  linking.
+
+### Why this shape
+
+- **One destination, two tabs.** Materials and Assignments are
+  conceptually two halves of the same thing (the stuff your teacher
+  posted; the stuff you're going to be graded on). Splitting them
+  into `/student/materials` and `/student/assignments` made students
+  bounce. The hub is the glue.
+
+- **Visibility, not surveillance.** The teacher viewer shows how the
+  AI rendered each student's material — but it does NOT show
+  "engagement time," "did they actually read it," "how long did they
+  spend per panel," or anything of that flavor. That would be
+  surveillance, and it would change the relationship between student
+  and material in ways we don't want. The teacher sees exactly what
+  the student would have seen. Nothing else.
+
+- **Tenant isolation is enforced at the API.** `personalized` GETs
+  reject any request whose material wasn't authored by the caller.
+  No "see what some other teacher's student saw" path exists.
+
+- **Format pills are the at-a-glance answer.** A teacher who scans
+  the right column should immediately understand "OK, half the class
+  got comics, three got rap, two got step-by-step" without opening
+  any individual rendering. That's the point of the format-mix chip
+  row at the top of the list.
+
+- **Modal viewer, not a separate page.** Drilling into a single
+  student's rendering is a read-mostly action — modal keeps the
+  per-student list visible behind it so the teacher can quickly hop
+  from one student to the next without losing the class context.
+
+### Verify
+
+- As a teacher, visit `/teacher/coursework` — confirm two tabs
+  (Materials, Assignments) with live counts and the dual New-material
+  / New-assignment CTAs in the page header.
+- Click into any material card → land on `/teacher/materials/[id]`.
+  Confirm left column renders the original (markdown), right column
+  lists per-student rows with format pills.
+- Click "View" on a row → modal opens with that student's rendered
+  content. Confirm the format pill, learning style, and interests
+  appear in the modal header.
+- As a student, visit `/student/coursework` — confirm tabs render with
+  counts. Click a Material card → goes to the personalized reader at
+  `/student/materials/[id]`. Click an Assignment card → goes to
+  `/student/assignments`.
+- As another teacher (in real DB mode), confirm hitting
+  `/api/teacher/materials/<not-yours>/personalized` returns 403.
+- Mobile: bottom nav "Coursework" tile takes you to the hub.
+- Demo mode: master demo + `?demo=true` both render the hub end-to-end
+  with the three seeded students appearing on the per-material viewer.
+
+### Files touched
+
+- New API routes:
+  - `src/app/api/teacher/materials/[id]/personalized/route.ts`
+  - `src/app/api/teacher/materials/[id]/personalized/[studentId]/route.ts`
+- New pages:
+  - `src/app/student/coursework/page.tsx`
+  - `src/app/teacher/coursework/page.tsx`
+  - `src/app/teacher/materials/[id]/page.tsx`
+- Modified:
+  - `src/components/layout/DashboardLayout.tsx` (sidebar + mobile nav)
+  - `README.md`
+  - `CHANGELOG.md`
+  - `package.json` (`14.1.1` → `14.2.0`)
+
+### Out of scope / notes
+
+- The standalone `/student/assignments`, `/student/materials`,
+  `/teacher/assignments`, and `/teacher/materials` pages are still
+  reachable via deep link and still function exactly as before. The
+  hub doesn't replace them — it sits in front of them.
+- The teacher viewer doesn't include engagement metrics by design.
+  If/when we add "time on material" or "scroll depth" we'll do it as
+  a separate feature with its own privacy review.
+- No schema changes — `Material` and `PersonalizedMaterial` already
+  have everything needed.
+
+---
+
 ## [3.1.1] - 2026-05-07 — Update 3.1.1 (District + Family parity)
 
 A correction to the framing introduced in 3.1. That release pivoted the

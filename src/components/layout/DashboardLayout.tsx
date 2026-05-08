@@ -37,7 +37,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/student/tutor', label: 'AI Tutor', icon: <MessageCircle size={20} /> },
     ]},
     { label: 'Learning', items: [
-      { href: '/student/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
+      { href: '/student/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
       { href: '/student/focus', label: 'Focus Mode', icon: <Focus size={20} /> },
       { href: '/student/forums', label: 'Discussions', icon: <MessageSquare size={20} /> },
       { href: '/student/study-planner', label: 'Study Planner', icon: <Calendar size={20} /> },
@@ -56,8 +56,8 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/teacher/classrooms', label: 'My Classes', icon: <BookOpen size={20} /> },
       { href: '/teacher/onboarding', label: 'Classroom Settings', icon: <Settings size={20} /> },
     ]},
-    { label: 'Assignments', items: [
-      { href: '/teacher/assignments', label: 'My Assignments', icon: <BookOpen size={20} /> },
+    { label: 'Coursework', items: [
+      { href: '/teacher/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
       { href: '/teacher/ai-builder', label: 'AI Builder', icon: <Zap size={20} /> },
     ]},
     { label: 'AI Tools', items: [
@@ -132,11 +132,11 @@ const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.Reac
     { href: '/student/knowledge', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { href: '/student/focus', label: 'Focus', icon: <Focus size={20} /> },
     { href: '/student/tutor', label: 'Tutor', icon: <MessageCircle size={20} /> },
-    { href: '/student/assignments', label: 'Tasks', icon: <BookOpen size={20} /> },
+    { href: '/student/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
   ],
   TEACHER: [
     { href: '/teacher/dashboard', label: 'Home', icon: <LayoutDashboard size={20} /> },
-    { href: '/teacher/assignments', label: 'Assign', icon: <BookOpen size={20} /> },
+    { href: '/teacher/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
     { href: '/teacher/intelligence', label: 'Intel', icon: <Brain size={20} /> },
     { href: '/teacher/grading', label: 'Grade', icon: <GraduationCap size={20} /> },
     { href: '/teacher/analytics', label: 'Stats', icon: <BarChart3 size={20} /> },

@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v14.1.1 · Update 3.1.1 · District + Family parity</code>
+  <code>v14.2.0 · Update 3.2 · Coursework hub & per-student visibility</code>
 </p>
 
 ---
@@ -113,7 +113,8 @@ are recorded.
 ## Pages by role
 
 ### Student
-- **/student/dashboard** — today's focus, streaks, what to work on next
+- **/student/dashboard** — today's focus, what to work on next
+- **/student/coursework** — *new in 3.2* — unified hub: Materials and Assignments tabs side-by-side
 - **/student/materials** — *new in 3.0* — every chapter, rewritten in your style
 - **/student/materials/[id]** — the personalized reader (comic / story / rap / etc.)
 - **/student/assignments** — graded work, uniform across the class
@@ -129,7 +130,9 @@ are recorded.
 
 ### Teacher
 - **/teacher/dashboard** — class-wide intelligence, students who need attention today
+- **/teacher/coursework** — *new in 3.2* — unified hub: Materials + Assignments in one place, with the running count of how many personalized renders the AI has produced across the class
 - **/teacher/materials** — *new in 3.0* — upload teaching content, AI rewrites per student
+- **/teacher/materials/[id]** — *new in 3.2* — viewer that shows the original chapter side-by-side with every personalized render across the class. Click any student to read exactly what they saw — the comic-script, the rap, the step-by-step, whatever the AI built for them
 - **/teacher/assignments** — uniform graded artifacts
 - **/teacher/ai-builder** — AI-drafted differentiated assignment variants
 - **/teacher/ai-feedback** — AI grades + feedback (single + bulk)
