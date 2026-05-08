@@ -16,8 +16,8 @@ import { SkeletonDashboard } from '@/lib/performance';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Link from 'next/link';
 import {
-  Brain, Target, Flame, Trophy, Zap, ArrowRight, Calendar, Radar,
-  Star, Sparkles, TrendingUp, AlertTriangle, ChevronDown, BookOpen, MessageCircle,
+  Brain, Target, Trophy, ArrowRight, Calendar, Radar,
+  Sparkles, TrendingUp, AlertTriangle, ChevronDown, BookOpen, MessageCircle,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -30,25 +30,6 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'knowledge', label: 'Knowledge Map', icon: <Brain size={16} /> },
   { id: 'growth', label: 'Growth & Predictions', icon: <TrendingUp size={16} /> },
 ];
-
-// ═══════════════════════════════════════════════════════════════
-// RANK SYSTEM
-// ═══════════════════════════════════════════════════════════════
-
-const RANKS = [
-  { name: 'Bronze', min: 0, color: 'from-amber-700 to-amber-600', emoji: '🥉', bg: 'bg-amber-50' },
-  { name: 'Silver', min: 500, color: 'from-gray-400 to-gray-300', emoji: '🥈', bg: 'bg-gray-50' },
-  { name: 'Gold', min: 1500, color: 'from-yellow-500 to-yellow-400', emoji: '🥇', bg: 'bg-yellow-50' },
-  { name: 'Platinum', min: 3000, color: 'from-cyan-400 to-cyan-300', emoji: '💎', bg: 'bg-cyan-50' },
-  { name: 'Diamond', min: 6000, color: 'from-purple-500 to-pink-500', emoji: '👑', bg: 'bg-purple-50' },
-];
-
-function getRank(xp: number) {
-  for (let i = RANKS.length - 1; i >= 0; i--) {
-    if (xp >= RANKS[i].min) return { ...RANKS[i], nextRank: RANKS[i + 1] || null };
-  }
-  return { ...RANKS[0], nextRank: RANKS[1] };
-}
 
 // ═══════════════════════════════════════════════════════════════
 // CHART COMPONENTS
@@ -162,10 +143,9 @@ function KnowledgeContent() {
     }
     Promise.all([
       fetch('/api/skills').then(r => r.json()).catch(() => ({ skills: [] })),
-      fetch('/api/rewards').then(r => r.json()).catch(() => ({ stats: null })),
       fetch('/api/study-next').then(r => r.json()).catch(() => ({ primaryAction: null })),
       fetch('/api/confidence').then(r => r.json()).catch(() => ({ overall: {} })),
-    ]).then(([skills, rewards, studyNext, confidence]) => {
+    ]).then(([skills, studyNext, confidence]) => {
       // Build growth data from skills
       const skillList = skills.skills || [];
       const subjectMap: Record<string, any[]> = {};
@@ -181,7 +161,6 @@ function KnowledgeContent() {
 
       setData({
         skills: skillList,
-        rewards: rewards.stats,
         studyNext,
         confidence: confidence.overall,
         // Growth data
@@ -248,14 +227,17 @@ function KnowledgeContent() {
 
 function KnowledgeTab({ data }: { data: any }) {
   const skills = data?.skills || [];
-  const rewards = data?.rewards || { totalXP: 750, level: 4, currentStreak: 3, virtualCoins: 120 };
   const studyNext = data?.studyNext || {};
   const confidence = data?.confidence || {};
-  const rank = getRank(rewards.totalXP);
   const [expandedSkill, setExpandedSkill] = useState<string | null>(null);
-  const [expandedGoal, setExpandedGoal] = useState<number | null>(null);
   const isDemo = useIsDemo();
   const demoSuffix = isDemo ? '?demo=true' : '';
+  const masteredCount = skills.filter((s: { masteryLevel: number }) => s.masteryLevel >= 80).length;
+  const inProgressCount = skills.filter((s: { masteryLevel: number }) => s.masteryLevel >= 40 && s.masteryLevel < 80).length;
+  const needsWorkCount = skills.filter((s: { masteryLevel: number }) => s.masteryLevel < 40).length;
+  const overallMastery = skills.length > 0
+    ? Math.round(skills.reduce((sum: number, s: { masteryLevel: number }) => sum + s.masteryLevel, 0) / skills.length)
+    : 0;
 
   const subjectMap: Record<string, number[]> = {};
   skills.forEach((s: { skillCategory: string; masteryLevel: number }) => {
@@ -279,9 +261,6 @@ function KnowledgeTab({ data }: { data: any }) {
     return data;
   }, []);
 
-  const nextXPNeeded = rank.nextRank ? rank.nextRank.min - rewards.totalXP : 0;
-  const rankProgress = rank.nextRank ? Math.round(((rewards.totalXP - rank.min) / (rank.nextRank.min - rank.min)) * 100) : 100;
-
   return (
     <div className="space-y-6">
       {/* Study Next CTA */}
@@ -303,37 +282,39 @@ function KnowledgeTab({ data }: { data: any }) {
         </motion.div>
       )}
 
-      {/* Rank + Stats */}
+      {/* Mastery overview */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className={cn('card text-center', rank.bg)}>
-          <div className="text-4xl mb-1">{rank.emoji}</div>
-          <p className={cn('text-lg font-bold bg-gradient-to-r bg-clip-text text-transparent', rank.color)}>{rank.name} Rank</p>
-          <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
-            <div className={cn('h-2 rounded-full bg-gradient-to-r', rank.color)} style={{ width: `${rankProgress}%` }} />
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card">
+          <div className="flex items-center gap-2 mb-3"><Target size={16} className="text-emerald-500" /><p className="text-sm font-bold text-gray-900 dark:text-white">Overall Mastery</p></div>
+          <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{overallMastery}%</div>
+          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+            <div className="h-2 rounded-full bg-emerald-500 transition-all" style={{ width: `${overallMastery}%` }} />
           </div>
-          <p className="text-xs text-gray-400 mt-1.5">{rank.nextRank ? `${nextXPNeeded} XP to ${rank.nextRank.name}` : 'Max rank!'}</p>
+          <p className="text-xs text-gray-400 mt-2">{skills.length} skills tracked across your courses</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="card">
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { icon: <Zap size={16} />, label: 'XP', value: rewards.totalXP?.toLocaleString(), c: 'text-purple-600 bg-purple-50' },
-              { icon: <Flame size={16} />, label: 'Streak', value: `${rewards.currentStreak}d`, c: 'text-orange-600 bg-orange-50' },
-              { icon: <Target size={16} />, label: 'Mastery', value: `${confidence.trueMastery || '--'}%`, c: 'text-emerald-600 bg-emerald-50' },
-              { icon: <Star size={16} />, label: 'Level', value: rewards.level, c: 'text-amber-600 bg-amber-50' },
-            ].map((s, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className={cn('p-1.5 rounded-lg', s.c)}>{s.icon}</div>
-                <div><p className="text-sm font-bold text-gray-900 dark:text-white">{s.value}</p><p className="text-[10px] text-gray-400">{s.label}</p></div>
-              </div>
-            ))}
+          <div className="flex items-center gap-2 mb-3"><Sparkles size={16} className="text-indigo-500" /><p className="text-sm font-bold text-gray-900 dark:text-white">Skills</p></div>
+          <div className="space-y-1.5 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Mastered</span>
+              <span className="font-bold text-emerald-600">{masteredCount}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 dark:text-gray-400">In progress</span>
+              <span className="font-bold text-amber-600">{inProgressCount}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Needs work</span>
+              <span className="font-bold text-red-600">{needsWorkCount}</span>
+            </div>
           </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card">
           <div className="flex items-center gap-2 mb-3"><Brain size={16} className="text-indigo-500" /><p className="text-sm font-bold text-gray-900 dark:text-white">Learning DNA</p></div>
           <div className="space-y-2 text-xs">
-            {(studyNext.recommendations || ['🔥 Peak learning zone!', '⏱️ 25-min sessions work best.', '👁️ Visual learner: Use diagrams.']).slice(0, 3).map((r: string, i: number) => (
+            {(studyNext.recommendations || ['Peak learning zone right now.', '25-minute sessions work best for you.', 'Visual learner — try diagram walkthroughs.']).slice(0, 3).map((r: string, i: number) => (
               <p key={i} className="text-gray-600 dark:text-gray-400">{r}</p>
             ))}
           </div>
@@ -406,7 +387,6 @@ function KnowledgeTab({ data }: { data: any }) {
                           <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
                             <span>{practiceCount} practice sessions</span>
                             <span>Last: {lastPracticed}</span>
-                            {skill.streak > 0 && <span className="text-orange-500 font-medium flex items-center gap-0.5"><Flame size={10} />{skill.streak}d streak</span>}
                           </div>
                           <div className="flex items-start gap-2 mb-2">
                             <Sparkles size={12} className="text-indigo-500 mt-0.5 flex-shrink-0" />
@@ -433,51 +413,6 @@ function KnowledgeTab({ data }: { data: any }) {
         </div>
       </motion.div>
 
-      {/* Goal Countdown — v11.0: expandable with suggestions */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="card">
-        <div className="flex items-center gap-2 mb-4"><Target size={18} className="text-purple-500" /><h2 className="text-base font-bold text-gray-900 dark:text-white">Goal Countdown</h2></div>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {[
-            { goal: 'Reach Gold Rank', current: rewards.totalXP, target: 1500, unit: 'XP', color: 'from-yellow-400 to-amber-500', emoji: '🥇', tip: 'Complete assignments and practice with the AI tutor to earn XP faster.', link: `/student/tutor${demoSuffix}`, linkLabel: 'Study Now' },
-            { goal: 'Master Fractions', current: 62, target: 80, unit: '%', color: 'from-blue-500 to-indigo-500', emoji: '📐', tip: 'Practice fraction problems daily. The AI tutor can break down confusing steps.', link: `/student/tutor${demoSuffix}${demoSuffix ? '&' : '?'}topic=Fractions`, linkLabel: 'Practice' },
-            { goal: '14-Day Streak', current: rewards.currentStreak || 0, target: 14, unit: 'days', color: 'from-orange-500 to-red-500', emoji: '🔥', tip: 'Do at least one 5-minute session every day. Even a quick quiz counts!', link: `/student/focus${demoSuffix}`, linkLabel: 'Quick Session' },
-            { goal: 'Complete 50 Assignments', current: 32, target: 50, unit: 'done', color: 'from-emerald-500 to-teal-500', emoji: '📝', tip: 'Check for new assignments and extra credit opportunities.', link: `/student/assignments${demoSuffix}`, linkLabel: 'View Assignments' },
-          ].map((g, i) => {
-            const pct = Math.min(100, Math.round((g.current / g.target) * 100));
-            const isGoalExpanded = expandedGoal === i;
-            return (
-              <div key={i} className="rounded-xl bg-gray-50 dark:bg-gray-800 overflow-hidden">
-                <button onClick={() => setExpandedGoal(isGoalExpanded ? null : i)} className="p-3 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">{g.emoji}</span>
-                    <span className="text-xs font-semibold text-gray-900 dark:text-white">{g.goal}</span>
-                    <ChevronDown size={12} className={cn('text-gray-400 ml-auto transition-transform', isGoalExpanded && 'rotate-180')} />
-                  </div>
-                  <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
-                    <motion.div className={cn('h-full rounded-full bg-gradient-to-r', g.color)} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1, delay: 0.5 + i * 0.1 }} />
-                  </div>
-                  <p className="text-[10px] text-gray-400">{Math.max(0, g.target - g.current)} {g.unit} to go ({pct}%)</p>
-                </button>
-                <AnimatePresence>
-                  {isGoalExpanded && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                      <div className="px-3 pb-3 space-y-2">
-                        <div className="flex items-start gap-2 bg-white dark:bg-gray-900 rounded-lg p-2.5 border border-gray-200 dark:border-gray-700">
-                          <Sparkles size={12} className="text-indigo-500 mt-0.5 flex-shrink-0" />
-                          <p className="text-xs text-gray-600 dark:text-gray-400">{g.tip}</p>
-                        </div>
-                        <Link href={g.link} className={cn('block w-full text-center py-2 rounded-lg bg-gradient-to-r text-white text-xs font-medium hover:shadow-md transition', g.color)}>
-                          {g.linkLabel} <ArrowRight size={12} className="inline ml-1" />
-                        </Link>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
-        </div>
-      </motion.div>
     </div>
   );
 }
@@ -587,10 +522,9 @@ function getDemoData() {
   ];
   return {
     skills,
-    rewards: { totalXP: 2750, level: 12, currentStreak: 5, virtualCoins: 320 },
     studyNext: {
-      primaryAction: { type: 'daily_boost', title: '5-Minute Daily Boost', description: 'Quick streak-saving micro session', urgency: 'now', estimatedMinutes: 5 },
-      recommendations: ['🔥 Peak learning zone! Tackle hard topics now.', '⏱️ 25-min sessions work best for you.', '👁️ Visual learner: Use diagrams & maps.'],
+      primaryAction: { type: 'daily_boost', title: '5-Minute Quick Practice', description: 'A short focused session to build momentum', urgency: 'now', estimatedMinutes: 5 },
+      recommendations: ['Peak learning zone right now — tackle a hard topic.', '25-minute sessions are your sweet spot.', 'Visual learner: try diagram walkthroughs and mind maps.'],
     },
     confidence: { accuracy: 78, luckyGuessRate: 12, trueMastery: 72, totalRatings: 48 },
     overallMastery: 74,

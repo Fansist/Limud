@@ -8,7 +8,7 @@ import { useIsDemo } from '@/lib/hooks';
 import toast from 'react-hot-toast';
 import {
   Compass, X, Send, Sparkles, MapPin, BookOpen, BarChart3,
-  Trophy, MessageCircle, Gamepad2, ChevronRight, Minimize2,
+  MessageCircle, ChevronRight, Minimize2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,9 +27,7 @@ function nextMessageId(): string {
 const QUICK_ACTIONS = [
   { label: 'My assignments', icon: <BookOpen size={14} />, prompt: 'What assignments do I have coming up?' },
   { label: 'My grades', icon: <BarChart3 size={14} />, prompt: 'How are my grades looking?' },
-  { label: 'My rewards', icon: <Trophy size={14} />, prompt: 'What are my XP, level and streak?' },
   { label: 'Get help', icon: <MessageCircle size={14} />, prompt: 'I need help with my schoolwork' },
-  { label: 'Play games', icon: <Gamepad2 size={14} />, prompt: 'I want to play some games' },
   { label: 'Message teacher', icon: <Send size={14} />, prompt: 'How do I send a message to my teacher?' },
 ];
 
@@ -150,7 +148,7 @@ export default function AINavigator() {
       setMessages([{
         id: nextMessageId(),
         role: 'assistant',
-        content: 'Hey there! 🧭 I\'m your **Limud Navigator**. I can help you find your assignments, check your grades, track your rewards, or guide you anywhere on the platform.\n\nWhat would you like to know?',
+        content: 'Hey there! 🧭 I\'m your **Limud Navigator**. I can help you find your assignments, check your grades, or guide you anywhere on the platform.\n\nWhat would you like to know?',
       }]);
     }
   }

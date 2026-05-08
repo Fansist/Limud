@@ -6,16 +6,10 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { BookOpen, ArrowRight, Sparkles, GraduationCap, Shield, Eye, EyeOff, Users, Crown } from 'lucide-react';
+import { BookOpen, ArrowRight, Sparkles, Eye, EyeOff } from 'lucide-react';
 
-const DEMO_ACCOUNTS = [
-  { role: 'Student', email: 'lior@ofer-academy.edu', password: 'password123', icon: <GraduationCap size={20} />, desc: 'Lior Betzalel — AI tutor, assignments, rewards', color: 'from-blue-500 to-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200', dashRole: 'STUDENT' },
-  { role: 'Teacher', email: 'strachen@ofer-academy.edu', password: 'password123', icon: <Users size={20} />, desc: 'Gregory Strachen — Grading, analytics', color: 'from-green-500 to-green-600', bg: 'hover:bg-green-50 hover:border-green-200', dashRole: 'TEACHER' },
-  { role: 'Admin', email: 'erez@ofer-academy.edu', password: 'password123', icon: <Shield size={20} />, desc: 'Erez Ofer — Superintendent access', color: 'from-purple-500 to-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200', dashRole: 'ADMIN' },
-  { role: 'Parent', email: 'david@ofer-academy.edu', password: 'password123', icon: <Eye size={20} />, desc: "David Betzalel — Lior's parent", color: 'from-pink-500 to-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200', dashRole: 'PARENT' },
-];
-
-/** Master Demo — full access to all roles via role switcher */
+// Master demo credentials kept for the typed-in path (no on-page button).
+// The demo grid was removed in v3.1 to lead with the real product.
 const MASTER_DEMO = {
   email: 'master@limud.edu',
   password: 'LimudMaster2026!',
@@ -57,7 +51,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
@@ -187,26 +180,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoLogin = async (demoEmail: string, demoPassword: string = 'password123') => {
-    setActiveDemo(demoEmail);
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setLoading(true);
-
-    try {
-      const success = await doLogin(demoEmail, demoPassword, true);
-      if (success) {
-        toast.success('Welcome to Limud!');
-      } else {
-        toast.error('Demo login failed — try the manual form above');
-      }
-    } catch {
-      toast.error('Something went wrong');
-    } finally {
-      setLoading(false);
-      setActiveDemo(null);
-    }
-  };
 
   return (
     <div className="min-h-screen flex">
@@ -234,10 +207,10 @@ export default function LoginPage() {
                 All-in-one EdTech Platform
               </div>
               <h2 className="text-4xl font-extrabold text-white leading-tight mb-4">
-                Learn together,<br />grow together.
+                Every mind learns<br />differently.
               </h2>
               <p className="text-white/70 leading-relaxed">
-                AI-powered tutoring, automated grading, adaptive learning, and parent visibility — everything your school needs in one beautiful platform.
+                AI-powered tutoring, automated grading, per-student material rewrites, and parent visibility. Built for families. Scales to schools and districts.
               </p>
             </motion.div>
 
@@ -358,7 +331,7 @@ export default function LoginPage() {
                 className="btn-primary w-full py-3 text-base flex items-center justify-center gap-2"
                 aria-label="Sign in"
               >
-                {loading && !activeDemo ? (
+                {loading ? (
                   <span className="flex items-center gap-2">
                     <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -375,74 +348,17 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-3 bg-white text-gray-400">or explore without signing up</span>
-              </div>
-            </div>
-
-            {/* Master Demo — full access button */}
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              onClick={() => handleDemoLogin(MASTER_DEMO.email, MASTER_DEMO.password)}
-              disabled={loading}
-              className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 transition-all disabled:opacity-50 mb-3"
-              aria-label="Sign in as Master Demo"
-            >
-              <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
-                {activeDemo === MASTER_DEMO.email ? (
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                ) : <Crown size={20} />}
-              </div>
-              <div className="text-left">
-                <span className="text-sm font-bold text-gray-900 block">Master Demo</span>
-                <span className="text-[10px] text-amber-600 leading-tight">Full access — switch between Student, Teacher, Admin &amp; Parent</span>
-              </div>
-            </motion.button>
-
-            <div className="grid grid-cols-2 gap-3">
-              {DEMO_ACCOUNTS.map(account => (
-                <motion.button
-                  key={account.email}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleDemoLogin(account.email, account.password)}
-                  disabled={loading}
-                  className={`flex flex-col items-center p-3.5 rounded-xl border-2 border-gray-100 transition-all text-center disabled:opacity-50 ${account.bg}`}
-                  aria-label={`Sign in as demo ${account.role}`}
-                >
-                  <div className={`w-9 h-9 bg-gradient-to-br ${account.color} rounded-lg flex items-center justify-center text-white mb-2`}>
-                    {activeDemo === account.email ? (
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                    ) : account.icon}
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">{account.role}</span>
-                  <span className="text-[10px] text-gray-400 mt-0.5 leading-tight">{account.desc}</span>
-                </motion.button>
-              ))}
-            </div>
-
             <div className="mt-6 text-center space-y-3">
-              <Link
-                href="/demo"
-                className="block w-full py-2.5 px-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl text-sm font-medium text-amber-700 hover:from-amber-100 hover:to-orange-100 transition"
-              >
-                🎮 Try Interactive Demo (No sign-up needed)
-              </Link>
               <p className="text-sm text-gray-500">
                 Don&apos;t have an account?{' '}
                 <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">
-                  Sign up free
+                  Create one
+                </Link>
+              </p>
+              <p className="text-xs text-gray-400">
+                Want to look around first?{' '}
+                <Link href="/demo" className="text-gray-500 hover:text-gray-700 underline underline-offset-2">
+                  Tour Limud
                 </Link>
               </p>
             </div>

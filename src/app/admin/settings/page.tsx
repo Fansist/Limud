@@ -378,18 +378,6 @@ export default function AdminSettingsPage() {
                 ))}
               </div>
 
-              <hr />
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Game Minutes per Day</label>
-                  <input type="number" value={settings.features.maxGameMinutesPerDay} onChange={e => updateSetting('features', 'maxGameMinutesPerDay', parseInt(e.target.value))} className="input-field" min={0} max={120} /></div>
-                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">XP Multiplier</label>
-                  <select value={settings.features.xpMultiplier} onChange={e => updateSetting('features', 'xpMultiplier', parseFloat(e.target.value))} className="input-field">
-                    <option value={0.5}>0.5x (Reduced)</option>
-                    <option value={1.0}>1.0x (Normal)</option>
-                    <option value={1.5}>1.5x (Boosted)</option>
-                    <option value={2.0}>2.0x (Double)</option>
-                  </select></div>
-              </div>
             </div>
           )}
 

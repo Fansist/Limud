@@ -62,11 +62,10 @@ export async function POST(req: Request) {
           : 0;
 
         const highlights: string[] = [];
-        if (child.rewardStats?.currentStreak && child.rewardStats.currentStreak >= 7) {
-          highlights.push(`${child.rewardStats.currentStreak}-day streak! Keep it up! 🔥`);
-        }
         if (avgScore >= 90) {
           highlights.push(`Averaging ${avgScore}% — excellent work!`);
+        } else if (avgScore >= 75 && gradedSubs.length >= 2) {
+          highlights.push(`Steady performance this week — ${avgScore}% average across ${gradedSubs.length} assignments.`);
         }
         if (gradedSubs.length === 0) {
           highlights.push('No graded assignments this week');
@@ -75,7 +74,6 @@ export async function POST(req: Request) {
         return {
           name: child.name,
           avgScore,
-          streak: child.rewardStats?.currentStreak || 0,
           completedCount: gradedSubs.length,
           highlights,
         };

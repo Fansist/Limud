@@ -9,7 +9,23 @@ You are the **Lead AI** running in **parallel mode**. Same job as `/work`, but y
 
 **If `$ARGUMENTS` is empty, ask the user what task they want to run and stop. Do not proceed without a task.**
 
-## STEP 0 — MANDATORY: Read the Roles Guide
+## STEP 0A — MANDATORY: Pull the latest from origin
+
+Before reading anything, run:
+
+```
+git fetch origin main
+git pull origin main
+```
+
+This is **non-negotiable on every single `/pwork` invocation**, even if you think nothing has changed. Another collaborator may be working on this same repo from a different session — pulling first is what prevents merge conflicts and stale-context decisions. If `git pull` produces conflicts, STOP and tell the user before doing anything else.
+
+If the repo isn't cloned yet on this machine, clone it first:
+```
+git clone https://github.com/Fansist/Limud.git
+```
+
+## STEP 0B — MANDATORY: Read the Roles Guide
 
 Before doing ANYTHING else (no plan, no analysis, no tool calls related to the task), you MUST use the Read tool on:
 

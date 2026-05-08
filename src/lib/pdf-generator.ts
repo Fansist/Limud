@@ -29,9 +29,6 @@ interface ReportData {
     totalAssignments: number;
     completedAssignments: number;
     averageScore: number;
-    totalXP: number;
-    currentStreak: number;
-    level: number;
   };
   courses: CourseBreakdown[];
 }
@@ -97,9 +94,6 @@ export function generateStudentReportPDF(data: ReportData): Buffer {
     { label: 'Completed', value: `${data.summary.completedAssignments}/${data.summary.totalAssignments}` },
     { label: 'Avg Score', value: `${data.summary.averageScore.toFixed(1)}%` },
     { label: 'Grade', value: getLetterGrade(data.summary.averageScore) },
-    { label: 'XP', value: String(data.summary.totalXP) },
-    { label: 'Streak', value: `${data.summary.currentStreak}d` },
-    { label: 'Level', value: String(data.summary.level) },
   ];
 
   const colWidth = contentWidth / stats.length;

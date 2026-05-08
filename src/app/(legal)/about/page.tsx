@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  Brain, Trophy, BarChart3, Shield, Users, Heart, Target, Sparkles, GraduationCap,
+  Brain, BarChart3, Shield, Users, Heart, Target, Sparkles, GraduationCap,
 } from 'lucide-react';
 
 export default function AboutPage() {
@@ -22,12 +22,12 @@ export default function AboutPage() {
       <div className="grid sm:grid-cols-2 gap-4 mb-12">
         {[
           { icon: <Brain size={22} />, title: 'Adaptive AI Tutor', desc: 'Multiple tutor personalities that adapt to each student\'s learning style, using Socratic questioning and cognitive science.', color: 'bg-purple-50 text-purple-600' },
-          { icon: <Trophy size={22} />, title: 'Deep Gamification', desc: 'XP, levels, streaks, leagues, tournaments, and an avatar shop that makes daily learning feel like play.', color: 'bg-amber-50 text-amber-600' },
+          { icon: <Sparkles size={22} />, title: 'The Two-Upload Model', desc: 'Teachers upload one chapter; the AI rewrites it per student in the format that fits how they learn — comic, story, walkthrough, or clean prose.', color: 'bg-amber-50 text-amber-600' },
           { icon: <Target size={22} />, title: 'Cognitive Science Engine', desc: 'Spaced repetition, interleaving, active recall, and optimal difficulty targeting (70-85% success band).', color: 'bg-blue-50 text-blue-600' },
           { icon: <BarChart3 size={22} />, title: 'Predictive Analytics', desc: 'AI-powered early warning system identifies at-risk students before they fall behind.', color: 'bg-green-50 text-green-600' },
           { icon: <GraduationCap size={22} />, title: 'Smart Auto-Grading', desc: 'AI grades essays, math work, and projects against rubrics in seconds with personalized feedback.', color: 'bg-pink-50 text-pink-600' },
           { icon: <Shield size={22} />, title: 'FERPA & COPPA Compliant', desc: 'Enterprise-grade security with role-based access, encryption, and strict data protection.', color: 'bg-indigo-50 text-indigo-600' },
-          { icon: <Users size={22} />, title: 'Homeschool Friendly', desc: 'Free tier for homeschool families with full teacher tools, curriculum planning, and progress tracking.', color: 'bg-orange-50 text-orange-600' },
+          { icon: <Users size={22} />, title: 'Built for Families', desc: 'Parents see real progress per child, message teachers directly, and get plain-English AI summaries — no district account required.', color: 'bg-orange-50 text-orange-600' },
           { icon: <Heart size={22} />, title: 'Wellbeing First', desc: 'Burnout detection, struggle alerts, and balanced engagement systems that prioritize student wellbeing.', color: 'bg-red-50 text-red-600' },
         ].map(item => (
           <div key={item.title} className="flex gap-4 p-5 rounded-2xl border border-gray-100 hover:shadow-md transition">

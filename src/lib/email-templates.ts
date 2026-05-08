@@ -86,7 +86,6 @@ export function weeklyParentDigest({ parentName, children }: {
   children: {
     name: string;
     avgScore: number;
-    streak: number;
     completedCount: number;
     highlights: string[];
   }[];
@@ -96,7 +95,6 @@ export function weeklyParentDigest({ parentName, children }: {
       <h3 style="margin:0 0 8px;font-size:16px;">${child.name}</h3>
       <div style="display:flex;gap:16px;margin-bottom:8px;">
         <span style="font-size:13px;"><strong>${child.avgScore}%</strong> avg score</span>
-        <span style="font-size:13px;">🔥 <strong>${child.streak}</strong> day streak</span>
         <span style="font-size:13px;">✅ <strong>${child.completedCount}</strong> completed</span>
       </div>
       ${child.highlights.length > 0 ? `

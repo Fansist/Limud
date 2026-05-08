@@ -313,6 +313,68 @@ Read, Grep, Glob, Bash (for `git log`, `git status`, `npm run` checks)
 
 ---
 
+## 8c. Onboarding — researcherOnline
+
+### Mission
+A specialized RESEARCHER variant whose job is **fresh, primary-source, externally
+verifiable data**. The base RESEARCHER explores the codebase; researcherOnline
+explores the public web. Use this role any time a slide, document, README, or
+spec needs a number, a market size, a competitor fact, a regulatory statistic,
+or a research finding that an outside reader will want to verify.
+
+### What you do in Limud (and adjacent docs like the business plan deck)
+- Hunt down the **most recent** version of every cited stat — if a deck says
+  "NAEP 2022", check whether NAEP 2024 is out and replace
+- Pull primary sources only: NCES, NAEP, CDC, BLS, OECD, U.S. Census, RAND,
+  WestEd, EdWeek Research Center, HolonIQ, GSV, Gallup, ISTE, peer-reviewed
+  journals, vendor 10-Ks, vendor pricing pages
+- For competitors, read the **vendor's own product/pricing page** before any
+  third-party summary. Cite the URL and the access date
+- For market sizing, prefer two independent sources and note the spread
+- Distinguish **measured outcomes** from **projections / model assumptions** —
+  call out which is which in every line item
+- Surface contradictions: if two sources disagree, report both and the spread
+- Return findings as a structured brief with: claim, value, unit, source URL,
+  publication date, access date, confidence (HIGH / MED / LOW)
+
+### Tools
+Read, Grep, Glob, **WebFetch, WebSearch** (the latter two are the primary
+instrument for this role)
+
+### Files you typically read
+- The document the data is going into (e.g. `scripts/build_limud_deck.py`,
+  `Limud_Business_Plan.pptx` — extract via markitdown first)
+- External URLs via WebFetch / WebSearch
+
+### Hand-offs
+- **← LEAD / WRITER / ARCHITECT:** Receives a list of facts to source or refresh
+- **→ ARCHITECT / WRITER:** Hands back a structured citation table
+- **→ CODER:** When data feeds into a generated artifact (deck script,
+  README table, JSON config), the CODER applies the new values
+- Never edits files directly
+
+### Pitfalls
+- Do NOT fabricate or interpolate numbers — if the source can't be verified,
+  return "UNVERIFIED" rather than guess
+- Do NOT cite a blog post when a primary dataset exists for the same number
+- Do NOT use stale data without flagging it ("2019 figure, no newer release")
+- Do NOT exceed the role's read-only boundary — file edits go to CODER
+- Do NOT pull competitor figures from comparison-shopping or affiliate sites;
+  go to the vendor's own page or SEC filings
+
+### Output format (mandatory)
+For every fact, return one row:
+
+```
+CLAIM      | VALUE       | UNIT           | SOURCE                              | DATE       | ACCESSED   | CONFIDENCE
+8th Math % | 26          | % proficient   | https://nces.ed.gov/...naep24/...   | 2025-01-29 | 2026-04-25 | HIGH
+```
+
+A short narrative summary may follow the table, but the table is the
+deliverable.
+
+---
+
 ## 9. Interaction Map (who hands off to whom)
 
 ```
@@ -360,10 +422,14 @@ diff. WRITER runs once everything is green.
 1. Read this guide before doing anything
 2. Stay inside your role — don't do another role's job
 3. Match Limud conventions exactly (see section 0)
-4. Demo mode must keep working
+4. Demo mode must keep working (but should not be the front-door of the user experience — see rule 12)
 5. No `any`, no `// @ts-ignore`, no commented-out code, no leftover `console.log`
 6. AI calls go through `src/lib/ai.ts`
 7. Schema changes use `prisma db push`, not `migrate`
 8. Hand off explicitly — name the next role and what you're giving them
 9. Report back to LEAD when you're done with your slice
 10. If you're blocked, say so. Don't guess.
+11. **Pull before you push.** Every `/pwork` invocation begins with `git fetch && git pull origin main`. Multiple sessions may be working on this repo simultaneously. Stale state breaks merges and decisions.
+12. **README is documentation that must stay current.** Every meaningful update revises `README.md` in the same commit. Skip the README update only for bug fixes that don't change product behavior. WRITER role enforces this; LEAD blocks the release if it's missing.
+13. **Limud presents as a real product, not a demo.** Demo mode exists for prospects, but the public surface (landing, pricing, login, README) leads with the real product, not with demo CTAs.
+14. **Family-first marketing voice.** Limud serves families (parents + kids in any school setting), schools, and districts. Avoid framing the free tier as a homeschool-only or solo-learner product — it isn't.

@@ -14,7 +14,11 @@
 </p>
 
 <p align="center">
-  <code>v14.0.0 · Update 3.0 · The Two-Upload Release</code>
+  Free for families. Built to scale to schools and districts.
+</p>
+
+<p align="center">
+  <code>v14.1.0 · Update 3.1 · Production Polish</code>
 </p>
 
 ---
@@ -171,24 +175,38 @@ The visual brief lives in `tailwind.config.js` and `src/app/globals.css` as the 
 
 ---
 
-## Demo mode
+## Who Limud is for
 
-Every feature in Limud works *without a database*. There's a master demo account
-(`master@limud.edu`) plus six connected role accounts (a student, two more
-students, a teacher, a parent, an admin) all wired into the same fictional
-school district — so you can flip from "Lior submits an assignment" → "Mr.
-Strachen grades it" → "Lior's parent reads the report" without ever leaving
-demo mode. Cross-role state lives in `localStorage` via
-`src/lib/demo-state.ts`. Static seed data lives in `src/lib/demo-data.ts`.
+Limud serves three audiences, in this order:
 
-In v14.0.0 the demo includes hand-authored personalized samples for two
-materials (the French Revolution and Photosynthesis) so you can show the
-two-upload story without an AI key — the right sample is picked based on the
-demo student's profile, exactly mirroring what the real AI does in production.
+1. **Families** — parents of K–12 kids. Free for up to 5 children in one
+   parent account. The kids can be in a regular school, homeschooled, or
+   learning independently — Limud doesn't care. Optional **Family Teaching
+   Mode** unlocks the full teacher toolkit (assignment authoring, AI
+   grading, materials upload, AI Check-In) on the same parent account, for
+   parents who teach at home full-time or supplementally.
+2. **Schools** — small schools, classrooms, and co-ops on per-seat pricing
+   from $2/student/month (annual). Same product, more capacity.
+3. **Districts** — multi-school deployments with SSO/SAML, district-wide
+   analytics, custom AI training, and dedicated account management.
 
-`?demo=true` on any URL forces demo mode for one session. `FORCE_DEMO=true`
-in the environment forces demo for every account — useful as a safety net
-during live presentations.
+The free tier is **not a homeschool-only or solo-learner product**. It's
+the family front door. Most of what's on the homepage and in the docs
+applies equally regardless of where your kids go to school.
+
+## Local development & demo mode
+
+Every feature in Limud works *without a database* via demo mode — useful
+for local development, screenshots, and prospect walkthroughs but **not the
+front door of the product**. The user-facing demo CTAs were retired in
+v3.1; demo accounts are still reachable by signing in directly with
+`master@limud.edu` or by appending `?demo=true` to any URL during local
+development. Demo seed data lives in `src/lib/demo-data.ts`. Cross-role
+state lives in `localStorage` via `src/lib/demo-state.ts`.
+
+`FORCE_DEMO=true` in the environment forces demo for every account — used
+as a safety net during live presentations or when an AI key isn't
+available.
 
 ---
 
@@ -225,13 +243,34 @@ Resilience is built in:
 
 ---
 
+## Gamification — dormant in 3.1
+
+Earlier versions surfaced XP, levels, daily streaks, virtual coins,
+badges, and a Game Store. As of **v14.1.0 (Update 3.1)** all of that is
+**removed from the user-facing experience.** The reasoning is that
+points-style gamification is decoupled from real learning, can punish
+students with broken streaks, and clutters the calm, parent-trustable
+surface Limud is meant to be.
+
+The underlying `RewardStats` Prisma model is preserved for historical
+data continuity, but no UI reads it. A **clean infrastructure module**
+lives at `src/lib/gamification/` (types, pure policies, dormant service
+stub) ready for a future, recognition-first rebuild — see
+[`src/lib/gamification/README.md`](./src/lib/gamification/README.md) for
+the design principles. Nothing in `src/app/**` imports from it today.
+
+---
+
 ## Non-negotiables
 
 - **FERPA-compliant.** Student data never trains third-party models.
 - **Uniform assessment.** Personalization happens on the *teaching* side, never on the *grading* side. Every kid is measured against the same bar.
 - **The teacher remains the authority.** Limud assists; it does not replace.
-- **Demo mode always works**, even with zero data.
+- **Production presents as a real product, not a demo.** Demo mode exists for prospects and local development, but the public surface (landing, pricing, login, README) leads with the real product.
+- **Demo mode still works for prospects** without a database — every feature has a demo path.
+- **Family-first marketing voice.** Limud serves families (parents + kids in any school setting), schools, and districts. The free tier is not a homeschool-only or solo-learner product.
 - **AI failures are visible.** We never silently fall back to fake content and pretend it was real.
+- **README stays current.** Every meaningful update revises this file in the same commit. Skip the README only for trivial bug fixes that don't change product behavior.
 - **No `any`. No `@ts-ignore`. No `prisma migrate`** (Limud uses `prisma db push`).
 - **All AI calls go through `src/lib/ai.ts`.**
 

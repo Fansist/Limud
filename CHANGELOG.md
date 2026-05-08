@@ -4,6 +4,141 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [3.1.0] - 2026-05-07 — Update 3.1 (Production Polish)
+
+Three product-shape changes in one release: gamification removed from the
+user-facing surface, demo references retired from the marketing front door,
+and the entire copy/voice reframed to put **families** first instead of
+homeschool / solo learners.
+
+This is also the release that locks in two new universal rules:
+
+1. **Every `/pwork` invocation now begins with `git fetch && git pull origin main`.** Multiple sessions may be working on the same repo simultaneously — pulling first prevents merge conflicts and stale-context decisions.
+2. **README is documentation that must stay current.** Every meaningful update revises `README.md` in the same commit. WRITER role enforces this; LEAD blocks the release if it's missing.
+
+### Removed (gamification — visible surface only)
+
+- **Tailwind tokens** — the `gamify` color block (`gold/xp/streak/coin`) and the `coin-flip` animation/keyframe were unused by any class but are now deleted from `tailwind.config.js`.
+- **Student dashboard welcome banner** (`src/app/student/dashboard/page.tsx`) — XP / Streak / Level pills replaced with Avg Score and Completed counters. The per-skill `Flame` streak badge on Top Skills cards was removed; the `SkillRecord.streak` data field stays since it's the legitimate spaced-repetition consecutive-correct counter.
+- **Student knowledge / analytics page** (`src/app/student/knowledge/page.tsx`) — removed the Bronze/Silver/Gold/Platinum/Diamond `RANKS` table, `getRank()`, the Rank stat card with XP-to-next-rank progress bar, the 2x2 Rewards mini-stats grid (XP / Streak / Mastery / Level), and the entire Goal Countdown section ("Reach Gold Rank", "14-Day Streak", etc). Replaced with a calm three-card summary: **Overall Mastery** percentage, a **Skills** breakdown (mastered / in progress / needs work), and the existing **Learning DNA** recommendations card.
+- **Student focus mode** (`src/app/student/focus/page.tsx`) — removed `xpEarned` state, the +15-XP-per-correct-answer logic, the in-session XP ticker, and the "XP Earned" tile on the completion screen. Replaced the completion tile with **Focused Time** (minutes the student actually spent).
+- **Parent dashboard** (`src/app/parent/dashboard/page.tsx`) — child header pills (Level + Streak) deleted. Four-stat card grid (XP Earned / Best Streak / Tutor Chats / Completed) collapsed to three: **Completed**, **Tutor Sessions**, **Avg Score**. Removed the "Streak: Xd" line from the AI Check-In quick stats bar.
+- **Parent reports** (`src/app/parent/reports/page.tsx`) — removed the Streak tile from the weekly stats grid. Cleaned the `Flame` import.
+- **Parent children list** (`src/app/parent/children/page.tsx`) — replaced the 3-cell Level/Streak/Done quick-stats block with a 2-cell Completed/Tutor sessions block.
+- **Teacher classrooms** (`src/app/teacher/classrooms/page.tsx`) — removed the per-student inline pill row (Trophy + Lv., Zap + XP, color-coded streak).
+- **Teacher dashboard** (`src/app/teacher/dashboard/page.tsx`) — at-risk-student row no longer shows "Streak: Xd".
+- **Teacher analytics** (`src/app/teacher/analytics/page.tsx`) — selected-student detail card no longer renders "Streak: X days".
+- **Admin students list** (`src/app/admin/students/page.tsx`) — removed the "XP: {n} | Lvl {n}" trailing label.
+- **Admin analytics "Top Performers" card** (`src/app/admin/analytics/page.tsx`) — leaderboard with 🥇🥈🥉 medals + XP rankings replaced with a neutral "Active Learners" list (avatar + name + grade + school, no ranking).
+- **Admin settings** (`src/app/admin/settings/page.tsx`) — removed the **XP Multiplier** select (0.5x / 1.0x / 1.5x / 2.0x) along with the related `Max Game Minutes per Day` input.
+- **AI Navigator quick-action chips** (`src/components/ai/AINavigator.tsx`) — removed "My rewards" (Trophy) and "Play games" (Gamepad2) chips. Removed "track your rewards" from the welcome message.
+- **Marketing surfaces** —
+  - `LandingPage.tsx`: hero mockup XP/Streak pills replaced with Avg + Done. "Instant Gratification" feature renamed and rewritten as "Instant Feedback". Pillar 4 "Homeschool Expansion" reframed as **Family Teaching Mode**. Free-tier features list rewritten (no XP/streak/games). Hero CTAs simplified ("Get started" / "See how it works"). Final CTA reframed. JSON-LD FAQ schema rewritten. Footer tagline reframed. Navbar version label updated to v3.1.
+  - `(legal)/about/page.tsx`: "Deep Gamification" feature card replaced with "The Two-Upload Model". "Homeschool Friendly" replaced with "Built for Families".
+  - `(auth)/pricing/page.tsx`: removed the entire Gamification feature category from the comparison matrix. FREE tier renamed **FAMILY** with a new headline. The 🏡 "Homeschool families love Limud!" callout block reframed as the 👨‍👩‍👦 "Built for families, not just classrooms" block. Removed `Gamepad2` import and the `case 'Gamification'` icon. `getQuickFeatures` rewritten for the FAMILY tier.
+  - `help/page.tsx`: removed the entire **Gamification** FAQ category (4 questions about XP, rank tiers, Game Store, badges) and the **Game Store** category (3 questions). Reframed Parent Features answers. "Demo Mode" question reworded. "How do I create an account?" reworded for the new account types.
+  - `roadmap/page.tsx`: removed the planned "Multiplayer Educational Games" / `Gamification` category card entirely. Reworded "Peer tutors earn bonus XP and leadership badges" to "Peer tutors get formal recognition on their transcript and teacher endorsements".
+- **Library helpers** —
+  - `src/lib/utils.ts`: deleted unused `getXPForLevel`, `getLevelFromXP`, `getXPProgress`.
+  - `src/lib/performance.tsx`: deleted unused `MasteryBurst` and `XPGainToast` components and their inline keyframes.
+  - `src/lib/pdf-generator.ts`: removed `totalXP`, `currentStreak`, `level` from the `ReportData.summary` type and from the rendered stat tiles in the exported PDF.
+- **API response shapes** —
+  - `/api/parent`: child `rewards` object now returns only `tutorSessionsCount` + `assignmentsCompleted` (was `level / totalXP / currentStreak / longestStreak / badges` etc).
+  - `/api/parent/reports`: `rewards` shape slimmed to `assignmentsCompleted` + `perfectScores`.
+  - `/api/parent/ai-checkin`: removed the `--- GAMIFICATION ---` block from the AI prompt; renamed to `--- ACTIVITY ---`. Removed `currentStreak` and `level` from the summary response and the GET childSummaries shape. Rewrote the `generateFallbackReport` narrative to drop "Level X" / "X-day streak" sentences.
+  - `/api/reports/export`: removed `totalXP / currentStreak / level` from both demo and live PDF summary shapes.
+  - `/api/cron/weekly-digest`: removed the streak highlight ("X-day streak! Keep it up! 🔥") from emailed digests; the `streak` field on each child entry is gone.
+  - `/api/ai-navigator`: removed mentions of "rewards / XP / level / streak / coins" from the system prompt.
+- **Email template** — `src/lib/email-templates.ts` `weeklyParentDigest` no longer renders the "🔥 N day streak" pill in per-child cards.
+- **Demo data** —
+  - `DEMO_REWARD_STATS` slimmed from 9 fields per student (totalXP / level / currentStreak / longestStreak / virtualCoins / unlockedAvatars / unlockedBadges / assignmentsCompleted / tutorSessionsCount) to **2 fields** (assignmentsCompleted + tutorSessionsCount). Renamed conceptually to "Learning Stats" but the export name is preserved for backward compatibility.
+  - `DEMO_PARENT_CHILDREN[0].rewards` slimmed to the same two fields.
+  - `DEMO_ANALYTICS.students[]` no longer carries `currentStreak / totalXP / level`.
+  - Three gamification entries removed from `DEMO_NOTIFICATIONS` ("Streak Bonus! +200 XP", "Level Up! Level 14", "AI Tutor Session ... earned 50 XP" rewritten as a neutral session-completed note).
+
+### Added (new gamification infrastructure — DORMANT)
+
+A clean rebuild path lives at **`src/lib/gamification/`**. Nothing in
+`src/app/**` imports from it. Files:
+
+- `README.md` — design principles for the future rebuild: recognition over reward, progress over score, no streaks that punish, family-visible-not-student-pressured, opt-in.
+- `types.ts` — canonical types: `Recognition`, `RecognitionKind` (`mastery_unlocked` / `concept_connected` / `consistency_grew` / `effort_recognized` / `peer_helped` / `goal_reached`), `LearningGoal`, `LearningProgress`, `RecognitionPolicy` + `DEFAULT_POLICY`. Branded ID types prevent string-mixup bugs.
+- `policies.ts` — pure rule functions: `evaluateTrigger(t)` maps a trigger into zero-or-one recognition shape, `isVisibleTo(...)` audience-aware filtering, `goalProgressPercent(...)`, `isGoalAchieved(...)`. No I/O, no current-time reads, fully testable.
+- `service.ts` — `RecognitionService` interface (record / listForStudent / getProgress / upsertGoal / getPolicy) with a `DormantRecognitionService` stub that throws helpfully on every call. Not exported from the barrel — calling code can't accidentally consume it.
+- `index.ts` — barrel exports types + pure policies only. Service is not re-exported. Verified `grep -r 'lib/gamification' src/app` returns zero matches.
+
+When gamification eventually comes back online, follow the principles in
+`src/lib/gamification/README.md`. Do not resurrect the deleted XP/streak/
+level/coin/badge UI surfaces.
+
+### Changed (de-demo + family-first reframe)
+
+- **`src/app/(auth)/login/page.tsx`** — the entire 2x2 demo accounts grid (Student / Teacher / Admin / Parent one-click logins) and the gold "Master Demo" button were **deleted**. The "🎮 Try Interactive Demo" CTA was deleted. The "or explore without signing up" divider was deleted. Hard-coded `DEMO_ACCOUNTS` array (with full plaintext passwords) was deleted. `MASTER_DEMO` constant kept for the typed-in path. Replaced with a quiet "Want to look around first? Tour Limud" link to `/demo`. Branding sub-headline reframed: "Learn together, grow together. ... everything your school needs" → "Every mind learns differently. ... Built for families. Scales to schools and districts."
+- **`src/app/(auth)/register/page.tsx`** — account-type picker reordered and renamed. **Family** is now first (was: Student → Self Education → Homeschool Family → District Administrator). Renamed entries: "Homeschool Family" → "Family", "Self Education" → "Independent Learner", "District Administrator" → "School or District". Family option's detail explicitly states "Works whether your kids attend a regular school, are homeschooled, or are learning independently." Right-side branding feature list updated: "Self-education, homeschool, or district accounts" → "Family, student, or school/district accounts"; "Gamification that makes learning engaging" → "Personalized material rewrites for every student". Step-2 heading "Your Homeschool Account" → "Your Family Account". Review-screen account type label updated.
+- **`src/app/(auth)/pricing/page.tsx`** — FREE tier renamed FAMILY with new headline "For families with kids in school — at any school". Hero subtitle reframed. Homeschool callout block replaced with a Family callout. FAQ "Is the Free plan really free forever?" reworded. `getQuickFeatures` rewritten (parent dashboard + AI check-in + Family Teaching Mode + weekly digest). Removed the entire Gamification category from the feature comparison.
+- **`src/components/landing/LandingPage.tsx`** — hero CTAs reworded ("Start Free — No Credit Card" + "Try Live Demo" → "Get started" + "See how it works"). Trust pills updated. JSON-LD FAQ schema rewritten ("Yes. Homeschool families and self-learners get Limud free forever" → "Families get Limud free for up to 5 students"). Pricing tiers renamed Family / School / District with new descriptions. Pillar 4 reframed from David Betzalel as homeschool parent to David as a regular family parent. Final CTA + footer + navbar version label updated.
+- **`src/app/(legal)/about/page.tsx`** — "Homeschool Friendly" feature card replaced with "Built for Families".
+- **`src/app/help/page.tsx`** — "Demo Mode" FAQ entry reworded; account types FAQ rewritten; "What is Homeschool Mode?" → "What is the family / homeschool path?".
+
+### Changed (`/pwork.md` and `ROLES-GUIDE.md`)
+
+- **`.claude/commands/pwork.md`** (and the user-level `~/.claude/commands/pwork.md`) — added a new mandatory **STEP 0A** before reading the roles guide: `git fetch && git pull origin main`. Wording: "non-negotiable on every single `/pwork` invocation." This is the rule that prevents merge conflicts when multiple collaborators are working on the same repo from different sessions. Step 0 was renamed Step 0B.
+- **`ROLES-GUIDE.md`** — added four new universal rules (sections 11–14): (11) "Pull before you push", (12) "README is documentation that must stay current", (13) "Limud presents as a real product, not a demo", (14) "Family-first marketing voice." Rule 4 was reworded to clarify that demo mode keeps working but isn't the front door.
+
+### README
+
+- Header tagline added: "Free for families. Built to scale to schools and districts."
+- Version banner bumped to `v14.1.0 · Update 3.1 · Production Polish`.
+- The dedicated H2 "Demo mode" section was demoted to a sub-section called "Local development & demo mode" inside a new H2 "Who Limud is for".
+- New section "Who Limud is for" lists the three audiences in priority order (Families → Schools → Districts) and explicitly addresses the "free tier is not a homeschool-only or solo-learner product" framing.
+- New section "Gamification — dormant in 3.1" explains the surface removal + the new infrastructure module.
+- Non-negotiables list expanded: added "Production presents as a real product, not a demo," "Family-first marketing voice," and "README stays current."
+
+### Why this shape
+
+- **Recognition over reward.** XP / streaks / leaderboards reward attendance, speed, and visibility — not learning. A streak that breaks because a kid had a hard week is coercive, not motivating. Removing it is cheaper than fixing it.
+- **Demo deflation, not deletion.** Demo mode itself is preserved (it's still useful for prospect walkthroughs and local development). What changed is the front door — login no longer flashes 5 plaintext-password buttons, the landing hero no longer competes a "Try Demo" CTA against the real signup, and the README leads with what Limud is rather than how to fake it.
+- **Family-first, not homeschool-first.** The free tier was previously named "Free" with the strapline "Self-learners & homeschool" and a 🏡 callout. That framing meant ~80% of K–12 parents (whose kids are in regular school) self-selected out before they got to the parent dashboard. The new "Family" framing keeps homeschool support intact (via Family Teaching Mode) while opening the front door to every other parent.
+- **Schema preserved.** `RewardStats`, `Game`, `GamePurchase`, `GameSession` all stay in `prisma/schema.prisma`. Routes that wrote to `RewardStats` (`api/grade`, `api/focus`, `api/daily-boost`, `api/goal-contracts`) still write — UI just doesn't read those fields anymore. Zero data is destroyed; reactivation is a UI-only change.
+
+### Verify
+
+After deploying:
+- Visit `/` — confirm hero headline reads "Every mind learns differently. Limud teaches that way." No "Try Live Demo" button. Pricing tiers say Family / School / District.
+- Visit `/login` — confirm no demo-account buttons grid. Just email + password + a quiet "Tour Limud" link.
+- Visit `/register` — confirm "Family" is the first account-type option.
+- Visit `/student/dashboard` — confirm welcome banner shows Avg Score + Completed (no XP, no Streak, no Level).
+- Visit `/student/knowledge` — confirm no Bronze/Gold rank card, no XP/Streak mini-stats, no Goal Countdown.
+- Visit `/parent/dashboard` — confirm child header has no Level/Streak pills; stats grid shows Completed / Tutor Sessions / Avg Score.
+- `/api/parent` and `/api/parent/reports` — confirm `rewards` object only carries activity counters.
+- `git grep "gamify-"` — should return zero matches.
+- `grep -r 'lib/gamification' src/app` — should return zero matches.
+
+### Files touched
+
+Project commands: `.claude/commands/pwork.md` (and user-level mirror).
+Roles guide: `ROLES-GUIDE.md`.
+New module: `src/lib/gamification/{README.md, types.ts, policies.ts, service.ts, index.ts}`.
+Build config: `tailwind.config.js`.
+Lib: `src/lib/utils.ts`, `src/lib/performance.tsx`, `src/lib/pdf-generator.ts`, `src/lib/email-templates.ts`, `src/lib/demo-data.ts`.
+APIs: `src/app/api/parent/route.ts`, `src/app/api/parent/reports/route.ts`, `src/app/api/parent/ai-checkin/route.ts`, `src/app/api/reports/export/route.ts`, `src/app/api/cron/weekly-digest/route.ts`, `src/app/api/ai-navigator/route.ts`.
+Student pages: `src/app/student/dashboard/page.tsx`, `src/app/student/knowledge/page.tsx`, `src/app/student/focus/page.tsx`.
+Parent pages: `src/app/parent/dashboard/page.tsx`, `src/app/parent/reports/page.tsx`, `src/app/parent/children/page.tsx`.
+Teacher pages: `src/app/teacher/classrooms/page.tsx`, `src/app/teacher/dashboard/page.tsx`, `src/app/teacher/analytics/page.tsx`.
+Admin pages: `src/app/admin/students/page.tsx`, `src/app/admin/analytics/page.tsx`, `src/app/admin/settings/page.tsx`.
+Marketing / legal / utility: `src/components/ai/AINavigator.tsx`, `src/components/landing/LandingPage.tsx`, `src/app/(legal)/about/page.tsx`, `src/app/help/page.tsx`, `src/app/roadmap/page.tsx`.
+Auth surfaces: `src/app/(auth)/login/page.tsx`, `src/app/(auth)/register/page.tsx`, `src/app/(auth)/pricing/page.tsx`.
+Top level: `README.md`, `CHANGELOG.md`, `package.json` (`14.0.0` → `14.1.0`).
+
+### Out of scope / notes
+
+- The `Game`, `GamePurchase`, `GameSession`, and `RewardStats` Prisma models are preserved; routes that write to them still write. Reactivation is a UI rebuild, not a schema rebuild.
+- `src/app/api/games/route.ts`, `src/app/api/daily-boost/route.ts`, `src/app/api/goal-contracts/route.ts` still exist and respond. They're orphan endpoints (no UI calls them) — flagged for a separate cleanup pass. Leaving them lets historical clients keep working until they're confirmed unused.
+- The `/api/rewards` route file does not exist (the student dashboard and knowledge page used to fetch it with a silent `.catch`). Those fetch calls were removed in this update; the missing route is no longer needed.
+- The `Worksheet` model referenced by `src/app/api/worksheets/route.ts` (but missing from the schema) is unchanged here — flagged for a separate cleanup, same note as 3.0.
+
+---
+
 ## [3.0.0] - 2026-05-07 — Update 3.0 (The Two-Upload Release)
 
 The biggest product change since Limud started: teachers now upload **two

@@ -7,7 +7,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  TrendingUp, AlertTriangle, Brain, Flame, BarChart3, Clock, BookOpen, CheckCircle, Calendar, Users,
+  TrendingUp, AlertTriangle, Brain, BarChart3, Clock, BookOpen, CheckCircle, Calendar, Users,
   ChevronDown, MessageCircle, Sparkles,
 } from 'lucide-react';
 
@@ -129,14 +129,13 @@ export default function ParentReportsPage() {
             )}
 
             {/* Weekly Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
               {[
                 { icon: <CheckCircle size={16} />, label: 'Assignments', value: r.weeklyStats.assignmentsCompleted, color: 'bg-green-50 text-green-600' },
                 { icon: <BarChart3 size={16} />, label: 'Avg Score', value: `${r.weeklyStats.averageScore || '-'}%`, color: 'bg-blue-50 text-blue-600' },
                 { icon: <Clock size={16} />, label: 'Study Time', value: `${r.weeklyStats.studyMinutes}m`, color: 'bg-purple-50 text-purple-600' },
                 { icon: <Calendar size={16} />, label: 'Sessions', value: `${r.weeklyStats.completedStudySessions}/${r.weeklyStats.totalStudySessions}`, color: 'bg-indigo-50 text-indigo-600' },
-                { icon: <Brain size={16} />, label: 'Tutor Chats', value: r.weeklyStats.tutorSessions, color: 'bg-pink-50 text-pink-600' },
-                { icon: <Flame size={16} />, label: 'Streak', value: `${r.rewards.currentStreak}d`, color: 'bg-orange-50 text-orange-600' },
+                { icon: <Brain size={16} />, label: 'Tutor Sessions', value: r.weeklyStats.tutorSessions, color: 'bg-pink-50 text-pink-600' },
               ].map(s => (
                 <div key={s.label} className={cn('rounded-xl p-3', s.color)}>
                   <div className="flex items-center gap-1 mb-1">{s.icon}</div>

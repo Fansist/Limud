@@ -173,46 +173,29 @@ export const DEMO_HOMESCHOOL_PARENT = {
 export const DEMO_ALL_STUDENTS = [DEMO_STUDENT, DEMO_STUDENT_EITAN, DEMO_STUDENT_NOAM];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// REWARD STATS (per student)
+// LEARNING STATS (per student) — formerly REWARD_STATS in v3.0 and earlier.
+// In v3.1 (Update 3.1) gamification was removed from the user-facing UI;
+// only the activity counters remain here so dashboards and reports keep
+// working. The legacy export name DEMO_REWARD_STATS is retained for
+// backward compatibility with any consumer that still imports it.
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const DEMO_REWARD_STATS: Record<string, any> = {
   'demo-student-lior': {
-    totalXP: 3200,
-    level: 14,
-    currentStreak: 18,
-    longestStreak: 24,
-    virtualCoins: 620,
     assignmentsCompleted: 52,
     tutorSessionsCount: 31,
-    unlockedAvatars: ['default', 'astronaut', 'robot', 'wizard', 'ninja'],
-    unlockedBadges: ['first-login', 'streak-7', 'streak-14', 'perfect-score', 'tutor-5', 'tutor-20', 'level-10'],
   },
   'demo-student-eitan': {
-    totalXP: 2100,
-    level: 9,
-    currentStreak: 7,
-    longestStreak: 15,
-    virtualCoins: 340,
     assignmentsCompleted: 38,
     tutorSessionsCount: 18,
-    unlockedAvatars: ['default', 'robot', 'dragon'],
-    unlockedBadges: ['first-login', 'streak-7', 'tutor-5', 'fast-learner'],
   },
   'demo-student-noam': {
-    totalXP: 4100,
-    level: 17,
-    currentStreak: 26,
-    longestStreak: 26,
-    virtualCoins: 890,
     assignmentsCompleted: 61,
     tutorSessionsCount: 42,
-    unlockedAvatars: ['default', 'wizard', 'phoenix', 'astronaut', 'robot', 'ninja'],
-    unlockedBadges: ['first-login', 'streak-7', 'streak-14', 'streak-21', 'perfect-score', 'tutor-5', 'tutor-20', 'tutor-40', 'level-10', 'level-15', 'top-scorer'],
   },
 };
 
-// Default reward stats for generic student demo
+// Default learning stats for generic student demo
 export const DEMO_REWARD_STATS_DEFAULT = DEMO_REWARD_STATS['demo-student-lior'];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -459,9 +442,6 @@ export const DEMO_ANALYTICS = {
       ],
       averageScore: 89.2,
       totalSubmissions: 14,
-      currentStreak: 18,
-      totalXP: 3200,
-      level: 14,
       riskLevel: 'low',
     },
     {
@@ -476,9 +456,6 @@ export const DEMO_ANALYTICS = {
       ],
       averageScore: 72.8,
       totalSubmissions: 11,
-      currentStreak: 7,
-      totalXP: 2100,
-      level: 9,
       riskLevel: 'medium',
     },
     {
@@ -493,9 +470,6 @@ export const DEMO_ANALYTICS = {
       ],
       averageScore: 95.4,
       totalSubmissions: 16,
-      currentStreak: 26,
-      totalXP: 4100,
-      level: 17,
       riskLevel: 'low',
     },
   ],
@@ -566,13 +540,8 @@ export const DEMO_PARENT_CHILDREN = [
     ],
     averageScore: 89.2,
     rewards: {
-      level: 14,
-      totalXP: 3200,
-      currentStreak: 18,
-      longestStreak: 24,
       tutorSessionsCount: 31,
       assignmentsCompleted: 52,
-      badges: ['first-login', 'streak-7', 'streak-14', 'perfect-score', 'tutor-5', 'tutor-20', 'level-10'],
     },
   },
 ];
@@ -582,11 +551,9 @@ export const DEMO_PARENT_CHILDREN = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const DEMO_NOTIFICATIONS = [
-  { id: 'n1', title: 'Assignment Graded!', message: 'Your "The Great Gatsby Character Analysis" has been graded by Mr. Strachen. Score: 91/100', type: 'grade', isRead: false, createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-  { id: 'n2', title: 'Streak Bonus!', message: 'Amazing! You reached an 18-day streak! +200 XP', type: 'achievement', isRead: false, createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+  { id: 'n1', title: 'Assignment Graded', message: 'Your "The Great Gatsby Character Analysis" has been graded by Mr. Strachen. Score: 91/100', type: 'grade', isRead: false, createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
   { id: 'n3', title: 'New Assignment', message: 'DNA Replication Essay has been posted in Biology 101 by Mr. Strachen', type: 'assignment', isRead: true, createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'n4', title: 'Level Up!', message: "Congratulations! You're now Level 14!", type: 'achievement', isRead: true, createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() },
-  { id: 'n5', title: 'AI Tutor Session', message: 'Great session on photosynthesis! You earned 50 XP.', type: 'achievement', isRead: true, createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString() },
+  { id: 'n5', title: 'AI Tutor Session', message: 'You wrapped up a great session on photosynthesis with the AI tutor.', type: 'tutor', isRead: true, createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString() },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════

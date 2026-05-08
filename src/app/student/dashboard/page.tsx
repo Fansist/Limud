@@ -5,13 +5,13 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { cn, daysUntil, getLetterGrade, AVATAR_OPTIONS } from '@/lib/utils';
-import { DEMO_STUDENT, DEMO_ASSIGNMENTS, DEMO_REWARD_STATS } from '@/lib/demo-data';
+import { DEMO_STUDENT, DEMO_ASSIGNMENTS } from '@/lib/demo-data';
 import { getStudentAssignments } from '@/lib/demo-state';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen, MessageCircle, AlertTriangle, ArrowRight, TrendingUp, Calendar, Target, Building2, BarChart3,
-  Zap, Flame, Brain, Sparkles, RefreshCw, Heart,
+  Brain, Sparkles, RefreshCw, Heart,
 } from 'lucide-react';
 
 // v2.7.1 — shape of the GET /api/student/goals response payload.
@@ -45,11 +45,6 @@ export default function StudentDashboard() {
     course?: { name: string };
     submissions?: { status: string; score: number; maxScore: number }[];
   }[]>([]);
-  const [rewards, setRewards] = useState<{
-    totalXP: number;
-    currentStreak: number;
-    level: number;
-  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [skillsOverview, setSkillsOverview] = useState<{
     topSkills: { id: string; skillName: string; skillCategory: string; masteryLevel: number; streak: number }[];
@@ -67,10 +62,6 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (isDemo) {
       setAssignments(getStudentAssignments());
-      // Load demo reward stats for the current student
-      const studentId = (session?.user as { id?: string })?.id || 'demo-student-lior';
-      const stats = (DEMO_REWARD_STATS as Record<string, unknown>)?.[studentId] || Object.values(DEMO_REWARD_STATS)[0];
-      setRewards(stats);
       setSkillsOverview({
         topSkills: [
           { id: 'demo-skill-1', skillName: 'Fractions & Decimals', skillCategory: 'Math', masteryLevel: 94, streak: 7 },
@@ -113,18 +104,13 @@ export default function StudentDashboard() {
 
   async function fetchData() {
     try {
-      const [assignRes, surveyRes, rewardRes] = await Promise.all([
+      const [assignRes, surveyRes] = await Promise.all([
         fetch('/api/assignments'),
         fetch('/api/survey'),
-        fetch('/api/rewards').catch(() => null),
       ]);
       if (assignRes.ok) {
         const data = await assignRes.json();
         setAssignments(data.assignments || []);
-      }
-      if (rewardRes?.ok) {
-        const data = await rewardRes.json();
-        setRewards(data);
       }
       if (surveyRes.ok) {
         const surveyData = await surveyRes.json();
@@ -201,11 +187,6 @@ export default function StudentDashboard() {
       }, 0) / gradedSubmissions.length)
     : 0;
 
-  // XP and streak from rewards (blueprint: "Instant Gratification")
-  const totalXP = rewards?.totalXP || 0;
-  const currentStreak = rewards?.currentStreak || 0;
-  const level = rewards?.level || 1;
-
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -252,22 +233,16 @@ export default function StudentDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3 sm:gap-4">
-              <Link href={`/student/knowledge${demoSuffix}`} className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 hover:bg-white/20 transition-all cursor-pointer">
-                <p className="text-2xl font-bold flex items-center justify-center gap-1">
-                  <Zap size={16} className="text-purple-300" />{totalXP.toLocaleString()}
-                </p>
-                <p className="text-[10px] text-white/60 font-medium">XP</p>
-              </Link>
-              <Link href={`/student/knowledge${demoSuffix}`} className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 hover:bg-white/20 transition-all cursor-pointer">
-                <p className="text-2xl font-bold flex items-center justify-center gap-1">
-                  <Flame size={16} className="text-orange-300" />{currentStreak}
-                </p>
-                <p className="text-[10px] text-white/60 font-medium">Day Streak</p>
-              </Link>
               {avgScore > 0 && (
                 <Link href={`/student/knowledge${demoSuffix}`} className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 hover:bg-white/20 transition-all cursor-pointer">
                   <p className="text-2xl font-bold">{avgScore}%</p>
                   <p className="text-[10px] text-white/60 font-medium">Avg Score</p>
+                </Link>
+              )}
+              {completedCount > 0 && (
+                <Link href={`/student/assignments${demoSuffix}`} className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 hover:bg-white/20 transition-all cursor-pointer">
+                  <p className="text-2xl font-bold">{completedCount}</p>
+                  <p className="text-[10px] text-white/60 font-medium">Completed</p>
                 </Link>
               )}
             </div>
@@ -402,7 +377,7 @@ export default function StudentDashboard() {
             { icon: <BookOpen size={18} />, label: 'Total Assignments', value: `${assignments.length}`, color: 'bg-blue-50 text-blue-600', href: `/student/assignments${demoSuffix}` },
             { icon: <Target size={18} />, label: 'Completed', value: `${completedCount}`, color: 'bg-green-50 text-green-600', href: `/student/assignments${demoSuffix}` },
             { icon: <TrendingUp size={18} />, label: 'Avg Score', value: avgScore > 0 ? `${avgScore}%` : '--', color: 'bg-violet-50 text-violet-600', href: `/student/knowledge${demoSuffix}` },
-            { icon: <Zap size={18} />, label: 'Level', value: `${level}`, color: 'bg-purple-50 text-purple-600', href: `/student/knowledge${demoSuffix}` },
+            { icon: <Sparkles size={18} />, label: 'Pending', value: `${pendingCount}`, color: 'bg-amber-50 text-amber-600', href: `/student/assignments${demoSuffix}` },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -460,10 +435,6 @@ export default function StudentDashboard() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 truncate">{skill.skillName}</p>
                         <p className="text-xs text-gray-400">{skill.skillCategory}</p>
-                      </div>
-                      <div className="flex items-center gap-1 text-orange-500">
-                        <Flame size={14} />
-                        <span className="text-xs font-bold">{skill.streak}</span>
                       </div>
                     </div>
                   ))

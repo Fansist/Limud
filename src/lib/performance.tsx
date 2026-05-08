@@ -252,54 +252,6 @@ export const ProgressRing = memo(function ProgressRing({ progress, size = 40, st
   );
 });
 
-// ─── MASTERY ANIMATION ──────────────────────────────────────────────────
-
-export function MasteryBurst({ level, show }: { level: number; show: boolean }) {
-  const { enableAnimations } = usePerf();
-  if (!show || !enableAnimations) return null;
-
-  const particles = level >= 80 ? 12 : level >= 60 ? 8 : 4;
-  const color = level >= 80 ? '#22c55e' : level >= 60 ? '#f59e0b' : '#ef4444';
-
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {Array.from({ length: particles }).map((_, i) => (
-        <div
-          key={i}
-          className="absolute w-2 h-2 rounded-full"
-          style={{
-            backgroundColor: color,
-            left: '50%',
-            top: '50%',
-            animation: `masteryBurst 0.8s ease-out ${i * 0.05}s forwards`,
-            '--angle': `${(360 / particles) * i}deg`,
-          } as React.CSSProperties}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ─── XP GAIN MICRO-ANIMATION ─────────────────────────────────────────────
-
-export function XPGainToast({ amount, show }: { amount: number; show: boolean }) {
-  const { enableAnimations } = usePerf();
-  if (!show) return null;
-
-  return (
-    <div
-      className="fixed bottom-24 right-6 z-50 pointer-events-none"
-      style={{
-        animation: enableAnimations ? 'xpFloat 1.5s ease-out forwards' : 'none',
-      }}
-    >
-      <div className="bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg shadow-purple-500/30">
-        +{amount} XP ⚡
-      </div>
-    </div>
-  );
-}
-
 // ─── CACHED FETCH HELPER ────────────────────────────────────────────────
 
 const fetchCache = new Map<string, { data: any; expiry: number }>();

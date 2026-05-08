@@ -263,20 +263,6 @@ export default function TeacherClassroomsPage() {
                                           {s.email && <span className="flex items-center gap-0.5 inline-flex"><Mail size={8} /> {s.email}</span>}
                                         </p>
                                       </div>
-                                      {s.rewardStats && (
-                                        <div className="flex items-center gap-3 text-[10px] text-gray-500">
-                                          <span className="flex items-center gap-0.5" title="Level">
-                                            <Trophy size={10} className="text-amber-500" /> Lv.{s.rewardStats.level}
-                                          </span>
-                                          <span className="flex items-center gap-0.5" title="XP">
-                                            <Zap size={10} className="text-blue-500" /> {s.rewardStats.totalXP}
-                                          </span>
-                                          <span className={cn('flex items-center gap-0.5', s.rewardStats.currentStreak > 5 ? 'text-green-500' : s.rewardStats.currentStreak > 0 ? 'text-amber-500' : 'text-gray-400')}
-                                            title="Streak">
-                                            {s.rewardStats.currentStreak}d
-                                          </span>
-                                        </div>
-                                      )}
                                     </div>
                                   );
                                 })}

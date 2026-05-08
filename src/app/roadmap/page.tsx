@@ -109,7 +109,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     details: [
       'AI-powered tutor-tutee matching based on skill gaps',
       'Scheduled video/chat sessions within the platform',
-      'Peer tutors earn bonus XP and leadership badges',
+      'Peer tutors get formal recognition on their transcript and teacher endorsements',
       'Teacher-approved tutor roster with training modules',
       'Session recordings for teacher review and quality assurance',
     ],
@@ -246,20 +246,6 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     ],
     tags: ['Standards', 'Compliance', 'AI'],
   },
-  {
-    id: 'pl-13', title: 'Multiplayer Educational Games', status: 'planned', quarter: 'Q4 2026',
-    category: 'Gamification', icon: <Gamepad2 size={18} />, impact: 'medium',
-    description: 'Real-time multiplayer game modes where students compete in academic challenges. Live leaderboards, team battles, and classroom tournaments.',
-    details: [
-      'Math Blaster PvP: head-to-head speed math battles',
-      'Word Quest Co-op: collaborative vocabulary building',
-      'Classroom Tournaments: teacher-scheduled competition events',
-      'Team Battles: class vs class across schools',
-      'Seasonal events with limited-edition badges and rewards',
-    ],
-    tags: ['Games', 'Multiplayer', 'Engagement'],
-  },
-
   // ═══ FUTURE VISION ═══
   {
     id: 'fv-1', title: 'AI Teaching Assistant (Autonomous Agent)', status: 'exploring', quarter: '2027+',

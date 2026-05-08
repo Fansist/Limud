@@ -11,8 +11,8 @@ import { DEMO_PARENT_CHILDREN } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import {
-  Eye, BookOpen, Trophy, TrendingUp, Flame, Zap, GraduationCap, MessageCircle,
-  Star, Home, Plus, BarChart3, Users, Brain, Shield, Target,
+  Eye, BookOpen, TrendingUp, GraduationCap, MessageCircle,
+  Home, Plus, BarChart3, Users, Brain, Shield, Target,
   Sparkles, RefreshCw, ChevronDown, ChevronRight, Cpu, X,
   Search, Lightbulb,
 } from 'lucide-react';
@@ -223,23 +223,6 @@ export default function ParentDashboard() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      {child.rewards && (
-                        <div className="flex items-center gap-2">
-                          <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
-                            <p className="text-lg font-bold flex items-center gap-1">
-                              <Zap size={12} className="text-purple-300" />Lv.{child.rewards?.level}
-                            </p>
-                            <p className="text-[9px] text-white/50">Level</p>
-                          </div>
-                          <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2">
-                            <p className="text-lg font-bold flex items-center gap-1">
-                              <Flame size={12} className="text-orange-300" />{child.rewards?.currentStreak}
-                            </p>
-                            <p className="text-[9px] text-white/50">Streak</p>
-                          </div>
-                        </div>
-                      )}
-
                       {/* ★ AI CHECK-IN — THE HERO BUTTON ★ */}
                       <button
                         onClick={() => runAICheckin(child.id, child.name)}
@@ -273,12 +256,11 @@ export default function ParentDashboard() {
               </div>
 
               {/* Stats Grid — v11.0: clickable cards link to reports */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
-                  { icon: <Star size={18} />, label: 'XP Earned', value: child.rewards?.totalXP?.toLocaleString() || '0', color: 'bg-purple-50 text-purple-600', href: `/parent/reports${demoSuffix}` },
-                  { icon: <Flame size={18} />, label: 'Best Streak', value: `${child.rewards?.longestStreak || 0} days`, color: 'bg-orange-50 text-orange-600', href: `/parent/reports${demoSuffix}` },
-                  { icon: <MessageCircle size={18} />, label: 'Tutor Chats', value: `${child.rewards?.tutorSessionsCount || 0}`, color: 'bg-blue-50 text-blue-600', href: `/parent/reports${demoSuffix}` },
                   { icon: <BookOpen size={18} />, label: 'Completed', value: `${child.rewards?.assignmentsCompleted || 0}`, color: 'bg-green-50 text-green-600', href: `/parent/reports${demoSuffix}` },
+                  { icon: <MessageCircle size={18} />, label: 'Tutor Sessions', value: `${child.rewards?.tutorSessionsCount || 0}`, color: 'bg-blue-50 text-blue-600', href: `/parent/reports${demoSuffix}` },
+                  { icon: <TrendingUp size={18} />, label: 'Avg Score', value: child.averageScore !== null ? `${child.averageScore}%` : '—', color: 'bg-violet-50 text-violet-600', href: `/parent/reports${demoSuffix}` },
                 ].map(stat => (
                   <Link key={stat.label} href={stat.href} className={cn('rounded-2xl p-4 block hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer', stat.color)}>
                     <div className="mb-1">{stat.icon}</div>
@@ -412,8 +394,7 @@ export default function ParentDashboard() {
                   {[
                     { label: 'Avg Score', value: checkinReport.summary.averageScore !== null ? `${checkinReport.summary.averageScore}%` : 'N/A' },
                     { label: 'Submissions', value: checkinReport.summary.recentSubmissions },
-                    { label: 'Tutor Chats', value: checkinReport.summary.tutorSessions },
-                    { label: 'Streak', value: `${checkinReport.summary.currentStreak}d` },
+                    { label: 'Tutor Sessions', value: checkinReport.summary.tutorSessions },
                     { label: 'Study Time', value: `${checkinReport.summary.studyMinutes}m` },
                   ].map(s => (
                     <div key={s.label} className="text-center">

@@ -31,19 +31,6 @@ export function daysUntil(date: Date | string): number {
   return Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export function getXPForLevel(level: number): number {
-  return level * 250;
-}
-
-export function getLevelFromXP(xp: number): number {
-  return Math.floor(xp / 250) + 1;
-}
-
-export function getXPProgress(xp: number): number {
-  const currentLevelXP = xp % 250;
-  return (currentLevelXP / 250) * 100;
-}
-
 export function getLetterGrade(score: number, maxScore: number): string {
   const pct = (score / maxScore) * 100;
   if (pct >= 97) return 'A+';

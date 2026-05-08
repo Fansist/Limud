@@ -70,7 +70,7 @@ export const POST = apiHandler(async (req: Request) => {
       childName: 'Student',
       generatedAt: new Date().toISOString(),
       prediction: { predictedScore: null, confidence: null, trend: 'stable' },
-      summary: { averageScore: null, recentSubmissions: 0, tutorSessions: 0, currentStreak: 0, studyMinutes: 0, level: 1, improvingSkills: [], strugglingSkills: [] },
+      summary: { averageScore: null, recentSubmissions: 0, tutorSessions: 0, studyMinutes: 0, improvingSkills: [], strugglingSkills: [] },
     });
   }
 
@@ -143,11 +143,7 @@ AI Tutor sessions: ${tutorSessions}
 Study sessions completed: ${completedStudySessions} of ${studySessions.length}
 Study minutes logged: ${studyMinutes}
 
---- GAMIFICATION ---
-Level: ${stats?.level || 1}
-Total XP: ${stats?.totalXP || 0}
-Current streak: ${stats?.currentStreak || 0} days
-Longest streak: ${stats?.longestStreak || 0} days
+--- ACTIVITY ---
 Assignments completed (all time): ${stats?.assignmentsCompleted || 0}
 Perfect scores: ${stats?.perfectScores || 0}
 
@@ -188,9 +184,7 @@ ${gradedSubs.slice(0, 8).map(s => `• "${s.assignment.title}" (${s.assignment.c
       averageScore: avgScore,
       recentSubmissions: recentSubmissions.length,
       tutorSessions,
-      currentStreak: stats?.currentStreak || 0,
       studyMinutes,
-      level: stats?.level || 1,
       improvingSkills,
       strugglingSkills,
     },
@@ -239,9 +233,6 @@ export const GET = apiHandler(async (req: Request) => {
         gradeLevel: child.gradeLevel,
         courses: child.enrollments.map((e) => e.course.name),
         averageScore: avgScore,
-        currentStreak: child.rewardStats?.currentStreak || 0,
-        level: child.rewardStats?.level || 1,
-        totalXP: child.rewardStats?.totalXP || 0,
         tutorSessions: tutorCount,
       };
     }));
@@ -254,19 +245,16 @@ export const GET = apiHandler(async (req: Request) => {
 });
 
 function generateFallbackReport(
-  name: string, avgScore: number | null, stats: RewardStats | null | undefined,
+  name: string, avgScore: number | null, _stats: RewardStats | null | undefined,
   tutorSessions: number, improving: string[], struggling: string[],
   gradedCount: number, studyMinutes: number
 ): string {
-  const streak = stats?.currentStreak || 0;
-  const level = stats?.level || 1;
-
   let report = `## Check-In Report for ${name}\n\n`;
 
   report += `### Academic Summary\n`;
   if (avgScore !== null) {
     report += `Over the past two weeks, ${name} has completed ${gradedCount} graded assignment${gradedCount !== 1 ? 's' : ''} with an average score of **${avgScore}%**. `;
-    if (avgScore >= 85) report += `This is excellent work! ${name} is performing well academically.\n\n`;
+    if (avgScore >= 85) report += `This is excellent work — ${name} is performing well academically.\n\n`;
     else if (avgScore >= 70) report += `This is solid performance with room for improvement in some areas.\n\n`;
     else report += `There may be some areas where ${name} could benefit from additional support.\n\n`;
   } else {
@@ -274,17 +262,15 @@ function generateFallbackReport(
   }
 
   report += `### Engagement\n`;
-  report += `${name} is currently at **Level ${level}**`;
-  if (streak > 0) report += ` with a **${streak}-day streak**`;
-  report += `. `;
-  if (tutorSessions > 3) report += `They've been actively using the AI tutor (${tutorSessions} sessions recently), which shows great initiative. `;
-  else if (tutorSessions > 0) report += `They've used the AI tutor ${tutorSessions} time${tutorSessions !== 1 ? 's' : ''} recently. Encourage more usage for better understanding. `;
+  if (tutorSessions > 3) report += `${name} has been actively using the AI tutor (${tutorSessions} sessions recently), which shows real initiative. `;
+  else if (tutorSessions > 0) report += `${name} has used the AI tutor ${tutorSessions} time${tutorSessions !== 1 ? 's' : ''} recently — encouraging more sessions could help with understanding. `;
+  else report += `${name} hasn't used the AI tutor recently. It adapts to their learning style and could be a useful daily habit. `;
   if (studyMinutes > 0) report += `Total study time logged: ${studyMinutes} minutes.\n\n`;
   else report += '\n\n';
 
   if (improving.length > 0) {
     report += `### Areas of Strength\n`;
-    report += `${name} is showing improvement in: ${improving.join(', ')}. Keep encouraging these areas!\n\n`;
+    report += `${name} is showing improvement in: ${improving.join(', ')}. Keep encouraging these areas.\n\n`;
   }
 
   if (struggling.length > 0) {
@@ -293,9 +279,9 @@ function generateFallbackReport(
   }
 
   report += `### Recommendations\n`;
-  report += `1. ${streak < 3 ? 'Encourage daily logins to build a consistent learning habit.' : 'Great streak! Keep the momentum going.'}\n`;
-  report += `2. ${tutorSessions < 3 ? 'Suggest using the AI tutor more often — it adapts to their learning style.' : 'The AI tutor usage is great. Check the conversation logs to see what topics they\'re exploring.'}\n`;
-  report += `3. ${avgScore !== null && avgScore < 80 ? 'Review recent assignments together and discuss any challenges they faced.' : 'Celebrate their achievements and set a new learning goal together.'}\n`;
+  report += `1. Build a steady learning rhythm — short daily sessions beat long, infrequent ones.\n`;
+  report += `2. ${tutorSessions < 3 ? 'Suggest using the AI tutor more often — it adapts to how they learn.' : 'AI tutor usage is healthy. Check the conversation logs to see what topics they\'re exploring.'}\n`;
+  report += `3. ${avgScore !== null && avgScore < 80 ? 'Review recent assignments together and discuss any challenges they faced.' : 'Celebrate their progress and set a new learning goal together.'}\n`;
 
   return report;
 }

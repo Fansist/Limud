@@ -363,18 +363,14 @@ export default function ManageChildrenPage() {
 
                   {/* Quick stats */}
                   {child.rewards && (
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      <div className="text-center bg-purple-50 rounded-lg px-2 py-1.5">
-                        <p className="text-xs font-bold text-purple-700">Lv.{child.rewards.level}</p>
-                        <p className="text-[10px] text-purple-500">Level</p>
-                      </div>
-                      <div className="text-center bg-orange-50 rounded-lg px-2 py-1.5">
-                        <p className="text-xs font-bold text-orange-700">{child.rewards.currentStreak}</p>
-                        <p className="text-[10px] text-orange-500">Streak</p>
-                      </div>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
                       <div className="text-center bg-green-50 rounded-lg px-2 py-1.5">
                         <p className="text-xs font-bold text-green-700">{child.rewards.assignmentsCompleted}</p>
-                        <p className="text-[10px] text-green-500">Done</p>
+                        <p className="text-[10px] text-green-500">Completed</p>
+                      </div>
+                      <div className="text-center bg-blue-50 rounded-lg px-2 py-1.5">
+                        <p className="text-xs font-bold text-blue-700">{child.rewards.tutorSessionsCount || 0}</p>
+                        <p className="text-[10px] text-blue-500">Tutor sessions</p>
                       </div>
                     </div>
                   )}

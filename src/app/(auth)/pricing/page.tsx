@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, X, ArrowRight, Zap, Star, Crown, Shield, Home, SlidersHorizontal, BookOpen,
-  ArrowLeft, Minus, Users, School, Brain, Gamepad2, FileText, BarChart3, Headphones,
+  ArrowLeft, Minus, Users, School, Brain, FileText, BarChart3, Headphones,
   Lock, ChevronDown, ChevronUp, Calculator, Sparkles, Settings2, Eye, EyeOff,
   TrendingUp, DollarSign, PieChart, Target, Layers, RefreshCw,
 } from 'lucide-react';
@@ -13,9 +13,9 @@ import { cn } from '@/lib/utils';
 // ─── PRICING DATA ───────────────────────────────────────────────────────
 const PLANS = [
   {
-    tier: 'FREE', price: 0, label: '/forever', headline: 'Homeschool families & individuals',
+    tier: 'FAMILY', price: 0, label: '/month', headline: 'For families with kids in school — at any school',
     icon: <Home size={20} />, color: 'from-gray-400 to-gray-500',
-    cta: 'Get Started Free', href: '/register', ctaStyle: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
+    cta: 'Create family account', href: '/register', ctaStyle: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
   },
   {
     tier: 'STARTER', price: 3, label: '/student/mo', annualPrice: 2, annualLabel: '/student/mo (billed yearly)',
@@ -73,14 +73,6 @@ const FEATURES: FeatureRow[] = [
   { category: 'AI Features', feature: 'AI Writing Coach', values: [false, false, '50/mo', 'Unlimited', 'Unlimited', 'Unlimited'] },
   { category: 'AI Features', feature: 'AI Reports & Insights', values: [false, false, 'partial', true, true, true] },
   { category: 'AI Features', feature: 'Custom AI model training', values: [false, false, false, false, false, true] },
-
-  // ── Gamification & Engagement ──
-  { category: 'Gamification', feature: 'XP & rank tiers', values: [true, true, true, true, true, true] },
-  { category: 'Gamification', feature: 'Badges & certificates', values: ['partial', true, true, true, true, true] },
-  { category: 'Gamification', feature: 'Game Store access', values: ['2 free games', '4 games', 'All games', 'All games', 'All games', 'All games'] },
-  { category: 'Gamification', feature: 'Daily Challenges', values: [true, true, true, true, true, true] },
-  { category: 'Gamification', feature: 'Leaderboards', values: ['Class only', 'School', 'School', 'District', 'District', 'District'] },
-  { category: 'Gamification', feature: 'Study Groups', values: ['1 group', '3 groups', '10 groups', 'Unlimited', 'Unlimited', 'Unlimited'] },
 
   // ── Teaching Tools ──
   { category: 'Teaching Tools', feature: 'Assignment Manager', values: [true, true, true, true, true, true] },
@@ -783,7 +775,7 @@ export default function PricingPage() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Zap size={14} /> Transparent Pricing</div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Plans for every learning journey</h1>
-          <p className="text-lg text-gray-500 mt-3 max-w-2xl mx-auto">From individual homeschool families to statewide districts. Start free forever, upgrade when you need more.</p>
+          <p className="text-lg text-gray-500 mt-3 max-w-2xl mx-auto">From single families to statewide districts. Start free, upgrade when your scale demands more.</p>
         </div>
 
         {/* Billing Toggle */}
@@ -997,19 +989,18 @@ export default function PricingPage() {
           </motion.div>
         </div>
 
-        {/* Homeschool Callout */}
+        {/* Family Callout */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-          className="mt-8 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-          <span className="text-4xl">🏡</span>
+          className="mt-8 bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+          <span className="text-4xl">👨‍👩‍👦</span>
           <div className="flex-1">
-            <h3 className="font-bold text-gray-900">Homeschool families love Limud!</h3>
+            <h3 className="font-bold text-gray-900">Built for families, not just classrooms</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Our Free plan gives you 50 AI tutor sessions, adaptive learning, and a parent dashboard &mdash; completely free, forever.
-              Need more? Upgrade to Starter for just $2/student/month billed annually.
+              The Family plan covers up to 5 kids in one parent account &mdash; no school district required. Personalized material rewrites, AI tutor, parent dashboard, and weekly check-ins included.
             </p>
           </div>
           <Link href="/register" className="bg-primary-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-700 transition whitespace-nowrap flex items-center gap-2">
-            Start Free <ArrowRight size={14} />
+            Create family account <ArrowRight size={14} />
           </Link>
         </motion.div>
 
@@ -1019,7 +1010,7 @@ export default function PricingPage() {
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">Pricing FAQ</h2>
           <div className="space-y-4">
             {[
-              { q: 'Is the Free plan really free forever?', a: 'Yes! Our Free plan supports up to 5 students and 2 teachers with no time limit, no credit card required. You get 50 AI Tutor sessions/month, 3 quiz generations/month, adaptive learning with 2 free games, a parent dashboard, and community support. Ideal for homeschool families.' },
+              { q: 'Is the Family plan really free?', a: 'Yes. The Family plan covers up to 5 children in one parent account, no time limit, no credit card. You get 50 AI Tutor sessions/month, 3 quiz generations/month, adaptive material rewrites, the parent dashboard, weekly check-ins, and community support — for any family with kids in any school setting.' },
               { q: 'What happens when I hit a limit?', a: 'You will see a friendly notification and can either upgrade or wait for your monthly limit to reset. We never cut off access to existing work — students can always view their past assignments, grades, and progress.' },
               { q: 'Can I switch plans at any time?', a: 'Absolutely. Upgrade instantly and we will prorate the difference. Downgrade at the end of your billing cycle. Your data is always preserved regardless of plan changes.' },
               { q: 'How does the Custom Plan Builder work?', a: 'Our Custom Plan Builder lets you mix and match exactly what you need. Adjust student/teacher capacity, AI usage limits (tutor sessions, grading, quizzes, writing coach), analytics modules, and add-on features like SSO, custom branding, and priority support. The builder calculates your monthly and annual cost in real time, and shows which standard plan most closely matches your selection.' },
@@ -1052,15 +1043,14 @@ export default function PricingPage() {
 
 function getQuickFeatures(tier: string): string[] {
   switch (tier) {
-    case 'FREE': return [
-      'Up to 5 students, 2 teachers',
+    case 'FAMILY': return [
+      'Up to 5 children in one parent account',
       'AI Tutor (50 sessions/mo)',
-
-      'AI Quiz Generator (3/mo)',
-      'Adaptive learning',
-      'Parent dashboard',
+      'Personalized material rewrites',
+      'Parent dashboard + AI check-in',
+      'Family Teaching Mode (optional)',
+      'Weekly digest emails',
       'FERPA & COPPA compliant',
-      'Community support',
     ];
     case 'STARTER': return [
       'Up to 50 students, 5 teachers',
@@ -1078,7 +1068,7 @@ function getQuickFeatures(tier: string): string[] {
       'AI Auto-Grader (500/mo)',
 
       'AI Writing Coach (50/mo)',
-      'All games + Teacher Exchange',
+      'Teacher Exchange access',
       '10 platform integrations',
       'Google Classroom sync',
     ];
@@ -1120,7 +1110,6 @@ function getCategoryIcon(cat: string): React.ReactNode {
   switch (cat) {
     case 'Capacity': return <Users size={13} />;
     case 'AI Features': return <Brain size={13} />;
-    case 'Gamification': return <Gamepad2 size={13} />;
     case 'Teaching Tools': return <FileText size={13} />;
     case 'Integrations': return <SlidersHorizontal size={13} />;
     case 'Analytics': return <BarChart3 size={13} />;

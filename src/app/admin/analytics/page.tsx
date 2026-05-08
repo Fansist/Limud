@@ -168,20 +168,19 @@ export default function AdminAnalyticsPage() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Top Performers */}
+          {/* Active Learners */}
           <div className="card">
-            <h3 className="font-bold text-gray-900 dark:text-white mb-4">🏆 Top Performers</h3>
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4">Active Learners</h3>
             <div className="space-y-3">
-              {data.topPerformers.map((s: any, i: number) => (
+              {data.topPerformers.map((s: any) => (
                 <div key={s.name} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                  <span className={cn('w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm',
-                    i === 0 ? 'bg-yellow-100 text-yellow-700' : i === 1 ? 'bg-gray-100 text-gray-600' : i === 2 ? 'bg-amber-100 text-amber-700' : 'bg-gray-50 text-gray-400'
-                  )}>{i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span>
+                  <div className="w-8 h-8 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center font-semibold text-sm">
+                    {s.name.charAt(0)}
+                  </div>
                   <div className="flex-1">
                     <p className="font-semibold text-gray-900 dark:text-white text-sm">{s.name}</p>
                     <p className="text-xs text-gray-400">{s.grade} • {s.school}</p>
                   </div>
-                  <span className="font-bold text-primary-600 text-sm">{s.xp.toLocaleString()} XP</span>
                 </div>
               ))}
             </div>

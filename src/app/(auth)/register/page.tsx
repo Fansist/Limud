@@ -26,39 +26,39 @@ const QUICK_LEARNING_STYLES = [
 
 const ACCOUNT_OPTIONS = [
   {
+    value: 'homeschool' as const,
+    label: 'Family',
+    icon: Home,
+    color: 'from-primary-500 to-blue-600',
+    desc: 'I have kids and I want to support their learning',
+    detail: 'Create a parent account and add up to 5 children. Works whether your kids attend a regular school, are homeschooled, or are learning independently. Optional Family Teaching Mode unlocks the full teacher toolkit (assignments, AI grading, materials) on the same account.',
+    tags: ['Free for up to 5 kids', 'AI Tutor', 'Parent dashboard', 'Optional teaching mode'],
+  },
+  {
     value: 'student_standalone' as const,
     label: 'Student',
     icon: GraduationCap,
     color: 'from-blue-500 to-cyan-500',
-    desc: 'I want to join my school\'s district',
+    desc: 'I want to link to my school\'s district',
     detail: 'Create a student account and request to link to your school district. Use AI features while waiting for approval.',
     tags: ['Free', 'AI Tutor', 'Request district link', 'Full features on approval'],
   },
   {
     value: 'self_education' as const,
-    label: 'Self Education',
+    label: 'Independent Learner',
     icon: Brain,
     color: 'from-teal-500 to-emerald-500',
-    desc: 'I want to learn at my own pace',
-    detail: 'Create a student account to learn independently with AI-powered personalized methods. No teacher or parent needed.',
-    tags: ['Free forever', 'AI Tutor', 'Personalized learning', 'Self-paced'],
-  },
-  {
-    value: 'homeschool' as const,
-    label: 'Homeschool Family',
-    icon: Home,
-    color: 'from-amber-500 to-orange-500',
-    desc: 'I educate my children at home',
-    detail: 'Create a parent account and add your children as student accounts. Use AI tutoring and track their progress — all free.',
-    tags: ['Free forever', 'AI Tutor', 'Parent dashboard', 'Add students'],
+    desc: 'I want to learn on my own',
+    detail: 'Create a student account and learn independently with AI-powered personalized methods. No school or parent account required.',
+    tags: ['Free', 'AI Tutor', 'Personalized learning', 'Self-paced'],
   },
   {
     value: 'admin' as const,
-    label: 'District Administrator',
+    label: 'School or District',
     icon: Building2,
-    color: 'from-blue-500 to-indigo-600',
-    desc: 'I manage a school or district',
-    detail: 'Create an admin account to manage schools, teachers, and students. Choose a plan to unlock features for your district.',
+    color: 'from-purple-500 to-indigo-600',
+    desc: 'I run or manage a school or district',
+    detail: 'Create an admin account to manage schools, teachers, and students. Choose a plan to unlock features for your school or district.',
     tags: ['Multi-school', 'Bulk provisioning', 'Plans from $2/student/mo'],
   },
 ];
@@ -308,8 +308,8 @@ export default function RegisterPage() {
           {[
             { icon: '🧠', text: 'AI adapts to each student\u2019s learning style' },
             { icon: '⚡', text: 'ADHD-friendly, visual, auditory & more formats' },
-            { icon: '🏠', text: 'Self-education, homeschool, or district accounts' },
-            { icon: '🏆', text: 'Gamification that makes learning engaging' },
+            { icon: '👨‍👩‍👦', text: 'Family, student, or school/district accounts' },
+            { icon: '✨', text: 'Personalized material rewrites for every student' },
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -432,7 +432,7 @@ export default function RegisterPage() {
               >
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">
-                    {accountType === 'student_standalone' ? 'Your Student Account' : accountType === 'self_education' ? 'Your Learning Account' : accountType === 'homeschool' ? 'Your Homeschool Account' : 'District Admin Account'}
+                    {accountType === 'student_standalone' ? 'Your Student Account' : accountType === 'self_education' ? 'Your Learning Account' : accountType === 'homeschool' ? 'Your Family Account' : 'School / District Admin Account'}
                   </h1>
                   <p className="text-gray-500 mt-2">
                     {accountType === 'student_standalone'
@@ -762,7 +762,7 @@ export default function RegisterPage() {
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200">
                   <p className="text-sm font-medium text-gray-700 mb-2">Account Summary</p>
                   <div className="space-y-1 text-sm text-gray-500">
-                    <p><span className="text-gray-400">Type:</span> {accountType === 'student_standalone' ? 'Student (Join a District)' : accountType === 'self_education' ? 'Self Education Student' : accountType === 'homeschool' ? 'Homeschool Parent' : 'District Administrator'}</p>
+                    <p><span className="text-gray-400">Type:</span> {accountType === 'student_standalone' ? 'Student (Join a District)' : accountType === 'self_education' ? 'Independent Learner' : accountType === 'homeschool' ? 'Family' : 'School / District Admin'}</p>
                     <p><span className="text-gray-400">Name:</span> {name}</p>
                     <p><span className="text-gray-400">Email:</span> {email}</p>
                     {(accountType === 'self_education' || accountType === 'student_standalone') && gradeLevel && <p><span className="text-gray-400">Grade:</span> {gradeLevel}</p>}

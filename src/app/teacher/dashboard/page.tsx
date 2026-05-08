@@ -366,7 +366,7 @@ export default function TeacherDashboard() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">{student.name}</p>
                       <p className="text-xs text-gray-400">
-                        {student.totalSubmissions} submissions · Streak: {student.currentStreak}d
+                        {student.totalSubmissions} submissions
                       </p>
                     </div>
                     <span

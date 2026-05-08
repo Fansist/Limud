@@ -48,12 +48,6 @@ module.exports = {
           500: '#f59e0b',
           600: '#d97706',
         },
-        gamify: {
-          gold: '#FFD700',
-          xp: '#8B5CF6',
-          streak: '#F97316',
-          coin: '#EAB308',
-        },
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
@@ -63,7 +57,6 @@ module.exports = {
         'bounce-slow': 'bounce 2s infinite',
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
         'slide-up': 'slide-up 0.3s ease-out',
-        'coin-flip': 'coin-flip 0.6s ease-in-out',
         'fade-in': 'fade-in 0.5s ease-out',
         'scale-in': 'scale-in 0.3s ease-out',
       },
@@ -75,10 +68,6 @@ module.exports = {
         'slide-up': {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        'coin-flip': {
-          '0%': { transform: 'rotateY(0deg)' },
-          '100%': { transform: 'rotateY(360deg)' },
         },
         'fade-in': {
           '0%': { opacity: '0' },

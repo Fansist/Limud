@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { haptic } from '@/lib/performance';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
-  Focus, Play, Pause, RotateCcw, ChevronRight, Check, X, Zap, Timer, Brain, Sparkles, ArrowRight,
+  Focus, Play, Pause, RotateCcw, ChevronRight, Check, X, Timer, Brain, Sparkles, ArrowRight,
 } from 'lucide-react';
 
 const AMBIENT_SOUNDS = [
@@ -58,7 +58,6 @@ export default function FocusModePage() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [results, setResults] = useState<{ correct: boolean; questionId: number }[]>([]);
-  const [xpEarned, setXpEarned] = useState(0);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -81,7 +80,6 @@ export default function FocusModePage() {
     setPhase('active');
     setCurrentQ(0);
     setResults([]);
-    setXpEarned(0);
     haptic('medium');
 
     if (!isDemo) {
@@ -105,7 +103,6 @@ export default function FocusModePage() {
 
     const isCorrect = idx === questions[currentQ].correct;
     setResults(prev => [...prev, { correct: isCorrect, questionId: questions[currentQ].id }]);
-    if (isCorrect) setXpEarned(prev => prev + 15);
   };
 
   const nextQuestion = () => {
@@ -342,8 +339,8 @@ export default function FocusModePage() {
               <span className="flex items-center gap-1 text-green-600 font-bold">
                 <Check size={14} /> {correctCount} correct
               </span>
-              <span className="flex items-center gap-1 text-purple-600 font-bold">
-                <Zap size={14} /> {xpEarned} XP
+              <span className="flex items-center gap-1 text-gray-600 font-bold">
+                {results.length} answered
               </span>
             </div>
           </div>
@@ -362,8 +359,8 @@ export default function FocusModePage() {
                 <p className="text-[10px] text-gray-400">Correct</p>
               </div>
               <div className="card text-center p-4">
-                <p className="text-2xl font-bold text-purple-600">{xpEarned}</p>
-                <p className="text-[10px] text-gray-400">XP Earned</p>
+                <p className="text-2xl font-bold text-purple-600">{selectedMinutes - Math.ceil(timeLeft / 60)}<span className="text-sm">m</span></p>
+                <p className="text-[10px] text-gray-400">Focused Time</p>
               </div>
               <div className="card text-center p-4">
                 <p className="text-2xl font-bold text-indigo-600">{results.length > 0 ? Math.round((correctCount / results.length) * 100) : 0}%</p>
@@ -372,7 +369,7 @@ export default function FocusModePage() {
             </div>
             <div className="flex gap-3 justify-center">
               <button
-                onClick={() => { setPhase('setup'); setResults([]); setXpEarned(0); }}
+                onClick={() => { setPhase('setup'); setResults([]); }}
                 className="btn-secondary flex items-center gap-2"
               >
                 <RotateCcw size={16} /> New Session

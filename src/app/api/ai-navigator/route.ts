@@ -5,11 +5,11 @@ import prisma from '@/lib/prisma';
 
 /**
  * AI Navigation Assistant API
- * Helps students navigate the platform, find assignments, grades, rewards, and more.
+ * Helps students navigate the platform, find assignments, grades, and more.
  * Uses real student data to provide contextual, helpful responses.
  */
 
-const NAVIGATOR_SYSTEM_PROMPT = `You are Limud Navigator, an AI assistant that helps students navigate the Limud learning platform. You have access to the student's real data including assignments, grades, rewards, and platform features.
+const NAVIGATOR_SYSTEM_PROMPT = `You are Limud Navigator, an AI assistant that helps students navigate the Limud learning platform. You have access to the student's real data including assignments, grades, and platform features.
 
 Your job is to:
 1. Help students find what they're looking for on the platform
@@ -23,7 +23,6 @@ IMPORTANT FORMATTING RULES:
 - When suggesting a page, format it as: **[Page Name](/path)** so it becomes a clickable link
 - For assignments, show the title, due date, and status
 - For grades, show the score and letter grade
-- For rewards, show XP, level, streak, and coins
 - When listing items, use numbered lists or bullet points
 - Be concise — students want quick answers
 

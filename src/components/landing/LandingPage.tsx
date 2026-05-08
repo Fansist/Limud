@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
 import {
   BookOpen, BarChart3, GraduationCap,
@@ -10,7 +10,7 @@ import {
   Lightbulb, Eye, FileText, Target, LayoutDashboard,
   ChevronDown, ChevronUp, MessageCircle, DollarSign,
   Award, Link2, Lock, Zap, Home, Building2, Cpu,
-  Flame, Upload, Star, Headphones, Hand, Focus, Search,
+  Upload, Headphones, Hand, Focus, Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -116,7 +116,7 @@ export default function LandingPage() {
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": [
-            { "@type": "Question", "name": "Is Limud really free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Homeschool families and self-learners get Limud free forever. The free plan includes AI Tutor, adaptive learning, and parent dashboards for up to 5 students." }},
+            { "@type": "Question", "name": "Is Limud really free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Families get Limud free for up to 5 students — full AI Tutor, adaptive material rewrites, parent dashboards, and weekly check-ins. Schools and districts have paid tiers with bigger seat counts and admin controls." }},
             { "@type": "Question", "name": "What subjects does Limud cover?", "acceptedAnswer": { "@type": "Answer", "text": "Limud supports Math (Algebra, Geometry, Fractions), Science, English Language Arts, History, and more. Teachers can create custom content for any subject." }},
             { "@type": "Question", "name": "How does the AI tutor work?", "acceptedAnswer": { "@type": "Answer", "text": "Limud's AI tutor uses Socratic questioning — it guides students to discover answers rather than giving them directly. It adapts to each student's learning style and interests." }},
             { "@type": "Question", "name": "Is Limud FERPA and COPPA compliant?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Limud is built for compliance from the ground up with AES-256-GCM encryption, 7-year audit log retention, parental consent tracking, and role-based access control." }},
@@ -133,7 +133,7 @@ export default function LandingPage() {
             <Link href="/" className="flex items-center gap-2">
               <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg shadow-md object-cover" />
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
-              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v12.3</span>
+              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v3.1</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -183,29 +183,29 @@ export default function LandingPage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1]">
-              Eliminate the
-              <span className="bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent"> one-size-fits-all </span>
-              classroom
+              Every mind learns
+              <span className="bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent"> differently. </span>
+              Limud teaches that way.
             </h1>
 
             <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-              AI that adapts curriculum to every individual&apos;s <strong className="text-gray-700">Learning DNA</strong> &mdash; reducing stress for students and workload for teachers. Visual, auditory, kinesthetic, ADHD-friendly &mdash; all first-class citizens.
+              The AI rewrites every chapter for every student in the format that fits how they actually learn. Same facts. Same assignments. The doorway in is theirs. Built for families, schools, and districts — same product, every tier.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/register" className="group inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-7 py-3.5 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-600/20">
-                Start Free &mdash; No Credit Card <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                Get started <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
-              <Link href="/login" className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-7 py-3.5 rounded-xl font-bold border border-gray-200 hover:border-primary-200 hover:bg-primary-50 transition">
-                <Play size={16} className="text-primary-500" /> Try Live Demo
+              <Link href="#how-it-works" className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-7 py-3.5 rounded-xl font-bold border border-gray-200 hover:border-primary-200 hover:bg-primary-50 transition">
+                See how it works
               </Link>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
               {[
-                { icon: Check, text: 'Free forever plan' },
-                { icon: Lock, text: 'FERPA & COPPA' },
-                { icon: Zap, text: '5-min setup' },
+                { icon: Check, text: 'Free for families up to 5 kids' },
+                { icon: Lock, text: 'FERPA & COPPA compliant' },
+                { icon: Zap, text: 'Set up in 5 minutes' },
               ].map(item => (
                 <span key={item.text} className="flex items-center gap-1.5">
                   <item.icon size={14} className="text-green-500" /> {item.text}
@@ -233,9 +233,8 @@ export default function LandingPage() {
                   <div className="flex items-center justify-between">
                     <div><p className="text-sm opacity-80">Welcome back!</p><p className="text-lg font-bold">Hey, Sylvester! <span className="text-xs opacity-60 ml-1">Auditory Learner</span></p></div>
                     <div className="flex gap-3 text-center">
-                      <div><p className="text-lg font-bold">3,200</p><p className="text-[9px] opacity-60">XP</p></div>
-                      <div><p className="text-lg font-bold flex items-center gap-0.5"><span className="text-orange-300">&#128293;</span>14</p><p className="text-[9px] opacity-60">Streak</p></div>
                       <div><p className="text-lg font-bold">92%</p><p className="text-[9px] opacity-60">Avg</p></div>
+                      <div><p className="text-lg font-bold">12</p><p className="text-[9px] opacity-60">Done</p></div>
                     </div>
                   </div>
                 </div>
@@ -306,7 +305,7 @@ export default function LandingPage() {
                 { icon: <Sparkles size={20} />, title: 'Adaptive Assignments', desc: 'Opens a history assignment and the AI has already adapted it into an auditory, interactive lesson tailored to their profile. No two students see the same thing.', color: 'bg-blue-100 text-blue-600' },
                 { icon: <Target size={20} />, title: 'ADHD-Friendly Focus Mode', desc: 'Distractions vanish. The UI presents a single question at a time using progressive disclosure. Designed to prevent overwhelm.', color: 'bg-indigo-100 text-indigo-600' },
                 { icon: <MessageCircle size={20} />, title: 'Socratic AI Tutor', desc: 'When stuck, the AI uses analogies based on their favorite video games to guide them to the solution. Never gives direct answers.', color: 'bg-violet-100 text-violet-600' },
-                { icon: <Zap size={20} />, title: 'Instant Gratification', desc: 'Upon submission, the AI Auto-Grader immediately awards XP and provides constructive feedback, updating their daily streak.', color: 'bg-amber-100 text-amber-600' },
+                { icon: <Zap size={20} />, title: 'Instant Feedback', desc: 'Upon submission, the AI Auto-Grader returns the score, a personalized rubric breakdown, and concrete next steps in seconds — no waiting until next class.', color: 'bg-amber-100 text-amber-600' },
                 { icon: <BarChart3 size={20} />, title: 'Growth Analytics', desc: 'Track mastery across subjects with radar charts, predicted grades, study heatmaps, and personalized learning paths.', color: 'bg-emerald-100 text-emerald-600' },
               ].map(f => (
                 <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
@@ -378,14 +377,14 @@ export default function LandingPage() {
                 <Eye size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-extrabold text-gray-900">Pillar 4: The Parent Experience</h3>
-                <p className="text-sm text-gray-500">Meet <strong>David Betzalel</strong> &mdash; Transparency &amp; Digestible Reporting</p>
+                <h3 className="text-xl font-extrabold text-gray-900">Pillar 4: The Family Experience</h3>
+                <p className="text-sm text-gray-500">Meet <strong>David Betzalel</strong> &mdash; transparency, plain-English reporting, no district required</p>
               </div>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               {[
-                { icon: <Sparkles size={20} />, title: 'The AI Check-In', desc: 'Instead of deciphering complex grade books, David clicks one button and receives a plain-English, conversational summary of his son\'s academic performance, emotional engagement, and study habits.', color: 'bg-rose-100 text-rose-600' },
-                { icon: <Home size={20} />, title: 'Homeschool Expansion', desc: 'If David is a homeschool parent, his free account expands to include Teacher tools: generate quizzes, search 87+ worksheets, and actively manage curriculum.', color: 'bg-amber-100 text-amber-600' },
+                { icon: <Sparkles size={20} />, title: 'The AI Check-In', desc: 'Instead of deciphering complex grade books, David clicks one button and receives a plain-English, conversational summary of his kid\'s academic performance, emotional engagement, and study habits.', color: 'bg-rose-100 text-rose-600' },
+                { icon: <Home size={20} />, title: 'Family Teaching Mode', desc: 'A parent who teaches at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload, and per-child analytics. Same single account.', color: 'bg-amber-100 text-amber-600' },
               ].map(f => (
                 <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
                   <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
@@ -471,25 +470,25 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Simple, transparent pricing</h2>
-            <p className="mt-3 text-gray-500">Free forever for homeschool. Scale when you&apos;re ready.</p>
+            <p className="mt-3 text-gray-500">Free for families. Paid tiers when your school or district is ready.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {[
               {
-                name: 'Free', price: '$0', period: '/forever', desc: 'Self-learners & homeschool',
-                features: ['Up to 5 students', 'AI Tutor (50/mo)', 'Learning DNA profiler', 'XP & daily streaks', 'Parent dashboard + AI check-in', 'Homeschool: full teacher tools'],
-                cta: 'Get Started Free', link: '/register', highlight: false,
+                name: 'Family', price: '$0', period: '/month', desc: 'For parents & their kids',
+                features: ['Up to 5 children', 'AI Tutor (50/mo)', 'Personalized material rewrites', 'Parent dashboard + AI check-in', 'Family Teaching Mode (optional)', 'Weekly digest emails'],
+                cta: 'Create family account', link: '/register', highlight: false,
               },
               {
-                name: 'Standard', price: '$6', period: '/student/mo', desc: 'Most popular for schools',
+                name: 'School', price: '$6', period: '/student/mo', desc: 'Classrooms and small schools',
                 features: ['Up to 500 students', 'Unlimited AI features', 'All 16+ integrations', 'Intelligence dashboard', 'AI Safety Monitor', 'Priority support'],
-                cta: 'Start Free Trial', link: '/onboard?plan=STANDARD', highlight: true,
+                cta: 'Talk to us', link: '/contact', highlight: true,
               },
               {
-                name: 'Enterprise', price: 'Custom', period: '', desc: 'Large districts & states',
+                name: 'District', price: 'Custom', period: '', desc: 'Districts and statewide deployments',
                 features: ['Unlimited everything', 'SSO / SAML', 'Custom AI training', 'Data residency', '99.9% SLA', 'Dedicated manager'],
-                cta: 'Contact Sales', link: '/contact', highlight: false,
+                cta: 'Contact sales', link: '/contact', highlight: false,
               },
             ].map(plan => (
               <div key={plan.name} className={cn('rounded-2xl p-6 flex flex-col',
@@ -537,7 +536,7 @@ export default function LandingPage() {
           <div className="bg-white rounded-xl border border-gray-100 p-6">
             {[
               { q: 'What is "Learning DNA"?', a: 'Learning DNA is Limud\'s proprietary cognitive profiler. Through a quick onboarding survey and ongoing analysis of how a student interacts with content, it builds a profile that captures their learning modality (visual, auditory, kinesthetic, reading), cognitive speed, retention rate, and peak study hours. Every piece of content is then adapted to match.' },
-              { q: 'Is Limud really free for homeschool families?', a: 'Yes! The Free plan is free forever for up to 5 students. Homeschool parents also get expanded Teacher tools: create assignments, generate quizzes, search 87+ worksheets, and use AI auto-grading — all included in the free plan.' },
+              { q: 'Is Limud really free for families?', a: 'Yes. The Family plan covers up to 5 kids in one parent account at no charge. Parents who teach at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload — included.' },
               { q: 'How does the Socratic AI tutor work?', a: 'Unlike ChatGPT which gives direct answers, Limud\'s AI tutor uses Socratic questioning to guide students to discover answers themselves. It uses analogies based on the student\'s interests (from their Learning DNA profile) to make concepts relatable. All conversations are logged for parent/teacher review.' },
               { q: 'How does a teacher upload one assignment for all students?', a: 'Teachers upload a single baseline assignment. Limud\'s AI Assignment Adapter automatically generates individualized versions for different learning styles — visual learners get diagrams, auditory learners get discussion prompts, kinesthetic learners get hands-on activities. Teachers review and approve the adaptations.' },
               { q: 'What is the AI parent check-in?', a: 'Parents click one button and receive a plain-English, conversational summary of their child\'s recent academic performance, emotional engagement, study habits, and areas needing attention. No more deciphering complex grade books.' },
@@ -554,18 +553,18 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-10 lg:p-14 text-center text-white">
             <h2 className="text-3xl sm:text-4xl font-extrabold">Every mind learns differently</h2>
-            <p className="mt-3 text-white/70 max-w-lg mx-auto">Cognitive science + generative AI, adapted to every student&apos;s Learning DNA. Free forever for families.</p>
+            <p className="mt-3 text-white/70 max-w-lg mx-auto">Cognitive science + generative AI, adapted to every student. Free for families. Built to scale to schools and districts.</p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/register" className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-7 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg">
-                Start Free Now <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                Get started <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <Link href="/login" className="inline-flex items-center justify-center gap-2 bg-white/10 text-white px-7 py-3.5 rounded-xl font-bold border border-white/20 hover:bg-white/20 transition">
-                Try Live Demo
+                Sign in
               </Link>
             </div>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-sm text-white/50">
-              <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> Free forever plan</span>
-              <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> 14-day free trial</span>
+              <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> Free for families</span>
+              <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> 14-day free trial on paid tiers</span>
               <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> FERPA compliant</span>
             </div>
           </div>
@@ -580,9 +579,9 @@ export default function LandingPage() {
               <div className="flex items-center gap-2 mb-3">
                 <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg object-cover" />
                 <span className="text-base font-bold text-white">Limud</span>
-                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v12.3</span>
+                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v3.1</span>
               </div>
-              <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for self-learners, homeschool families, and school districts.</p>
+              <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for families, schools, and districts.</p>
               <div className="flex gap-2 mt-3">
                 {['FERPA', 'COPPA', 'WCAG'].map(badge => (
                   <span key={badge} className="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded border border-gray-700">{badge}</span>

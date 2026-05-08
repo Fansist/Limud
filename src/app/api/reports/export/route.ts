@@ -23,9 +23,6 @@ const DEMO_REPORT = {
     totalAssignments: 12,
     completedAssignments: 10,
     averageScore: 88.5,
-    totalXP: 3200,
-    currentStreak: 14,
-    level: 14,
   },
   courses: [
     {
@@ -198,9 +195,6 @@ export const POST = apiHandler(async (req: Request) => {
           totalAssignments: allAssignments.length,
           completedAssignments: allAssignments.filter(a => a.status === 'GRADED').length,
           averageScore: overallAvg,
-          totalXP: student.rewardStats?.totalXP || 0,
-          currentStreak: student.rewardStats?.currentStreak || 0,
-          level: student.rewardStats?.level || 1,
         },
         courses,
       };

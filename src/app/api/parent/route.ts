@@ -77,15 +77,13 @@ export const GET = apiHandler(async (req: Request) => {
         submittedAt: s.submittedAt,
       })),
       averageScore: avgScore,
+      // v3.1: gamification fields removed from response. Activity counters
+      // (assignments completed, tutor sessions) remain so the family
+      // dashboard cards have something to show.
       rewards: child.rewardStats
         ? {
-            level: child.rewardStats.level,
-            totalXP: child.rewardStats.totalXP,
-            currentStreak: child.rewardStats.currentStreak,
-            longestStreak: child.rewardStats.longestStreak,
             tutorSessionsCount: child.rewardStats.tutorSessionsCount,
             assignmentsCompleted: child.rewardStats.assignmentsCompleted,
-            badges: (() => { try { return JSON.parse(child.rewardStats.unlockedBadges || '[]'); } catch { return []; } })(),
           }
         : null,
     };

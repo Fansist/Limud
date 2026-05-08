@@ -203,7 +203,6 @@ export default function AdminStudentsPage() {
               {s.gradeLevel && <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">{s.gradeLevel}</span>}
               {s.school && <span className="flex items-center gap-1 text-xs"><Building2 size={10} /> {s.school.name}</span>}
               {s.parent && <span className="flex items-center gap-1 text-xs"><Users size={10} /> {s.parent.name}</span>}
-              {s.rewardStats && <span className="text-xs">XP: {s.rewardStats.totalXP} | Lvl {s.rewardStats.level}</span>}
             </div>
             <span className={cn('w-2 h-2 rounded-full', s.isActive ? 'bg-green-500' : 'bg-gray-300')} />
           </motion.div>

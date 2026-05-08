@@ -108,12 +108,8 @@ export const GET = apiHandler(async (req: Request) => {
         totalAssignments: recentSubs.length,
         courses: child.enrollments.map(e => e.course),
       },
+      // v3.1: gamification fields removed; only activity counters remain.
       rewards: {
-        level: stats?.level || 1,
-        totalXP: stats?.totalXP || 0,
-        currentStreak: stats?.currentStreak || 0,
-        longestStreak: stats?.longestStreak || 0,
-        coins: stats?.virtualCoins || 0,
         assignmentsCompleted: stats?.assignmentsCompleted || 0,
         perfectScores: stats?.perfectScores || 0,
       },

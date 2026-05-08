@@ -3,7 +3,7 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { HelpCircle, ChevronDown, Search, BookOpen, MessageCircle, Shield, Gamepad2, Brain, Trophy, Mail, ExternalLink } from 'lucide-react';
+import { HelpCircle, ChevronDown, Search, BookOpen, MessageCircle, Shield, Brain, Mail, ExternalLink } from 'lucide-react';
 
 type FAQItem = { question: string; answer: string; };
 type FAQCategory = { name: string; icon: React.ReactNode; items: FAQItem[]; };
@@ -13,8 +13,8 @@ const FAQ_DATA: FAQCategory[] = [
     name: 'Getting Started',
     icon: <BookOpen size={20} />,
     items: [
-      { question: 'How do I create an account?', answer: 'Visit the /onboard page to create a new district or homeschool account. Choose your plan, enter your details, and set up your admin credentials. Once created, you can add teachers and students through the admin dashboard.' },
-      { question: 'What are the different user roles?', answer: 'Limud has 4 roles: Students (learners), Teachers (educators who create assignments and grade work), Admins (district administrators who manage schools, users, and billing), and Parents (who monitor their children\'s progress). Homeschool parents get combined parent + teacher access.' },
+      { question: 'How do I create an account?', answer: 'Visit /register and pick your account type — family, school, or district. Set up your details and admin credentials. Once created, you can add teachers, students, or children through the dashboard.' },
+      { question: 'What are the different user roles?', answer: 'Limud has 4 roles: Students (learners), Teachers (educators who create assignments and grade work), Admins (district administrators who manage schools, users, and billing), and Parents (who monitor their children\'s progress). Family / homeschool parents can flip on Family Teaching Mode for combined parent + teacher access.' },
       { question: 'How does Demo Mode work?', answer: 'Add ?demo=true to any URL to explore the platform with simulated data. No account needed! Demo mode shows all features with realistic mock data. Visit /demo to switch between Student, Teacher, Admin, and Parent views.' },
       { question: 'Can I use Limud on my phone?', answer: 'Yes! Limud is fully responsive and works on any device. On mobile, you\'ll see a bottom navigation bar for quick access. You can even install it as a PWA (Progressive Web App) from your browser for an app-like experience.' },
     ],
@@ -27,25 +27,6 @@ const FAQ_DATA: FAQCategory[] = [
       { question: 'How does AI Auto-Grading work?', answer: 'Teachers can grade individual submissions or batch-grade entire classes with one click. The AI analyzes student work against the assignment rubric, provides a score (0-100), detailed feedback, strengths, areas for improvement, and encouragement.' },
       { question: 'What about the Quiz Generator?', answer: 'Teachers enter a subject, grade level, and topic. The AI generates multiple-choice questions with correct answers, explanations, and skill tags. Teachers can review and edit before sharing with students.' },
       { question: 'Is my data used to train AI models?', answer: 'No. Limud uses the Google Gemini API which does not use API data for training. Student conversations and submissions are stored securely in your district\'s database and are never shared externally.' },
-    ],
-  },
-  {
-    name: 'Gamification',
-    icon: <Trophy size={20} />,
-    items: [
-      { question: 'How do students earn XP?', answer: 'Students earn XP by: completing assignments (25-100 XP based on score), using the AI tutor (15 XP per session), maintaining streaks (75-300 XP bonus), completing daily challenges (up to 50 XP), and achieving milestones.' },
-      { question: 'What are the rank tiers?', answer: 'There are 5 tiers: Bronze (0-499 XP), Silver (500-1,999 XP), Gold (2,000-4,999 XP), Platinum (5,000-9,999 XP), and Diamond (10,000+ XP). Each tier unlocks new avatar options and themes.' },
-      { question: 'What is the Game Store?', answer: 'Students can spend earned XP to unlock educational games. Games cover math, word puzzles, science trivia, and more. Teachers can disable game access per classroom during class time.' },
-      { question: 'How do badges work?', answer: 'Badges are earned automatically when milestones are reached (streaks, XP totals, perfect scores, etc.). Each badge has a rarity level: Common, Rare, Epic, or Legendary. Visit the Badges page to see your collection and progress.' },
-    ],
-  },
-  {
-    name: 'Game Store',
-    icon: <Gamepad2 size={20} />,
-    items: [
-      { question: 'Can teachers control game access?', answer: 'Yes! Teachers can disable games per classroom during class time from the Game Control page. Admins can also control game access district-wide.' },
-      { question: 'Are the games educational?', answer: 'All games in the Limud Game Store are educational. They cover math skills, vocabulary building, science concepts, typing practice, and more. Games are designed to reinforce classroom learning in a fun way.' },
-      { question: 'How much XP do games cost?', answer: 'Games typically cost 50-200 XP. Once purchased, a game is unlocked forever. Students can play as many times as they want.' },
     ],
   },
   {
@@ -62,9 +43,9 @@ const FAQ_DATA: FAQCategory[] = [
     name: 'Parent Features',
     icon: <Mail size={20} />,
     items: [
-      { question: 'What can parents see?', answer: 'Parents can view their children\'s progress, grades, XP/streak data, study time, and skill mastery levels. Weekly AI-generated reports summarize performance and highlight areas needing attention.' },
+      { question: 'What can parents see?', answer: 'Parents can view their children\'s progress, grades, study time, completed assignments, and skill mastery levels. Weekly AI-generated reports summarize performance and highlight areas needing attention.' },
       { question: 'Can parents message teachers?', answer: 'Yes! The Messages feature allows secure parent-teacher communication. Parents can send messages about specific children, and teachers can share progress updates.' },
-      { question: 'What is Homeschool Mode?', answer: 'Homeschool parents get combined Parent + Teacher access. They can create assignments, use AI grading, and monitor their children\'s progress — all from one account.' },
+      { question: 'What is the family / homeschool path?', answer: 'Parents who teach at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload, and AI Check-In summaries. Same single account.' },
     ],
   },
 ];

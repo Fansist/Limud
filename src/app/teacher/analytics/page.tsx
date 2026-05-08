@@ -482,17 +482,12 @@ function OverviewTab({ data, needsDemoParam }: { data: any; needsDemoParam: bool
                   </div>
                 </div>
 
-                {/* Streak & activity */}
-                {(selectedStudent.currentStreak !== undefined || selectedStudent.lastActive) && (
+                {/* Activity */}
+                {selectedStudent.lastActive && (
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Activity</h3>
                     <div className="flex items-center gap-4 text-sm">
-                      {selectedStudent.currentStreak !== undefined && (
-                        <span className="text-gray-600 dark:text-gray-400">Streak: <strong>{selectedStudent.currentStreak} days</strong></span>
-                      )}
-                      {selectedStudent.lastActive && (
-                        <span className="text-gray-600 dark:text-gray-400">Last active: <strong>{new Date(selectedStudent.lastActive).toLocaleDateString()}</strong></span>
-                      )}
+                      <span className="text-gray-600 dark:text-gray-400">Last active: <strong>{new Date(selectedStudent.lastActive).toLocaleDateString()}</strong></span>
                     </div>
                   </div>
                 )}
