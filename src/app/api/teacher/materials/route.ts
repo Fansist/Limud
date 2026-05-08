@@ -40,14 +40,14 @@ export const GET = apiHandler(async (req: Request) => {
   const courseId = searchParams.get('courseId') || undefined;
   const classroomId = searchParams.get('classroomId') || undefined;
 
-  // Master demo / demo accounts: return empty array; UI reads from demo-state.
-  if (user.isMasterDemo) {
-    return NextResponse.json({ materials: [], demo: true });
-  }
+  // Master demo: ALL ACCESS — see every teacher's materials, not just their own.
+  // The UI separately merges in DEMO_MATERIALS seeds so showcase content is also
+  // visible.
+  const ownerFilter = user.isMasterDemo ? {} : { createdById: user.id };
 
   const materials = await prisma.material.findMany({
     where: {
-      createdById: user.id,
+      ...ownerFilter,
       ...(courseId ? { courseId } : {}),
       ...(classroomId ? { classroomId } : {}),
     },
@@ -55,11 +55,16 @@ export const GET = apiHandler(async (req: Request) => {
       course: { select: { id: true, name: true, subject: true } },
       classroom: { select: { id: true, name: true, subject: true } },
       _count: { select: { personalizedVersions: true } },
+      // Master demo wants to see who authored each material; regular teachers
+      // are by definition the author of their own.
+      ...(user.isMasterDemo
+        ? { createdBy: { select: { id: true, name: true, email: true } } }
+        : {}),
     },
     orderBy: { createdAt: 'desc' },
   });
 
-  return NextResponse.json({ materials });
+  return NextResponse.json({ materials, allAccess: !!user.isMasterDemo });
 });
 
 export const POST = apiHandler(async (req: Request) => {

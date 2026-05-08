@@ -65,8 +65,14 @@ const FORMAT_LABELS: Record<string, { label: string; icon: string; tint: string 
 export default function TeacherMaterialViewerPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const isDemo = useIsDemo();
+  // Master demo gets all-access — same as a regular teacher reading their own,
+  // but the API also lets it view other teachers' materials.
+  const isDemo = useIsDemo({ excludeMasterDemo: true });
   const id = params?.id;
+  // Demo-seed materials live in code, not the DB. Detect by id prefix so the
+  // viewer reads from getDemoMaterials() for those, and from the API for any
+  // real DB material — including ones master demo loads from other teachers.
+  const isDemoSeed = !!id && id.startsWith('demo-');
 
   const [meta, setMeta] = useState<MaterialMeta | null>(null);
   const [rows, setRows] = useState<PersonalizedRow[]>([]);
@@ -86,7 +92,7 @@ export default function TeacherMaterialViewerPage() {
     setLoading(true);
     (async () => {
       try {
-        if (isDemo) {
+        if (isDemo || isDemoSeed) {
           const seed = getDemoMaterials().find((m) => m.id === id);
           if (!seed) {
             if (mounted) toast.error('Material not found');
@@ -152,14 +158,14 @@ export default function TeacherMaterialViewerPage() {
       }
     })();
     return () => { mounted = false; };
-  }, [id, isDemo]);
+  }, [id, isDemo, isDemoSeed]);
 
   async function openStudentView(studentId: string, studentName: string) {
     setViewing({ studentId, studentName });
     setViewLoading(true);
     setViewContent(null);
     try {
-      if (isDemo) {
+      if (isDemo || isDemoSeed) {
         const profiles: Record<string, { learningStyle: string; interests: string }> = {
           'demo-student-lior':  { learningStyle: 'visual',      interests: 'comics marvel superheroes' },
           'demo-student-eitan': { learningStyle: 'auditory',    interests: 'hip-hop rhyme music' },

@@ -36,8 +36,9 @@ export const GET = apiHandler(async (req: Request, ctx: { params: { id: string }
     return NextResponse.json({ error: 'Missing material id' }, { status: 400 });
   }
 
-  // Master demo path: synthesize a small set so the page renders end-to-end.
-  if (user.isMasterDemo) {
+  // Master demo viewing a demo-seed material: synthesize a small set so the
+  // page renders end-to-end without hitting the database.
+  if (user.isMasterDemo && materialId.startsWith('demo-')) {
     return NextResponse.json({
       material: {
         id: materialId,
@@ -109,7 +110,8 @@ export const GET = apiHandler(async (req: Request, ctx: { params: { id: string }
   if (!material) {
     return NextResponse.json({ error: 'Material not found' }, { status: 404 });
   }
-  if (material.createdById !== user.id) {
+  // Master demo has all-access; regular teachers can only view their own.
+  if (!user.isMasterDemo && material.createdById !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

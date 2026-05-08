@@ -40,7 +40,9 @@ type MaterialItem = {
 
 export default function TeacherMaterialsPage() {
   const { data: session } = useSession();
-  const isDemo = useIsDemo();
+  // Master demo gets the all-access view (real DB + merged demo seeds).
+  const isMasterDemo = !!(session?.user as { isMasterDemo?: boolean })?.isMasterDemo;
+  const isDemo = useIsDemo({ excludeMasterDemo: true });
 
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,23 +62,32 @@ export default function TeacherMaterialsPage() {
     let mounted = true;
     async function load() {
       try {
+        const demoSeeds: MaterialItem[] = getDemoMaterials().map((m) => ({
+          id: m.id,
+          title: m.title,
+          subject: m.subject,
+          gradeLevel: m.gradeLevel,
+          body: m.body,
+          course: m.course || null,
+          classroom: null,
+          createdAt: m.createdAt,
+          _count: { personalizedVersions: m.hasPersonalized ? 3 : 0 },
+        }));
+
         if (isDemo) {
-          const items = getDemoMaterials().map((m) => ({
-            id: m.id,
-            title: m.title,
-            subject: m.subject,
-            gradeLevel: m.gradeLevel,
-            body: m.body,
-            course: m.course || null,
-            classroom: null,
-            createdAt: m.createdAt,
-            _count: { personalizedVersions: m.hasPersonalized ? 3 : 0 },
-          }));
-          if (mounted) setMaterials(items);
-        } else {
-          const res = await fetch('/api/teacher/materials');
-          const data = await res.json();
-          if (mounted) setMaterials(data.materials || []);
+          if (mounted) setMaterials(demoSeeds);
+          return;
+        }
+
+        const res = await fetch('/api/teacher/materials');
+        const data = await res.json();
+        const real: MaterialItem[] = data.materials || [];
+        // Master demo: merge real DB results with demo seeds so showcase
+        // content stays visible alongside any teacher uploads.
+        if (isMasterDemo) {
+          if (mounted) setMaterials([...real, ...demoSeeds]);
+        } else if (mounted) {
+          setMaterials(real);
         }
       } catch (e) {
         console.error('[teacher/materials] load failed', e);
@@ -89,7 +100,7 @@ export default function TeacherMaterialsPage() {
     return () => {
       mounted = false;
     };
-  }, [isDemo]);
+  }, [isDemo, isMasterDemo]);
 
   function resetForm() {
     setTitle('');

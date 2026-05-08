@@ -60,7 +60,11 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; sub: string }[] =
 export default function TeacherCourseworkPage() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
-  const isDemo = useIsDemo();
+  // Master demo gets the all-access view (real DB + merged demo seeds), so we
+  // exclude it from the demo-mode short-circuit. Regular ?demo=true URLs and
+  // other demo accounts still use the local demo path.
+  const isMasterDemo = !!(session?.user as { isMasterDemo?: boolean })?.isMasterDemo;
+  const isDemo = useIsDemo({ excludeMasterDemo: true });
   const demoSuffix = isDemo ? '?demo=true' : '';
   const initialTab = (searchParams?.get('tab') === 'assignments' ? 'assignments' : 'materials') as TabId;
   const [tab, setTab] = useState<TabId>(initialTab);
@@ -84,23 +88,34 @@ export default function TeacherCourseworkPage() {
 
     async function loadMaterials() {
       try {
+        const demoSeedItems: TeacherMaterial[] = getDemoMaterials().map((m) => ({
+          id: m.id,
+          title: m.title,
+          subject: m.subject,
+          gradeLevel: m.gradeLevel,
+          body: m.body,
+          course: m.course,
+          classroom: null,
+          createdAt: m.createdAt,
+          _count: { personalizedVersions: m.hasPersonalized ? 3 : 0 },
+        }));
+
         if (isDemo) {
-          const items = getDemoMaterials().map((m) => ({
-            id: m.id,
-            title: m.title,
-            subject: m.subject,
-            gradeLevel: m.gradeLevel,
-            body: m.body,
-            course: m.course,
-            classroom: null,
-            createdAt: m.createdAt,
-            _count: { personalizedVersions: m.hasPersonalized ? 3 : 0 },
-          }));
-          if (mounted) setMaterials(items);
-        } else {
-          const res = await fetch('/api/teacher/materials');
-          const data = await res.json();
-          if (mounted) setMaterials(data.materials || []);
+          // Pure demo path (?demo=true or non-master demo accounts).
+          if (mounted) setMaterials(demoSeedItems);
+          return;
+        }
+
+        // Real-DB path. Master demo uses the same path AND merges in demo
+        // seeds so the showcase content stays visible alongside any real
+        // teacher uploads.
+        const res = await fetch('/api/teacher/materials');
+        const data = await res.json();
+        const real: TeacherMaterial[] = data.materials || [];
+        if (isMasterDemo) {
+          if (mounted) setMaterials([...real, ...demoSeedItems]);
+        } else if (mounted) {
+          setMaterials(real);
         }
       } catch (e) {
         console.error('[teacher/coursework] materials load failed', e);
@@ -111,12 +126,20 @@ export default function TeacherCourseworkPage() {
 
     async function loadAssignments() {
       try {
+        const demoSeedAssignments = getTeacherAssignments() as unknown as TeacherAssignment[];
+
         if (isDemo) {
-          if (mounted) setAssignments(getTeacherAssignments() as unknown as TeacherAssignment[]);
-        } else {
-          const res = await fetch('/api/assignments');
-          const data = await res.json();
-          if (mounted) setAssignments(data.assignments || []);
+          if (mounted) setAssignments(demoSeedAssignments);
+          return;
+        }
+
+        const res = await fetch('/api/assignments');
+        const data = await res.json();
+        const real: TeacherAssignment[] = data.assignments || [];
+        if (isMasterDemo) {
+          if (mounted) setAssignments([...real, ...demoSeedAssignments]);
+        } else if (mounted) {
+          setAssignments(real);
         }
       } catch (e) {
         console.error('[teacher/coursework] assignments load failed', e);
@@ -128,7 +151,7 @@ export default function TeacherCourseworkPage() {
     loadMaterials();
     loadAssignments();
     return () => { mounted = false; };
-  }, [isDemo, teacherId]);
+  }, [isDemo, isMasterDemo, teacherId]);
 
   const counts = useMemo(() => {
     const totalRenders = materials.reduce((sum, m) => sum + (m._count?.personalizedVersions || 0), 0);

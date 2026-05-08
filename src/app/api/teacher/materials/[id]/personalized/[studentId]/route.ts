@@ -28,10 +28,9 @@ export const GET = apiHandler(async (
     return NextResponse.json({ error: 'Missing id or studentId' }, { status: 400 });
   }
 
-  // Master demo: return a canned shape; the client is expected to read the
-  // matching demo sample via getDemoPersonalizedSample() instead of using
-  // this content. This route still exists to prevent 404s in the showcase.
-  if (user.isMasterDemo) {
+  // Master demo viewing a demo-seed material: client reads demo sample
+  // directly via getDemoPersonalizedSample(); this route just confirms.
+  if (user.isMasterDemo && materialId.startsWith('demo-')) {
     return NextResponse.json({
       demo: true,
       material: { id: materialId, title: 'Demo material' },
@@ -54,7 +53,8 @@ export const GET = apiHandler(async (
   if (!material) {
     return NextResponse.json({ error: 'Material not found' }, { status: 404 });
   }
-  if (material.createdById !== user.id) {
+  // Master demo has all-access; regular teachers can only view their own.
+  if (!user.isMasterDemo && material.createdById !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
