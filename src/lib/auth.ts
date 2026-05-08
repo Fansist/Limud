@@ -34,7 +34,7 @@ const MASTER_DEMO = {
   password: 'LimudMaster2026!',
   user: {
     id: 'master-demo',
-    email: 'master@limud.edu',
+    email: 'erez.ofer4@gmail.com',
     name: 'Master Demo',
     role: 'TEACHER',
     accountType: 'DISTRICT',

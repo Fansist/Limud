@@ -19,7 +19,7 @@ const DEMO_EMAILS = new Set([
   'teacher@limud.edu',
   'admin@limud.edu',
   'parent@limud.edu',
-  'master@limud.edu',
+  'erez.ofer4@gmail.com',
 ]);
 
 /**

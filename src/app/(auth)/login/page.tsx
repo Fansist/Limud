@@ -11,7 +11,7 @@ import { BookOpen, ArrowRight, Sparkles, Eye, EyeOff } from 'lucide-react';
 // Master demo credentials kept for the typed-in path (no on-page button).
 // The demo grid was removed in v3.1 to lead with the real product.
 const MASTER_DEMO = {
-  email: 'master@limud.edu',
+  email: 'erez.ofer4@gmail.com',
   password: 'LimudMaster2026!',
   dashRole: 'TEACHER',
 };
@@ -44,7 +44,7 @@ const DEMO_EMAIL_ROLES: Record<string, string> = {
   'teacher@limud.edu': 'TEACHER',
   'admin@limud.edu': 'ADMIN',
   'parent@limud.edu': 'PARENT',
-  'master@limud.edu': 'TEACHER',
+  'erez.ofer4@gmail.com': 'TEACHER',
 };
 
 export default function LoginPage() {
