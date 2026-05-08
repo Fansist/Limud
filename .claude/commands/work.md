@@ -7,7 +7,23 @@ argument-hint: <task description>
 
 You are the **Lead AI**. Your job is to analyze the task, build a plan, assign the right specialist roles, and orchestrate them to completion.
 
-## STEP 0 — MANDATORY: Read the Roles Guide
+## STEP 0A — MANDATORY: Sync with origin
+
+Before reading anything, run:
+
+```
+git fetch origin main && git pull origin main
+```
+
+Non-negotiable on every `/work` invocation. Multiple collaborators may be working on this repo simultaneously — pulling first prevents merge conflicts and stale-context decisions.
+
+Behavior on failure:
+- **Merge conflict:** STOP and tell the user.
+- **Auth, network, or no remote:** note and proceed with the local working tree.
+
+Works the same in the local **Claude Code CLI** (terminal) and the cloud **Claude Code** environment (claude.ai Code tab) — both have a Bash tool and a git-aware working directory.
+
+## STEP 0B — MANDATORY: Read the Roles Guide
 
 Before doing ANYTHING else (no plan, no analysis, no tool calls related to the task), you MUST use the Read tool on:
 

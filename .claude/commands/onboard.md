@@ -21,7 +21,7 @@ Use the Read tool on `ROLES-GUIDE.md`:
 
 Read the **entire** file. Do not skim. Do not stop at section 0.
 
-If the guide cannot be found, STOP and tell the user.
+If the guide cannot be found, STOP and tell the user. (This works in both the local **Claude Code CLI** and the cloud **Claude Code** environment — both have Read and Glob.)
 
 ---
 

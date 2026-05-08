@@ -9,21 +9,22 @@ You are the **Lead AI** running in **parallel mode**. Same job as `/work`, but y
 
 **If `$ARGUMENTS` is empty, ask the user what task they want to run and stop. Do not proceed without a task.**
 
-## STEP 0A — MANDATORY: Pull the latest from origin
+## STEP 0A — MANDATORY: Sync with origin
 
 Before reading anything, run:
 
 ```
-git fetch origin main
-git pull origin main
+git fetch origin main && git pull origin main
 ```
 
-This is **non-negotiable on every single `/pwork` invocation**, even if you think nothing has changed. Another collaborator may be working on this same repo from a different session — pulling first is what prevents merge conflicts and stale-context decisions. If `git pull` produces conflicts, STOP and tell the user before doing anything else.
+This is **non-negotiable on every single `/pwork` invocation**, even if you think nothing has changed. Another collaborator may be working on this same repo from a different session — pulling first is what prevents merge conflicts and stale-context decisions.
 
-If the repo isn't cloned yet on this machine, clone it first:
-```
-git clone https://github.com/Fansist/Limud.git
-```
+Behavior on failure:
+- **Merge conflict:** STOP and tell the user. Do not attempt the task on a conflicted tree.
+- **Auth or network failure** (no remote, no credentials, offline): note the failure to the user, then proceed with the local working tree. Do not block the task on it.
+- **No `origin` remote configured:** treat as auth/network — note and proceed.
+
+This step works the same way in both the local **Claude Code CLI** (terminal) and the cloud **Claude Code** environment (claude.ai Code tab). Both have a Bash tool and a git-aware working directory.
 
 ## STEP 0B — MANDATORY: Read the Roles Guide
 
