@@ -58,6 +58,32 @@ services:
       #   value: https://www.genspark.ai/api/llm_proxy/v1
       # Without these, AI features (tutor, lesson planner, grading) run in demo mode.
 
+  - type: cron
+    name: weekly-digest-tick
+    runtime: node
+    region: oregon
+    schedule: "0 * * * *"   # hourly UTC
+    buildCommand: "echo 'no build needed'"
+    startCommand: "curl -fsS -X POST -H \"Authorization: Bearer $CRON_SECRET\" $LIMUD_BASE_URL/api/cron/weekly-digest"
+    envVars:
+      - key: CRON_SECRET
+        sync: false
+      - key: LIMUD_BASE_URL
+        value: https://limud.co
+
+  - type: cron
+    name: at-risk-alerts-daily
+    runtime: node
+    region: oregon
+    schedule: "0 14 * * *"  # 14:00 UTC daily
+    buildCommand: "echo 'no build needed'"
+    startCommand: "curl -fsS -X POST -H \"Authorization: Bearer $CRON_SECRET\" $LIMUD_BASE_URL/api/cron/at-risk-alerts"
+    envVars:
+      - key: CRON_SECRET
+        sync: false
+      - key: LIMUD_BASE_URL
+        value: https://limud.co
+
 # ─── Optional: Render PostgreSQL Database ─────────────────────
 # Uncomment below to provision a managed Render PostgreSQL DB.
 # After creation, DATABASE_URL is automatically injected.

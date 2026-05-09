@@ -4,6 +4,226 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [4.0.0] - 2026-05-09 — Update 4.0 (Parent Loop + per-district subdomains)
+
+The first feature update since v14.0.0's clean rebuild. Two
+moat-defining initiatives ship together:
+
+1. **Parent Loop** — the closed feedback loop the competitive brief
+   identified as Limud's #1 differentiator: weekly digest emails,
+   at-risk alerts, an in-app alerts inbox, and a settings surface
+   where the parent picks exactly when and how Limud reaches them.
+2. **Per-district subdomains** — `<slug>.limud.co` is now the
+   front door for every district. `limud.co` and `www.limud.co`
+   stay marketing. A user logging in on `acme.limud.co` whose
+   account isn't in Acme is rejected at the auth layer.
+
+### Added — Schema
+
+Three new Prisma models (`prisma/schema.prisma:1833-1903`):
+
+- **`NotificationPreference`** — one row per user. Fields:
+  `digestEnabled`, `digestDayOfWeek` (0-6, Sunday=0),
+  `digestHour` (0-23), `digestTimezone` (IANA tz, default
+  `America/Los_Angeles`), `eventOnGradePosted`, `eventOnAtRisk`,
+  `eventOnAssignment`, `channelEmail`. Defaults are sensible
+  on create (digest on, both critical events on, assignments
+  off, email on).
+- **`ParentDigestRun`** — audit + idempotency record.
+  `@@unique([parentId, year, weekOfYear])` so a parent receives
+  one digest per ISO week regardless of how many times the cron
+  fires. Persists `payload` (JSON snapshot) for the future
+  "previous digests" UI.
+- **`ParentAlert`** — one row per fired at-risk alert. Indexed
+  for fast `(parentId, isRead)` listing and
+  `(parentId, childId, level, createdAt)` debounce.
+
+`SchoolDistrict.subdomain String @unique` already existed on
+the schema; this update is what finally uses it.
+
+### Added — Email templates
+
+`src/lib/email-templates.ts` gains:
+
+- **`atRiskAlert`** — supportive subject line ("Limud check-in
+  for {childName}", never "ALERT"), max 3 indicators + 3
+  recommendations, plain-text fallback.
+- **`gradePostedToParent`** — score card + truncated feedback
+  preview, plain-text fallback.
+
+A small `esc()` HTML-escape helper was added; user-controlled
+strings (names, indicators, feedback excerpts) are now escaped
+in every template, closing a latent injection vector in the
+existing `weeklyParentDigest`.
+
+### Added — `src/lib/parent-fanout.ts`
+
+The central event-fanout helper. Discriminated union event
+type (`'grade-posted' | 'at-risk'`). Handles:
+
+- Looking up the child's parent.
+- Auto-creating `NotificationPreference` with defaults on first
+  read.
+- Always creating an in-app `Notification` (universal channel).
+- For `at-risk`: writing a `ParentAlert` row, debounced by a
+  configurable `PARENT_ALERT_DEBOUNCE_DAYS` window (default 7) —
+  same `(parentId, childId, level)` won't re-fire within the
+  window.
+- Email send is gated on the relevant per-event preference,
+  `channelEmail`, parent email present, and `!parent.isDemo`.
+  Demo accounts NEVER receive real email.
+
+`/api/grade` (both POST single-grade and PUT batch-grade)
+fires `fanoutToParents({ kind: 'grade-posted', ... })` as
+fire-and-forget after each successful grade commit. The
+legacy duplicate-notification block in `applyGradeSideEffects`
+was removed.
+
+### Added — Parent APIs
+
+- **`GET /api/parent/preferences`** — auto-creates the row
+  with schema defaults if missing, returns
+  `{ preferences }`.
+- **`PUT /api/parent/preferences`** — upserts. Validates
+  `digestDayOfWeek` (0-6), `digestHour` (0-23), and the
+  IANA tz via `new Intl.DateTimeFormat({ timeZone })` in a
+  try/catch. Bad inputs → 400.
+- **`GET /api/parent/alerts`** — paginated
+  `{ items, total, page, pageSize, unreadCount }` with the
+  child's name on each row. `?unreadOnly=true` filter.
+- **`PATCH /api/parent/alerts`** — body `{ alertId }` or
+  `{ markAllRead: true }`. Always scoped to
+  `parentId: user.id` via `updateMany`.
+- **`GET /api/parent/digests`** — paginated history. The
+  heavy `payload` JSON is excluded from the list response.
+
+All four routes use the existing `apiHandler + requireRole('PARENT')`
+middleware so rate-limit + audit + Prisma-error-mapping is
+consistent with the rest of the parent surface.
+
+### Added — Cron
+
+User decision: **Render Cron Jobs, not Vercel.** Two new
+`type: cron` services in `render.yaml`, both `region: oregon`
+to match the web service, both reading `CRON_SECRET` and
+`LIMUD_BASE_URL` from env:
+
+- **`weekly-digest-tick`** — schedule `0 * * * *` (hourly UTC).
+  Calls `POST /api/cron/weekly-digest`.
+- **`at-risk-alerts-daily`** — schedule `0 14 * * *`
+  (14:00 UTC daily). Calls `POST /api/cron/at-risk-alerts`.
+
+The existing `/api/cron/weekly-digest` route was substantially
+rewritten:
+
+- Honors per-parent schedule. Translates the current UTC
+  moment into the parent's `digestTimezone` via `Intl.DateTimeFormat`,
+  compares day-of-week + hour to the parent's `digestDayOfWeek`
+  + `digestHour`. Includes a +1h drift window so cron
+  invocation jitter doesn't drop the slot.
+- Idempotent on `(parentId, year, weekOfYear)` via the new
+  `ParentDigestRun` model. ISO week computed inline (no
+  date library added).
+- Always emits an in-app `Notification` even when the email
+  channel is off. Email send is the gated layer.
+- Returns
+  `{ runAt, totalCandidates, scheduledMatch, emailsSent,
+    emailsSkipped, alreadyDelivered, skipReasons }`
+  for operability.
+
+`/api/cron/at-risk-alerts` is NEW. Iterates active non-demo
+students with a `parentId`, runs `detectStruggle()`, and on
+`medium`/`high` delegates to `fanoutToParents` (which owns
+debounce + in-app + email).
+
+### Added — Per-district subdomains
+
+- **`src/lib/district-host.ts`** — pure helpers, edge-safe.
+  `extractSubdomain(host)` strips port, splits on `.`,
+  rejects reserved labels (`www`, `app`, `api`, `admin`,
+  `mail`, `static`, `assets`), validates against
+  `/^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$/`.
+- **`/api/district/resolve?slug=…`** — Node-runtime endpoint
+  that looks up `SchoolDistrict.subdomain` and returns
+  `{ id, name, slug }` with `Cache-Control: public,
+  s-maxage=60, stale-while-revalidate=300`. Public
+  (used by edge middleware).
+- **`src/middleware.ts`** — extracts the subdomain, calls
+  the resolver (in-process LRU cache, 60 s TTL, fetched
+  via internal HTTP from edge), injects three headers
+  (`x-limud-district-id`, `x-limud-district-slug`,
+  `x-limud-district-name`). On a known subdomain, marketing
+  routes (`/`, `/about`, `/pricing`, `/roadmap`) redirect
+  to `/login`. On an unknown subdomain, `/` rewrites to
+  `/district-not-found`. Localhost dev supports a
+  `?district=slug` query-param fallback.
+- **`src/lib/auth.ts`** — `enforceDistrictLockdown(host,
+  email, userDistrictId)` runs inside the `authorize`
+  callback (both demo-account and DB branches). On a
+  subdomain, looks up the district and rejects with
+  `"This account is not a member of {districtName}."` if
+  the user's `districtId` doesn't match. Master demo
+  email bypasses the lockdown so the all-access demo
+  still works on every host.
+- **`src/app/district-not-found/page.tsx`** — branded
+  fallback with a "Go to limud.co" button.
+- Cookies stay **host-scoped** (no `domain: '.limud.co'`).
+  Each subdomain has its own session; user-seeded
+  districts can't leak cookies to siblings.
+
+### Added — Parent UX
+
+- **`src/components/ui/SchedulePicker.tsx`** — controlled
+  3-select component (day, hour, timezone). 7 common US
+  timezones plus UTC; an externally-saved tz that isn't
+  in the list is surfaced as a "custom" option so state
+  never silently disappears.
+- **`/parent/settings`** — three card sections (Weekly
+  Digest, Real-time Alerts, Channels). Sticky save bar
+  with `react-hot-toast`. Local `<Toggle>` with
+  `role="switch"`. Demo mode renders defaults; saves
+  POST as normal.
+- **`/parent/alerts`** — "Check-In Alerts" inbox.
+  Per-row level chip (low gray, medium amber, high red,
+  all `role="status"`), child name, expand to indicators
+  + recommendations. Click row toggles expand and marks
+  read (optimistic with rollback). "Mark all read"
+  button. `<EmptyState>` empty branch.
+- **`DashboardLayout`** — new "Account" nav section
+  (Alerts + Settings) added to `PARENT` and
+  `HOMESCHOOL_PARENT`. Mobile nav now includes Alerts on
+  both flavors (Stats dropped from
+  `MOBILE_NAV.HOMESCHOOL_PARENT` to make room).
+
+### Notes
+
+- **New env vars** (Render dashboard):
+  - `LIMUD_BASE_URL` (default `https://limud.co`) — set on
+    both new cron services.
+  - `PARENT_ALERT_DEBOUNCE_DAYS` (optional, default `7`).
+- The existing `/api/cron/weekly-digest` will not "spam"
+  parents on the first hourly tick after deploy: the
+  `(parentId, year, weekOfYear)` unique constraint
+  serializes one digest per parent per ISO week. Parents
+  whose chosen slot has already passed for the current
+  week will simply wait until next week.
+- Marketing site behavior on `limud.co` and `www.limud.co`
+  is unchanged. Subdomain routing is opt-in per district
+  (operator points DNS at the wildcard — Render handles
+  the TLS).
+
+### Out of scope (still deferred)
+
+- SMS / push channels.
+- AI-generated narrative inside the digest body
+  (spec §13).
+- Multi-language digest.
+- Test runs of the cron in production — first deploy
+  should be observed for one full week before trusting
+  the schedule code.
+
+---
+
 ## [3.7.0] - 2026-05-09 — Update 3.7 (Deferred-list cleanup)
 
 Worked the deferred list from 3.6: pagination on every district / admin

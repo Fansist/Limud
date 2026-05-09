@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v14.7.0 · Update 3.7 · Deferred-list cleanup: pagination, loading, error wraps, log polish</code>
+  <code>v15.0.0 · Update 4.0 · Parent Loop: weekly digest + at-risk alerts + per-district subdomains</code>
 </p>
 
 ---

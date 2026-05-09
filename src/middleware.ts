@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { AUTH_SECRET } from '@/lib/config';
+import { extractSubdomain } from '@/lib/district-host';
 
 // ═══════════════════════════════════════════════════════════════════
 // PATH CONFIGURATION
@@ -40,6 +41,7 @@ const PUBLIC_API_PATHS = [
   '/api/district-link/search',  // v9.6.3: District search is public so students can browse before login
   '/api/district-link/seed',    // v9.7.0: Manual seed endpoint (creates districts + admin users)
   '/api/cron',                  // v10.0: Cron endpoints (protected by CRON_SECRET header)
+  '/api/district/resolve',      // v15.0: Public subdomain → district resolver (called by edge middleware)
 ];
 
 const ADMIN_PATHS = ['/admin'];
@@ -125,6 +127,39 @@ function matchesPath(pathname: string, paths: string[]): boolean {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// DISTRICT SUBDOMAIN RESOLUTION (v15.0)
+// ═══════════════════════════════════════════════════════════════════
+
+// In-process LRU-style cache for resolved districts. Edge middleware
+// preserves memory across invocations on the same isolate.
+const districtCache = new Map<string, { id: string; name: string; ts: number }>();
+const DISTRICT_CACHE_TTL_MS = 60_000;
+
+async function resolveDistrict(
+  slug: string,
+  origin: string,
+): Promise<{ id: string; name: string } | null> {
+  const cached = districtCache.get(slug);
+  const now = Date.now();
+  if (cached && now - cached.ts < DISTRICT_CACHE_TTL_MS) {
+    return { id: cached.id, name: cached.name };
+  }
+  try {
+    const res = await fetch(
+      `${origin}/api/district/resolve?slug=${encodeURIComponent(slug)}`,
+      { headers: { 'x-internal-resolver': '1' } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.id) return null;
+    districtCache.set(slug, { id: data.id, name: data.name, ts: now });
+    return { id: data.id, name: data.name };
+  } catch {
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // CONTENT SECURITY POLICY
 // ═══════════════════════════════════════════════════════════════════
 
@@ -186,9 +221,54 @@ export async function middleware(request: NextRequest) {
     );
   }
 
+  // ── 5b. District subdomain resolution (v15.0) ──
+  // Determine if this request is coming in on a per-district subdomain
+  // (e.g. ofer.limud.co). If so, attach district context headers and apply
+  // marketing-route redirects. The resolver is called only for requests
+  // that already pass basic security gates.
+  const host = request.headers.get('host');
+  let subdomain = extractSubdomain(host);
+
+  // Localhost / dev fallback via ?district= query param
+  if (!subdomain && process.env.NODE_ENV !== 'production') {
+    subdomain = request.nextUrl.searchParams.get('district');
+  }
+
+  const requestHeaders = new Headers(request.headers);
+
+  if (subdomain) {
+    const origin = request.nextUrl.origin;
+    const district = await resolveDistrict(subdomain, origin);
+    if (district) {
+      requestHeaders.set('x-limud-district-id', district.id);
+      requestHeaders.set('x-limud-district-slug', subdomain);
+      requestHeaders.set('x-limud-district-name', district.name);
+
+      // On a district subdomain, marketing routes redirect to login
+      if (
+        pathname === '/' ||
+        pathname === '/about' ||
+        pathname === '/pricing' ||
+        pathname === '/roadmap'
+      ) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/login';
+        return NextResponse.redirect(url);
+      }
+    } else {
+      // Unknown subdomain — show a 404-style "district not found" page
+      // instead of marketing for the root path.
+      if (pathname === '/') {
+        const url = request.nextUrl.clone();
+        url.pathname = '/district-not-found';
+        return NextResponse.rewrite(url);
+      }
+    }
+  }
+
   // ── 6. Public paths — allow without auth ──
   if (matchesPath(pathname, PUBLIC_PATHS) || matchesPath(pathname, PUBLIC_API_PATHS)) {
-    const response = NextResponse.next();
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
     addSecurityHeaders(response, pathname);
     return response;
   }
@@ -289,7 +369,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── 10. Build response with security headers ──
-  const response = NextResponse.next();
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
   addSecurityHeaders(response, pathname);
   response.headers.set('X-Limud-User-Role', role || 'unknown');
   return response;

@@ -1,7 +1,64 @@
 # SPEC — Parent Weekly Digest + At-Risk Alerts
-**Owner:** [TBD]   **Status:** Draft   **Target release:** v15.0.0 (Update 4.0)
+**Owner:** [TBD]   **Status:** Implemented (v15.0.0)   **Target release:** v15.0.0 (Update 4.0)
 **Date:** 2026-05-09   **Author:** WRITER (auto-generated, human review required)
 **Related:** COMPETITIVE-BRIEF.md §5.3, §8.1.1; COMPETITIVE-BRIEF-2026-05-09.md (PowerBuddy escalation)
+
+## 0. Decisions log (answers from product owner, 2026-05-09)
+
+Three open questions from §12 were resolved before the build wave;
+this section is the source of truth, the rest of the spec was
+amended around it.
+
+1. **Cron host: Render Cron Jobs (not Vercel).** Limud is not on
+   Vercel. Two `type: cron` services were added to `render.yaml`:
+   - `weekly-digest-tick` — `0 * * * *` (hourly UTC).
+   - `at-risk-alerts-daily` — `0 14 * * *` (14:00 UTC daily).
+   Each is a thin `curl -fsS -X POST -H "Authorization: Bearer
+   $CRON_SECRET" $LIMUD_BASE_URL/api/cron/...` invocation. Render
+   schedules are UTC-only; per-parent timezone translation happens
+   inside the route, not in the cron expression.
+2. **Parent picks the schedule, AND can be alerted on events.**
+   `NotificationPreference` carries both:
+   - **Timed digest:** `digestEnabled` + `digestDayOfWeek` (0-6) +
+     `digestHour` (0-23) + `digestTimezone` (IANA tz, default
+     `America/Los_Angeles`). The hourly cron compares the parent's
+     local day/hour to the slot they picked; if it matches (with a
+     +1h drift window), the digest goes out for the current ISO
+     week — and is idempotent on `(parentId, year, weekOfYear)` so
+     it can't double-send.
+   - **Event triggers:** `eventOnGradePosted`, `eventOnAtRisk`,
+     `eventOnAssignment`. Each is a separate toggle on the
+     settings page. `/api/grade` fires `fanoutToParents({ kind:
+     'grade-posted' })` immediately after a successful commit;
+     the at-risk cron fires `fanoutToParents({ kind: 'at-risk' })`
+     when `detectStruggle()` returns medium/high.
+   - **Channels:** in-app notification is universal; email is
+     gated on `channelEmail` AND the per-event preference.
+3. **Per-district subdomains.** `<slug>.limud.co` is the front door
+   for each district. `limud.co` and `www.limud.co` stay marketing.
+   `SchoolDistrict.subdomain` was already in the schema; v15.0.0
+   activates it via:
+   - Edge middleware extracts the subdomain, calls
+     `/api/district/resolve?slug=…` (Node runtime, 60-second
+     in-process LRU cache), and injects `x-limud-district-id /
+     -slug / -name` headers downstream.
+   - On a known subdomain, the marketing routes (`/`, `/about`,
+     `/pricing`, `/roadmap`) redirect to `/login`.
+   - On an unknown subdomain, `/` rewrites to
+     `/district-not-found` (branded fallback).
+   - Cookies stay **host-scoped** (no `domain: '.limud.co'`).
+     Each subdomain has its own session — district admins seed
+     their own subdomains, so domain-wide cookies would be a
+     data-leak risk.
+   - NextAuth's `authorize` callback runs
+     `enforceDistrictLockdown(host, email, userDistrictId)` on
+     both demo-account and DB branches. A user logging in on
+     `acme.limud.co` whose `districtId !== Acme.id` is rejected
+     with the message "This account is not a member of {Acme}."
+     The master demo email is exempt so the all-access demo
+     still works on every host.
+   - Localhost dev supports a `?district=<slug>` query-param
+     fallback so the lockdown is testable without DNS work.
 
 ## 1. Problem
 Parents of K–12 learners want to know two things on a regular cadence: is my child making progress, and is my child stuck. Limud grades submissions, classifies struggle via `detectStruggle()`, and exposes per-child reports through `/api/parent/reports`, but the parent surface today is pull-only. A `weeklyParentDigest` template and a cron route exist, but the cron is unscheduled, every run recomputes with no audit trail, every parent is implicitly opted in with no preferences, and there is no at-risk alert pipeline. PowerSchool's PowerBuddy parent assistant shipped late April 2026, compressing the differentiation window from 18 months to roughly 12. This spec closes the loop: scheduled push of weekly progress, threshold-cross alerts on risk escalation, and the preferences and audit infrastructure required to ship responsibly.

@@ -4,6 +4,7 @@ import { gradeSubmission } from '@/lib/ai';
 import prisma from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { gradePosted } from '@/lib/email-templates';
+import { fanoutToParents } from '@/lib/parent-fanout';
 import {
   computeXpEarned,
   computeLevel,
@@ -17,18 +18,19 @@ export const maxDuration = 60;
 
 /**
  * v2.7 — Shared post-grade side effects. Called from both POST (single) and
- * PUT (batch) so every graded submission updates RewardStats and fans the
- * notification out to the student's parent.
+ * PUT (batch) so every graded submission updates RewardStats.
  *
  * Side effects (skipped entirely in demo mode):
  *   1. RewardStats upsert — XP, assignmentsCompleted, perfectScores, level
  *   2. Badge checks — first_graded, ten_assignments, perfect_3
- *   3. Parent notification — if student.parentId is set
+ *
+ * Parent fanout (in-app notification + email when prefs allow) is handled
+ * separately by `fanoutToParents()` at the call site, so it can run
+ * fire-and-forget and not block the grading response.
  */
 async function applyGradeSideEffects(
   submission: { id: string; studentId: string },
   result: { score: number; maxScore: number },
-  assignmentTitle: string,
   isDemo: boolean
 ): Promise<void> {
   if (isDemo) return;
@@ -69,23 +71,6 @@ async function applyGradeSideEffects(
         unlockedBadges: JSON.stringify(nextBadges),
       },
     });
-  }
-
-  // 3. Parent notification — surface the grade to the parent dashboard.
-  const child = await prisma.user.findUnique({
-    where: { id: submission.studentId },
-    select: { parentId: true, name: true },
-  });
-  if (child?.parentId) {
-    await prisma.notification.create({
-      data: {
-        userId: child.parentId,
-        title: 'Your child received a grade',
-        message: `${child.name ?? 'Your child'} scored ${result.score}/${result.maxScore} on "${assignmentTitle}"`,
-        type: 'grade',
-        link: '/parent/dashboard',
-      },
-    }).catch((e) => { console.warn('[grade] parent notify failed:', e); });
   }
 }
 
@@ -185,13 +170,23 @@ export const POST = apiHandler(async (req: Request) => {
       },
     });
 
-    // v2.7 — bump RewardStats and notify the parent (single-grade path).
+    // v2.7 — bump RewardStats (single-grade path).
     await applyGradeSideEffects(
       { id: submission.id, studentId: submission.studentId },
       { score: result.score, maxScore: result.maxScore },
-      submission.assignment.title,
       user.isMasterDemo ?? false
     );
+
+    // v15.0.0 — Parent Loop fanout. Fire-and-forget so a slow email send
+    // never blocks the grading response, and any failure here can never
+    // bubble up into the outer try/catch and revert the grade.
+    fanoutToParents({
+      kind: 'grade-posted',
+      childId: submission.studentId,
+      assignmentTitle: submission.assignment.title,
+      scoreDisplay: `${result.score}/${result.maxScore}`,
+      feedbackPreview: result.feedback ? result.feedback.slice(0, 200) : undefined,
+    }).catch((err) => console.error('[GRADE] parent fanout failed:', err));
 
     // Send email notification (non-blocking)
     sendEmail({
@@ -293,9 +288,17 @@ export const PUT = apiHandler(async (req: Request) => {
       await applyGradeSideEffects(
         { id, studentId: submission.studentId },
         { score: result.score, maxScore: result.maxScore },
-        submission.assignment.title,
         user.isMasterDemo ?? false
       );
+
+      // v15.0.0 — Parent Loop fanout. Fire-and-forget per single-grade path.
+      fanoutToParents({
+        kind: 'grade-posted',
+        childId: submission.studentId,
+        assignmentTitle: submission.assignment.title,
+        scoreDisplay: `${result.score}/${result.maxScore}`,
+        feedbackPreview: result.feedback ? result.feedback.slice(0, 200) : undefined,
+      }).catch((err) => console.error('[GRADE] parent fanout failed:', err));
 
       results.push({ submissionId: id, success: true, result });
     } catch (error) {

@@ -28,6 +28,7 @@ import {
   MASTER_DEMO_PASSWORD,
   isDemoEmail,
 } from '@/lib/demo-accounts';
+import { extractSubdomain } from './district-host';
 
 // ═══════════════════════════════════════════════════════════════════
 // DEMO ACCOUNTS
@@ -94,6 +95,48 @@ const DEMO_ACCOUNTS: Record<string, User> = {
 /** Check if an email is a demo account */
 export function isDemoAccount(email: string): boolean {
   return email === MASTER_DEMO.email || email in DEMO_ACCOUNTS;
+}
+
+/**
+ * Pull the host header out of the NextAuth `req` argument safely.
+ * `req.headers` is typed as a plain record (IncomingHttpHeaders shape) where
+ * each value may be string | string[] | undefined.
+ */
+function getHostFromReq(
+  headers: Record<string, string | string[] | undefined> | undefined,
+): string | undefined {
+  if (!headers) return undefined;
+  const raw = headers['host'];
+  if (Array.isArray(raw)) return raw[0];
+  return raw;
+}
+
+/**
+ * v15.0 district subdomain lockdown.
+ * If the request host has a district subdomain, ensure the authenticating
+ * user's `districtId` matches that subdomain's district. Throws a clear
+ * NextAuth error otherwise. The master demo email bypasses this check.
+ */
+async function enforceDistrictLockdown(
+  host: string | undefined,
+  email: string,
+  userDistrictId: string,
+): Promise<void> {
+  if (email === MASTER_DEMO.email) return;
+  const subdomain = extractSubdomain(host);
+  if (!subdomain) return;
+
+  const { default: prisma } = await import('@/lib/prisma');
+  const district = await prisma.schoolDistrict.findUnique({
+    where: { subdomain },
+    select: { id: true, name: true },
+  });
+  if (!district) {
+    throw new Error('This subdomain does not match a Limud district.');
+  }
+  if (userDistrictId !== district.id) {
+    throw new Error(`This account is not a member of ${district.name}.`);
+  }
 }
 
 /** Get role for an email (used for client-side redirect) */
@@ -188,8 +231,12 @@ export const authOptions: NextAuthOptions = {
           throw new Error(`Account temporarily locked. Try again in ${minutesLeft} minutes.`);
         }
 
+        // Pull host once for district subdomain lockdown checks below.
+        const host = getHostFromReq(headers);
+
         // ── 1. Master Demo ──
         if (email === MASTER_DEMO.email && password === MASTER_DEMO.password) {
+          // Master demo intentionally bypasses district subdomain lockdown.
           recordSuccessfulLogin(email);
           trackSecurityEvent('success_login', ip);
           createAuditLog({
@@ -203,6 +250,7 @@ export const authOptions: NextAuthOptions = {
         // ── 2. Demo accounts (password: password123) ──
         const demoAccount = DEMO_ACCOUNTS[email];
         if (demoAccount && password === 'password123') {
+          await enforceDistrictLockdown(host, email, demoAccount.districtId || '');
           recordSuccessfulLogin(email);
           trackSecurityEvent('success_login', ip);
           createAuditLog({
@@ -255,6 +303,10 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Invalid email or password');
           }
 
+          // ── District subdomain lockdown (v15.0) ──
+          // Throws a clear error on subdomain/district mismatch.
+          await enforceDistrictLockdown(host, email, user.districtId || '');
+
           // Success
           recordSuccessfulLogin(email);
           trackSecurityEvent('success_login', ip);
@@ -275,8 +327,15 @@ export const authOptions: NextAuthOptions = {
           };
           return result;
         } catch (e: any) {
-          // Re-throw known auth errors
-          if (e.message.includes('locked') || e.message === 'Invalid email or password' || e.message === 'Email and password are required') {
+          // Re-throw known auth errors (district lockdown, account locked,
+          // invalid creds, missing fields).
+          if (
+            e.message.includes('locked') ||
+            e.message === 'Invalid email or password' ||
+            e.message === 'Email and password are required' ||
+            e.message === 'This subdomain does not match a Limud district.' ||
+            e.message.startsWith('This account is not a member of ')
+          ) {
             throw e;
           }
           // Database unreachable — fall through to generic error

@@ -427,6 +427,12 @@ model User {
   // v9.6 District link requests
   districtLinkRequests DistrictLinkRequest[] @relation("StudentLinkRequests")
 
+  // v15.0.0 Parent Loop
+  notificationPref NotificationPreference? @relation("UserNotificationPref")
+  digestRuns       ParentDigestRun[]       @relation("UserDigestRuns")
+  alerts           ParentAlert[]           @relation("UserAlerts")
+  childAlerts      ParentAlert[]           @relation("ChildAlerts")
+
   // Worksheets (teacher-authored)
   worksheets         Worksheet[]          @relation("WorksheetTeacher")
 
@@ -1820,4 +1826,78 @@ model DistrictLinkRequest {
   @@index([districtId, status])
   @@index([studentId])
   @@map("district_link_requests")
+}
+
+// ─── PARENT LOOP (v15.0.0 — Notification prefs, digests, alerts) ─────────
+
+model NotificationPreference {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation("UserNotificationPref", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Weekly digest schedule
+  digestEnabled       Boolean  @default(true)
+  digestDayOfWeek     Int      @default(0)         // 0=Sunday … 6=Saturday
+  digestHour          Int      @default(10)        // 0-23, in user's tz
+  digestTimezone      String   @default("America/Los_Angeles")  // IANA tz name
+
+  // Event-driven triggers
+  eventOnGradePosted  Boolean  @default(true)      // email when teacher grades a submission
+  eventOnAtRisk       Boolean  @default(true)      // email when child crosses into medium/high risk
+  eventOnAssignment   Boolean  @default(false)     // email when child receives a new assignment
+
+  // Channels (in-app always on; only email is gated)
+  channelEmail        Boolean  @default(true)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ParentDigestRun {
+  id              String   @id @default(cuid())
+  parentId        String
+  parent          User     @relation("UserDigestRuns", fields: [parentId], references: [id], onDelete: Cascade)
+
+  weekOfYear      Int                                 // 1-53 ISO
+  year            Int
+
+  emailSent       Boolean  @default(false)
+  emailSentAt     DateTime?
+  emailSkipReason String?                             // "no-graded-submissions" | "preference-disabled" | "no-children" | etc.
+
+  childCount      Int      @default(0)
+  payload         Json                                // snapshot used to render the email
+
+  createdAt       DateTime @default(now())
+
+  @@unique([parentId, year, weekOfYear])
+  @@index([parentId])
+  @@index([year, weekOfYear])
+}
+
+model ParentAlert {
+  id              String   @id @default(cuid())
+  parentId        String
+  parent          User     @relation("UserAlerts", fields: [parentId], references: [id], onDelete: Cascade)
+  childId         String
+  child           User     @relation("ChildAlerts", fields: [childId], references: [id], onDelete: Cascade)
+
+  level           String                              // 'low' | 'medium' | 'high'
+  reason          String                              // short tag, e.g. "score-drop" | "missed-assignments" | "engagement-down"
+  indicators      Json                                // detectStruggle().indicators snapshot
+  recommendations Json                                // detectStruggle().recommendations snapshot
+
+  emailSent       Boolean  @default(false)
+  emailSentAt     DateTime?
+
+  isRead          Boolean  @default(false)
+  readAt          DateTime?
+
+  createdAt       DateTime @default(now())
+
+  @@index([parentId, isRead])
+  @@index([childId, level])
+  @@index([parentId, childId, level, createdAt])     // for debounce lookups
 }

@@ -107,6 +107,10 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
       { href: '/parent/reports', label: 'Growth Reports', icon: <TrendingUp size={20} /> },
     ]},
+    { label: 'Account', items: [
+      { href: '/parent/alerts', label: 'Alerts', icon: <Bell size={18} /> },
+      { href: '/parent/settings', label: 'Settings', icon: <Settings size={18} /> },
+    ]},
   ],
   HOMESCHOOL_PARENT: [
     { items: [
@@ -116,6 +120,10 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
       { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
       { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
+    ]},
+    { label: 'Account', items: [
+      { href: '/parent/alerts', label: 'Alerts', icon: <Bell size={18} /> },
+      { href: '/parent/settings', label: 'Settings', icon: <Settings size={18} /> },
     ]},
   ],
 };
@@ -151,13 +159,14 @@ const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.Reac
   PARENT: [
     { href: '/parent/dashboard', label: 'Home', icon: <Eye size={20} /> },
     { href: '/parent/reports', label: 'Reports', icon: <TrendingUp size={20} /> },
+    { href: '/parent/alerts', label: 'Alerts', icon: <Bell size={20} /> },
     { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
   ],
   HOMESCHOOL_PARENT: [
     { href: '/parent/dashboard', label: 'Home', icon: <Users size={20} /> },
     { href: '/teacher/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
     { href: '/teacher/grading', label: 'Grade', icon: <GraduationCap size={20} /> },
-    { href: '/teacher/analytics', label: 'Stats', icon: <BarChart3 size={20} /> },
+    { href: '/parent/alerts', label: 'Alerts', icon: <Bell size={20} /> },
     { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
   ],
 };

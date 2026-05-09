@@ -112,3 +112,142 @@ export function weeklyParentDigest({ parentName, children }: {
     <a href="https://limud.co/parent/dashboard" style="display:inline-block;background:${BRAND_COLOR};color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;">View Full Dashboard →</a>
   `);
 }
+
+/**
+ * Escape user-controlled text for safe interpolation into HTML.
+ * Prevents broken markup or XSS from names, indicators, feedback, etc.
+ */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * At-risk alert — sent when detectStruggle() level rises into 'medium' or 'high'.
+ * Tone: supportive, not stigmatizing. Frames as "here's how to help" not "your kid is failing".
+ */
+export function atRiskAlert(opts: {
+  parentName: string;
+  childName: string;
+  level: 'medium' | 'high';
+  indicators: string[];     // human-readable, max 3 shown
+  recommendations: string[]; // human-readable, max 3 shown
+  reportUrl: string;        // link to /parent/reports/[childId]
+}): { subject: string; html: string; text: string } {
+  const { parentName, childName, level, indicators, recommendations, reportUrl } = opts;
+  const topIndicators = indicators.slice(0, 3);
+  const topRecs = recommendations.slice(0, 3);
+  const accent = level === 'high' ? '#f59e0b' : '#3b82f6';
+  const headline = level === 'high'
+    ? `A few signs we want to share with you about ${childName}`
+    : `Just a quick check-in on ${childName}`;
+
+  const indicatorsBlock = topIndicators.length > 0
+    ? `
+      <h3 style="font-size:15px;margin:20px 0 8px;color:#1f2937;">What we're noticing</h3>
+      <ul style="line-height:1.7;padding-left:20px;margin:0;">
+        ${topIndicators.map(i => `<li>${esc(i)}</li>`).join('')}
+      </ul>`
+    : '';
+
+  const recsBlock = topRecs.length > 0
+    ? `
+      <h3 style="font-size:15px;margin:20px 0 8px;color:#1f2937;">Ways you can help</h3>
+      <ul style="line-height:1.7;padding-left:20px;margin:0;">
+        ${topRecs.map(r => `<li>${esc(r)}</li>`).join('')}
+      </ul>`
+    : '';
+
+  const html = wrap(`
+    <h2 style="color:${BRAND_COLOR};font-size:18px;margin:0 0 8px;">${esc(headline)}</h2>
+    <p style="margin:0 0 12px;">Hi ${esc(parentName)},</p>
+    <p style="margin:0 0 12px;">We're sending a friendly heads-up so you can support ${esc(childName)} early. Nothing is wrong — these are just patterns Limud uses to help families step in at the right moment.</p>
+    <div style="background:#f9fafb;padding:14px 16px;border-radius:8px;border-left:4px solid ${accent};margin:16px 0;">
+      <p style="margin:0;font-size:13px;color:#6b7280;">Check-in level</p>
+      <p style="margin:4px 0 0;font-size:15px;font-weight:600;text-transform:capitalize;">${esc(level)}</p>
+    </div>
+    ${indicatorsBlock}
+    ${recsBlock}
+    <p style="margin:20px 0 0;">You can see the full picture and recent work in your parent dashboard.</p>
+    <a href="${esc(reportUrl)}" style="display:inline-block;background:${BRAND_COLOR};color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:12px;">Open ${esc(childName)}'s Report →</a>
+  `);
+
+  const textLines = [
+    `Hi ${parentName},`,
+    '',
+    `We're sending a friendly heads-up so you can support ${childName} early. Nothing is wrong — these are just patterns Limud uses to help families step in at the right moment.`,
+    '',
+    `Check-in level: ${level}`,
+  ];
+  if (topIndicators.length > 0) {
+    textLines.push('', 'What we are noticing:');
+    topIndicators.forEach(i => textLines.push(`  - ${i}`));
+  }
+  if (topRecs.length > 0) {
+    textLines.push('', 'Ways you can help:');
+    topRecs.forEach(r => textLines.push(`  - ${r}`));
+  }
+  textLines.push('', `Open ${childName}'s report: ${reportUrl}`, '', '— Limud');
+
+  return {
+    subject: `Limud check-in for ${childName}`,
+    html,
+    text: textLines.join('\n'),
+  };
+}
+
+/**
+ * Grade-posted notification — sent when a teacher records a graded submission for a child
+ * AND parent has eventOnGradePosted = true.
+ */
+export function gradePostedToParent(opts: {
+  parentName: string;
+  childName: string;
+  assignmentTitle: string;
+  scoreDisplay: string;     // e.g. "91/100" or "87%"
+  feedbackPreview?: string; // truncated to ~200 chars
+  dashboardUrl: string;
+}): { subject: string; html: string; text: string } {
+  const { parentName, childName, assignmentTitle, scoreDisplay, feedbackPreview, dashboardUrl } = opts;
+
+  const feedbackBlock = feedbackPreview
+    ? `<div style="background:#eff6ff;padding:12px;border-radius:8px;border-left:4px solid ${BRAND_COLOR};margin:16px 0;font-size:14px;">${esc(feedbackPreview)}</div>`
+    : '';
+
+  const html = wrap(`
+    <h2 style="color:${BRAND_COLOR};font-size:18px;margin:0 0 8px;">A new grade for ${esc(childName)}</h2>
+    <p style="margin:0 0 12px;">Hi ${esc(parentName)},</p>
+    <p style="margin:0 0 12px;">${esc(childName)}'s teacher just recorded a grade in Limud.</p>
+    <div style="background:#f3f4f6;padding:16px;border-radius:8px;margin:16px 0;">
+      <p style="margin:0;font-size:13px;color:#6b7280;">Assignment</p>
+      <p style="margin:4px 0 12px;font-size:15px;font-weight:600;">${esc(assignmentTitle)}</p>
+      <p style="margin:0;font-size:13px;color:#6b7280;">Score</p>
+      <p style="margin:4px 0 0;font-size:22px;font-weight:700;color:${BRAND_COLOR};">${esc(scoreDisplay)}</p>
+    </div>
+    ${feedbackBlock}
+    <a href="${esc(dashboardUrl)}" style="display:inline-block;background:${BRAND_COLOR};color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;">View Dashboard →</a>
+  `);
+
+  const textLines = [
+    `Hi ${parentName},`,
+    '',
+    `${childName}'s teacher just recorded a grade in Limud.`,
+    '',
+    `Assignment: ${assignmentTitle}`,
+    `Score: ${scoreDisplay}`,
+  ];
+  if (feedbackPreview) {
+    textLines.push('', `Feedback: ${feedbackPreview}`);
+  }
+  textLines.push('', `View dashboard: ${dashboardUrl}`, '', '— Limud');
+
+  return {
+    subject: `New grade for ${childName}: ${assignmentTitle}`,
+    html,
+    text: textLines.join('\n'),
+  };
+}
