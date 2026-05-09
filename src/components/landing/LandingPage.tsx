@@ -608,7 +608,7 @@ export default function LandingPage() {
             <div>
               <h4 className="text-xs font-semibold text-white mb-3 uppercase tracking-wider">Company</h4>
               <ul className="space-y-2">
-                {[{ label: 'About', href: '/about' }, { label: 'Help', href: '/help' }, { label: 'Roadmap', href: '/roadmap' }, { label: 'Contact', href: '/contact' }].map(l => (
+                {[{ label: 'About', href: '/about' }, { label: 'Team', href: '/team' }, { label: 'Help', href: '/help' }, { label: 'Roadmap', href: '/roadmap' }, { label: 'Contact', href: '/contact' }].map(l => (
                   <li key={l.label}><Link href={l.href} className="text-xs hover:text-white transition">{l.label}</Link></li>
                 ))}
               </ul>

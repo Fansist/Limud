@@ -28,6 +28,7 @@ const PUBLIC_PATHS = [
   '/forgot-password',
   '/reset-password',
   '/about',
+  '/team',
   '/privacy',
   '/terms',
   '/help',
