@@ -15,11 +15,26 @@
  * Stable JWT signing secret.
  * NextAuth requires this to be identical across all server instances
  * and across restarts, or every existing session becomes invalid.
+ *
+ * v15.0.1: Throw is now deferred past the Next.js build phase
+ * (`NEXT_PHASE === 'phase-production-build'`). Page-data collection
+ * imports every route module, and a missing-env throw at module-import
+ * was catastrophically failing builds instead of failing the first
+ * request with a clear log line. Now: build succeeds, runtime cold-
+ * start throws if the secret is still missing.
  */
 const fallback = 'limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB';
 const envSecret = process.env.NEXTAUTH_SECRET;
-if (process.env.NODE_ENV === 'production' && (!envSecret || envSecret === fallback)) {
-  throw new Error('NEXTAUTH_SECRET must be set to a unique value in production');
+const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+if (
+  process.env.NODE_ENV === 'production' &&
+  !isBuildPhase &&
+  (!envSecret || envSecret === fallback)
+) {
+  throw new Error(
+    'NEXTAUTH_SECRET must be set to a unique value in production. ' +
+    'Set it in the Render dashboard → Environment.'
+  );
 }
 export const AUTH_SECRET = envSecret || fallback;
 
@@ -28,8 +43,15 @@ export const AUTH_SECRET = envSecret || fallback;
  * Falls back to AUTH_SECRET if PII_ENCRYPTION_KEY is not set (non-production only).
  */
 const envPiiKey = process.env.PII_ENCRYPTION_KEY;
-if (process.env.NODE_ENV === 'production' && (!envPiiKey || envPiiKey === fallback)) {
-  throw new Error('PII_ENCRYPTION_KEY must be set to a unique value in production');
+if (
+  process.env.NODE_ENV === 'production' &&
+  !isBuildPhase &&
+  (!envPiiKey || envPiiKey === fallback)
+) {
+  throw new Error(
+    'PII_ENCRYPTION_KEY must be set to a unique value in production. ' +
+    'Set it in the Render dashboard → Environment.'
+  );
 }
 export const PII_ENCRYPTION_KEY = envPiiKey || AUTH_SECRET;
 
