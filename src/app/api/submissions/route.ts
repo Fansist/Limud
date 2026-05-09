@@ -48,36 +48,57 @@ export const POST = apiHandler(async (req: Request) => {
     }
   }
 
-  // Upsert submission
-  const submission = await prisma.submission.upsert({
-    where: {
-      assignmentId_studentId: {
+  // Look up existing submission first so we can preserve grading data on resubmit.
+  // If the prior submission was already GRADED, we keep score/aiFeedback/gradedAt
+  // and mark the new attempt as RESUBMITTED — students must not be able to wipe
+  // their own grades by re-submitting.
+  const existing = await prisma.submission.findFirst({
+    where: { assignmentId, studentId: user.id },
+    select: { id: true, status: true },
+  });
+
+  let submission;
+  if (!existing) {
+    submission = await prisma.submission.create({
+      data: {
         assignmentId,
         studentId: user.id,
+        content: content || '(File submission - see attached files)',
+        status: 'SUBMITTED',
+        submittedAt: new Date(),
+        fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
+        solvingMethod: solvingMethod || null,
+        methodDetails: methodDetails ? JSON.stringify(methodDetails) : null,
       },
-    },
-    create: {
-      assignmentId,
-      studentId: user.id,
-      content: content || '(File submission - see attached files)',
-      status: 'SUBMITTED',
-      submittedAt: new Date(),
-      fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
-      solvingMethod: solvingMethod || null,
-      methodDetails: methodDetails ? JSON.stringify(methodDetails) : null,
-    },
-    update: {
-      content: content || '(File submission - see attached files)',
-      status: 'SUBMITTED',
-      submittedAt: new Date(),
-      score: null,
-      aiFeedback: null,
-      gradedAt: null,
-      fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
-      solvingMethod: solvingMethod || undefined,
-      methodDetails: methodDetails ? JSON.stringify(methodDetails) : undefined,
-    },
-  });
+    });
+  } else if (existing.status === 'GRADED') {
+    submission = await prisma.submission.update({
+      where: { id: existing.id },
+      data: {
+        content: content || '(File submission - see attached files)',
+        status: 'RESUBMITTED',
+        submittedAt: new Date(),
+        fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
+        solvingMethod: solvingMethod || undefined,
+        methodDetails: methodDetails ? JSON.stringify(methodDetails) : undefined,
+      },
+    });
+  } else {
+    submission = await prisma.submission.update({
+      where: { id: existing.id },
+      data: {
+        content: content || '(File submission - see attached files)',
+        status: 'SUBMITTED',
+        submittedAt: new Date(),
+        score: null,
+        aiFeedback: null,
+        gradedAt: null,
+        fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
+        solvingMethod: solvingMethod || undefined,
+        methodDetails: methodDetails ? JSON.stringify(methodDetails) : undefined,
+      },
+    });
+  }
 
   // Link file uploads to the submission
   if (fileUploadIds && fileUploadIds.length > 0) {

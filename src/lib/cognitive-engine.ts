@@ -294,13 +294,16 @@ export async function detectStruggle(userId: string): Promise<StruggleIndicators
   // Check streak
   const stats = await prisma.rewardStats.findUnique({ where: { userId } });
   
-  // Declining scores
+  // Declining scores. recentSubs is ordered gradedAt: 'desc' (newest first),
+  // so slice(length/2) gives the OLDER half and slice(0, length/2) gives the
+  // RECENT half. Names below reflect that ordering.
   if (recentScores.length >= 4) {
-    const firstHalf = recentScores.slice(recentScores.length / 2);
-    const secondHalf = recentScores.slice(0, recentScores.length / 2);
-    const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
-    const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-    if (secondAvg < firstAvg - 10) {
+    const olderHalf = recentScores.slice(recentScores.length / 2);
+    const recentHalf = recentScores.slice(0, recentScores.length / 2);
+    const olderAvg = olderHalf.reduce((a, b) => a + b, 0) / olderHalf.length;
+    const recentAvg = recentHalf.reduce((a, b) => a + b, 0) / recentHalf.length;
+    // Recent average dropped 10+ points below the older average → declining.
+    if (recentAvg < olderAvg - 10) {
       indicators.push('Declining grade trend');
       recommendations.push('Consider a break or changing study approach');
     }
@@ -322,17 +325,20 @@ export async function detectStruggle(userId: string): Promise<StruggleIndicators
   }
 
   // No activity in days
-  if (stats) {
-    const daysSinceActive = Math.floor(
-      (Date.now() - new Date(stats.lastActiveDate).getTime()) / (1000 * 60 * 60 * 24)
-    );
-    if (daysSinceActive >= 3) {
-      indicators.push(`Inactive for ${daysSinceActive} days`);
-      recommendations.push('Check in with the student');
-    }
-    if (daysSinceActive >= 7) {
-      indicators.push('Extended inactivity (7+ days)');
-      recommendations.push('Schedule a parent-teacher conference');
+  if (stats?.lastActiveDate) {
+    const lastActiveTime = new Date(stats.lastActiveDate).getTime();
+    if (Number.isFinite(lastActiveTime) && lastActiveTime > 0) {
+      const daysSinceActive = Math.floor(
+        (Date.now() - lastActiveTime) / (1000 * 60 * 60 * 24)
+      );
+      if (daysSinceActive >= 3) {
+        indicators.push(`Inactive for ${daysSinceActive} days`);
+        recommendations.push('Check in with the student');
+      }
+      if (daysSinceActive >= 7) {
+        indicators.push('Extended inactivity (7+ days)');
+        recommendations.push('Schedule a parent-teacher conference');
+      }
     }
   }
 

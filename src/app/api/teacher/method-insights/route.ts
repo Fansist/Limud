@@ -13,6 +13,9 @@ import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler, hasTeacherAccess } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
+// v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
+export const maxDuration = 60;
+
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
   if (!hasTeacherAccess(user) && user.role !== 'ADMIN') {

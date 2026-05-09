@@ -4,6 +4,198 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [3.4.0] - 2026-05-05 — Update 3.4 (Site-wide bug-sweep audit)
+
+A meticulous parallel audit of the entire codebase by 13 reviewers, then
+30+ fixes applied by 7 parallel coders across non-overlapping file
+groups. No new features — this update is exclusively about correctness,
+tenant isolation, hydration safety, FERPA gates, and removing every last
+residue of the old gamification model from demo data and marketing copy.
+
+### Fixed — Tenant isolation & FERPA
+
+- **`/api/student/grades-by-course`** — was filtering submissions by
+  `userId: user.id` (a column that does not exist on `Submission`),
+  which both threw Prisma errors and would have leaked across tenants
+  if it ever did resolve. Now uses `studentId: user.id` on both the
+  list and the per-course detail branches.
+- **`/api/teacher/intelligence`** — was returning every student in the
+  district whenever a teacher hit the route. Replaced district-wide
+  filters with `enrollments.some.course.teachers.some.teacherId =
+  user.id` so a teacher only sees their own roster. Master-demo
+  identities still bypass for all-access demos.
+- **`/api/teacher/auto-assign`** — same district-leak pattern, same
+  fix; the optional `courseId` further narrows the candidate pool.
+- **`/api/teacher/reports`** (GET) — added explicit FERPA gate: only
+  the teacher who owns the course (or the master demo) can pull the
+  report; everyone else gets 403.
+- **`/api/admin/districts`** — listing the route with no `districtId`
+  used to return every district row in the table. Now returns an empty
+  array unless the requester is master-demo.
+- **`/api/grade`** — now 403s non-homeschool `PARENT` accounts before
+  the existing role checks (parents should never grade student work).
+- **`/api/messages` (PATCH mark-read)** — switched from `update` (which
+  trusted the client-supplied id) to `updateMany` with
+  `{ id, receiverId: user.id }`, returning 404 when the row count is
+  zero. Prevents one user from flipping read-state on someone else's
+  message.
+- **`/api/district/announcements`** — removed the master-demo write
+  bypass on POST/PUT/DELETE and added explicit `districtId` scoping on
+  the where-clauses so demo identities can no longer mutate live
+  announcements across districts.
+- **`/api/teacher/onboarding`** — rewrote on top of the standard
+  `apiHandler + requireRole('TEACHER')` middleware so it picks up the
+  same auth + rate-limit + audit logging as every other teacher route.
+
+### Fixed — AI route timeouts
+
+15 AI routes were missing `export const maxDuration = 60` and would
+get killed at the 10-second Vercel/Render default partway through a
+generation, leaving students with a half-baked answer. All now
+declared:
+
+`exam-sim`, `tutor`, `ai-navigator`, `adaptive`,
+`student/review/answer`, `teacher/insights`,
+`teacher/method-insights`, the two
+`teacher/materials/[id]/personalized` routes, `concept-map`,
+`writing-coach`, `math-solver`, `mistakes/explain`, `micro-lessons`.
+
+The `cron/weekly-digest` cron job got `maxDuration = 300` plus
+`dynamic = 'force-dynamic'` so a long parent-summary batch can finish.
+
+### Fixed — Submission grading semantics
+
+- **`POST /api/submissions`** previously did a destructive upsert: a
+  student who resubmitted to revise an answer would silently wipe the
+  teacher's existing grade and feedback. Replaced with a `findFirst` +
+  branched create/update that preserves graded fields and flips the
+  status to `RESUBMITTED` when a graded submission is touched again.
+  Teachers regain control over which version is graded.
+
+### Fixed — Hydration safety
+
+Three pages called `Math.random()` during initial render or
+`useState` initialization, producing different values on the server
+and client and triggering React hydration mismatch warnings (and
+visible flicker on the affected widgets):
+
+- **`src/app/student/focus/page.tsx`** — moved deck shuffle into a
+  `useEffect` so the first paint matches the server, then shuffles on
+  the client.
+- **`src/app/student/knowledge/page.tsx`** — replaced `Math.random()`
+  with a small deterministic `deterministicHash(seed)` helper so the
+  same skill row always renders the same sparkline shape across SSR
+  and CSR.
+- **`src/app/teacher/dashboard/page.tsx`** — the time-of-day greeting
+  is now picked in `useEffect` instead of in `useState(() => …)`.
+
+### Fixed — Hooks discipline
+
+- **`src/lib/hooks.ts → useIsDemo`** had a Rules-of-Hooks violation:
+  it returned early on the master-demo guard before some downstream
+  hook calls, so the hook-call order changed depending on identity.
+  Reordered so every hook fires unconditionally before any branch.
+
+### Fixed — `src/lib/ai.ts` correctness
+
+- `generateImage()` was destructuring `classifyGeminiError(err)` as
+  if it returned a top-level `kind`; it actually returns
+  `{ kind, ... }`. Fixed the destructure so `kind === 'auth'` /
+  `'quota'` short-circuits work as designed.
+- `enrichComicWithImages()` now sets `aiError: 'No PANEL headings
+  found in script'` when the parser yields zero panels, instead of
+  silently returning the unenriched script and pretending images were
+  generated.
+- `cognitive-engine.ts` renamed the `firstHalf`/`secondHalf` slices
+  to `olderHalf`/`recentHalf` (they were named in the wrong direction
+  relative to how they were used) and added a `Number.isFinite` guard
+  on `lastActiveDate` so a malformed timestamp can't NaN-poison the
+  trend.
+
+### Fixed — `SUBJECTS` rendering across teacher/student pages
+
+`SUBJECTS` is `Array<{ value, icon, color }>`, but six call sites
+accessed `s.id` / `s.emoji` / `s.label` and rendered the whole object
+into JSX (which throws "Objects are not valid as a React child" on
+any subject pick). Canonicalized everywhere to `s.value`:
+
+- `src/app/teacher/ai-builder/page.tsx`
+- `src/app/teacher/lesson-planner/page.tsx`
+- `src/app/teacher/onboarding/page.tsx`
+- `src/app/student/survey/page.tsx`
+- (plus prior fixes in `admin/classrooms` and `teacher/content-library`)
+
+### Fixed — Stale gamification leftovers
+
+The gamification surfaces were already removed in 3.1, but four
+demo-data shapes still leaked XP / streak / level / coins fields into
+the parent and admin views. Cleaned:
+
+- `src/app/parent/dashboard/page.tsx` — dropped `currentStreak` and
+  `level` from the demo summary; softened the "streak" prose.
+- `src/app/parent/reports/page.tsx` — kept `assignmentsCompleted`,
+  dropped XP/streak/level fields.
+- `src/app/admin/students/page.tsx` — removed `rewardStats` from demo
+  students.
+- `src/app/student/dashboard/page.tsx` and
+  `src/app/student/knowledge/page.tsx` — removed `streak: number`
+  from the `topSkills` type and seed rows.
+- `src/lib/demo-data.ts` — fixed `DEMO_MATERIALS` foreign keys to
+  point at real demo course/teacher IDs (`'demo-c1'`, `'demo-c4'`,
+  `'demo-teacher'`) and grade levels (`'9th'`, `'10th'`).
+
+### Fixed — Marketing & legal copy
+
+- **`src/app/layout.tsx`** — root description / OG / Twitter metadata
+  rebalanced so districts and families both read as first-class.
+- **`src/app/(auth)/pricing/page.tsx`** — every `tierName: 'FREE'`
+  rewritten to `'FAMILY'` (the actual tier id), and the
+  `closestPlan()` fallback no longer returns `'FREE'` — that string
+  did not exist anywhere else in the price map and broke the
+  recommendation lookup. Free → Family across the board.
+- **`src/components/landing/LandingPage.tsx`** — Offer JSON-LD now
+  references the `Family` plan; removed the fabricated
+  `aggregateRating` (4.8 / 247 reviews) — we don't have those reviews
+  yet; flipped `isAccessibleForFree` to `false` since the entry tier
+  is named, not free-as-in-no-cost in the schema.org sense.
+- **`src/app/roadmap/page.tsx`** — dropped the `Gamification` category
+  entirely; removed bullets that promoted Master Demo and Game Store
+  as shipped features (they're an internal demo path and a backlog
+  item respectively).
+- **`src/app/(auth)/login/page.tsx`** and
+  **`src/app/(auth)/demo/page.tsx`** and
+  **`src/app/help/page.tsx`** — replaced "Gamification…", "XP &
+  Rewards, Games", and the stale "Gemini 2.0" reference with the
+  current product surface (Personalized Materials, per-student
+  adaptive rewrites, Gemini 2.5 Flash).
+- **`src/app/(legal)/terms/page.tsx`** — added the missing Growth and
+  Premium tier names to the subscription clause.
+
+### Fixed — Layout / shared components
+
+- **`src/components/layout/DashboardLayout.tsx`** — `HOMESCHOOL_PARENT`
+  nav was still pointing at the legacy `/teacher/assignments` route;
+  now points at the unified `/teacher/coursework` hub from 3.2. Added
+  the Messages link, restyled "Family Portal" with the rose/pink
+  gradient, pruned unused imports (`Award`, `ChevronDown`, `useMemo`),
+  and added a skip-to-content link for keyboard / screen-reader users.
+- **`src/components/InstallPrompt.tsx`** — fully orphaned PWA install
+  prompt, deleted.
+- **`src/app/layout.tsx`** — the OpenDyslexic stylesheet was loaded
+  with `media="print"` so the font literally never applied for users
+  who toggled the accessibility setting. Removed the print restriction.
+
+### Notes
+
+- No schema migrations in this update.
+- No new env vars.
+- All changes are backward compatible at the API surface; the only
+  observable change for clients is that a few previously-permissive
+  endpoints now correctly 403 / 404 attempts that were never supposed
+  to succeed.
+
+---
+
 ## [3.3.0] - 2026-05-07 — Update 3.3 (Real comic-book panel images)
 
 The two-upload promise is now literal: a student whose profile says

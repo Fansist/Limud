@@ -17,7 +17,7 @@ const ROLE_CONFIG: Record<string, { icon: any; color: string; bg: string; desc: 
     icon: GraduationCap,
     color: 'from-blue-500 to-cyan-500',
     bg: 'bg-blue-50',
-    desc: 'AI Tutor, Assignments, XP & Rewards, Games',
+    desc: 'AI Tutor, Assignments, Personalized Materials',
   },
   Teacher: {
     icon: BookOpen,

@@ -112,8 +112,8 @@ function generateDemoLessonPlan(
   subject: string, grade: string, topic: string,
   duration: number, format: string, blooms: string, customNotes: string
 ): LessonPlan {
-  const subjectInfo = SUBJECTS.find(s => s.id === subject);
-  const subjectLabel = subjectInfo?.label || subject;
+  const subjectInfo = SUBJECTS.find(s => s.value === subject);
+  const subjectLabel = subjectInfo?.value || subject;
   const formatInfo = LESSON_FORMATS.find(f => f.id === format);
   const bloomsInfo = BLOOMS_LEVELS.find(b => b.id === blooms);
   const topicTitle = topic || `${subjectLabel} Fundamentals`;
@@ -486,7 +486,7 @@ export default function LessonPlannerPage() {
                     <div key={plan.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
                       <button onClick={() => loadSavedPlan(plan)} className="flex-1 text-left">
                         <p className="text-sm font-medium text-gray-900">{plan.title}</p>
-                        <p className="text-xs text-gray-500">{SUBJECTS.find(s => s.id === plan.subject)?.emoji} {plan.gradeLevel} · {plan.duration} min · {new Date(plan.generatedAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-gray-500">{SUBJECTS.find(s => s.value === plan.subject)?.icon} {plan.gradeLevel} · {plan.duration} min · {new Date(plan.generatedAt).toLocaleDateString()}</p>
                       </button>
                       <button onClick={() => deleteSavedPlan(plan.id)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14} /></button>
                     </div>
@@ -541,11 +541,11 @@ export default function LessonPlannerPage() {
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                   {SUBJECTS.map(s => (
-                    <button key={s.id} onClick={() => setSubject(s.id)}
+                    <button key={s.value} onClick={() => setSubject(s.value)}
                       className={cn('p-2.5 rounded-xl border-2 text-center transition-all text-xs',
-                        subject === s.id ? 'border-teal-400 bg-teal-50 ring-1 ring-teal-200 font-bold' : 'border-gray-100 hover:border-gray-200')}>
-                      <span className="text-lg block">{s.emoji}</span>
-                      <span className="mt-0.5 block">{s.label}</span>
+                        subject === s.value ? 'border-teal-400 bg-teal-50 ring-1 ring-teal-200 font-bold' : 'border-gray-100 hover:border-gray-200')}>
+                      <span className="text-lg block">{s.icon}</span>
+                      <span className="mt-0.5 block">{s.value}</span>
                     </button>
                   ))}
                 </div>
@@ -670,7 +670,7 @@ export default function LessonPlannerPage() {
                 </motion.div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">AI is building your lesson plan...</h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  {SUBJECTS.find(s => s.id === subject)?.emoji} {topic} · {gradeLevel} · {duration} min · {LESSON_FORMATS.find(f => f.id === format)?.label}
+                  {SUBJECTS.find(s => s.value === subject)?.icon} {topic} · {gradeLevel} · {duration} min · {LESSON_FORMATS.find(f => f.id === format)?.label}
                 </p>
                 <div className="mt-4 space-y-2 max-w-sm mx-auto">
                   {[
@@ -717,7 +717,7 @@ export default function LessonPlannerPage() {
                     <h2 className="text-xl font-bold text-gray-900">{lessonPlan.title}</h2>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
                       <span className="text-xs px-2.5 py-1 rounded-full bg-teal-100 text-teal-700 font-medium">
-                        {SUBJECTS.find(s => s.id === lessonPlan.subject)?.emoji} {SUBJECTS.find(s => s.id === lessonPlan.subject)?.label}
+                        {SUBJECTS.find(s => s.value === lessonPlan.subject)?.icon} {SUBJECTS.find(s => s.value === lessonPlan.subject)?.value}
                       </span>
                       <span className="text-xs px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">
                         Grade {lessonPlan.gradeLevel}

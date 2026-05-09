@@ -11,8 +11,8 @@ export const metadata: Metadata = {
     default: 'Limud — AI-Powered Adaptive Learning for K-12',
     template: '%s | Limud',
   },
-  description: 'Eliminate the one-size-fits-all classroom. AI adapts curriculum to every student\'s Learning DNA. Free for homeschool. FERPA & COPPA compliant.',
-  keywords: ['adaptive learning', 'K-12', 'AI tutor', 'FERPA', 'COPPA', 'homeschool', 'edtech', 'auto-grading', 'learning platform'],
+  description: 'Eliminate the one-size-fits-all classroom. AI adapts curriculum to every student\'s Learning DNA. Free for families with K-12 kids. Per-seat pricing for districts and schools. FERPA & COPPA compliant.',
+  keywords: ['adaptive learning', 'AI tutor', 'K-12', 'districts', 'schools', 'families', 'personalized education', 'FERPA', 'COPPA'],
   authors: [{ name: 'Limud Education Inc.' }],
   icons: {
     icon: [
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   })(),
   openGraph: {
     title: 'Limud — The All-in-One AI Learning Platform for K–12',
-    description: 'Stop juggling 6 apps. Limud replaces Khan Academy, Google Classroom, Quizlet, ClassDojo, IXL and more. AI tutoring, auto-grading, adaptive learning, and analytics in one platform. Free forever plan.',
+    description: 'Stop juggling 6 apps. Limud replaces Khan Academy, Google Classroom, Quizlet, ClassDojo, IXL and more. AI tutoring, auto-grading, adaptive learning, and analytics in one platform. Free Family tier. Per-seat pricing for schools and districts.',
     siteName: 'Limud',
     type: 'website',
     locale: 'en_US',
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Limud — AI-Powered K–12 Learning Platform',
-    description: 'Replace 6+ education apps with one. AI tutoring, auto-grading, adaptive learning. Free forever. FERPA compliant.',
+    description: 'Replace 6+ education apps with one. AI tutoring, auto-grading, adaptive learning. Free for families. Per-seat for districts. FERPA compliant.',
   },
   robots: {
     index: true,
@@ -85,11 +85,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
         />
-        {/* Dyslexia font loaded conditionally */}
+        {/* Dyslexia font — loaded for screen so the body.dyslexia-font toggle works */}
         <link
           rel="stylesheet"
           href="https://fonts.cdnfonts.com/css/opendyslexic"
-          media="print"
         />
         {/* DNS prefetch for API domains */}
         <link rel="dns-prefetch" href="https://generativelanguage.googleapis.com" />

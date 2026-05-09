@@ -144,7 +144,7 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
     min: 10, max: 5000, step: 10, defaultValue: 200, unitLabel: 'students',
     pricePerUnit: 0.003,
     tiers: [
-      { value: 5, label: '5', tierName: 'FREE' },
+      { value: 5, label: '5', tierName: 'FAMILY' },
       { value: 50, label: '50', tierName: 'STARTER' },
       { value: 200, label: '200', tierName: 'GROWTH' },
       { value: 500, label: '500', tierName: 'STANDARD' },
@@ -158,7 +158,7 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
     min: 2, max: 500, step: 1, defaultValue: 20, unitLabel: 'teachers',
     pricePerUnit: 0.01,
     tiers: [
-      { value: 2, label: '2', tierName: 'FREE' },
+      { value: 2, label: '2', tierName: 'FAMILY' },
       { value: 5, label: '5', tierName: 'STARTER' },
       { value: 20, label: '20', tierName: 'GROWTH' },
       { value: 50, label: '50', tierName: 'STANDARD' },
@@ -172,7 +172,7 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
     min: 1, max: 50, step: 1, defaultValue: 3, unitLabel: 'schools',
     pricePerUnit: 0.5,
     tiers: [
-      { value: 1, label: '1', tierName: 'FREE' },
+      { value: 1, label: '1', tierName: 'FAMILY' },
       { value: 1, label: '1', tierName: 'STARTER' },
       { value: 3, label: '3', tierName: 'GROWTH' },
       { value: 5, label: '5', tierName: 'STANDARD' },
@@ -186,7 +186,7 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
     min: 50, max: 10000, step: 50, defaultValue: 1000, unitLabel: '/month',
     pricePerUnit: 0.0005,
     tiers: [
-      { value: 50, label: '50', tierName: 'FREE' },
+      { value: 50, label: '50', tierName: 'FAMILY' },
       { value: 200, label: '200', tierName: 'STARTER' },
       { value: 1000, label: '1K', tierName: 'GROWTH' },
       { value: 10000, label: 'Unlim', tierName: 'STANDARD+' },
@@ -198,7 +198,7 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
     min: 0, max: 5000, step: 50, defaultValue: 500, unitLabel: '/month',
     pricePerUnit: 0.0008,
     tiers: [
-      { value: 0, label: 'None', tierName: 'FREE' },
+      { value: 0, label: 'None', tierName: 'FAMILY' },
       { value: 100, label: '100', tierName: 'STARTER' },
       { value: 500, label: '500', tierName: 'GROWTH' },
       { value: 5000, label: 'Unlim', tierName: 'STANDARD+' },
@@ -210,7 +210,7 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
     min: 3, max: 1000, step: 3, defaultValue: 75, unitLabel: '/month',
     pricePerUnit: 0.002,
     tiers: [
-      { value: 3, label: '3', tierName: 'FREE' },
+      { value: 3, label: '3', tierName: 'FAMILY' },
       { value: 15, label: '15', tierName: 'STARTER' },
       { value: 75, label: '75', tierName: 'GROWTH' },
       { value: 1000, label: 'Unlim', tierName: 'STANDARD+' },
@@ -222,7 +222,7 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
     min: 0, max: 1000, step: 10, defaultValue: 50, unitLabel: '/month',
     pricePerUnit: 0.002,
     tiers: [
-      { value: 0, label: 'None', tierName: 'FREE' },
+      { value: 0, label: 'None', tierName: 'FAMILY' },
       { value: 0, label: 'None', tierName: 'STARTER' },
       { value: 50, label: '50', tierName: 'GROWTH' },
       { value: 1000, label: 'Unlim', tierName: 'STANDARD+' },
@@ -234,7 +234,7 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
     min: 500, max: 500000, step: 500, defaultValue: 10000, unitLabel: 'MB',
     pricePerUnit: 0.00001,
     tiers: [
-      { value: 500, label: '500MB', tierName: 'FREE' },
+      { value: 500, label: '500MB', tierName: 'FAMILY' },
       { value: 2000, label: '2GB', tierName: 'STARTER' },
       { value: 10000, label: '10GB', tierName: 'GROWTH' },
       { value: 50000, label: '50GB', tierName: 'STANDARD' },
@@ -395,7 +395,7 @@ function CustomPlanBuilder() {
   // Find closest matching plan
   const closestPlan = useMemo(() => {
     const studentCount = sliderValues.students;
-    if (studentCount <= 5) return 'FREE';
+    if (studentCount <= 5) return 'FAMILY';
     if (studentCount <= 50) return 'STARTER';
     if (studentCount <= 200) return 'GROWTH';
     if (studentCount <= 500) return 'STANDARD';

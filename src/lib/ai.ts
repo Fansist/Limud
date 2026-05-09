@@ -876,8 +876,9 @@ export async function generateImage(
       }
       lastErr = `Model "${model}" returned no image data`;
     } catch (e) {
-      lastErr = `Model "${model}" failed: ${(e as Error).message}`;
-      const kind = classifyGeminiError(lastErr);
+      const rawMsg = (e as Error).message || '';
+      lastErr = `Model "${model}" failed: ${rawMsg}`;
+      const { kind } = classifyGeminiError(rawMsg);
       // Auth / quota / billing errors won't be fixed by trying another model.
       if (kind === 'auth' || kind === 'billing' || kind === 'quota') {
         break;
@@ -967,7 +968,7 @@ export async function enrichComicWithImages(
   const limit = parseInt(process.env.LIMUD_COMIC_IMAGE_LIMIT || '6', 10);
   const panels = parseComicPanels(script);
   if (panels.length === 0) {
-    return { content: script, imagesGenerated: 0 };
+    return { content: script, imagesGenerated: 0, aiError: 'No PANEL headings found in script' };
   }
 
   const targets = panels.slice(0, Math.max(0, limit));

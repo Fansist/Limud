@@ -6,24 +6,30 @@ import prisma from '@/lib/prisma';
 export const GET = apiHandler(async () => {
   const user = await requireRole('TEACHER');
 
+  // FERPA: scope students to those enrolled in courses this teacher teaches.
+  // Master demo bypasses the enrollments filter and sees district-wide data.
+  const teacherStudentScope = user.isMasterDemo
+    ? {}
+    : { enrollments: { some: { course: { teachers: { some: { teacherId: user.id } } } } } };
+
   // Batch all queries for performance
   const [students, skills, recentSubmissions, rewardStats] = await Promise.all([
     prisma.user.findMany({
-      where: { role: 'STUDENT', district: { users: { some: { id: user.id } } } },
+      where: { role: 'STUDENT', isActive: true, ...teacherStudentScope },
       select: { id: true, name: true, gradeLevel: true, email: true },
       take: 100,
     }),
     prisma.skillRecord.findMany({
-      where: { user: { role: 'STUDENT', district: { users: { some: { id: user.id } } } } },
+      where: { user: { role: 'STUDENT', isActive: true, ...teacherStudentScope } },
       select: { userId: true, skillName: true, skillCategory: true, masteryLevel: true, totalAttempts: true },
     }),
     prisma.submission.findMany({
-      where: { status: 'GRADED', student: { district: { users: { some: { id: user.id } } } } },
+      where: { status: 'GRADED', student: { role: 'STUDENT', isActive: true, ...teacherStudentScope } },
       select: { studentId: true, score: true, maxScore: true, gradedAt: true, timeSpentSec: true },
       orderBy: { gradedAt: 'desc' }, take: 500,
     }),
     prisma.rewardStats.findMany({
-      where: { user: { role: 'STUDENT', district: { users: { some: { id: user.id } } } } },
+      where: { user: { role: 'STUDENT', isActive: true, ...teacherStudentScope } },
       select: { userId: true, currentStreak: true, totalXP: true, totalStudyMinutes: true, assignmentsCompleted: true, lastActiveDate: true },
     }),
   ]);

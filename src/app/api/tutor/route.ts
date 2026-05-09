@@ -15,6 +15,9 @@ import { requireAuth, apiHandler } from '@/lib/middleware';
 import { chatWithTutor } from '@/lib/ai';
 import type { PrismaClient } from '@prisma/client';
 
+// v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
+export const maxDuration = 60;
+
 function generateSessionId() {
   return 'session-' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 }

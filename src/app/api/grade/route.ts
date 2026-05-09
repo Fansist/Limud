@@ -108,6 +108,11 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
   }
 
+  // Regular PARENT (not homeschool, not master demo) must never reach grading.
+  if (user.role === 'PARENT' && !user.isHomeschoolParent && !user.isMasterDemo) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   // Verify access: teacher must own assignment or be a course teacher, admin must be in same district
   if (user.role === 'TEACHER' && submission.assignment.createdById !== user.id) {
     const isCourseTeacher = await prisma.courseTeacher.findFirst({

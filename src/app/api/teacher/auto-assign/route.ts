@@ -11,12 +11,28 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'skillName and subject required' }, { status: 400 });
   }
 
+  // FERPA: scope to students enrolled in courses this teacher teaches.
+  // Master demo bypasses the enrollments filter. If a courseId is provided,
+  // narrow further to that specific course.
+  const teacherStudentScope = user.isMasterDemo
+    ? {}
+    : {
+        enrollments: {
+          some: {
+            course: {
+              teachers: { some: { teacherId: user.id } },
+              ...(courseId ? { id: courseId } : {}),
+            },
+          },
+        },
+      };
+
   // Get all students' mastery for this skill
   const studentSkills = await prisma.skillRecord.findMany({
     where: {
       skillName,
       skillCategory: subject,
-      user: { role: 'STUDENT', district: { users: { some: { id: user.id } } } },
+      user: { role: 'STUDENT', isActive: true, ...teacherStudentScope },
     },
     include: { user: { select: { id: true, name: true, gradeLevel: true } } },
   });

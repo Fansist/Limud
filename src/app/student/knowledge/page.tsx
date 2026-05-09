@@ -35,6 +35,12 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 // CHART COMPONENTS
 // ═══════════════════════════════════════════════════════════════
 
+function deterministicHash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h) + s.charCodeAt(i);
+  return Math.abs(h);
+}
+
 function RadarChart({ data }: { data: { label: string; value: number }[] }) {
   const cx = 150, cy = 150, r = 110;
   const n = data.length;
@@ -349,15 +355,15 @@ function KnowledgeTab({ data }: { data: any }) {
           <span className="text-xs text-gray-400 ml-auto">Click a skill to see details</span>
         </div>
         <div className="grid sm:grid-cols-2 gap-2">
-          {(skills.length > 0 ? skills : getDemoData().skills).slice(0, 8).map((skill: { skillName: string; skillCategory: string; masteryLevel: number; streak: number }, i: number) => {
+          {(skills.length > 0 ? skills : getDemoData().skills).slice(0, 8).map((skill: { skillName: string; skillCategory: string; masteryLevel: number }, i: number) => {
             const isExpanded = expandedSkill === skill.skillName;
             const studyTip = skill.masteryLevel >= 80
               ? 'Great mastery! Try teaching this to a classmate or attempt challenge problems.'
               : skill.masteryLevel >= 60
               ? 'You\'re progressing well. Focus on practice problems and use the AI tutor for tricky parts.'
               : 'This needs attention. Start with the fundamentals and use short, focused study sessions.';
-            const practiceCount = Math.floor(Math.random() * 15) + 3;
-            const lastPracticed = `${Math.floor(Math.random() * 7) + 1}d ago`;
+            const practiceCount = (deterministicHash(skill.skillName) % 15) + 3;
+            const lastPracticed = `${((deterministicHash(skill.skillName) >> 4) % 7) + 1}d ago`;
 
             return (
               <div key={i} className="rounded-xl bg-gray-50 dark:bg-gray-800 overflow-hidden">
@@ -510,15 +516,15 @@ function GrowthTab({ data }: { data: any }) {
 
 function getDemoData() {
   const skills = [
-    { skillName: 'Linear Equations', skillCategory: 'Math', masteryLevel: 85, streak: 5 },
-    { skillName: 'Fractions', skillCategory: 'Math', masteryLevel: 62, streak: 2 },
-    { skillName: 'Geometry', skillCategory: 'Math', masteryLevel: 78, streak: 3 },
-    { skillName: 'Photosynthesis', skillCategory: 'Science', masteryLevel: 91, streak: 7 },
-    { skillName: 'Cell Biology', skillCategory: 'Science', masteryLevel: 73, streak: 4 },
-    { skillName: 'Essay Writing', skillCategory: 'English', masteryLevel: 68, streak: 1 },
-    { skillName: 'Grammar', skillCategory: 'English', masteryLevel: 82, streak: 6 },
-    { skillName: 'Vocabulary', skillCategory: 'English', masteryLevel: 55, streak: 0 },
-    { skillName: 'US History', skillCategory: 'History', masteryLevel: 74, streak: 2 },
+    { skillName: 'Linear Equations', skillCategory: 'Math', masteryLevel: 85 },
+    { skillName: 'Fractions', skillCategory: 'Math', masteryLevel: 62 },
+    { skillName: 'Geometry', skillCategory: 'Math', masteryLevel: 78 },
+    { skillName: 'Photosynthesis', skillCategory: 'Science', masteryLevel: 91 },
+    { skillName: 'Cell Biology', skillCategory: 'Science', masteryLevel: 73 },
+    { skillName: 'Essay Writing', skillCategory: 'English', masteryLevel: 68 },
+    { skillName: 'Grammar', skillCategory: 'English', masteryLevel: 82 },
+    { skillName: 'Vocabulary', skillCategory: 'English', masteryLevel: 55 },
+    { skillName: 'US History', skillCategory: 'History', masteryLevel: 74 },
   ];
   return {
     skills,

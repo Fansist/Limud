@@ -56,26 +56,20 @@ export interface UseIsDemoOptions {
 }
 
 export function useIsDemo(options?: UseIsDemoOptions): boolean {
+  // v13.x: All hooks must be called unconditionally on every render to
+  // satisfy the Rules of Hooks. We compute every dependency first, then
+  // derive the final boolean below. No conditional `return` may appear
+  // before this block finishes calling all hooks.
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
 
   const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
-
-  // v13.4.1: AI-consuming components opt out of demo behavior for master demo.
-  // We bypass BOTH the master-demo short-circuit AND the DEMO_EMAILS match
-  // (master@limud.edu is in DEMO_EMAILS — that's why a plain return false
-  // here is safe; it short-circuits the email check too).
-  if (options?.excludeMasterDemo && isMasterDemo) return false;
-
-  // v9.7.7: Master Demo returns true — demo data for stat-driven dashboards
-  if (isMasterDemo) return true;
-
   const sessionEmail = session?.user?.email?.toLowerCase() || '';
   const isSessionDemo = DEMO_EMAILS.has(sessionEmail);
+  const isRealUser = status === 'authenticated' && !!sessionEmail && !isSessionDemo;
+  const urlDemo = searchParams.get('demo') === 'true';
 
-  // v9.6 FIX: If authenticated with a REAL (non-demo) email, force non-demo mode
-  // This prevents stale localStorage from showing demo data to real users
-  const isRealUser = status === 'authenticated' && sessionEmail && !isSessionDemo;
+  const [storedDemo, setStoredDemo] = useState(false);
 
   // Clear stale demo flags for real users
   useEffect(() => {
@@ -86,13 +80,6 @@ export function useIsDemo(options?: UseIsDemoOptions): boolean {
       } catch {}
     }
   }, [isRealUser]);
-
-  // Real authenticated user → never demo
-  if (isRealUser) return false;
-
-  // Check URL param
-  const urlDemo = searchParams.get('demo') === 'true';
-  const [storedDemo, setStoredDemo] = useState(false);
 
   useEffect(() => {
     try {
@@ -113,6 +100,20 @@ export function useIsDemo(options?: UseIsDemoOptions): boolean {
       try { localStorage.setItem('limud-demo-mode', 'true'); } catch {}
     }
   }, [isSessionDemo]);
+
+  // ─── Derive the final boolean (no more hooks past this line) ───
+  // v13.4.1: AI-consuming components opt out of demo behavior for master demo.
+  // We bypass BOTH the master-demo short-circuit AND the DEMO_EMAILS match
+  // (master@limud.edu is in DEMO_EMAILS — that's why returning false here is
+  // safe; it short-circuits the email check too).
+  if (options?.excludeMasterDemo && isMasterDemo) return false;
+
+  // v9.7.7: Master Demo returns true — demo data for stat-driven dashboards
+  if (isMasterDemo) return true;
+
+  // v9.6 FIX: If authenticated with a REAL (non-demo) email, force non-demo mode.
+  // This prevents stale localStorage from showing demo data to real users.
+  if (isRealUser) return false;
 
   return urlDemo || storedDemo || isSessionDemo;
 }

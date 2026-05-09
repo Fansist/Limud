@@ -10,6 +10,10 @@ import prisma from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { weeklyParentDigest } from '@/lib/email-templates';
 
+// v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
+export const maxDuration = 300;
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   // Verify cron secret
   const authHeader = req.headers.get('authorization');

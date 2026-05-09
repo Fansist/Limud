@@ -235,10 +235,13 @@ export const PUT = apiHandler(async (req: Request) => {
   }
 
   if (messageId) {
-    await prisma.message.update({
-      where: { id: messageId },
+    const result = await prisma.message.updateMany({
+      where: { id: messageId, receiverId: user.id },
       data: { isRead: true },
     });
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'Message not found' }, { status: 404 });
+    }
     return NextResponse.json({ success: true });
   }
 

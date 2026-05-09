@@ -10,11 +10,29 @@ import prisma from '@/lib/prisma';
 import { generateStudentReport, analyzeCurriculum, analyzeWriting } from '@/lib/ai';
 import type { WeeklyReport } from '@prisma/client';
 
+export const maxDuration = 60;
+
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type') || 'all'; // 'student' | 'class' | 'all'
   const studentId = searchParams.get('studentId');
+
+  // FERPA: when a studentId is supplied, verify the requesting teacher
+  // actually teaches a course this student is enrolled in. Admins and
+  // master demo bypass this check.
+  if (studentId && user.role === 'TEACHER' && !user.isMasterDemo) {
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        studentId,
+        course: { teachers: { some: { teacherId: user.id } } },
+      },
+      select: { id: true },
+    });
+    if (!enrollment) {
+      return NextResponse.json({ error: 'Not authorized — student is not in your courses' }, { status: 403 });
+    }
+  }
 
   // Get teacher's courses
   const courseTeachers = await prisma.courseTeacher.findMany({

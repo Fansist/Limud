@@ -33,9 +33,9 @@ export default function AdminStudentsPage() {
   async function fetchStudents() {
     if (isDemo) {
       setStudents([
-        { id: 'ds1', name: 'Alice Johnson', firstName: 'Alice', lastName: 'Johnson', email: 'alice@school.edu', gradeLevel: '6th', school: { name: 'Lincoln Elementary' }, isActive: true, address: '123 Main St', city: 'Springfield', parent: { name: 'John Johnson', email: 'parent1.alice@school.edu' }, rewardStats: { totalXP: 1250, level: 5 }, classroomStudents: [] },
-        { id: 'ds2', name: 'Bob Smith', firstName: 'Bob', lastName: 'Smith', email: 'bob@school.edu', gradeLevel: '7th', school: { name: 'Washington Middle' }, isActive: true, address: '456 Oak Ave', city: 'Springfield', parent: { name: 'Jane Smith', email: 'parent1.bob@school.edu' }, rewardStats: { totalXP: 980, level: 4 }, classroomStudents: [] },
-        { id: 'ds3', name: 'Carol Williams', firstName: 'Carol', lastName: 'Williams', email: 'carol@school.edu', gradeLevel: '5th', school: { name: 'Lincoln Elementary' }, isActive: true, address: '789 Elm St', city: 'Springfield', parent: { name: 'Dan Williams', email: 'parent1.carol@school.edu' }, rewardStats: { totalXP: 2100, level: 8 }, classroomStudents: [] },
+        { id: 'ds1', name: 'Alice Johnson', firstName: 'Alice', lastName: 'Johnson', email: 'alice@school.edu', gradeLevel: '6th', school: { name: 'Lincoln Elementary' }, isActive: true, address: '123 Main St', city: 'Springfield', parent: { name: 'John Johnson', email: 'parent1.alice@school.edu' }, classroomStudents: [] },
+        { id: 'ds2', name: 'Bob Smith', firstName: 'Bob', lastName: 'Smith', email: 'bob@school.edu', gradeLevel: '7th', school: { name: 'Washington Middle' }, isActive: true, address: '456 Oak Ave', city: 'Springfield', parent: { name: 'Jane Smith', email: 'parent1.bob@school.edu' }, classroomStudents: [] },
+        { id: 'ds3', name: 'Carol Williams', firstName: 'Carol', lastName: 'Williams', email: 'carol@school.edu', gradeLevel: '5th', school: { name: 'Lincoln Elementary' }, isActive: true, address: '789 Elm St', city: 'Springfield', parent: { name: 'Dan Williams', email: 'parent1.carol@school.edu' }, classroomStudents: [] },
       ]);
       setLoading(false); return;
     }

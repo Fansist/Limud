@@ -51,9 +51,11 @@ export default function FocusModePage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Question state — shuffle on mount so each session feels different
-  const [questions, setQuestions] = useState(() =>
-    [...DEMO_QUESTIONS].sort(() => Math.random() - 0.5)
-  );
+  const [questions, setQuestions] = useState<typeof DEMO_QUESTIONS>(DEMO_QUESTIONS);
+
+  useEffect(() => {
+    setQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
+  }, []);
   const [currentQ, setCurrentQ] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);

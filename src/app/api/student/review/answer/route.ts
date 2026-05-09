@@ -16,6 +16,9 @@ import prisma from '@/lib/prisma';
 import { callGeminiSafe } from '@/lib/ai';
 import { DEMO_MISTAKE_QUEUE, demoResolvedSet } from '../next/route';
 
+// v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
+export const maxDuration = 60;
+
 const TEMPLATE_HINTS: Record<string, string> = {
   sign_error: "Check the signs — what happens to +/- when you move a term across the equals sign?",
   concept_confusion: "Re-read the question — which concept does this actually ask for?",

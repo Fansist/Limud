@@ -23,7 +23,7 @@ const FAQ_DATA: FAQCategory[] = [
     name: 'AI Features',
     icon: <Brain size={20} />,
     items: [
-      { question: 'How does the AI Tutor work?', answer: 'The AI Tutor uses Google\'s Gemini 2.0 Flash to provide personalized, Socratic-style tutoring. It never gives direct answers - instead, it guides students with hints and questions. If no API key is configured, a demo mode provides helpful preset responses.' },
+      { question: 'How does the AI Tutor work?', answer: 'The AI Tutor uses Google\'s Gemini 2.5 Flash to provide personalized, Socratic-style tutoring. It never gives direct answers - instead, it guides students with hints and questions. If no API key is configured, a demo mode provides helpful preset responses.' },
       { question: 'How does AI Auto-Grading work?', answer: 'Teachers can grade individual submissions or batch-grade entire classes with one click. The AI analyzes student work against the assignment rubric, provides a score (0-100), detailed feedback, strengths, areas for improvement, and encouragement.' },
       { question: 'What about the Quiz Generator?', answer: 'Teachers enter a subject, grade level, and topic. The AI generates multiple-choice questions with correct answers, explanations, and skill tags. Teachers can review and edit before sharing with students.' },
       { question: 'Is my data used to train AI models?', answer: 'No. Limud uses the Google Gemini API which does not use API data for training. Student conversations and submissions are stored securely in your district\'s database and are never shared externally.' },
@@ -33,7 +33,7 @@ const FAQ_DATA: FAQCategory[] = [
     name: 'Admin & Billing',
     icon: <Shield size={20} />,
     items: [
-      { question: 'What subscription plans are available?', answer: 'We offer 6 tiers: Free (up to 5 students, limited AI), Starter ($2/student/mo billed annually, up to 50 students), Growth ($4/student/mo, up to 200 students), Standard ($6/student/mo, up to 500 students, unlimited AI), Premium ($9/student/mo, up to 2,000 students, SSO & predictive AI), and Enterprise (custom pricing, unlimited). Every paid plan includes a 14-day free trial.' },
+      { question: 'What subscription plans are available?', answer: 'We offer 6 tiers: Family (free for up to 5 children per parent account), Starter ($2/student/mo billed annually, up to 50 students), Growth ($4/student/mo, up to 200 students), Standard ($6/student/mo, up to 500 students, unlimited AI), Premium ($9/student/mo, up to 2,000 students, SSO & predictive AI), and Enterprise (custom pricing, unlimited). Every paid plan includes a 14-day free trial.' },
       { question: 'How do I add students?', answer: 'Admins can add students individually from the Students page (which auto-creates parent accounts) or use Bulk Import with CSV files. Teachers with proper permissions can also add students to their classes.' },
       { question: 'What are district access levels?', answer: 'Limud supports 7 access levels: Superintendent (full access), Assistant Superintendent, Curriculum Director, Principal, Vice Principal, District Employee (view-only), and IT Admin. Each level has configurable permissions.' },
       { question: 'How does billing work?', answer: 'Plans are billed monthly or annually (save 25% with annual billing). Upgrades are prorated. Payment methods include credit card, ACH bank transfer, and purchase orders (Enterprise). Invoices are available in the Billing section.' },

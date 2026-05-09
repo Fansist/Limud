@@ -33,7 +33,7 @@ export default function TermsOfService() {
       </ul>
 
       <h2>5. Subscriptions & Billing</h2>
-      <p>Limud offers Free, Starter, Standard, and Enterprise plans. Paid subscriptions are billed annually. You may cancel at any time; access continues until the end of the billing period. Refunds are available within 30 days of purchase for annual plans.</p>
+      <p>Limud offers Family, Starter, Growth, Standard, Premium, and Enterprise plans. Paid subscriptions are billed annually. You may cancel at any time; access continues until the end of the billing period. Refunds are available within 30 days of purchase for annual plans.</p>
 
       <h2>6. Content Ownership</h2>
       <p>You retain ownership of all content you create on Limud (assignments, submissions, etc.). By uploading content, you grant Limud a limited license to store, process, and display your content as necessary to provide the service.</p>

@@ -7,6 +7,9 @@ import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import { detectStruggle, predictGrade } from '@/lib/cognitive-engine';
 
+// v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
+export const maxDuration = 60;
+
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
   const { searchParams } = new URL(req.url);

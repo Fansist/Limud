@@ -29,7 +29,7 @@ type ParentGoalCard = {
 
 /*
  * Student Dashboard v12.4 — "The Sylvester Experience"
- * Blueprint: Learning DNA + Adaptive Assignments + Focus Mode + Socratic Tutor + Instant Gratification (XP/Streak)
+ * Blueprint: Learning DNA + Adaptive Assignments + Focus Mode + Socratic Tutor + Personalized at-a-glance overview
  */
 
 export default function StudentDashboard() {
@@ -47,7 +47,7 @@ export default function StudentDashboard() {
   }[]>([]);
   const [loading, setLoading] = useState(true);
   const [skillsOverview, setSkillsOverview] = useState<{
-    topSkills: { id: string; skillName: string; skillCategory: string; masteryLevel: number; streak: number }[];
+    topSkills: { id: string; skillName: string; skillCategory: string; masteryLevel: number }[];
     reviewSkills: { id: string; skillName: string; skillCategory: string; masteryLevel: number; nextReview: string; daysSinceReview: number }[];
     totalSkills: number;
     averageMastery: number;
@@ -64,9 +64,9 @@ export default function StudentDashboard() {
       setAssignments(getStudentAssignments());
       setSkillsOverview({
         topSkills: [
-          { id: 'demo-skill-1', skillName: 'Fractions & Decimals', skillCategory: 'Math', masteryLevel: 94, streak: 7 },
-          { id: 'demo-skill-2', skillName: 'Photosynthesis', skillCategory: 'Science', masteryLevel: 89, streak: 4 },
-          { id: 'demo-skill-3', skillName: 'Reading Comprehension', skillCategory: 'ELA', masteryLevel: 86, streak: 3 },
+          { id: 'demo-skill-1', skillName: 'Fractions & Decimals', skillCategory: 'Math', masteryLevel: 94 },
+          { id: 'demo-skill-2', skillName: 'Photosynthesis', skillCategory: 'Science', masteryLevel: 89 },
+          { id: 'demo-skill-3', skillName: 'Reading Comprehension', skillCategory: 'ELA', masteryLevel: 86 },
         ],
         reviewSkills: [
           { id: 'demo-skill-4', skillName: 'Linear Equations', skillCategory: 'Math', masteryLevel: 62, nextReview: new Date().toISOString(), daysSinceReview: 3 },
@@ -200,7 +200,7 @@ export default function StudentDashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-7xl mx-auto">
-        {/* Welcome Banner — with XP, Streak, Level (Blueprint: Instant Gratification) */}
+        {/* Welcome Banner */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

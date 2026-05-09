@@ -42,7 +42,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; color: string; de
 ];
 
 const CATEGORIES = [
-  'All', 'AI & Intelligence', 'Student Experience', 'Teacher Tools', 'Gamification',
+  'All', 'AI & Intelligence', 'Student Experience', 'Teacher Tools',
   'Analytics & Data', 'Integrations', 'Mobile & Accessibility', 'Administration', 'Community',
 ];
 
@@ -417,14 +417,12 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     tags: ['Landing Page', 'Marketing', 'v8.0'],
   },
   {
-    id: 'cp-4', title: 'Cross-Platform Assignments & Master Demo', status: 'completed', quarter: 'Q1 2026',
+    id: 'cp-4', title: 'Cross-Platform Assignments & Integrations', status: 'completed', quarter: 'Q1 2026',
     category: 'Teacher Tools', icon: <Layers size={18} />, impact: 'high',
     description: 'Teachers can assign work from any website URL. 10 pre-built platform activities. Master demo account with full access to all roles.',
     details: [
       'Assign from any URL: Khan Academy, IXL, Newsela, Edpuzzle, etc.',
       '10 pre-built platform activities ready to assign',
-      'Master Demo account (master@limud.edu) with role switcher',
-      '6 playable educational mini-games in the Game Store',
     ],
     tags: ['Assignments', 'Integrations', 'v7.4'],
   },

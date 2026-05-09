@@ -12,6 +12,9 @@ import { requireAuth, apiHandler, hasTeacherAccess } from '@/lib/middleware';
 import { callGemini, isGeminiConfigured, extractJSON } from '@/lib/ai';
 import prisma from '@/lib/prisma';
 
+// v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
+export const maxDuration = 60;
+
 const LEARNING_STYLE_PROMPTS: Record<string, string> = {
   visual: `Adapt for a VISUAL learner:
 - Add descriptions of diagrams, charts, mind maps, and color-coded sections

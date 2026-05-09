@@ -94,11 +94,10 @@ export default function LandingPage() {
           "applicationCategory": "EducationalApplication",
           "operatingSystem": "Web",
           "offers": [
-            { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD", "description": "Up to 5 students, AI Tutor, adaptive learning" },
+            { "@type": "Offer", "name": "Family", "price": "0", "priceCurrency": "USD", "description": "Up to 5 children per parent account — for families with K-12 kids at any school" },
             { "@type": "Offer", "name": "Standard", "price": "6", "priceCurrency": "USD", "description": "Per student/month — full features" },
             { "@type": "Offer", "name": "Enterprise", "description": "Custom pricing for districts with SSO/SLA" }
-          ],
-          "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "247" }
+          ]
         },
         {
           "@context": "https://schema.org",
@@ -108,7 +107,7 @@ export default function LandingPage() {
           "provider": { "@type": "Organization", "name": "Limud Education Inc.", "url": "https://limud.co" },
           "educationalLevel": "K-12",
           "inLanguage": "en",
-          "isAccessibleForFree": true,
+          "isAccessibleForFree": false,
           "coursePrerequisites": "None",
           "hasCourseInstance": { "@type": "CourseInstance", "courseMode": "online", "courseWorkload": "PT30M" }
         },

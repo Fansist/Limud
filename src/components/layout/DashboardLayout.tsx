@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { cn, AVATAR_OPTIONS } from '@/lib/utils';
 import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
 import AINavigator from '@/components/ai/AINavigator';
@@ -16,9 +16,9 @@ import {
 import {
   LayoutDashboard, BookOpen, MessageCircle, BarChart3,
   GraduationCap, LogOut, Bell, Menu, X, Upload, Eye, Accessibility,
-  ChevronRight, Mail, Award, Play, Sparkles, ArrowLeft, Users,
+  ChevronRight, Mail, Play, Sparkles, ArrowLeft, Users,
   Home, Brain, FileText, Calendar, CalendarDays, TrendingUp, Sun, Moon,
-  Lightbulb, Focus, Zap, ChevronDown, Settings,
+  Lightbulb, Focus, Zap, Settings,
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
   Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList, Clipboard, Palette,
   MessageSquare,
@@ -113,9 +113,10 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
     { items: [
       { href: '/parent/dashboard', label: 'My Children', icon: <Users size={20} /> },
       { href: '/parent/children', label: 'Manage Children', icon: <Home size={20} /> },
-      { href: '/teacher/assignments', label: 'Assignments', icon: <BookOpen size={20} /> },
+      { href: '/teacher/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
       { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
       { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+      { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
     ]},
   ],
 };
@@ -154,7 +155,7 @@ const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.Reac
   ],
   HOMESCHOOL_PARENT: [
     { href: '/parent/dashboard', label: 'Home', icon: <Users size={20} /> },
-    { href: '/teacher/assignments', label: 'Assign', icon: <BookOpen size={20} /> },
+    { href: '/teacher/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
     { href: '/teacher/grading', label: 'Grade', icon: <GraduationCap size={20} /> },
     { href: '/teacher/analytics', label: 'Stats', icon: <BarChart3 size={20} /> },
   ],
@@ -165,11 +166,11 @@ const ROLE_COLORS: Record<string, string> = {
   TEACHER: 'from-emerald-500 to-emerald-600',
   ADMIN: 'from-purple-500 to-purple-600',
   PARENT: 'from-pink-500 to-pink-600',
-  HOMESCHOOL_PARENT: 'from-amber-500 to-orange-600',
+  HOMESCHOOL_PARENT: 'from-rose-500 to-pink-600',
 };
 const ROLE_LABELS: Record<string, string> = {
   STUDENT: 'Student Portal', TEACHER: 'Teacher Portal', ADMIN: 'Admin Portal',
-  PARENT: 'Parent Portal', HOMESCHOOL_PARENT: 'Homeschool Portal',
+  PARENT: 'Parent Portal', HOMESCHOOL_PARENT: 'Family Portal',
 };
 
 function getDemoUser(role: string) {
@@ -337,6 +338,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-primary-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
       {/* Demo mode banner */}
       {isDemo && (
         <div className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-amber-500 to-orange-500 text-white text-center py-1.5 px-4 text-xs font-medium flex items-center justify-center gap-3">
@@ -673,7 +680,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page content */}
-        <main className={cn(
+        <main id="main-content" className={cn(
           'flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-8',
           isDemo && 'mt-0',
           'pb-24 lg:pb-8' // Extra bottom padding for mobile nav

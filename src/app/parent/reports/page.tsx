@@ -25,7 +25,7 @@ export default function ParentReportsPage() {
         {
           child: { id: 'demo-student-lior', name: 'Lior Betzalel', gradeLevel: '10th', email: 'lior@ofer-academy.edu' },
           overview: { averageScore: 89.2, totalAssignments: 14, courses: [{ name: 'Biology 101', subject: 'Science' }, { name: 'Algebra II', subject: 'Math' }, { name: 'English Literature', subject: 'English' }] },
-          rewards: { level: 14, totalXP: 3200, currentStreak: 18, longestStreak: 24, coins: 620, assignmentsCompleted: 52, perfectScores: 5 },
+          rewards: { assignmentsCompleted: 52 },
           weeklyStats: { assignmentsCompleted: 5, averageScore: 89, studyMinutes: 280, completedStudySessions: 9, totalStudySessions: 10, tutorSessions: 7 },
           skills: { improving: ['Quadratic Equations', 'Essay Writing'], struggling: ['Chemical Bonding'], totalSkills: 10, masteredCount: 6 },
           prediction: { predictedGrade: 'B+', predictedScore: 89.2, confidence: 78 },

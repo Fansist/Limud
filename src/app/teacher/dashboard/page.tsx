@@ -27,6 +27,12 @@ export default function TeacherDashboard() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [myClassrooms, setMyClassrooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [greeting, setGreeting] = useState('Welcome');
+
+  useEffect(() => {
+    const h = new Date().getHours();
+    setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening');
+  }, []);
 
   useEffect(() => {
     if (isDemo) {
@@ -95,13 +101,6 @@ export default function TeacherDashboard() {
     return `${base}?${u.toString()}`;
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
   const atRiskStudents = students.filter((s: any) => s.riskLevel === 'high' || s.riskLevel === 'medium');
 
   return (
@@ -120,7 +119,7 @@ export default function TeacherDashboard() {
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl lg:text-3xl font-bold">
-                {getGreeting()}, {firstName}!
+                {greeting}, {firstName}!
               </h1>
               <p className="text-white/70 mt-1">
                 Your classroom at a glance &mdash; let AI handle the heavy lifting.

@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v14.3.0 · Update 3.3 · Real comic-book panel images</code>
+  <code>v14.4.0 · Update 3.4 · Site-wide bug-sweep audit</code>
 </p>
 
 ---

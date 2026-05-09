@@ -64,6 +64,9 @@ export const POST = apiHandler(async (req: Request) => {
   const targetStudentId = studentId || user.id;
 
   // Authorization check
+  if (user.role === 'STUDENT' && targetStudentId && targetStudentId !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   if (targetStudentId !== user.id) {
     if (user.role === 'TEACHER') {
       // Teacher must teach a course the target student is enrolled in.

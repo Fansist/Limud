@@ -67,10 +67,10 @@ export default function ParentDashboard() {
   async function runAICheckin(childId: string, childName: string) {
     if (isDemo) {
       setCheckinReport({
-        report: `## Check-In Report for ${childName}\n\n### Academic Summary\n${childName} has completed 4 graded assignments over the past two weeks with an average score of **88%**. This is excellent work! They are performing well academically.\n\n### Engagement\n${childName} has a strong **14-day streak** and has been actively using the AI tutor (5 sessions recently), which shows great initiative. Total study time logged: 210 minutes.\n\n### Areas of Strength\n${childName} is showing improvement in: Linear Equations, Photosynthesis. Keep encouraging these areas!\n\n### Study Habits\n- Most productive on Monday–Wednesday mornings\n- Average 30 minutes per study session\n- Prefers auditory learning materials\n\n### Recommendations\n1. Great streak! Keep the momentum going.\n2. The AI tutor usage is great — check the conversation logs to see what topics they're exploring.\n3. Celebrate their achievements and set a new learning goal together.`,
+        report: `## Check-In Report for ${childName}\n\n### Academic Summary\n${childName} has completed 4 graded assignments over the past two weeks with an average score of **88%**. This is excellent work! They are performing well academically.\n\n### Engagement\n${childName} has shown consistent activity and has been actively using the AI tutor (5 sessions recently), which shows great initiative. Total study time logged: 210 minutes.\n\n### Areas of Strength\n${childName} is showing improvement in: Linear Equations, Photosynthesis. Keep encouraging these areas!\n\n### Study Habits\n- Most productive on Monday–Wednesday mornings\n- Average 30 minutes per study session\n- Prefers auditory learning materials\n\n### Recommendations\n1. Keep the momentum going.\n2. The AI tutor usage is great — check the conversation logs to see what topics they're exploring.\n3. Celebrate their achievements and set a new learning goal together.`,
         childName,
         generatedAt: new Date().toISOString(),
-        summary: { averageScore: 88, recentSubmissions: 4, tutorSessions: 5, currentStreak: 14, studyMinutes: 210, level: 12 },
+        summary: { averageScore: 88, recentSubmissions: 4, tutorSessions: 5, studyMinutes: 210 },
       });
       setShowCheckin(true);
       return;

@@ -10,6 +10,9 @@ import prisma from '@/lib/prisma';
 import { callGemini, hasApiKey, extractJSON } from '@/lib/ai';
 import { updateSkillRecord } from '@/lib/cognitive-engine';
 
+// v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
+export const maxDuration = 60;
+
 function generateDemoExam(subject: string, gradeLevel: string, questionCount: number) {
   const exams: Record<string, { question: string; options: string[]; correctAnswer: string; skill: string; explanation: string }[]> = {
     Math: [

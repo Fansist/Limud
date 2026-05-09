@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     }
 
     const role = token.role as string;
-    if (role !== 'ADMIN' && !(token.isMasterDemo as boolean)) {
+    if (role !== 'ADMIN') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -264,7 +264,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const role = token.role as string;
-    if (role !== 'ADMIN' && !(token.isMasterDemo as boolean)) {
+    if (role !== 'ADMIN') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -280,6 +280,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: true, announcement: { id, isPinned, title, content, priority } });
     }
 
+    const districtId = token.districtId as string | null;
+    if (!districtId) {
+      return NextResponse.json({ error: 'District ID required' }, { status: 401 });
+    }
+
     const prisma = (await import('@/lib/prisma')).default;
     const data: Record<string, unknown> = {};
     if (typeof isPinned === 'boolean') data.isPinned = isPinned;
@@ -288,7 +293,7 @@ export async function PUT(request: NextRequest) {
     if (priority) data.priority = priority;
 
     const updated = await prisma.announcement.update({
-      where: { id },
+      where: { id, districtId },
       data,
       include: {
         author: { select: { name: true, role: true } },
@@ -320,7 +325,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const role = token.role as string;
-    if (role !== 'ADMIN' && !(token.isMasterDemo as boolean)) {
+    if (role !== 'ADMIN') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -336,8 +341,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+    const districtId = token.districtId as string | null;
+    if (!districtId) {
+      return NextResponse.json({ error: 'District ID required' }, { status: 401 });
+    }
+
     const prisma = (await import('@/lib/prisma')).default;
-    await prisma.announcement.delete({ where: { id } });
+    await prisma.announcement.delete({ where: { id, districtId } });
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

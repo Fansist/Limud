@@ -111,7 +111,7 @@ export const GET = apiHandler(async (_req: Request) => {
     //    + course so we can group by course.
     const submissions = await prisma.submission.findMany({
       where: {
-        userId: user.id,
+        studentId: user.id,
         score: { not: null },
       },
       select: {
@@ -190,7 +190,7 @@ export const GET = apiHandler(async (_req: Request) => {
 
     // 4. Count pending (ungraded) submissions per course in a second pass.
     const pending = await prisma.submission.findMany({
-      where: { userId: user.id, score: null },
+      where: { studentId: user.id, score: null },
       select: { assignment: { select: { courseId: true } } },
     });
     for (const p of pending) {

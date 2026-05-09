@@ -223,7 +223,7 @@ export default function LoginPage() {
               {[
                 { icon: '🤖', text: 'AI tutor that guides, not gives answers' },
                 { icon: '✨', text: 'Auto-grade submissions in seconds' },
-                { icon: '🏆', text: 'Gamification that makes learning fun' },
+                { icon: '🏆', text: 'Per-student adaptive material rewrites' },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3 text-white/80">
                   <span className="text-lg">{item.icon}</span>

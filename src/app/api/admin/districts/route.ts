@@ -5,6 +5,12 @@ import prisma from '@/lib/prisma';
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
 
+  // Tenant isolation: orphaned ADMIN accounts (no districtId) must not see all
+  // districts. Master demo always sees all districts.
+  if (!user.districtId && !user.isMasterDemo) {
+    return NextResponse.json({ districts: [] });
+  }
+
   const districts = await prisma.schoolDistrict.findMany({
     where: user.districtId ? { id: user.districtId } : {},
     include: {
