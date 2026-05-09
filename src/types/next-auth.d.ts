@@ -30,7 +30,8 @@ declare module 'next-auth' {
     isHomeschoolParent: boolean;
     gradeLevel: string;
     isMasterDemo: boolean;
-    isDemo: boolean;
+    // isDemo is computed in the jwt callback from the email, not set on the initial User
+    isDemo?: boolean;
   }
 }
 

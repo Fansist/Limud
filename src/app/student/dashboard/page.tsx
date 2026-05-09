@@ -13,6 +13,7 @@ import {
   BookOpen, MessageCircle, AlertTriangle, ArrowRight, TrendingUp, Calendar, Target, Building2, BarChart3,
   Brain, Sparkles, RefreshCw, Heart,
 } from 'lucide-react';
+import EmptyState from '@/components/ui/EmptyState';
 
 // v2.7.1 — shape of the GET /api/student/goals response payload.
 type ParentGoalCard = {
@@ -581,10 +582,11 @@ export default function StudentDashboard() {
             </div>
             <div className="space-y-2.5">
               {upcomingAssignments.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-3xl mb-2">🎉</div>
-                  <p className="text-gray-400 text-sm">All caught up!</p>
-                </div>
+                <EmptyState
+                  icon={<Sparkles size={28} />}
+                  title="All caught up!"
+                  description="Nothing due — you're all caught up!"
+                />
               ) : (
                 upcomingAssignments.map(assignment => {
                   const days = daysUntil(assignment.dueDate);

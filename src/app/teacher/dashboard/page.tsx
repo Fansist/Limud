@@ -12,6 +12,7 @@ import {
   BookOpen, GraduationCap, BarChart3, Users, AlertTriangle, Clock, ArrowRight, TrendingUp, FileText, Sparkles, CalendarDays,
   Upload, Target, Brain, Lightbulb, Zap, Eye, Search, Building2,
 } from 'lucide-react';
+import EmptyState from '@/components/ui/EmptyState';
 
 /*
  * Teacher Dashboard v12.4.3 — Simplified & Clean + My Classes
@@ -402,10 +403,19 @@ export default function TeacherDashboard() {
             </div>
             <div className="space-y-2.5">
               {assignments.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-3xl mb-2">📝</div>
-                  <p className="text-sm text-gray-400">No assignments yet. Upload your first one!</p>
-                </div>
+                <EmptyState
+                  icon={<BookOpen size={28} />}
+                  title="No assignments yet"
+                  description="Upload your first assignment to start tracking submissions and grades."
+                  action={
+                    <Link
+                      href="/teacher/coursework"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm transition"
+                    >
+                      Upload assignment
+                    </Link>
+                  }
+                />
               ) : (
                 assignments.slice(0, 5).map((assignment: any) => {
                   const totalSubs = assignment.submissions?.length || 0;

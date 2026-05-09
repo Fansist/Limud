@@ -1,3 +1,5 @@
+// NOTE: paginated; clients should pass ?page=N&pageSize=M
+// NOTE: response shape is { items, total, page, pageSize } as of v14.7.0
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
@@ -9,34 +11,47 @@ function generateTempPassword(): string {
   return crypto.randomBytes(12).toString('base64url');
 }
 
-// GET /api/district/students - List students in district
+// GET /api/district/students - List students in district (paginated)
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
   const { searchParams } = new URL(req.url);
   const schoolId = searchParams.get('schoolId');
   const gradeLevel = searchParams.get('gradeLevel');
 
+  const pageRaw = parseInt(searchParams.get('page') || '1', 10);
+  const pageSizeRaw = parseInt(searchParams.get('pageSize') || '25', 10);
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSize = Math.min(
+    Math.max(Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? pageSizeRaw : 25, 1),
+    100,
+  );
+
   const where: Prisma.UserWhereInput = { districtId: user.districtId, role: 'STUDENT' };
   if (schoolId) where.schoolId = schoolId;
   if (gradeLevel) where.gradeLevel = gradeLevel;
 
-  const students = await prisma.user.findMany({
-    where,
-    select: {
-      id: true, email: true, name: true, firstName: true, lastName: true,
-      gradeLevel: true, schoolId: true, parentId: true, siblingGroupId: true,
-      address: true, city: true, state: true, zipCode: true, phone: true,
-      dateOfBirth: true, emergencyContact: true, emergencyPhone: true,
-      isActive: true, createdAt: true,
-      school: { select: { id: true, name: true } },
-      parent: { select: { id: true, name: true, email: true } },
-      rewardStats: { select: { totalXP: true, level: true, currentStreak: true } },
-      classroomStudents: { include: { classroom: { select: { id: true, name: true } } } },
-    },
-    orderBy: { name: 'asc' },
-  });
+  const [total, students] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      select: {
+        id: true, email: true, name: true, firstName: true, lastName: true,
+        gradeLevel: true, schoolId: true, parentId: true, siblingGroupId: true,
+        address: true, city: true, state: true, zipCode: true, phone: true,
+        dateOfBirth: true, emergencyContact: true, emergencyPhone: true,
+        isActive: true, createdAt: true,
+        school: { select: { id: true, name: true } },
+        parent: { select: { id: true, name: true, email: true } },
+        rewardStats: { select: { totalXP: true, level: true, currentStreak: true } },
+        classroomStudents: { include: { classroom: { select: { id: true, name: true } } } },
+      },
+      orderBy: { name: 'asc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
 
-  return NextResponse.json({ students });
+  return NextResponse.json({ items: students, total, page, pageSize });
 });
 
 // POST /api/district/students - Create student account(s) with full personal info

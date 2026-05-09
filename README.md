@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v14.6.0 · Update 3.6 · No more install nags, brand polish, error foundation</code>
+  <code>v14.7.0 · Update 3.7 · Deferred-list cleanup: pagination, loading, error wraps, log polish</code>
 </p>
 
 ---

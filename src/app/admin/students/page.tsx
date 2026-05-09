@@ -9,6 +9,7 @@ import {
   Users, Plus, UserPlus, Search, Building2, MapPin, Phone, Shield, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const GRADE_LEVELS = ['Kindergarten','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th'];
 

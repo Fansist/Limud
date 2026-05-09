@@ -15,6 +15,7 @@ import {
   Save, RotateCcw, Wand2, Check, CheckCircle, AlertTriangle, Globe, Search, ArrowRight, Edit3, Eye, ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
+import EmptyState from '@/components/ui/EmptyState';
 
 const PLATFORM_ASSIGNMENTS = [
   { id: 'pa-1', platform: 'Khan Academy', icon: '🎓', platformColor: 'bg-green-100 text-green-700', title: 'Fractions: Add & Subtract', description: 'Practice adding and subtracting fractions with unlike denominators', url: 'https://www.khanacademy.org/math/arithmetic/fraction-arithmetic', subject: 'Math', gradeLevel: '5th', type: 'Practice', estimatedTime: '30 min' },
@@ -651,10 +652,19 @@ export default function TeacherAssignments() {
               );
             })}
             {filteredAssignments.length === 0 && (
-              <div className="text-center py-12 card">
-                <BookOpen size={48} className="mx-auto text-gray-300 mb-3" />
-                <p className="text-gray-400 text-lg">No assignments in this category</p>
-              </div>
+              <EmptyState
+                icon={<FileText size={28} />}
+                title="No assignments in this category"
+                description="Switch tabs or create a new assignment to get started."
+                action={
+                  <Link
+                    href="/teacher/coursework"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm transition"
+                  >
+                    Create assignment
+                  </Link>
+                }
+              />
             )}
           </div>
         )}

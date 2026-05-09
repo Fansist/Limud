@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
+import { log } from '@/lib/log';
 
 /**
  * Worksheet Search API - v9.3.5
@@ -393,7 +394,7 @@ async function aiSearchWorksheets(query: string, subject?: string, grade?: strin
     });
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      console.log('[AI WS SEARCH] Timed out, using curated results');
+      log.debug('WORKSHEET_SEARCH', 'Timed out, using curated results');
     } else {
       console.error('[AI WS SEARCH] Error:', error.message);
     }

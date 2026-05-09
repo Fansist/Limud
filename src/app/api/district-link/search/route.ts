@@ -12,6 +12,7 @@
  * exclusively via POST /api/district-link/seed (CRON_SECRET-protected).
  */
 import { NextResponse } from 'next/server';
+import { log as logger } from '@/lib/log';
 
 // The searchable filter — excludes demo, homeschool, self-education
 const SEARCHABLE_FILTER = {
@@ -26,7 +27,7 @@ const SEARCHABLE_FILTER = {
 export async function GET(req: Request) {
   const t0 = Date.now();
   const steps: string[] = [];
-  const log = (s: string) => { steps.push(s); console.log(`[DistrictSearch] ${s}`); };
+  const log = (s: string) => { steps.push(s); logger.debug('DISTRICT_LINK', s); };
 
   try {
     const url = new URL(req.url);

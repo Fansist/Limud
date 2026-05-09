@@ -53,7 +53,7 @@ export function useIsDemo(options?: UseIsDemoOptions): boolean {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
 
-  const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
+  const isMasterDemo = session?.user?.isMasterDemo === true;
   const sessionEmail = session?.user?.email?.toLowerCase() || '';
   const isSessionDemo = DEMO_EMAILS.has(sessionEmail);
   const isRealUser = status === 'authenticated' && !!sessionEmail && !isSessionDemo;
@@ -118,7 +118,7 @@ export function useNeedsDemoParam(): boolean {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
 
-  const isMasterDemo = (session?.user as any)?.isMasterDemo === true;
+  const isMasterDemo = session?.user?.isMasterDemo === true;
   if (isMasterDemo) return false;
 
   const sessionEmail = session?.user?.email?.toLowerCase() || '';

@@ -111,11 +111,21 @@ export const POST = apiHandler(async (req: Request) => {
   return NextResponse.json({ submission }, { status: 201 });
 });
 
+// NOTE: response shape is { items, total, page, pageSize } as of v14.7.0
+//   (single-submission branch via ?submissionId still returns { submission, files })
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
   const { searchParams } = new URL(req.url);
   const assignmentId = searchParams.get('assignmentId');
   const submissionId = searchParams.get('submissionId');
+
+  const pageRaw = parseInt(searchParams.get('page') || '1', 10);
+  const pageSizeRaw = parseInt(searchParams.get('pageSize') || '25', 10);
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSize = Math.min(
+    Math.max(Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? pageSizeRaw : 25, 1),
+    100,
+  );
 
   // Get single submission with files
   if (submissionId) {
@@ -149,26 +159,33 @@ export const GET = apiHandler(async (req: Request) => {
   }
 
   if (user.role === 'STUDENT') {
-    const submissions = await prisma.submission.findMany({
-      where: {
-        studentId: user.id,
-        ...(assignmentId ? { assignmentId } : {}),
-      },
-      include: {
-        assignment: {
-          select: { title: true, totalPoints: true, dueDate: true, course: { select: { name: true } } },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
+    const studentWhere = {
+      studentId: user.id,
+      ...(assignmentId ? { assignmentId } : {}),
+    };
 
-    // Enrich with file counts
-    const enriched = await Promise.all(submissions.map(async (s) => {
+    const [total, submissions] = await Promise.all([
+      prisma.submission.count({ where: studentWhere }),
+      prisma.submission.findMany({
+        where: studentWhere,
+        include: {
+          assignment: {
+            select: { title: true, totalPoints: true, dueDate: true, course: { select: { name: true } } },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    // Enrich with file counts (parsing JSON, no DB calls — flat map suffices)
+    const enriched = submissions.map((s) => {
       const fileCount = s.fileUploadIds ? JSON.parse(s.fileUploadIds).length : 0;
       return { ...s, fileCount };
-    }));
+    });
 
-    return NextResponse.json({ submissions: enriched });
+    return NextResponse.json({ items: enriched, total, page, pageSize });
   }
 
   // BUG FIX: Handle ADMIN role for viewing submissions (was falling through to 403)
@@ -208,49 +225,85 @@ export const GET = apiHandler(async (req: Request) => {
       }
     }
 
-    const submissions = await prisma.submission.findMany({
-      where: { assignmentId },
-      include: {
-        student: {
-          select: {
-            id: true, name: true, email: true, gradeLevel: true,
-            learningStyleProfile: true, surveyCompleted: true,
+    const [total, submissions] = await Promise.all([
+      prisma.submission.count({ where: { assignmentId } }),
+      prisma.submission.findMany({
+        where: { assignmentId },
+        include: {
+          student: {
+            select: {
+              id: true, name: true, email: true, gradeLevel: true,
+              learningStyleProfile: true, surveyCompleted: true,
+            },
           },
         },
-      },
-      orderBy: { submittedAt: 'desc' },
-    });
+        orderBy: { submittedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
 
-    // Enrich with file info + learning method data
-    const enriched = await Promise.all(submissions.map(async (s) => {
-      const fileIds = s.fileUploadIds ? JSON.parse(s.fileUploadIds) as string[] : [];
-      const files = fileIds.length > 0 ? await prisma.fileUpload.findMany({
-        where: { id: { in: fileIds } },
-        select: { id: true, originalName: true, mimeType: true, fileSize: true },
-      }) : [];
+    // Batched lookups — replace 4-queries-per-row with 3 fixed queries.
+    const studentIds = [...new Set(submissions.map((s) => s.studentId))];
+    const submissionIds = submissions.map((s) => s.id);
 
-      // v9.4.0: Get student's learning style from survey
-      let studentLearningStyle = null;
-      try {
-        const survey = await prisma.studentSurvey.findUnique({ where: { userId: s.studentId } });
-        if (survey) {
+    const [allFileUploads, allSurveys, allAdapted] = await Promise.all([
+      submissionIds.length > 0
+        ? prisma.fileUpload.findMany({
+            where: { submissionId: { in: submissionIds } },
+            select: {
+              id: true, originalName: true, mimeType: true, fileSize: true,
+              submissionId: true,
+            },
+          })
+        : Promise.resolve([] as Array<{ id: string; originalName: string; mimeType: string; fileSize: number; submissionId: string | null }>),
+      studentIds.length > 0
+        ? prisma.studentSurvey.findMany({ where: { userId: { in: studentIds } } })
+        : Promise.resolve([] as Array<{ userId: string; learningStyle: string; learningNeeds: string | null; preferredFormats: string | null }>),
+      studentIds.length > 0
+        ? prisma.adaptedAssignment.findMany({
+            where: { assignmentId: assignmentId!, studentId: { in: studentIds } },
+            select: { studentId: true, learningStyle: true, methodSuggestion: true, difficulty: true },
+          })
+        : Promise.resolve([] as Array<{ studentId: string; learningStyle: string; methodSuggestion: string | null; difficulty: string | null }>),
+    ]);
+
+    const fileUploadsBySubmission = new Map<string, typeof allFileUploads>();
+    for (const f of allFileUploads) {
+      if (!f.submissionId) continue;
+      const arr = fileUploadsBySubmission.get(f.submissionId) ?? [];
+      arr.push(f);
+      fileUploadsBySubmission.set(f.submissionId, arr);
+    }
+
+    const surveyByStudent = new Map<string, (typeof allSurveys)[number]>();
+    for (const sv of allSurveys) surveyByStudent.set(sv.userId, sv);
+
+    const adaptedByStudent = new Map<string, (typeof allAdapted)[number]>();
+    for (const a of allAdapted) adaptedByStudent.set(a.studentId, a);
+
+    // Synchronous enrichment using prebuilt maps.
+    const enriched = submissions.map((s) => {
+      const filesWithSub = fileUploadsBySubmission.get(s.id) ?? [];
+      // Strip submissionId to preserve original response shape.
+      const files = filesWithSub.map(({ submissionId: _sid, ...rest }) => rest);
+
+      let studentLearningStyle: { primary: string; needs: unknown; formats: unknown } | null = null;
+      const survey = surveyByStudent.get(s.studentId);
+      if (survey) {
+        try {
           studentLearningStyle = {
             primary: survey.learningStyle,
             needs: JSON.parse(survey.learningNeeds || '[]'),
             formats: JSON.parse(survey.preferredFormats || '[]'),
           };
-        }
-      } catch (e) { console.warn('[submissions] survey fetch failed:', e); }
+        } catch (e) { console.warn('[submissions] survey parse failed:', e); }
+      }
 
-      // Get adapted version info if it exists
-      let adaptedInfo = null;
-      try {
-        const adapted = await prisma.adaptedAssignment.findUnique({
-          where: { assignmentId_studentId: { assignmentId: assignmentId!, studentId: s.studentId } },
-          select: { learningStyle: true, methodSuggestion: true, difficulty: true },
-        });
-        if (adapted) adaptedInfo = adapted;
-      } catch (e) { console.warn('[submissions] adapted-assignment fetch failed:', e); }
+      const adapted = adaptedByStudent.get(s.studentId) ?? null;
+      const adaptedInfo = adapted
+        ? { learningStyle: adapted.learningStyle, methodSuggestion: adapted.methodSuggestion, difficulty: adapted.difficulty }
+        : null;
 
       return {
         ...s,
@@ -260,9 +313,9 @@ export const GET = apiHandler(async (req: Request) => {
         studentLearningStyle,
         adaptedInfo,
       };
-    }));
+    });
 
-    return NextResponse.json({ submissions: enriched });
+    return NextResponse.json({ items: enriched, total, page, pageSize });
   }
 
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

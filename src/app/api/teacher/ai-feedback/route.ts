@@ -11,6 +11,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler, hasTeacherAccess } from '@/lib/middleware';
 import { callGemini, hasApiKey, extractJSON, getAIStatus } from '@/lib/ai';
+import { log } from '@/lib/log';
 
 export const maxDuration = 60;
 
@@ -137,7 +138,7 @@ export const POST = apiHandler(async (req: Request) => {
     ];
 
     try {
-      console.log(`[AI-FEEDBACK] Calling Gemini for feedback on "${assignment}"...`);
+      log.debug('AI_FEEDBACK', `Calling Gemini for feedback on "${assignment}"...`);
       const response = await callGemini(messages, { temperature: 0.4, maxTokens: 2000 });
       const jsonStr = extractJSON(response);
       if (jsonStr) {
@@ -145,7 +146,7 @@ export const POST = apiHandler(async (req: Request) => {
         if (parsed.score !== undefined && parsed.detailedFeedback) {
           feedback = parsed;
           aiGenerated = true;
-          console.log(`[AI-FEEDBACK] SUCCESS: AI feedback generated, score=${parsed.score}`);
+          log.debug('AI_FEEDBACK', `SUCCESS: AI feedback generated, score=${parsed.score}`);
         } else {
           console.warn('[AI-FEEDBACK] Parsed JSON missing required fields (score/detailedFeedback)');
           aiError = 'AI returned malformed JSON (missing score or detailedFeedback)';

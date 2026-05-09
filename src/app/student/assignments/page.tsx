@@ -13,6 +13,7 @@ import {
   BookOpen, Clock, Send, X, FileText, Upload, Paperclip, Trash2, Link2, Mic, Video, Code2, PenTool, Globe, Star, ExternalLink, Download, Play, Puzzle,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import EmptyState from '@/components/ui/EmptyState';
 
 // v12.0.0 — Lazy-load Video Player and Exercise Renderer
 const VideoPlayer = dynamic(() => import('@/components/video/VideoPlayer'), { ssr: false });
@@ -213,9 +214,11 @@ export default function StudentAssignments() {
             <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 card">
-            <p className="text-gray-400 text-lg">No assignments found</p>
-          </div>
+          <EmptyState
+            icon={<BookOpen size={28} />}
+            title="No assignments yet"
+            description="Once your teacher posts assignments, they'll show up here."
+          />
         ) : (
           <div className="space-y-4">
             {filtered.map((assignment, i) => {

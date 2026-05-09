@@ -9,6 +9,13 @@ import ReactMarkdown from 'react-markdown';
 import toast from 'react-hot-toast';
 import { Send, Bot, User, Sparkles, BookOpen, FlaskConical, Calculator, Pen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+const ChatErrorFallback = () => (
+  <div className="p-4 text-sm text-gray-500 dark:text-gray-400 text-center">
+    Something went wrong rendering this chat. Try refreshing.
+  </div>
+);
 
 type Message = {
   role: 'user' | 'assistant';
@@ -309,7 +316,7 @@ export default function TutorPage() {
                 </div>
               </div>
             ) : (
-              <>
+              <ErrorBoundary fallback={<ChatErrorFallback />}>
                 {messages.map((msg, i) => (
                   <motion.div
                     key={i}
@@ -369,7 +376,7 @@ export default function TutorPage() {
                     </div>
                   </motion.div>
                 )}
-              </>
+              </ErrorBoundary>
             )}
             <div ref={messagesEndRef} />
           </div>

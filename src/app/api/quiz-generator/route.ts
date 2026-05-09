@@ -16,6 +16,7 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import { callGemini, hasApiKey, extractJSON, getAIStatus } from '@/lib/ai';
 import { generateSpecializedQuiz } from '@/lib/ai-generators';
+import { log } from '@/lib/log';
 import { Difficulty } from '@prisma/client';
 
 export const maxDuration = 60;
@@ -141,9 +142,9 @@ export const POST = apiHandler(async (req: Request) => {
     ];
 
     try {
-      console.log(`[QUIZ-GEN] Calling Gemini for ${questionCount} ${difficulty} ${subject} questions...`);
+      log.debug('QUIZ-GEN', `Calling Gemini for ${questionCount} ${difficulty} ${subject} questions...`);
       const response = await callGemini(messages, { temperature: 0.7, maxTokens: 8000 });
-      console.log(`[QUIZ-GEN] Gemini response length: ${response.length} chars`);
+      log.debug('QUIZ-GEN', `Gemini response length: ${response.length} chars`);
 
       const jsonStr = extractJSON(response);
       if (!jsonStr) {
@@ -162,7 +163,7 @@ export const POST = apiHandler(async (req: Request) => {
           } else {
             // Validate questions — be lenient (only require question + correctAnswer)
             const valid = parsed.filter((q: any) => q.question && q.correctAnswer);
-            console.log(`[QUIZ-GEN] Parsed ${parsed.length} questions, ${valid.length} passed validation`);
+            log.debug('QUIZ-GEN', `Parsed ${parsed.length} questions, ${valid.length} passed validation`);
 
             if (valid.length >= Math.min(2, questionCount)) {
               // Ensure all questions have required fields with defaults
@@ -176,7 +177,7 @@ export const POST = apiHandler(async (req: Request) => {
                 difficulty: q.difficulty || difficulty,
               }));
               aiGenerated = true;
-              console.log(`[QUIZ-GEN] SUCCESS: ${questions.length} AI-generated questions`);
+              log.debug('QUIZ-GEN', `SUCCESS: ${questions.length} AI-generated questions`);
             } else {
               aiError = `Only ${valid.length} questions passed validation (need at least ${Math.min(2, questionCount)})`;
               console.error('[QUIZ-GEN] Not enough valid questions. Sample invalid:', JSON.stringify(parsed[0]).substring(0, 200));
@@ -199,7 +200,7 @@ export const POST = apiHandler(async (req: Request) => {
 
   // ── Fallback to specialized template bank ───────────────────────
   if (!questions || questions.length === 0) {
-    console.log(`[QUIZ-GEN] Using template fallback. Reason: ${aiError || 'unknown'}`);
+    log.debug('QUIZ-GEN', `Using template fallback. Reason: ${aiError || 'unknown'}`);
     questions = generateSpecializedQuiz(subject, gradeLevel, topic || '', questionCount, difficulty);
   }
 

@@ -4,6 +4,159 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [3.7.0] - 2026-05-09 — Update 3.7 (Deferred-list cleanup)
+
+Worked the deferred list from 3.6: pagination on every district / admin
+list endpoint, branded `loading.tsx` skeletons across all four roles,
+real `<EmptyState>` and `<ConfirmDialog>` components rolled out to the
+top callers, `<ErrorBoundary>` actually wrapping the tutor chat, broad
+`console.log` → `log.debug` migration, and a careful next-auth typing
+sweep that retired 22 of the longstanding `as any` casts.
+
+### Added — Loading boundaries
+
+- `src/app/loading.tsx` — generic root-level spinner.
+- `src/app/student/loading.tsx`, `teacher/loading.tsx`, `parent/loading.tsx`,
+  `admin/loading.tsx` — branded skeletons that mirror each role's
+  dashboard shape (KPI row + main card + grid). Eliminates the blank
+  white flash between route navigations.
+- `src/app/(auth)/loading.tsx` — minimal centered spinner for sign-in
+  flows.
+
+### Added — Reusable UI primitives
+
+- **`src/components/ui/EmptyState.tsx`** — accessible empty-state with
+  optional icon, title, description, and action slot. `role="status"`
+  + `aria-live="polite"`. Default + named export so prior callers
+  keep working.
+- **`src/components/ui/ConfirmDialog.tsx`** — promise-style accessible
+  modal. Replaces `window.confirm()`. Focus moves to the confirm
+  button on open and restores to the previous trigger on close;
+  Escape and backdrop-click both cancel. `destructive` variant
+  renders a red confirm button + `AlertTriangle` icon.
+
+### Changed — `<EmptyState>` rolled out
+
+Replaced ad-hoc empty branches on:
+
+- `src/app/teacher/dashboard/page.tsx` — zero-assignments slot
+  (icon `BookOpen`, action "Upload assignment" → `/teacher/coursework`).
+- `src/app/teacher/assignments/page.tsx` — empty list (icon `FileText`,
+  action "Create assignment").
+- `src/app/student/dashboard/page.tsx` — replaces the inline emoji
+  "🎉 All caught up!" with `EmptyState` (icon `Sparkles`).
+- `src/app/student/assignments/page.tsx` — empty list (icon `BookOpen`).
+- `src/app/teacher/students/page.tsx` — empty roster (icon `Users`,
+  action "Manage roster"). This page was also previously calling an
+  undefined `handleDelete` from the row Trash button — fixed as a
+  side effect of the new dialog wiring.
+
+### Changed — `<ConfirmDialog>` replaces `confirm()`
+
+- `src/app/parent/children/page.tsx` — child deactivation now uses
+  the destructive variant with the child's name in the body copy.
+- `src/app/teacher/materials/page.tsx` — material delete now uses the
+  destructive variant. Also fixed a latent bug: the Trash button was
+  wired to an undefined `handleDelete` reference.
+
+### Changed — `<ErrorBoundary>` actually wrapping things
+
+- `src/app/student/tutor/page.tsx` — the chat message-list block is
+  now wrapped in `<ErrorBoundary fallback={<ChatErrorFallback />}>`.
+  A render-time exception in one bubble (e.g., a malformed LaTeX
+  fragment from the model) no longer takes down the whole tutor page;
+  the user just sees "Something went wrong rendering this chat. Try
+  refreshing." in that pane.
+
+### Changed — Pagination + N+1 sweep
+
+Every district/admin list endpoint now accepts `?page` and
+`?pageSize` (default 25, max 100) and returns a uniform
+`{ items, total, page, pageSize }` envelope. Frontend callers that
+read a bare array will need to switch to `data.items` — each route
+carries a `// NOTE: response shape is { items, total, page, pageSize }
+as of v14.7.0` comment so call sites are discoverable.
+
+- `src/app/api/district/schools/route.ts`
+- `src/app/api/admin/districts/route.ts`
+- `src/app/api/submissions/route.ts` (both STUDENT and TEACHER list
+  branches; the single-submission `?submissionId` branch keeps its
+  existing `{ submission, files }` shape, called out in the NOTE)
+- `src/app/api/district/students/route.ts`
+- `src/app/api/district/teachers/route.ts`
+- `src/app/api/district/courses/route.ts`
+- `src/app/api/messages/contacts/route.ts` (in-memory pagination
+  after dedup/sort because the contact set unions multiple
+  role-specific queries; flagged in an inline comment for a future
+  SQL-level refactor)
+
+A latent N+1 in the STUDENT submissions branch (a synchronous map
+wrapped in `Promise.all` that spawned `submissions.length` resolved
+promises) was collapsed to a plain map.
+
+### Changed — `console.log` → `log.debug`
+
+Continued the rollout from 3.6's `src/lib/log.ts`:
+
+- `src/app/api/teacher/ai-builder/route.ts` — 4 sites,
+  scope `'AI_BUILDER'`.
+- `src/app/api/exam-sim/route.ts` — 2 sites, `'EXAM_SIM'`.
+- `src/app/api/parent/ai-checkin/route.ts` — 2 sites, `'AI_CHECKIN'`.
+- `src/app/api/teacher/ai-feedback/route.ts` — 2 sites, `'AI_FEEDBACK'`.
+- `src/app/api/district-link/seed/route.ts` — 2 sites, `'DISTRICT_LINK'`.
+- `src/app/api/district-link/search/route.ts` — 1 site, `'DISTRICT_LINK'`.
+- `src/app/api/adaptive/route.ts` — 1 site, `'ADAPTIVE'`.
+- `src/app/api/worksheet-search/route.ts` — 1 site,
+  `'WORKSHEET_SEARCH'`.
+
+`console.warn` and `console.error` were intentionally left in place —
+they surface real problems and should stay loud.
+
+### Fixed — Credential leak in seed route
+
+`src/app/api/district-link/seed/route.ts` was logging the freshly
+generated random password alongside the provisioned admin email. The
+log line is replaced with a directive ("operator must use forgot-
+password to set a real password") — the password is hashed in the DB
+and is never recoverable from the logs again.
+
+### Removed — Broken i18n language switcher
+
+`src/components/layout/DashboardLayout.tsx` exposed a top-bar locale
+picker, but only `DashboardLayout` itself called `t()`. Picking
+Spanish flipped two strings and left every page in English, which
+read worse than no picker at all. The switcher JSX (and the
+unused `useI18n`/`LOCALES` import + state) is gone. `src/lib/i18n.ts`
+is preserved for the eventual full migration.
+
+### Fixed — `as any` cleanup
+
+22 longstanding `as any` casts removed, all cases the
+`next-auth.d.ts` augmentation already typed correctly:
+
+- `src/lib/auth.ts` — 20 sites: `MASTER_DEMO`/`DEMO_ACCOUNTS` literal
+  shapes, header-extraction, jwt callback (8x), session callback (10x),
+  token email type widening.
+- `src/lib/hooks.ts` — 2 sites: `useIsDemo` and `useNeedsDemoParam`
+  reading `session.user.isMasterDemo`.
+
+`src/types/next-auth.d.ts` was tightened slightly (`User.isDemo` made
+optional with a comment that `Session.user.isDemo` and `JWT.isDemo`
+are populated by the time consumers read them, so they stay
+required).
+
+### Notes
+
+- **Soft contract change**: 7 list endpoints now return
+  `{ items, total, page, pageSize }` instead of bare arrays. Every
+  affected route carries a NOTE comment so frontend caller updates
+  can be tracked. If a list page suddenly renders as empty, the
+  client is reading the array directly — switch to `data.items`.
+- No schema migrations.
+- No new env vars (`LOG_LEVEL` from 3.6 still applies).
+
+---
+
 ## [3.6.0] - 2026-05-08 — Update 3.6 (Install nags out, brand polish, error foundation)
 
 Third audit pass. 8 reviewers, 6 coders. Focus:

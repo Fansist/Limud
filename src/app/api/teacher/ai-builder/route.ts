@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler, hasTeacherAccess } from '@/lib/middleware';
 import { callGemini, hasApiKey, extractJSON, getAIStatus } from '@/lib/ai';
+import { log } from '@/lib/log';
 
 export const maxDuration = 60;
 
@@ -91,9 +92,9 @@ export const POST = apiHandler(async (req: Request) => {
     ];
 
     try {
-      console.log(`[AI-BUILDER] Calling Gemini for ${styles.length} ${styles.join(',')} assignments...`);
+      log.debug('AI_BUILDER', `Calling Gemini for ${styles.length} ${styles.join(',')} assignments...`);
       const response = await callGemini(messages, { temperature: 0.7, maxTokens: 8000 });
-      console.log(`[AI-BUILDER] Gemini response length: ${response.length} chars`);
+      log.debug('AI_BUILDER', `Gemini response length: ${response.length} chars`);
 
       const jsonStr = extractJSON(response);
       if (!jsonStr) {
@@ -108,7 +109,7 @@ export const POST = apiHandler(async (req: Request) => {
           if (valid.length > 0) {
             assignments = valid;
             aiGenerated = true;
-            console.log(`[AI-BUILDER] SUCCESS: ${valid.length} AI-generated assignments`);
+            log.debug('AI_BUILDER', `SUCCESS: ${valid.length} AI-generated assignments`);
           } else {
             aiError = 'AI returned array but no valid assignments';
             console.error('[AI-BUILDER] No valid assignments. Sample:', JSON.stringify(parsed[0]).substring(0, 200));
@@ -126,7 +127,7 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   if (!assignments && aiError) {
-    console.log(`[AI-BUILDER] Using empty fallback. Reason: ${aiError}`);
+    log.debug('AI_BUILDER', `Using empty fallback. Reason: ${aiError}`);
   }
 
   return NextResponse.json({

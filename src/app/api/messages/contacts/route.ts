@@ -10,10 +10,19 @@ import prisma from '@/lib/prisma';
  * - Parents: can message their children's teachers
  * - Admins: can message anyone in the district
  */
+// NOTE: response shape is { items, total, page, pageSize } as of v14.7.0
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search')?.toLowerCase() || '';
+
+  const pageRaw = parseInt(searchParams.get('page') || '1', 10);
+  const pageSizeRaw = parseInt(searchParams.get('pageSize') || '25', 10);
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSize = Math.min(
+    Math.max(Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? pageSizeRaw : 25, 1),
+    100,
+  );
 
   let contacts: { id: string; name: string; role: string; email: string; }[] = [];
 
@@ -176,5 +185,12 @@ export const GET = apiHandler(async (req: Request) => {
   const roleOrder: Record<string, number> = { TEACHER: 1, PARENT: 2, STUDENT: 3, ADMIN: 4 };
   contacts.sort((a, b) => (roleOrder[a.role] || 5) - (roleOrder[b.role] || 5) || a.name.localeCompare(b.name));
 
-  return NextResponse.json({ contacts });
+  // Pagination is applied in-memory after dedup/sort because the contact set is
+  // assembled from several role-specific queries that cannot be UNIONed at the
+  // SQL layer without re-architecting the route.
+  const total = contacts.length;
+  const start = (page - 1) * pageSize;
+  const items = contacts.slice(start, start + pageSize);
+
+  return NextResponse.json({ items, total, page, pageSize });
 });

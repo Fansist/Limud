@@ -9,6 +9,7 @@ import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import { callGemini, hasApiKey, extractJSON } from '@/lib/ai';
 import { updateSkillRecord } from '@/lib/cognitive-engine';
+import { log } from '@/lib/log';
 
 // v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
 export const maxDuration = 60;
@@ -113,7 +114,7 @@ export const POST = apiHandler(async (req: Request) => {
       const prompt = `Generate ${questionCount} multiple-choice exam questions for a ${level} grade ${subject} exam. Each question should have 4 options.
 Return ONLY a JSON array, no markdown fences, no extra text:
 [{"question":"...","options":["A","B","C","D"],"correctAnswer":"...","skill":"...","explanation":"..."}]`;
-      console.log(`[EXAM-SIM] Calling Gemini for ${questionCount} ${subject} exam questions...`);
+      log.debug('EXAM_SIM', `Calling Gemini for ${questionCount} ${subject} exam questions...`);
       const response = await callGemini(prompt, 0.7, 4000);
       const jsonStr = extractJSON(response);
       if (jsonStr) {
@@ -121,7 +122,7 @@ Return ONLY a JSON array, no markdown fences, no extra text:
         if (Array.isArray(parsed) && parsed.length > 0) {
           questions = parsed;
           aiGenerated = true;
-          console.log(`[EXAM-SIM] SUCCESS: ${parsed.length} AI-generated exam questions`);
+          log.debug('EXAM_SIM', `SUCCESS: ${parsed.length} AI-generated exam questions`);
         } else {
           aiError = 'AI returned an empty or non-array question list';
         }

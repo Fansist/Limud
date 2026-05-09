@@ -12,7 +12,7 @@
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
-import { NextAuthOptions } from 'next-auth';
+import { NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import {
   checkAccountLocked,
@@ -34,7 +34,7 @@ import {
 // ═══════════════════════════════════════════════════════════════════
 
 // Master Demo account — full access to all features across all roles
-const MASTER_DEMO = {
+const MASTER_DEMO: { email: string; password: string; user: User } = {
   email: MASTER_DEMO_EMAIL,
   password: MASTER_DEMO_PASSWORD,
   user: {
@@ -53,7 +53,7 @@ const MASTER_DEMO = {
 };
 
 // Fully connected demo accounts — Ofer Academy district
-const DEMO_ACCOUNTS: Record<string, any> = {
+const DEMO_ACCOUNTS: Record<string, User> = {
   'lior@ofer-academy.edu': {
     id: 'demo-student-lior', email: 'lior@ofer-academy.edu', name: 'Lior Betzalel',
     role: 'STUDENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
@@ -167,8 +167,12 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.toLowerCase().trim();
         const password = credentials.password;
-        const ip = (req as any)?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
-                   (req as any)?.headers?.['x-real-ip'] || '0.0.0.0';
+        const headers = req?.headers;
+        const xff = headers?.['x-forwarded-for'];
+        const xfwd = Array.isArray(xff) ? xff[0] : xff;
+        const xreal = headers?.['x-real-ip'];
+        const xrealStr = Array.isArray(xreal) ? xreal[0] : xreal;
+        const ip = xfwd?.split(',')[0]?.trim() || xrealStr || '0.0.0.0';
 
         // ── BRUTE-FORCE PROTECTION ──
         const lockStatus = checkAccountLocked(email);
@@ -193,7 +197,7 @@ export const authOptions: NextAuthOptions = {
             resource: '/api/auth/callback/credentials',
             details: { type: 'master_demo' }, severity: 'info', success: true,
           });
-          return MASTER_DEMO.user as any;
+          return MASTER_DEMO.user;
         }
 
         // ── 2. Demo accounts (password: password123) ──
@@ -206,7 +210,7 @@ export const authOptions: NextAuthOptions = {
             resource: '/api/auth/callback/credentials',
             details: { type: 'demo', role: demoAccount.role }, severity: 'info', success: true,
           });
-          return demoAccount as any;
+          return demoAccount;
         }
 
         // ── 3. Database authentication ──
@@ -262,13 +266,14 @@ export const authOptions: NextAuthOptions = {
           });
 
           const isHomeschoolParent = user.role === 'PARENT' && user.accountType === 'HOMESCHOOL';
-          return {
+          const result: User = {
             id: user.id, email: user.email, name: user.name, role: user.role,
             accountType: user.accountType || 'DISTRICT',
             districtId: user.districtId || '', districtName: user.district?.name || '',
             selectedAvatar: user.selectedAvatar, isHomeschoolParent,
             gradeLevel: user.gradeLevel || '', isMasterDemo: false,
-          } as any;
+          };
+          return result;
         } catch (e: any) {
           // Re-throw known auth errors
           if (e.message.includes('locked') || e.message === 'Invalid email or password' || e.message === 'Email and password are required') {
@@ -286,32 +291,32 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
-        token.accountType = (user as any).accountType;
-        token.districtId = (user as any).districtId;
-        token.districtName = (user as any).districtName;
-        token.selectedAvatar = (user as any).selectedAvatar;
-        token.isHomeschoolParent = (user as any).isHomeschoolParent;
-        token.gradeLevel = (user as any).gradeLevel;
-        token.isMasterDemo = (user as any).isMasterDemo || false;
+        token.role = user.role;
+        token.accountType = user.accountType;
+        token.districtId = user.districtId;
+        token.districtName = user.districtName;
+        token.selectedAvatar = user.selectedAvatar;
+        token.isHomeschoolParent = user.isHomeschoolParent;
+        token.gradeLevel = user.gradeLevel;
+        token.isMasterDemo = user.isMasterDemo || false;
       }
       // Always recompute isDemo from the canonical demo email list so
       // consumers (e.g. /api/district/announcements) can rely on it.
-      token.isDemo = isDemoEmail(token.email as string | undefined);
+      token.isDemo = isDemoEmail(token.email);
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id as string;
-        (session.user as any).role = token.role as string;
-        (session.user as any).accountType = token.accountType as string;
-        (session.user as any).districtId = token.districtId as string;
-        (session.user as any).districtName = token.districtName as string;
-        (session.user as any).selectedAvatar = token.selectedAvatar as string;
-        (session.user as any).isHomeschoolParent = token.isHomeschoolParent as boolean;
-        (session.user as any).gradeLevel = token.gradeLevel as string;
-        (session.user as any).isMasterDemo = token.isMasterDemo as boolean;
-        (session.user as any).isDemo = token.isDemo as boolean;
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.accountType = token.accountType;
+        session.user.districtId = token.districtId;
+        session.user.districtName = token.districtName;
+        session.user.selectedAvatar = token.selectedAvatar;
+        session.user.isHomeschoolParent = token.isHomeschoolParent;
+        session.user.gradeLevel = token.gradeLevel;
+        session.user.isMasterDemo = token.isMasterDemo;
+        session.user.isDemo = token.isDemo;
       }
       return session;
     },

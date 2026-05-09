@@ -14,6 +14,8 @@ import toast from 'react-hot-toast';
 import {
   Users, Search, User, TrendingUp, BookOpen, Brain, ArrowLeft, BarChart3, Clock,
 } from 'lucide-react';
+import EmptyState from '@/components/ui/EmptyState';
+import Link from 'next/link';
 
 /**
  * v9.7.5: Teacher Students page now uses Ofer Academy demo students
@@ -336,10 +338,19 @@ export default function TeacherStudentsPage() {
         )}
 
         {filtered.length === 0 && !loading && (
-          <div className="text-center py-12 text-gray-400">
-            <Users size={48} className="mx-auto mb-3 opacity-50" />
-            <p>No students match your filters.</p>
-          </div>
+          <EmptyState
+            icon={<Users size={28} />}
+            title="No students in your roster"
+            description="Add students from your classrooms or have them register and join your class."
+            action={
+              <Link
+                href="/teacher/coursework"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm transition"
+              >
+                Manage roster
+              </Link>
+            }
+          />
         )}
       </div>
     </DashboardLayout>

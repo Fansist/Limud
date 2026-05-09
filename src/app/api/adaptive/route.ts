@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler, hasTeacherAccess } from '@/lib/middleware';
 import { callGemini, isGeminiConfigured, extractJSON } from '@/lib/ai';
 import prisma from '@/lib/prisma';
+import { log } from '@/lib/log';
 
 // v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
 export const maxDuration = 60;
@@ -190,7 +191,7 @@ Return JSON:
   "difficultyAdjustment": "simplified|standard|enriched"
 }`;
 
-        console.log(`[Adaptive] Calling Gemini for student ${student.id} (${effectiveStyle})...`);
+        log.debug('ADAPTIVE', `Calling Gemini for student ${student.id} (${effectiveStyle})...`);
         const raw = await callGemini(prompt, 0.6, 4000);
         const jsonStr = extractJSON(raw);
         if (jsonStr) {

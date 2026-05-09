@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { DEMO_PARENT_CHILDREN } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import {
   Users, Plus, X, GraduationCap, BookOpen, Trash2,
   Copy, Eye, EyeOff, Home, Sparkles,
@@ -49,6 +50,9 @@ export default function ManageChildrenPage() {
 
   // Created child info (to show credentials)
   const [createdChild, setCreatedChild] = useState<any>(null);
+
+  // Deactivate child confirmation
+  const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (isDemo) {
@@ -169,8 +173,9 @@ export default function ManageChildrenPage() {
     }
   }
 
-  async function handleRemoveChild(childId: string, childName: string) {
-    if (!confirm(`Are you sure you want to deactivate ${childName}'s account?`)) return;
+  async function deleteChild(childId: string) {
+    const target = children.find((c) => c.id === childId);
+    const childName = target?.name || 'Child';
 
     if (isDemo) {
       toast.success('Account deactivated (Demo mode)');
@@ -353,7 +358,7 @@ export default function ManageChildrenPage() {
                       </div>
                     </div>
                     <button
-                      onClick={() => handleRemoveChild(child.id, child.name)}
+                      onClick={() => setConfirmTarget({ id: child.id, name: child.name })}
                       className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition"
                       title="Deactivate account"
                     >
@@ -621,6 +626,20 @@ export default function ManageChildrenPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!confirmTarget}
+        title="Deactivate child account?"
+        description={
+          confirmTarget
+            ? `${confirmTarget.name} will no longer be able to log in. You can reactivate them later.`
+            : 'This child will no longer be able to log in. You can reactivate them later.'
+        }
+        confirmLabel="Deactivate"
+        destructive
+        onConfirm={async () => { await deleteChild(confirmTarget!.id); setConfirmTarget(null); }}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </DashboardLayout>
   );
 }

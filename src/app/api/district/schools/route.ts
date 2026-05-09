@@ -3,28 +3,62 @@ import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
 // GET /api/district/schools
+// NOTE: response shape is { items, total, page, pageSize } as of v14.7.0
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
 
-  const schools = await prisma.school.findMany({
-    where: { districtId: user.districtId },
-    include: {
-      _count: { select: { users: true, classrooms: true } },
-    },
-    orderBy: { name: 'asc' },
-  });
+  const { searchParams } = new URL(req.url);
+  const pageRaw = parseInt(searchParams.get('page') || '1', 10);
+  const pageSizeRaw = parseInt(searchParams.get('pageSize') || '25', 10);
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSize = Math.min(
+    Math.max(Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? pageSizeRaw : 25, 1),
+    100,
+  );
 
-  const enriched = await Promise.all(schools.map(async (s) => {
-    const studentCount = await prisma.user.count({
-      where: { schoolId: s.id, role: 'STUDENT' },
-    });
-    const teacherCount = await prisma.user.count({
-      where: { schoolId: s.id, role: 'TEACHER' },
-    });
-    return { ...s, studentCount, teacherCount };
+  const where = { districtId: user.districtId };
+
+  const [total, schools] = await Promise.all([
+    prisma.school.count({ where }),
+    prisma.school.findMany({
+      where,
+      include: {
+        _count: { select: { users: true, classrooms: true } },
+      },
+      orderBy: { name: 'asc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  const schoolIds = schools.map((s) => s.id);
+
+  // Single groupBy collapses 2*N user.count queries into one query.
+  const counts = schoolIds.length > 0
+    ? await prisma.user.groupBy({
+        by: ['schoolId', 'role'],
+        where: {
+          districtId: user.districtId,
+          role: { in: ['STUDENT', 'TEACHER'] },
+          schoolId: { in: schoolIds },
+        },
+        _count: { _all: true },
+      })
+    : [];
+
+  const countMap = new Map<string, number>();
+  for (const row of counts) {
+    if (!row.schoolId) continue;
+    countMap.set(`${row.schoolId}:${row.role}`, row._count._all);
+  }
+
+  const enriched = schools.map((s) => ({
+    ...s,
+    studentCount: countMap.get(`${s.id}:STUDENT`) ?? 0,
+    teacherCount: countMap.get(`${s.id}:TEACHER`) ?? 0,
   }));
 
-  return NextResponse.json({ schools: enriched });
+  return NextResponse.json({ items: enriched, total, page, pageSize });
 });
 
 // POST /api/district/schools - Create a school

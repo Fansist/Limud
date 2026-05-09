@@ -21,6 +21,7 @@ import toast from 'react-hot-toast';
 import { useIsDemo } from '@/lib/hooks';
 import { addTeacherMaterial, getDemoMaterials, DemoMaterialEntry } from '@/lib/demo-state';
 import { SUBJECTS, GRADE_LEVELS } from '@/lib/constants';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import {
   BookOpen, Plus, Sparkles, Loader2, Trash2, FileText,
   CheckCircle2, AlertCircle, X, GraduationCap, Layers, Wand2,
@@ -48,6 +49,7 @@ export default function TeacherMaterialsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -180,8 +182,7 @@ export default function TeacherMaterialsPage() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Delete this material? Students will lose access to it.')) return;
+  async function deleteMaterial(id: string) {
     if (isDemo) {
       setMaterials((prev) => prev.filter((m) => m.id !== id));
       toast.success('Material removed');
@@ -384,7 +385,7 @@ export default function TeacherMaterialsPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => handleDelete(m.id)}
+                  onClick={() => setConfirmTarget({ id: m.id, name: m.title })}
                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
                   title="Delete material"
                 >
@@ -407,6 +408,20 @@ export default function TeacherMaterialsPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmTarget}
+        title="Delete material?"
+        description={
+          confirmTarget
+            ? `"${confirmTarget.name}" and any personalized versions rendered for students will be removed. This cannot be undone.`
+            : 'This material and any personalized versions rendered for students will be removed. This cannot be undone.'
+        }
+        confirmLabel="Delete"
+        destructive
+        onConfirm={async () => { await deleteMaterial(confirmTarget!.id); setConfirmTarget(null); }}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </DashboardLayout>
   );
 }

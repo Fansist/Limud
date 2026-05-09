@@ -1,3 +1,5 @@
+// NOTE: paginated; clients should pass ?page=N&pageSize=M
+// NOTE: response shape is { items, total, page, pageSize } as of v14.7.0
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
@@ -9,27 +11,40 @@ function generateTempPassword(): string {
   return crypto.randomBytes(12).toString('base64url');
 }
 
-// GET /api/district/teachers
+// GET /api/district/teachers (paginated)
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
   const { searchParams } = new URL(req.url);
   const schoolId = searchParams.get('schoolId');
 
+  const pageRaw = parseInt(searchParams.get('page') || '1', 10);
+  const pageSizeRaw = parseInt(searchParams.get('pageSize') || '25', 10);
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSize = Math.min(
+    Math.max(Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? pageSizeRaw : 25, 1),
+    100,
+  );
+
   const where: Prisma.UserWhereInput = { districtId: user.districtId, role: 'TEACHER' };
   if (schoolId) where.schoolId = schoolId;
 
-  const teachers = await prisma.user.findMany({
-    where,
-    select: {
-      id: true, email: true, name: true, firstName: true, lastName: true,
-      schoolId: true, phone: true, isActive: true, createdAt: true,
-      school: { select: { id: true, name: true } },
-      taughtCourses: { include: { course: { select: { id: true, name: true } } } },
-    },
-    orderBy: { name: 'asc' },
-  });
+  const [total, teachers] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      select: {
+        id: true, email: true, name: true, firstName: true, lastName: true,
+        schoolId: true, phone: true, isActive: true, createdAt: true,
+        school: { select: { id: true, name: true } },
+        taughtCourses: { include: { course: { select: { id: true, name: true } } } },
+      },
+      orderBy: { name: 'asc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
 
-  return NextResponse.json({ teachers });
+  return NextResponse.json({ items: teachers, total, page, pageSize });
 });
 
 // POST /api/district/teachers - Create teacher accounts

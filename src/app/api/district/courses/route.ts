@@ -1,6 +1,8 @@
+// NOTE: paginated; clients should pass ?page=N&pageSize=M
+// NOTE: response shape is { items, total, page, pageSize } as of v14.7.0
 /**
  * LIMUD v2.7 — District Course Management
- * GET    /api/district/courses          — list courses in admin's district
+ * GET    /api/district/courses          — list courses in admin's district (paginated)
  * POST   /api/district/courses          — create a course directly (no classroom required)
  * DELETE /api/district/courses?id=<id>  — delete a course in admin's district
  *
@@ -12,32 +14,48 @@ import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
 // GET — list courses in the admin's district with teacher + enrollment counts.
-export const GET = apiHandler(async () => {
+export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
 
+  const { searchParams } = new URL(req.url);
+  const pageRaw = parseInt(searchParams.get('page') || '1', 10);
+  const pageSizeRaw = parseInt(searchParams.get('pageSize') || '25', 10);
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSize = Math.min(
+    Math.max(Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? pageSizeRaw : 25, 1),
+    100,
+  );
+
   if (user.isMasterDemo) {
-    return NextResponse.json({ courses: [] });
+    return NextResponse.json({ items: [], total: 0, page, pageSize });
   }
   if (!user.districtId) {
     return NextResponse.json({ error: 'Admin has no district assigned' }, { status: 403 });
   }
 
-  const courses = await prisma.course.findMany({
-    where: { districtId: user.districtId },
-    select: {
-      id: true,
-      name: true,
-      subject: true,
-      gradeLevel: true,
-      description: true,
-      isActive: true,
-      createdAt: true,
-      _count: { select: { teachers: true, enrollments: true, assignments: true } },
-    },
-    orderBy: { name: 'asc' },
-  });
+  const where = { districtId: user.districtId };
 
-  return NextResponse.json({ courses });
+  const [total, courses] = await Promise.all([
+    prisma.course.count({ where }),
+    prisma.course.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        subject: true,
+        gradeLevel: true,
+        description: true,
+        isActive: true,
+        createdAt: true,
+        _count: { select: { teachers: true, enrollments: true, assignments: true } },
+      },
+      orderBy: { name: 'asc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  return NextResponse.json({ items: courses, total, page, pageSize });
 });
 
 // POST — create a course in admin's district. Gated on canCreateAccounts.

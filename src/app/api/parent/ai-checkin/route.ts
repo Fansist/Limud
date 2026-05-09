@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import { callGemini, isGeminiConfigured } from '@/lib/ai';
 import prisma from '@/lib/prisma';
+import { log } from '@/lib/log';
 import type { Prisma, Submission, SkillRecord, StudyPlanSession, RewardStats } from '@prisma/client';
 
 // AI route — give Gemini calls headroom past Vercel's default 10s.
@@ -163,13 +164,13 @@ ${gradedSubs.slice(0, 8).map(s => `• "${s.assignment.title}" (${s.assignment.c
 
   if (isGeminiConfigured()) {
     try {
-      console.log(`[AI-CHECKIN] Calling Gemini for ${child.name} check-in report...`);
+      log.debug('AI_CHECKIN', `Calling Gemini for ${child.name} check-in report...`);
       const result = await callGemini([
         { role: 'system', content: CHECKIN_SYSTEM_PROMPT },
         { role: 'user', content: `Generate a parent check-in report for this student:\n${dataPrompt}` },
       ], { temperature: 0.7, maxTokens: 800 });
       report = result;
-      console.log(`[AI-CHECKIN] SUCCESS: ${result.length} chars`);
+      log.debug('AI_CHECKIN', `SUCCESS: ${result.length} chars`);
     } catch (error) {
       console.error('[AI-CHECKIN] AI check-in error:', (error as Error).message);
       report = generateFallbackReport(child.name, avgScore, stats, tutorSessions, improvingSkills, strugglingSkills, gradedSubs.length, studyMinutes);

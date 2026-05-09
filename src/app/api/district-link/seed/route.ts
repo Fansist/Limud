@@ -23,6 +23,7 @@
  */
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { log as logger } from '@/lib/log';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
 
   const t0 = Date.now();
   const steps: string[] = [];
-  const log = (s: string) => { steps.push(s); console.log(`[DistrictSeed] ${s}`); };
+  const log = (s: string) => { steps.push(s); logger.debug('DISTRICT_LINK', s); };
 
   try {
     // Import Prisma
@@ -162,10 +163,13 @@ export async function POST(req: Request) {
             },
           });
           usersCreated++;
-          // One-time provisioning trace. Operators MUST rotate immediately.
-          console.log(
-            `[DistrictSeed] PROVISIONED admin=${d.contactEmail} tempPassword=${randomPassword} ` +
-            `(rotate immediately; this is a one-time trace and is NOT returned in the API response)`
+          // Provisioning trace. The password is NEVER logged — it's already
+          // hashed in the DB and the only way for the operator to learn it is
+          // through the password-reset flow (forgot-password). This avoids
+          // leaving recoverable credentials in log aggregators.
+          logger.debug(
+            'DISTRICT_LINK',
+            `PROVISIONED admin=${d.contactEmail} (operator must use forgot-password to set a real password)`
           );
           log(`user:created:${d.contactEmail}`);
         } else if (!user.districtId) {
