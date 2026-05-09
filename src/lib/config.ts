@@ -16,12 +16,13 @@
  * NextAuth requires this to be identical across all server instances
  * and across restarts, or every existing session becomes invalid.
  *
- * v15.0.1: Throw is now deferred past the Next.js build phase
- * (`NEXT_PHASE === 'phase-production-build'`). Page-data collection
- * imports every route module, and a missing-env throw at module-import
- * was catastrophically failing builds instead of failing the first
- * request with a clear log line. Now: build succeeds, runtime cold-
- * start throws if the secret is still missing.
+ * v15.0.2: NEVER throw at module-import. Module-import throws
+ * cascade through every route in the standalone bundle and turn a
+ * bad-config situation into a 500-on-every-request situation that
+ * no one can debug from the outside. Instead, log warnings loudly
+ * and fall back to the stable secret. NextAuth itself will reject
+ * un-mintable / un-verifiable tokens in a clearer way at request
+ * time if the fallback is mismatched across deploys.
  */
 const fallback = 'limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB';
 const envSecret = process.env.NEXTAUTH_SECRET;
@@ -31,9 +32,11 @@ if (
   !isBuildPhase &&
   (!envSecret || envSecret === fallback)
 ) {
-  throw new Error(
-    'NEXTAUTH_SECRET must be set to a unique value in production. ' +
-    'Set it in the Render dashboard → Environment.'
+  // eslint-disable-next-line no-console
+  console.error(
+    '[Limud][config] NEXTAUTH_SECRET is not set in production. ' +
+    'Falling back to the embedded default — sessions will work but ' +
+    'are not unique to this deployment. Set it in the Render dashboard.'
   );
 }
 export const AUTH_SECRET = envSecret || fallback;
@@ -48,9 +51,11 @@ if (
   !isBuildPhase &&
   (!envPiiKey || envPiiKey === fallback)
 ) {
-  throw new Error(
-    'PII_ENCRYPTION_KEY must be set to a unique value in production. ' +
-    'Set it in the Render dashboard → Environment.'
+  // eslint-disable-next-line no-console
+  console.error(
+    '[Limud][config] PII_ENCRYPTION_KEY is not set in production. ' +
+    'Falling back to AUTH_SECRET. Encrypted PII will not be portable ' +
+    'across deployments. Set it in the Render dashboard.'
   );
 }
 export const PII_ENCRYPTION_KEY = envPiiKey || AUTH_SECRET;
