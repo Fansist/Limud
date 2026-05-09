@@ -34,8 +34,35 @@ function isValidTimezone(tz: unknown): tz is string {
   }
 }
 
+// Synthetic preferences row for the master demo identity, which has no
+// real DB User record (id === 'master-demo') and would 500 the upsert
+// with a FK violation. Mirrors the schema defaults exactly.
+function syntheticDemoPreferences(userId: string) {
+  const now = new Date();
+  return {
+    id: 'demo-pref',
+    userId,
+    digestEnabled: true,
+    digestDayOfWeek: 0,
+    digestHour: 10,
+    digestTimezone: 'America/Los_Angeles',
+    eventOnGradePosted: true,
+    eventOnAtRisk: true,
+    eventOnAssignment: false,
+    channelEmail: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export const GET = apiHandler(async (_req: Request) => {
   const user = await requireRole('PARENT');
+
+  // Master demo has no real DB User row — return synthetic defaults so the
+  // settings page renders without hitting an FK violation on upsert.
+  if (user.isMasterDemo) {
+    return NextResponse.json({ preferences: syntheticDemoPreferences(user.id) });
+  }
 
   // Use upsert so the first read creates the default row atomically.
   const preferences = await prisma.notificationPreference.upsert({
@@ -124,6 +151,24 @@ export const PUT = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'channelEmail must be a boolean' }, { status: 400 });
     }
     data.channelEmail = channelEmail;
+  }
+
+  // Master demo has no real DB User row — echo the validated payload back as
+  // a synthetic record so the settings page round-trips correctly. We do not
+  // persist (and do not need to: the cron filters out demo accounts before
+  // sending email anyway).
+  if (user.isMasterDemo) {
+    const synthetic = syntheticDemoPreferences(user.id);
+    if (data.digestEnabled !== undefined) synthetic.digestEnabled = data.digestEnabled as boolean;
+    if (data.digestDayOfWeek !== undefined) synthetic.digestDayOfWeek = data.digestDayOfWeek as number;
+    if (data.digestHour !== undefined) synthetic.digestHour = data.digestHour as number;
+    if (data.digestTimezone !== undefined) synthetic.digestTimezone = data.digestTimezone as string;
+    if (data.eventOnGradePosted !== undefined) synthetic.eventOnGradePosted = data.eventOnGradePosted as boolean;
+    if (data.eventOnAtRisk !== undefined) synthetic.eventOnAtRisk = data.eventOnAtRisk as boolean;
+    if (data.eventOnAssignment !== undefined) synthetic.eventOnAssignment = data.eventOnAssignment as boolean;
+    if (data.channelEmail !== undefined) synthetic.channelEmail = data.channelEmail as boolean;
+    log.info('parent/preferences', 'demo-noop', { userId: user.id, fields: Object.keys(data) });
+    return NextResponse.json({ preferences: synthetic });
   }
 
   // Build the create payload from validated fields so a brand-new row honors

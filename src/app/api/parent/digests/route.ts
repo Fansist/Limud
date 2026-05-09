@@ -31,6 +31,12 @@ export const GET = apiHandler(async (req: Request) => {
     100,
   );
 
+  // Master demo has no real DB User row — return an empty list so the page
+  // doesn't 500 on the FK-missing query.
+  if (user.isMasterDemo) {
+    return NextResponse.json({ items: [], total: 0, page, pageSize });
+  }
+
   const where = { parentId: user.id };
 
   const [total, items] = await Promise.all([

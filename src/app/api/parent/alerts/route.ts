@@ -32,6 +32,13 @@ export const GET = apiHandler(async (req: Request) => {
   );
   const unreadOnly = searchParams.get('unreadOnly') === 'true';
 
+  // Master demo has no real DB User row — return an empty list so the
+  // alerts page renders without a 500. The settings page demo branch
+  // shows synthetic alerts client-side anyway.
+  if (user.isMasterDemo) {
+    return NextResponse.json({ items: [], total: 0, page, pageSize, unreadCount: 0 });
+  }
+
   const where: Prisma.ParentAlertWhereInput = { parentId: user.id };
   if (unreadOnly) where.isRead = false;
 
@@ -63,6 +70,11 @@ export const PATCH = apiHandler(async (req: Request) => {
   }
 
   const { alertId, markAllRead } = body as { alertId?: unknown; markAllRead?: unknown };
+
+  // Master demo: no-op write. The page handles state locally for demo users.
+  if (user.isMasterDemo) {
+    return NextResponse.json({ updated: 0 });
+  }
 
   if (markAllRead === true) {
     const result = await prisma.parentAlert.updateMany({
