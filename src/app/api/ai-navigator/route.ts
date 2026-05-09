@@ -1,3 +1,4 @@
+// NOTE: response key is `reply` (not `message`); update frontend callers if regressions appear.
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 import { callGemini, isGeminiConfigured } from '@/lib/ai';
@@ -264,7 +265,7 @@ export const POST = apiHandler(async (req: Request) => {
       console.log('[AI-NAV] Calling Gemini for navigation help...');
       const content = await callGemini(messages, { temperature: 0.5, maxTokens: 500 });
       console.log(`[AI-NAV] SUCCESS: ${content.length} chars`);
-      return NextResponse.json({ message: content, aiGenerated: true });
+      return NextResponse.json({ reply: content, aiGenerated: true });
     } catch (e) {
       const msg = (e as Error).message || 'Unknown AI error';
       console.error('[AI-NAV] Gemini navigator error, falling back to demo:', msg);
@@ -275,7 +276,7 @@ export const POST = apiHandler(async (req: Request) => {
   // Demo fallback
   const content = getDemoNavigatorResponse(message);
   return NextResponse.json({
-    message: content,
+    reply: content,
     aiGenerated: false,
     ...(aiError ? { aiError } : {}),
   });

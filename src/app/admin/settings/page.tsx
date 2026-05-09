@@ -73,8 +73,8 @@ const DEMO_SETTINGS = {
     streakBreakAlert: true,
   },
   branding: {
-    primaryColor: '#6366F1',
-    accentColor: '#F59E0B',
+    primaryColor: '#2563eb',
+    accentColor: '#c026d3',
     logoUrl: '',
     districtMotto: 'Empowering Every Student to Succeed',
     showDistrictLogo: true,

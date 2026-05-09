@@ -91,6 +91,9 @@ export default function RegisterPage() {
   const [gradeLevel, setGradeLevel] = useState('');
   const [learningStyle, setLearningStyle] = useState('visual');
 
+  // Inline email validation error for step 2
+  const [emailError, setEmailError] = useState<string | null>(null);
+
   // Password validation matching NIST SP 800-63B backend rules
   const passwordErrors = (pw: string): string[] => {
     const errs: string[] = [];
@@ -464,10 +467,11 @@ export default function RegisterPage() {
                     id="register-email"
                     type="email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={e => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
                     className="input-field"
                     placeholder="you@example.com"
                   />
+                  {emailError && <p role="alert" className="text-red-600 text-xs mt-1">{emailError}</p>}
                 </div>
 
                 {/* District Name for admins */}
@@ -667,7 +671,14 @@ export default function RegisterPage() {
                     <ArrowLeft size={14} /> Back
                   </button>
                   <button
-                    onClick={() => setStep(3)}
+                    onClick={() => {
+                      if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+                        setEmailError('Enter a valid email');
+                        return;
+                      }
+                      setEmailError(null);
+                      setStep(3);
+                    }}
                     disabled={!canProceedStep2}
                     className={cn(
                       'btn-primary flex items-center gap-2',
@@ -694,6 +705,7 @@ export default function RegisterPage() {
                   <p className="text-gray-500 mt-2">Create a strong password</p>
                 </div>
 
+                <form onSubmit={(e) => { e.preventDefault(); handleRegister(); }} className="space-y-5">
                 <div>
                   <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
                   <div className="relative">
@@ -710,6 +722,7 @@ export default function RegisterPage() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -790,14 +803,14 @@ export default function RegisterPage() {
 
                 <div className="flex justify-between items-center pt-2">
                   <button
+                    type="button"
                     onClick={() => setStep(2)}
                     className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
                   >
                     <ArrowLeft size={14} /> Back
                   </button>
                   <button
-                    type="button"
-                    onClick={handleRegister}
+                    type="submit"
                     disabled={loading || !canProceedStep3}
                     className={cn(
                       'btn-primary flex items-center gap-2',
@@ -817,6 +830,7 @@ export default function RegisterPage() {
                     )}
                   </button>
                 </div>
+                </form>
               </motion.div>
             )}
           </AnimatePresence>

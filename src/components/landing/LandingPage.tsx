@@ -92,7 +92,7 @@ export default function LandingPage() {
           "@type": "Organization",
           "name": "Limud Education Inc.",
           "url": "https://limud.co",
-          "logo": "https://limud.co/logo.png",
+          "logo": "https://limud.co/logo.svg",
           "sameAs": ["https://github.com/Fansist/Limud"],
           "description": "AI-powered adaptive learning platform for K-12 education",
           "foundingDate": "2026",
@@ -141,7 +141,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
-              <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg shadow-md object-cover" />
+              <img src="/logo.svg" alt="Limud" className="w-8 h-8 rounded-lg shadow-md object-cover" />
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
             </Link>
 
@@ -485,12 +485,12 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {[
               {
-                name: 'District', price: 'Custom', period: '', desc: 'Districts and statewide deployments',
+                name: 'Enterprise', price: 'Custom', period: '', desc: 'Districts and statewide deployments',
                 features: ['Unlimited students & schools', 'SSO / SAML', 'Custom AI training', 'Data residency', '99.9% SLA', 'Dedicated account manager'],
                 cta: 'Contact sales', link: '/contact', highlight: false,
               },
               {
-                name: 'Standard', price: '$6', period: '/student/mo', desc: 'Classrooms and small schools',
+                name: 'Standard', price: '$6', period: '/student/mo, billed annually', desc: 'Classrooms and small schools',
                 features: ['Up to 500 students', 'Unlimited AI features', 'All 16+ integrations', 'Intelligence dashboard', 'AI Safety Monitor', 'Priority support'],
                 cta: 'Talk to us', link: '/contact', highlight: true,
               },
@@ -587,7 +587,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="md:col-span-1">
               <div className="flex items-center gap-2 mb-3">
-                <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg object-cover" />
+                <img src="/logo.svg" alt="Limud" className="w-8 h-8 rounded-lg object-cover" />
                 <span className="text-base font-bold text-white">Limud</span>
               </div>
               <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for districts and families.</p>

@@ -152,12 +152,14 @@ const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.Reac
   PARENT: [
     { href: '/parent/dashboard', label: 'Home', icon: <Eye size={20} /> },
     { href: '/parent/reports', label: 'Reports', icon: <TrendingUp size={20} /> },
+    { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
   ],
   HOMESCHOOL_PARENT: [
     { href: '/parent/dashboard', label: 'Home', icon: <Users size={20} /> },
     { href: '/teacher/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
     { href: '/teacher/grading', label: 'Grade', icon: <GraduationCap size={20} /> },
     { href: '/teacher/analytics', label: 'Stats', icon: <BarChart3 size={20} /> },
+    { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
   ],
 };
 
@@ -380,9 +382,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-          <img src="/logo.png" alt="Limud" className="w-10 h-10 rounded-xl shadow-sm object-cover" />
+          <img src="/logo.svg" alt="Limud" className="w-10 h-10 rounded-xl shadow-sm object-cover" />
           <div>
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Limud</h1>
+            <span className="text-lg font-bold text-gray-900 dark:text-white">Limud</span>
             <p className="text-[11px] text-gray-400 font-medium">{roleLabel}</p>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="ml-auto lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="Close sidebar">

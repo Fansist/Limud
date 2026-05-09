@@ -4,6 +4,193 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [3.6.0] - 2026-05-08 — Update 3.6 (Install nags out, brand polish, error foundation)
+
+Third audit pass. 8 reviewers, 6 coders. Focus:
+1. Kill the "download the Limud app" / PWA install clutter the user
+   asked about explicitly.
+2. Brand consistency sweep — colors, logos, taglines, and the pricing
+   API tier definitions which had drifted from the marketing surface.
+3. Build the error-handling foundation that prior audits had flagged
+   as missing (global-error, not-found, ErrorBoundary, structured
+   logger, transient AI retry).
+4. Auth UX fixes (callbackUrl honored, inline errors, Enter submits,
+   show-password tabIndex hack removed).
+
+### Removed — PWA install clutter
+
+- **`src/components/ServiceWorkerRegistration.tsx`** — deleted. This
+  component (and a duplicate registration in `src/lib/performance.tsx`)
+  is what told the browser to treat Limud as an installable app. With
+  it gone, Chrome's native install bar no longer appears.
+- **`public/sw.js`** — deleted. Without registration callers it was
+  dead weight and a footgun for any future stray `<script>` to
+  re-enable PWA behavior.
+- **`src/app/layout.tsx`** — removed the `appleWebApp` metadata block
+  (`apple-mobile-web-app-capable` etc.). Safari no longer offers the
+  home-screen install treatment.
+- **`index.html`** at the repo root — was an orphaned Vite-style
+  index file Next.js wasn't serving but that still contained its own
+  manifest link, apple meta tags, and a service-worker registration
+  script. Deleted.
+- **`public/manifest.json`** — kept (per user preference; it's
+  harmless metadata for users who manually pin the site, just no
+  proactive nag).
+
+### Added — Error & 404 foundation
+
+- **`src/app/global-error.tsx`** — Next.js requires this to catch
+  errors thrown in the root layout itself. Without it, root-layout
+  exceptions rendered the bare default white screen. New file
+  renders its own `<html>`/`<body>` with logo-less brand color and a
+  retry button.
+- **`src/app/not-found.tsx`** — branded 404 page (logo + "Go home" /
+  "Help" CTAs). Previously Next.js fell back to the default
+  unbranded "This page could not be found".
+- **`src/components/ErrorBoundary.tsx`** — class component with
+  optional `fallback` and `onError` props. Wrap leaf widgets (charts,
+  tutor chat, AI surfaces) so a render-time exception in one widget
+  doesn't blow up the whole route. Not yet wrapped anywhere — that's
+  a follow-up CODER task.
+- **`src/lib/log.ts`** — small structured logger (`log.debug/info/
+  warn/error`) honoring `LOG_LEVEL` env (defaults to `warn` in
+  production, `debug` otherwise). Replaces ad-hoc `console.log`.
+
+### Fixed — `src/app/error.tsx`
+
+- Stopped leaking raw `error.message` to end users. Internal Prisma
+  codes / stack fragments / paths could surface to STUDENT and
+  PARENT roles. Now: generic copy + `digest` only as the diagnostic
+  ID, with `console.error(error)` retained server-side.
+- Added Limud logo at the top of the error screen.
+- Replaced `bg-indigo-600` with `bg-primary-600` so the page
+  matches the rest of the app.
+
+### Fixed — `src/lib/ai.ts`
+
+- **`classifyGeminiError` is now exported.** Routes can branch on
+  `kind` (`auth | quota | safety | billing | transient | model_not_
+  available | other`) instead of regex-matching free-text error
+  strings.
+- **New `transient` kind** matching `UNAVAILABLE | INTERNAL | 503 |
+  fetch failed | ECONNRESET | ETIMEDOUT`.
+- **Transient retry-once with jitter** inside `callGemini`. A single
+  Google 503 / TCP reset on the working model used to be a hard
+  failure; now it sleeps 250-749 ms once and retries the same model
+  before giving up.
+- **API key prefix leak fixed.** The `[GEMINI] Trying model=…` log
+  used to include the first 8 characters of the API key. Removed.
+- **16 `console.log` calls** in `[GEMINI]` / `[PERSONALIZE]` /
+  `[TUTOR]` / `[GRADER]` / `[REPORT]` / `[CURRICULUM]` / `[WRITING]`
+  paths replaced with `log.debug`. They no longer flood production
+  logs at default `LOG_LEVEL=warn`.
+
+### Fixed — Response-shape consistency on AI routes
+
+Several AI routes returned `{ message: content }` for SUCCESS
+payloads, colliding with `{ error: '...' }` for failures and
+breaking simple `if (json.error || json.message)` client checks.
+Renamed the success key to `reply`:
+
+- `/api/ai-navigator` (both branches)
+- `/api/tutor`
+- `/api/demo` (both branches)
+- `/api/study-groups`
+
+Each route now carries a `// NOTE: response key is 'reply'` header
+so frontend caller updates can be tracked. `/api/auth/register`'s
+two `{ message: errMessage }` log payloads were renamed to `error`
+for consistency.
+
+### Fixed — Pricing API alignment
+
+`src/app/api/payments/route.ts` had drifted badly from the canonical
+pricing page. Rebuilt:
+
+- Tier key `FREE` → `FAMILY` (the actual marketing tier name).
+- `GROWTH` row added (was missing entirely, while it's been on the
+  pricing page for two updates).
+- `STARTER` price corrected $5 → $3 monthly (the pricing page has
+  been showing $3/$2 for releases now).
+- `ENTERPRISE` flagged `custom: true` with sentinel caps instead of
+  the misleading `$15/student` hardcoded price.
+- `getTierFeatures` no longer mentions `'Game Store'` (gamification
+  was retired in v14.1.0).
+- `closestPlan()` and other lookups updated for the `FAMILY` rename.
+- `src/app/(legal)/terms/page.tsx` — "Paid subscriptions are billed
+  annually" replaced with "monthly or annually (annual saves up to
+  25%)" to match the actual pricing page.
+
+### Fixed — Brand consistency
+
+- **Brand color `#2563eb` everywhere** —
+  `src/lib/email-templates.ts BRAND_COLOR`, `src/app/layout.tsx`
+  `themeColor`, `src/app/admin/settings/page.tsx` defaults, and
+  `src/app/error.tsx` button — were all `#4f46e5` indigo. Every
+  transactional email, the Android theme bar, and the admin
+  branding picker were therefore the wrong color.
+- **Logo standardized to `/logo.svg`** in `LandingPage.tsx` (nav,
+  footer, JSON-LD schema), `DashboardLayout.tsx` (sidebar). The
+  `.png` raster was rendering blurry on retina displays.
+- **Wordmark unwrapped from `<h1>`** in `DashboardLayout.tsx`.
+  Persistent app chrome shouldn't claim the page-level h1 — it
+  fights against page titles for screen readers.
+- **Tagline "Every Mind Learns Differently"** is now the canonical
+  form. `src/app/(legal)/about/page.tsx` had drifted to "every
+  student learns differently" — reverted.
+- **Landing pricing card** had the top tier labeled "District" in
+  one place and "Enterprise" in another. Now both say "Enterprise".
+  The `Standard` $6/mo card was missing the "billed annually"
+  qualifier (monthly is $8) — added.
+
+### Fixed — Auth UX
+
+- **`src/app/(auth)/login/page.tsx`**:
+  - Removed `tabIndex={-1}` from the show-password button — keyboard
+    users can now reach the toggle via Tab.
+  - `autoFocus` on the email input.
+  - Honors `?callbackUrl=…` query param after sign-in (with an
+    open-redirect guard: must start with `/` and not `//`). Wrapped
+    the page in `<Suspense>` for `useSearchParams` compliance.
+  - Inline error display below the password field (`role="alert"`)
+    in addition to the toast.
+- **`src/app/(auth)/register/page.tsx`**:
+  - Wrapped step-3 inputs in `<form onSubmit>` so pressing Enter
+    submits. Step-1 and step-2 Continue buttons unchanged.
+  - `aria-label={showPassword ? 'Hide password' : 'Show password'}`
+    on the show-password toggle.
+  - Step-2 Continue now validates email format before advancing.
+- **`src/app/(auth)/forgot-password/page.tsx`**:
+  - Page title resized to match dashboard h1 pattern.
+  - Dev-mode reset link render now belt-and-suspenders gated on
+    `process.env.NODE_ENV === 'development'` on the client too —
+    not just the server response shape.
+- **`src/app/(auth)/reset-password/page.tsx`**:
+  - `decodeURIComponent` of the email-from-URL parameter wrapped in
+    try/catch so a malformed link doesn't crash the form.
+  - Confirm-password input now respects `showPassword` state — was
+    hard-coded `type="password"`, awkward when checking match.
+
+### Fixed — Mobile nav coverage
+
+`MOBILE_NAV.PARENT` had only 2 items (Dashboard, Reports) — added
+Messages. `MOBILE_NAV.HOMESCHOOL_PARENT` had 4 (no Messages) — added
+Messages. Both now match the desktop nav surface area.
+
+### Notes
+
+- New env var (optional): `LOG_LEVEL` (`debug | info | warn | error`).
+  Defaults to `warn` in production, `debug` otherwise. Set to `info`
+  on demo deploys to keep some operational visibility without the
+  full debug firehose.
+- No schema migrations.
+- The renamed AI response keys (`message` → `reply`) are a soft
+  contract change; if any frontend caller breaks, look for
+  `data.message` and switch to `data.reply`. The route NOTE comments
+  call out the affected paths.
+
+---
+
 ## [3.5.0] - 2026-05-08 — Update 3.5 (Deeper audit: secrets, schema, master-demo guards)
 
 A second meticulous parallel audit. 10 reviewers re-swept the surfaces

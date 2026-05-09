@@ -46,11 +46,6 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Limud',
-  },
 };
 
 export const viewport: Viewport = {
@@ -58,7 +53,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#4f46e5' },
+    { media: '(prefers-color-scheme: light)', color: '#2563eb' },
     { media: '(prefers-color-scheme: dark)', color: '#111827' },
   ],
 };

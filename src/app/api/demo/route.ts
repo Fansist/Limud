@@ -1,3 +1,4 @@
+// NOTE: response key is `reply` (not `message`); update frontend callers if regressions appear.
 import { NextResponse } from 'next/server';
 import {
   DEMO_STUDENT, DEMO_TEACHER, DEMO_ADMIN, DEMO_PARENT,
@@ -98,7 +99,7 @@ export async function POST(req: Request) {
       ];
       return NextResponse.json({
         sessionId: `demo-session-${Date.now()}`,
-        message: responses[Math.floor(Math.random() * responses.length)],
+        reply: responses[Math.floor(Math.random() * responses.length)],
         tokensUsed: 0,
       });
 
@@ -145,7 +146,7 @@ export async function POST(req: Request) {
         navResponse = `Hi there! 🧭 Here's what I can help with:\n\n📚 **[Assignments](/student/assignments)** — 3 upcoming\n📊 **[Analytics](/student/knowledge)** — Track progress\n🤖 **[AI Tutor](/student/tutor)** — Homework help\n📖 **[Focus Mode](/student/focus)** — Study smart\n✉️ **[Messages](/student/messages)** — Talk to teachers\n📅 **[Study Planner](/student/study-planner)** — Plan your week\n\nJust ask about your assignments, grades, study plans, or anything else!`;
       }
 
-      return NextResponse.json({ message: navResponse });
+      return NextResponse.json({ reply: navResponse });
     }
 
     case 'grade-submission':

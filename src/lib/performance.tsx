@@ -80,10 +80,6 @@ export function PerfProvider({ children }: { children: React.ReactNode }) {
       document.head.appendChild(link);
     });
 
-    // Register service worker for offline caching
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
   }, []);
 
   const toggleLiteMode = useCallback(() => {

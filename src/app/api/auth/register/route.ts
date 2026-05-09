@@ -1,3 +1,4 @@
+// NOTE: response key is `reply` (not `message`); update frontend callers if regressions appear.
 /**
  * Registration API — v9.4.3 Security Hardened
  * - Rate limited: 3 per minute per IP
@@ -347,7 +348,7 @@ export async function POST(req: Request) {
 
     // v9.4.2: Enhanced error logging — full details for debugging
     console.error('[Security] Registration error:', {
-      message: errMessage,
+      error: errMessage,
       code: errCode,
       meta: isPrismaKnown ? error.meta : undefined,
       stack: errStack?.split('\n').slice(0, 5).join('\n'),
@@ -357,8 +358,8 @@ export async function POST(req: Request) {
       action: 'REGISTER', ip, userAgent: ua,
       resource: '/api/auth/register',
       details: {
-        error: errCode || 'unknown',
-        message: errMessage?.substring(0, 200),
+        error: errMessage?.substring(0, 200),
+        code: errCode || 'unknown',
         prismaCode: errMetaTarget,
       },
       severity: 'warning', success: false,

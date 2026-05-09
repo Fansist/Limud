@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v14.5.0 · Update 3.5 · Deeper audit: secrets, schema, master-demo guards</code>
+  <code>v14.6.0 · Update 3.6 · No more install nags, brand polish, error foundation</code>
 </p>
 
 ---

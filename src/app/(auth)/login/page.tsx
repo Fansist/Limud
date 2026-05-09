@@ -1,8 +1,8 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -48,13 +48,16 @@ const DEMO_EMAIL_ROLES: Record<string, string> = {
   'erez.ofer4@gmail.com': 'TEACHER',
 };
 
-export default function LoginPage() {
+function LoginPageInner() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl');
 
   // v9.7: Remember Me — restore saved email on mount
   useEffect(() => {
@@ -94,6 +97,11 @@ export default function LoginPage() {
       return false; // Auth failed
     }
 
+    // Honor callbackUrl if provided (with open-redirect guard)
+    const safeCallbackUrl = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
+      ? callbackUrl
+      : null;
+
     // v9.7: Remember Me — save or clear email
     try {
       if (rememberMe && !isDemo) {
@@ -110,7 +118,7 @@ export default function LoginPage() {
         localStorage.removeItem('limud-demo-role');
       } catch {}
       // Redirect to teacher dashboard (default master role) without ?demo=true
-      router.push(getDashboardPath(MASTER_DEMO.dashRole));
+      router.push(safeCallbackUrl ?? getDashboardPath(MASTER_DEMO.dashRole));
       router.refresh();
       return true;
     }
@@ -136,7 +144,7 @@ export default function LoginPage() {
     // Strategy 1: Use known demo email mapping (most reliable, no network call)
     const knownRole = DEMO_EMAIL_ROLES[normalizedEmail];
     if (knownRole) {
-      router.push(getDashboardPath(knownRole) + demoParam);
+      router.push(safeCallbackUrl ?? (getDashboardPath(knownRole) + demoParam));
       router.refresh();
       return true;
     }
@@ -148,7 +156,7 @@ export default function LoginPage() {
         const session = await res.json();
         const role = session?.user?.role;
         if (role) {
-          router.push(getDashboardPath(role));
+          router.push(safeCallbackUrl ?? getDashboardPath(role));
           router.refresh();
           return true;
         }
@@ -158,7 +166,7 @@ export default function LoginPage() {
     }
 
     // Strategy 3: Fallback redirect — real users go to student dashboard cleanly
-    router.push('/student/dashboard');
+    router.push(safeCallbackUrl ?? '/student/dashboard');
     router.refresh();
     return true;
   };
@@ -166,12 +174,14 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setServerError(null);
 
     try {
       const success = await doLogin(email, password);
       if (success) {
         toast.success('Welcome to Limud!');
       } else {
+        setServerError('Invalid email or password.');
         toast.error('Invalid email or password');
       }
     } catch {
@@ -277,6 +287,7 @@ export default function LoginPage() {
                   required
                   aria-label="Email address"
                   autoComplete="email"
+                  autoFocus
                 />
               </div>
               <div>
@@ -305,11 +316,11 @@ export default function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    tabIndex={-1}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {serverError && <p role="alert" className="text-red-600 text-sm mt-1">{serverError}</p>}
               </div>
 
               {/* v9.7: Remember Me checkbox */}
@@ -377,5 +388,13 @@ export default function LoginPage() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

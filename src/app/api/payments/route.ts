@@ -4,12 +4,17 @@ import prisma from '@/lib/prisma';
 import { SubscriptionTier } from '@prisma/client';
 
 // Pricing tiers
-const PRICING: Record<string, { pricePerStudent: number; maxStudents: number; maxTeachers: number; maxSchools: number }> = {
-  FREE: { pricePerStudent: 0, maxStudents: 5, maxTeachers: 2, maxSchools: 0 },
-  STARTER: { pricePerStudent: 5, maxStudents: 100, maxTeachers: 10, maxSchools: 1 },
+// Values reflect the canonical pricing page (src/app/(auth)/pricing/page.tsx).
+// pricePerStudent is the MONTHLY rate. ENTERPRISE is quote-on-demand (custom: true);
+// pricePerStudent is left at a sentinel for type-shape compatibility — clients should
+// treat ENTERPRISE as "Contact us" rather than computing a price from this row.
+const PRICING: Record<string, { pricePerStudent: number; maxStudents: number; maxTeachers: number; maxSchools: number; custom?: boolean }> = {
+  FAMILY: { pricePerStudent: 0, maxStudents: 5, maxTeachers: 2, maxSchools: 1 },
+  STARTER: { pricePerStudent: 3, maxStudents: 50, maxTeachers: 5, maxSchools: 1 },
+  GROWTH: { pricePerStudent: 5, maxStudents: 200, maxTeachers: 20, maxSchools: 3 },
   STANDARD: { pricePerStudent: 8, maxStudents: 500, maxTeachers: 50, maxSchools: 5 },
   PREMIUM: { pricePerStudent: 12, maxStudents: 2000, maxTeachers: 200, maxSchools: 20 },
-  ENTERPRISE: { pricePerStudent: 15, maxStudents: 10000, maxTeachers: 1000, maxSchools: 100 },
+  ENTERPRISE: { pricePerStudent: 0, maxStudents: Number.MAX_SAFE_INTEGER, maxTeachers: Number.MAX_SAFE_INTEGER, maxSchools: Number.MAX_SAFE_INTEGER, custom: true },
 };
 
 // Custom plan pricing calculator - for schools with 101-499 students
@@ -382,7 +387,7 @@ export const POST = apiHandler(async (req: Request) => {
     if (!user.districtId) {
       return NextResponse.json({
         active: false,
-        tier: 'FREE',
+        tier: 'FAMILY',
         message: 'No subscription found',
       });
     }
@@ -392,7 +397,7 @@ export const POST = apiHandler(async (req: Request) => {
     });
 
     if (!district) {
-      return NextResponse.json({ active: false, tier: 'FREE', message: 'District not found' });
+      return NextResponse.json({ active: false, tier: 'FAMILY', message: 'District not found' });
     }
 
     const isActive = district.subscriptionStatus === 'ACTIVE' ||
@@ -414,14 +419,15 @@ export const POST = apiHandler(async (req: Request) => {
 });
 
 function getTierFeatures(tier: string): string[] {
-  const base = ['AI Tutoring', 'Gamification', 'Progress Tracking', 'Parent Portal'];
+  const base = ['AI Tutoring', 'Progress Tracking', 'Parent Portal'];
   switch (tier) {
-    case 'FREE': return ['Up to 5 students', 'AI Tutor (50 sessions/mo)', 'Adaptive learning', 'Parent dashboard'];
-    case 'STARTER': return [...base, 'Up to 100 students', '1 school', 'AI Auto-Grader', 'Game Store'];
-    case 'CUSTOM': return [...base, '101-499 students', 'Up to 3 schools', 'Volume pricing', 'AI Auto-Grader', 'Game Store', 'Priority Support'];
+    case 'FAMILY': return ['Up to 5 children', 'AI Tutor (50 sessions/mo)', 'Adaptive learning', 'Parent dashboard'];
+    case 'STARTER': return [...base, 'Up to 50 students', '1 school', 'AI Auto-Grader'];
+    case 'GROWTH': return [...base, 'Up to 200 students', 'Up to 3 schools', 'AI Auto-Grader', 'Advanced Analytics'];
+    case 'CUSTOM': return [...base, '101-499 students', 'Up to 3 schools', 'Volume pricing', 'AI Auto-Grader', 'Priority Support'];
     case 'STANDARD': return [...base, 'Up to 500 students', '5 schools', 'Advanced Analytics', 'LMS Integration'];
     case 'PREMIUM': return [...base, 'Up to 2000 students', '20 schools', 'Premium Support', 'Custom Branding', 'API Access'];
-    case 'ENTERPRISE': return [...base, 'Unlimited students', '100 schools', '24/7 Support', 'Custom Development', 'SLA'];
+    case 'ENTERPRISE': return [...base, 'Unlimited students', 'Unlimited schools', '24/7 Support', 'Custom Development', 'SLA'];
     default: return base;
   }
 }

@@ -154,7 +154,6 @@ ROOT FILES
   manifest.json            — PWA manifest (app name, icons, shortcuts)
   robots.txt               — Search engine crawler rules
   sitemap.xml              — SEO sitemap
-  sw.js                    — Service Worker (offline caching, update strategy)
   apple-touch-icon.png     — iOS home screen icon
   icons/                   — Full icon set (48px to 512px + maskable)
 
@@ -280,8 +279,6 @@ src/app/globals.css
 /src/components
 ───────────────
   Providers.tsx                 — Session, Perf, I18n, Accessibility providers
-  InstallPrompt.tsx             — PWA install banner
-  ServiceWorkerRegistration.tsx — SW registration with update detection
   accessibility/
     AccessibilityPanel.tsx      — High contrast, dyslexia font, text size
   ai/
@@ -1212,13 +1209,6 @@ IMPLEMENTATION:
 
 PROGRESSIVE WEB APP:
   manifest.json — App name, icons, shortcuts, standalone display.
-  sw.js — Service Worker with:
-    - Cache-first strategy for static assets
-    - Network-first for API calls
-    - Offline fallback page
-    - Periodic cache cleanup
-  InstallPrompt.tsx — Shows install banner on compatible browsers.
-  ServiceWorkerRegistration.tsx — Registers SW with update detection.
 
 ICONS:
   15 icons in /public/icons/ (48px to 512px, including maskable variants).
@@ -1506,7 +1496,6 @@ GIT WORKFLOW:
   v13.0 (2026-04-06) — Update 13
     - Android APK (limud-v13.apk) via Bubblewrap TWA
     - Full PWA icon set (15 icons)
-    - InstallPrompt + ServiceWorkerRegistration components
     - Updated manifest.json with shortcuts
 
   v12.5 (previous) — Update 12.5

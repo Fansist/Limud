@@ -11,7 +11,14 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
-  const email = searchParams.get('email');
+  const rawEmail = searchParams.get('email');
+  const email = rawEmail;
+  let displayEmail = '';
+  try {
+    displayEmail = rawEmail ? decodeURIComponent(rawEmail) : '';
+  } catch {
+    displayEmail = rawEmail ?? '';
+  }
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -104,7 +111,7 @@ function ResetPasswordForm() {
         </div>
         <h1 className="text-xl font-bold text-gray-900">Reset your password</h1>
         <p className="text-sm text-gray-500 mt-2">
-          Create a new password for <strong>{decodeURIComponent(email)}</strong>
+          Create a new password for <strong>{displayEmail}</strong>
         </p>
       </div>
 

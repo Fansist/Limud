@@ -1,3 +1,4 @@
+// NOTE: response key is `reply` (not `message`); update frontend callers if regressions appear.
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
@@ -37,7 +38,7 @@ export const POST = apiHandler(async (req: Request) => {
     const msg = await prisma.studyGroupMessage.create({
       data: { groupId, authorId: user.id, content: content || '', flagged },
     });
-    return NextResponse.json({ message: msg, flagged });
+    return NextResponse.json({ reply: msg, flagged });
   }
 
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

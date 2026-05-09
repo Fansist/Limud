@@ -10,21 +10,21 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[Limud] Client error:', error);
+    console.error(error);
   }, [error]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="max-w-md w-full text-center space-y-6">
-        <div className="text-6xl">😕</div>
+        <img src="/logo.svg" alt="Limud" className="w-12 h-12 mx-auto mb-4" />
         <h1 className="text-2xl font-bold text-gray-900">Something went wrong</h1>
         <p className="text-gray-500 text-sm">
-          {error?.message || 'An unexpected error occurred. Please try again.'}
+          We hit an unexpected error. Please try again.
         </p>
         <div className="flex gap-3 justify-center">
           <button
             onClick={reset}
-            className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition text-sm"
+            className="px-6 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition text-sm"
           >
             Try again
           </button>
@@ -36,7 +36,7 @@ export default function GlobalError({
           </a>
         </div>
         {error?.digest && (
-          <p className="text-xs text-gray-400">Error ID: {error.digest}</p>
+          <p className="text-xs text-gray-400">Reference: {error.digest}</p>
         )}
       </div>
     </div>

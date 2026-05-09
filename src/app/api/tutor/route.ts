@@ -1,3 +1,4 @@
+// NOTE: response key is `reply` (not `message`); update frontend callers if regressions appear.
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
  * ║  AI Tutor API — v9.3.5                                                 ║
@@ -138,7 +139,7 @@ export const POST = apiHandler(async (req: Request) => {
 
   return NextResponse.json({
     sessionId: chatSessionId,
-    message: content,
+    reply: content,
     tokensUsed,
     aiGenerated,
     ...(aiError ? { aiError } : {}),

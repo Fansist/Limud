@@ -52,6 +52,8 @@
  *   - getAIStatus() helper for API routes to expose AI config state
  */
 
+import { log } from './log';
+
 const TUTOR_SYSTEM_PROMPT = `You are Limud AI, a friendly and encouraging educational tutor for K-12 students. Follow these guidelines strictly:
 
 1. NEVER give direct answers. Instead, guide students through the problem-solving process with hints, questions, and encouragement.
@@ -399,8 +401,8 @@ export function getWorkingModel(): string | null {
  * Classify a Gemini error message. Used to decide whether to retry on the
  * next fallback model or throw immediately.
  */
-function classifyGeminiError(msg: string): {
-  kind: 'model_not_available' | 'auth' | 'quota' | 'safety' | 'billing' | 'other';
+export function classifyGeminiError(msg: string): {
+  kind: 'model_not_available' | 'auth' | 'quota' | 'safety' | 'billing' | 'transient' | 'other';
   wrapped: string;
 } {
   const m = msg || '';
@@ -430,6 +432,7 @@ function classifyGeminiError(msg: string): {
   if (m.toLowerCase().includes('billing') || m.toLowerCase().includes('pricing')) {
     return { kind: 'billing', wrapped: `Gemini billing error: ${m.substring(0, 200)}` };
   }
+  if (/UNAVAILABLE|INTERNAL|503|fetch failed|ECONNRESET|ETIMEDOUT/i.test(m)) return { kind: 'transient', wrapped: `Gemini transient error: ${m.substring(0, 200)}` };
   return { kind: 'other', wrapped: `Gemini error: ${m.substring(0, 200)}` };
 }
 
@@ -503,7 +506,7 @@ export async function callGemini(
   for (const model of attempts) {
     let response: any;
     try {
-      console.log(`[GEMINI] Trying model=${model} (key=${apiKey.substring(0, 8)}...)`);
+      log.debug('GEMINI', `Trying model=${model}`);
       response = await ai.models.generateContent({
         model,
         contents,
@@ -524,10 +527,25 @@ export async function callGemini(
         continue;
       }
 
-      // Non-retryable: surface and throw.
-      const finalMsg = `${classified.wrapped} [model=${model}]`;
-      lastAIError = { message: finalMsg, at: Date.now() };
-      throw new Error(finalMsg);
+      if (classified.kind === 'transient') {
+        const jitter = 250 + Math.floor(Math.random() * 500);
+        log.warn('GEMINI', `Transient on ${model}, retrying once after ${jitter}ms`);
+        await new Promise(r => setTimeout(r, jitter));
+        try {
+          response = await ai.models.generateContent({ model, contents, config: { temperature: temp, maxOutputTokens: tokens, ...(systemInstruction ? { systemInstruction } : {}) } });
+          // success — fall through to break/return
+        } catch (retryErr: any) {
+          const retryClassified = classifyGeminiError(retryErr?.message || String(retryErr));
+          const finalMsg = `${retryClassified.wrapped} [model=${model}, retried]`;
+          lastAIError = { message: finalMsg, at: Date.now() };
+          throw new Error(finalMsg);
+        }
+      } else {
+        // Non-retryable: surface and throw.
+        const finalMsg = `${classified.wrapped} [model=${model}]`;
+        lastAIError = { message: finalMsg, at: Date.now() };
+        throw new Error(finalMsg);
+      }
     }
 
     // SUCCESS path on this model — extract text.
@@ -558,10 +576,10 @@ export async function callGemini(
 
     // Cache the first working model for the rest of the process.
     if (_workingModelMemo !== model) {
-      console.log(`[GEMINI] Memoizing working model: ${model} (was: ${_workingModelMemo || 'none'})`);
+      log.debug('GEMINI', `Memoizing working model: ${model} (was: ${_workingModelMemo || 'none'})`);
       _workingModelMemo = model;
     }
-    console.log(`[GEMINI] OK on ${model}: ${content.length} chars`);
+    log.debug('GEMINI', `OK on ${model}: ${content.length} chars`);
     return content;
   }
 
@@ -1038,10 +1056,10 @@ export async function personalizeMaterial(
 
   if (isGeminiConfigured()) {
     try {
-      console.log(`[PERSONALIZE] Calling Gemini for material "${input.title}" (format=${format})...`);
+      log.debug('PERSONALIZE', `Calling Gemini for material "${input.title}" (format=${format})...`);
       const prompt = buildPersonalizationPrompt(input, format);
       let content = await callGemini(prompt, { temperature: 0.85, maxTokens: 2000 });
-      console.log(`[PERSONALIZE] SUCCESS: ${content.length} chars`);
+      log.debug('PERSONALIZE', `SUCCESS: ${content.length} chars`);
 
       // For comic format, generate real panel illustrations and inject them
       // into the script. This is the "every chapter, rewritten in your style"
@@ -1055,7 +1073,7 @@ export async function personalizeMaterial(
           content = enriched.content;
           imagesGenerated = enriched.imagesGenerated;
           imageError = enriched.aiError;
-          console.log(`[PERSONALIZE] Comic images: ${imagesGenerated} generated${imageError ? ` (${imageError})` : ''}`);
+          log.debug('PERSONALIZE', `Comic images: ${imagesGenerated} generated${imageError ? ` (${imageError})` : ''}`);
         } catch (e) {
           imageError = (e as Error).message;
           console.error('[PERSONALIZE] Comic image generation threw:', imageError);
@@ -1104,14 +1122,14 @@ export async function chatWithTutor(
   let aiError: string | undefined;
   if (isGeminiConfigured()) {
     try {
-      console.log('[TUTOR] Calling Gemini for tutor response...');
+      log.debug('TUTOR', 'Calling Gemini for tutor response...');
       const systemPrompt = buildPersonalizedPrompt(surveyData || null, subject);
       const fullMessages = [
         { role: 'system', content: systemPrompt },
         ...messages,
       ];
       const content = await callGemini(fullMessages, { temperature: 0.7, maxTokens: 800 });
-      console.log(`[TUTOR] SUCCESS: ${content.length} chars`);
+      log.debug('TUTOR', `SUCCESS: ${content.length} chars`);
       return { content, tokensUsed: content.split(' ').length * 2, aiGenerated: true };
     } catch (e) {
       aiError = (e as Error).message;
@@ -1145,7 +1163,7 @@ export async function gradeSubmission(
   let aiError: string | undefined;
   if (isGeminiConfigured()) {
     try {
-      console.log('[GRADER] Calling Gemini for grading...');
+      log.debug('GRADER', 'Calling Gemini for grading...');
       // v2.5 — H-7: guard against prompt injection from studentContent. Wrap
       // the untrusted payload in explicit delimiters and instruct Gemini to
       // treat everything between the tags as data, never as instructions.
@@ -1163,7 +1181,7 @@ export async function gradeSubmission(
       const jsonStr = extractJSON(result);
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
-        console.log(`[GRADER] SUCCESS: AI grading score=${parsed.score}`);
+        log.debug('GRADER', `SUCCESS: AI grading score=${parsed.score}`);
         return { ...parsed, aiGenerated: true };
       }
       aiError = 'Grader AI returned unparseable JSON';
@@ -1262,7 +1280,7 @@ export async function generateStudentReport(
   let aiError: string | undefined;
   if (isGeminiConfigured()) {
     try {
-      console.log(`[REPORT] Calling Gemini for ${studentData.name} report...`);
+      log.debug('REPORT', `Calling Gemini for ${studentData.name} report...`);
       const messages = [
         { role: 'system', content: REPORT_SYSTEM_PROMPT },
         {
@@ -1274,7 +1292,7 @@ export async function generateStudentReport(
       const jsonStr = extractJSON(result);
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
-        console.log(`[REPORT] SUCCESS: AI report generated`);
+        log.debug('REPORT', `SUCCESS: AI report generated`);
         return { ...parsed, aiGenerated: true };
       }
       aiError = 'Report AI returned unparseable JSON';
@@ -1331,7 +1349,7 @@ export async function analyzeCurriculum(
   let aiError: string | undefined;
   if (isGeminiConfigured()) {
     try {
-      console.log(`[CURRICULUM] Calling Gemini for ${classData.gradeLevel} ${classData.subject} analysis...`);
+      log.debug('CURRICULUM', `Calling Gemini for ${classData.gradeLevel} ${classData.subject} analysis...`);
       const messages = [
         { role: 'system', content: CURRICULUM_ANALYSIS_PROMPT },
         {
@@ -1343,7 +1361,7 @@ export async function analyzeCurriculum(
       const jsonStr = extractJSON(result);
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
-        console.log(`[CURRICULUM] SUCCESS: AI curriculum analysis generated`);
+        log.debug('CURRICULUM', `SUCCESS: AI curriculum analysis generated`);
         return { ...parsed, aiGenerated: true };
       }
       aiError = 'Curriculum AI returned unparseable JSON';
@@ -1401,7 +1419,7 @@ export async function analyzeWriting(
   let aiError: string | undefined;
   if (isGeminiConfigured()) {
     try {
-      console.log(`[WRITING] Calling Gemini for ${gradeLevel} writing analysis...`);
+      log.debug('WRITING', `Calling Gemini for ${gradeLevel} writing analysis...`);
       const messages = [
         { role: 'system', content: WRITING_FEEDBACK_PROMPT },
         {
@@ -1413,7 +1431,7 @@ export async function analyzeWriting(
       const jsonStr = extractJSON(result);
       if (jsonStr) {
         const parsed = JSON.parse(jsonStr);
-        console.log(`[WRITING] SUCCESS: AI writing analysis generated, score=${parsed.overallScore}`);
+        log.debug('WRITING', `SUCCESS: AI writing analysis generated, score=${parsed.overallScore}`);
         return { ...parsed, aiGenerated: true };
       }
       aiError = 'Writing AI returned unparseable JSON';

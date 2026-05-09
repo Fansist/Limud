@@ -3,7 +3,7 @@
  * HTML email templates for transactional notifications.
  */
 
-const BRAND_COLOR = '#4f46e5';
+const BRAND_COLOR = '#2563eb';
 const FOOTER = `
   <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
     <p>Limud — AI-Powered Adaptive Learning Platform</p>
