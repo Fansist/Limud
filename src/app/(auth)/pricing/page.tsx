@@ -142,7 +142,11 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
   {
     id: 'students', label: 'Students', icon: <Users size={16} />, category: 'Capacity',
     min: 10, max: 5000, step: 10, defaultValue: 200, unitLabel: 'students',
-    pricePerUnit: 0.003,
+    // v15.1: bumped from $0.003 → $1.20/student/mo so a Large District
+    // preset (1K students) lands in the $25-40K/yr target band instead of
+    // $3K/yr. Per-student rates stay below the published Premium tier
+    // ($9/student/mo) so the custom builder remains competitive.
+    pricePerUnit: 1.20,
     tiers: [
       { value: 5, label: '5', tierName: 'FAMILY' },
       { value: 50, label: '50', tierName: 'STARTER' },
@@ -156,7 +160,8 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
   {
     id: 'teachers', label: 'Teachers', icon: <BookOpen size={16} />, category: 'Capacity',
     min: 2, max: 500, step: 1, defaultValue: 20, unitLabel: 'teachers',
-    pricePerUnit: 0.01,
+    // v15.1: $0.01 → $4/teacher/mo
+    pricePerUnit: 4,
     tiers: [
       { value: 2, label: '2', tierName: 'FAMILY' },
       { value: 5, label: '5', tierName: 'STARTER' },
@@ -170,7 +175,8 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
   {
     id: 'schools', label: 'Schools', icon: <School size={16} />, category: 'Capacity',
     min: 1, max: 50, step: 1, defaultValue: 3, unitLabel: 'schools',
-    pricePerUnit: 0.5,
+    // v15.1: $0.50 → $40/school/mo (each site adds admin overhead).
+    pricePerUnit: 40,
     tiers: [
       { value: 1, label: '1', tierName: 'FAMILY' },
       { value: 1, label: '1', tierName: 'STARTER' },
@@ -184,7 +190,8 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
   {
     id: 'aiTutor', label: 'AI Tutor Sessions', icon: <Brain size={16} />, category: 'AI Features',
     min: 50, max: 10000, step: 50, defaultValue: 1000, unitLabel: '/month',
-    pricePerUnit: 0.0005,
+    // v15.1: $0.0005 → $0.04/session.
+    pricePerUnit: 0.04,
     tiers: [
       { value: 50, label: '50', tierName: 'FAMILY' },
       { value: 200, label: '200', tierName: 'STARTER' },
@@ -196,7 +203,8 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
   {
     id: 'aiGrader', label: 'AI Auto-Grader', icon: <Target size={16} />, category: 'AI Features',
     min: 0, max: 5000, step: 50, defaultValue: 500, unitLabel: '/month',
-    pricePerUnit: 0.0008,
+    // v15.1: $0.0008 → $0.06/grade.
+    pricePerUnit: 0.06,
     tiers: [
       { value: 0, label: 'None', tierName: 'FAMILY' },
       { value: 100, label: '100', tierName: 'STARTER' },
@@ -208,7 +216,8 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
   {
     id: 'quizGenerator', label: 'AI Quiz Generator', icon: <Sparkles size={16} />, category: 'AI Features',
     min: 3, max: 1000, step: 3, defaultValue: 75, unitLabel: '/month',
-    pricePerUnit: 0.002,
+    // v15.1: $0.002 → $0.15/quiz.
+    pricePerUnit: 0.15,
     tiers: [
       { value: 3, label: '3', tierName: 'FAMILY' },
       { value: 15, label: '15', tierName: 'STARTER' },
@@ -220,7 +229,8 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
   {
     id: 'writingCoach', label: 'AI Writing Coach', icon: <FileText size={16} />, category: 'AI Features',
     min: 0, max: 1000, step: 10, defaultValue: 50, unitLabel: '/month',
-    pricePerUnit: 0.002,
+    // v15.1: $0.002 → $0.15/session.
+    pricePerUnit: 0.15,
     tiers: [
       { value: 0, label: 'None', tierName: 'FAMILY' },
       { value: 0, label: 'None', tierName: 'STARTER' },
@@ -232,7 +242,8 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
   {
     id: 'storage', label: 'Storage', icon: <Layers size={16} />, category: 'Capacity',
     min: 500, max: 500000, step: 500, defaultValue: 10000, unitLabel: 'MB',
-    pricePerUnit: 0.00001,
+    // v15.1: $0.00001 → $0.0008/MB ($0.80/GB/mo). 100GB = $80/mo.
+    pricePerUnit: 0.0008,
     tiers: [
       { value: 500, label: '500MB', tierName: 'FAMILY' },
       { value: 2000, label: '2GB', tierName: 'STARTER' },

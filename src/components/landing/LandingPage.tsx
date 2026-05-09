@@ -20,11 +20,15 @@ function Section({ children, className = '', id }: { children: React.ReactNode; 
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-60px' });
   return (
+    // v15.1: `scroll-mt-20` (= scroll-margin-top: 5rem) so the fixed top nav
+    // doesn't cover the section heading when anchor links scroll into view.
+    // Was the cause of "the nav headers don't work" — they DID work, they
+    // just landed underneath the 64px fixed nav so the heading was hidden.
     <motion.section ref={ref} id={id}
       initial={{ opacity: 0, y: 30 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className={className}>
+      className={`scroll-mt-20 ${className}`}>
       {children}
     </motion.section>
   );
