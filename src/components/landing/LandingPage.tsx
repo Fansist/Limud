@@ -30,18 +30,29 @@ function Section({ children, className = '', id }: { children: React.ReactNode; 
   );
 }
 
-function FAQItem({ q, a }: { q: string; a: string }) {
+function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
   const [open, setOpen] = useState(false);
+  const panelId = `faq-panel-${index}`;
   return (
     <div className="border-b border-gray-100 last:border-0">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between py-4 text-left group">
+      <button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className="w-full flex items-center justify-between py-4 text-left group"
+      >
         <span className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition pr-4">{q}</span>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown size={18} className="text-gray-400 flex-shrink-0" />
+          <ChevronDown size={18} className="text-gray-500 flex-shrink-0" />
         </motion.div>
       </button>
-      <motion.div initial={false} animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
-        transition={{ duration: 0.25 }} className="overflow-hidden">
+      <motion.div
+        id={panelId}
+        initial={false}
+        animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
+        transition={{ duration: 0.25 }}
+        className="overflow-hidden"
+      >
         <p className="pb-4 text-sm text-gray-500 leading-relaxed">{a}</p>
       </motion.div>
     </div>
@@ -132,7 +143,6 @@ export default function LandingPage() {
             <Link href="/" className="flex items-center gap-2">
               <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg shadow-md object-cover" />
               <span className="text-lg font-extrabold text-gray-900">Limud</span>
-              <span className="hidden sm:inline text-[10px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded">v3.1</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
@@ -148,7 +158,7 @@ export default function LandingPage() {
               <Link href="/register" className="inline-flex items-center gap-1 bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-700 transition shadow-sm">
                 Start Free <ArrowRight size={14} />
               </Link>
-              <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2 rounded-lg hover:bg-gray-100" aria-label="Menu">
+              <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2 rounded-lg hover:bg-gray-100" aria-label="Menu" aria-expanded={mobileMenu} aria-controls="mobile-nav">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileMenu ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
                 </svg>
@@ -158,7 +168,7 @@ export default function LandingPage() {
         </div>
 
         {mobileMenu && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
+          <div id="mobile-nav" className="md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
             {NAV_ITEMS.map(item => (
               <a key={item} href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={e => scrollTo(e, item.toLowerCase().replace(/\s+/g, '-'))}
@@ -200,7 +210,7 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
               {[
                 { icon: Check, text: 'For districts and families' },
                 { icon: Lock, text: 'FERPA & COPPA compliant' },
@@ -224,7 +234,7 @@ export default function LandingPage() {
                   <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
                 </div>
                 <div className="flex-1 mx-4">
-                  <div className="bg-white rounded px-3 py-0.5 text-[11px] text-gray-400 border border-gray-200 max-w-xs mx-auto text-center">limud.co/student/dashboard</div>
+                  <div className="bg-white rounded px-3 py-0.5 text-[11px] text-gray-500 border border-gray-200 max-w-xs mx-auto text-center">limud.co/student/dashboard</div>
                 </div>
               </div>
               <div className="p-4 bg-gradient-to-br from-gray-50 to-white">
@@ -480,7 +490,7 @@ export default function LandingPage() {
                 cta: 'Contact sales', link: '/contact', highlight: false,
               },
               {
-                name: 'School', price: '$6', period: '/student/mo', desc: 'Classrooms and small schools',
+                name: 'Standard', price: '$6', period: '/student/mo', desc: 'Classrooms and small schools',
                 features: ['Up to 500 students', 'Unlimited AI features', 'All 16+ integrations', 'Intelligence dashboard', 'AI Safety Monitor', 'Priority support'],
                 cta: 'Talk to us', link: '/contact', highlight: true,
               },
@@ -499,7 +509,7 @@ export default function LandingPage() {
                 <p className={cn('text-xs mt-0.5', plan.highlight ? 'text-white/60' : 'text-gray-500')}>{plan.desc}</p>
                 <div className="mt-3 mb-4">
                   <span className="text-3xl font-extrabold">{plan.price}</span>
-                  {plan.period && <span className={cn('ml-1 text-sm', plan.highlight ? 'text-white/60' : 'text-gray-400')}>{plan.period}</span>}
+                  {plan.period && <span className={cn('ml-1 text-sm', plan.highlight ? 'text-white/60' : 'text-gray-500')}>{plan.period}</span>}
                 </div>
                 <ul className="space-y-2 flex-1 mb-5">
                   {plan.features.map(f => (
@@ -543,7 +553,7 @@ export default function LandingPage() {
               { q: 'Do I need to leave Google Classroom or Khan Academy?', a: 'Not at all! Limud integrates with both and 14+ other platforms. Keep everything you love — Limud adds the AI grading, adaptive Learning DNA, and intelligence dashboards that those platforms don\'t offer.' },
               { q: 'Is it FERPA and COPPA compliant?', a: 'Yes, fully. All data is encrypted with AES-256-GCM. We never sell student data. Compliance is built into every layer — from field-level PII encryption to brute-force lockout, audit logging, and 7-year data retention per FERPA.' },
               { q: 'How long does setup take?', a: 'Most families are ready in under 5 minutes with the Learning DNA onboarding survey. Districts can provision teachers and students via CSV upload in under 30 minutes. The 3-step Quick Setup wizard for teachers takes about 2 minutes.' },
-            ].map(faq => <FAQItem key={faq.q} q={faq.q} a={faq.a} />)}
+            ].map((faq, i) => <FAQItem key={faq.q} q={faq.q} a={faq.a} index={i} />)}
           </div>
         </div>
       </Section>
@@ -579,7 +589,6 @@ export default function LandingPage() {
               <div className="flex items-center gap-2 mb-3">
                 <img src="/logo.png" alt="Limud" className="w-8 h-8 rounded-lg object-cover" />
                 <span className="text-base font-bold text-white">Limud</span>
-                <span className="text-[10px] bg-primary-500/20 text-primary-400 px-1 py-0.5 rounded">v3.1</span>
               </div>
               <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for districts and families.</p>
               <div className="flex gap-2 mt-3">

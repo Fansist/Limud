@@ -15,7 +15,6 @@ const FAQ_DATA: FAQCategory[] = [
     items: [
       { question: 'How do I create an account?', answer: 'Visit /register and pick your account type — family, school, or district. Set up your details and admin credentials. Once created, you can add teachers, students, or children through the dashboard.' },
       { question: 'What are the different user roles?', answer: 'Limud has 4 roles: Students (learners), Teachers (educators who create assignments and grade work), Admins (district administrators who manage schools, users, and billing), and Parents (who monitor their children\'s progress). Family / homeschool parents can flip on Family Teaching Mode for combined parent + teacher access.' },
-      { question: 'How does Demo Mode work?', answer: 'Add ?demo=true to any URL to explore the platform with simulated data. No account needed! Demo mode shows all features with realistic mock data. Visit /demo to switch between Student, Teacher, Admin, and Parent views.' },
       { question: 'Can I use Limud on my phone?', answer: 'Yes! Limud is fully responsive and works on any device. On mobile, you\'ll see a bottom navigation bar for quick access. You can even install it as a PWA (Progressive Web App) from your browser for an app-like experience.' },
     ],
   },
@@ -85,7 +84,6 @@ export default function HelpPage() {
           {[
             { label: 'AI Tutor', href: '/student/tutor', icon: <MessageCircle size={20} />, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' },
             { label: 'Pricing', href: '/pricing', icon: <Shield size={20} />, color: 'bg-green-50 text-green-600 dark:bg-green-900/20' },
-            { label: 'Demo Mode', href: '/demo', icon: <BookOpen size={20} />, color: 'bg-purple-50 text-purple-600 dark:bg-purple-900/20' },
             { label: 'Contact Us', href: '/contact', icon: <Mail size={20} />, color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20' },
           ].map(link => (
             <a key={link.label} href={link.href}

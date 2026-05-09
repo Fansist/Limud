@@ -12,6 +12,9 @@ import {
   computeBadges,
 } from '@/lib/gamification';
 
+// AI route — give Gemini calls headroom past Vercel's default 10s.
+export const maxDuration = 60;
+
 /**
  * v2.7 — Shared post-grade side effects. Called from both POST (single) and
  * PUT (batch) so every graded submission updates RewardStats and fans the
@@ -133,6 +136,17 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Already graded' }, { status: 400 });
   }
 
+  // Master demo: run AI grade but never persist or notify.
+  if (user.isMasterDemo) {
+    const result = await gradeSubmission(
+      submission.content,
+      submission.assignment.description,
+      submission.assignment.rubric,
+      submission.assignment.totalPoints
+    );
+    return NextResponse.json({ ok: true, demo: true, gradeResult: result });
+  }
+
   // Mark as grading
   await prisma.submission.update({
     where: { id: submissionId },
@@ -229,6 +243,18 @@ export const PUT = apiHandler(async (req: Request) => {
       if (user.role === 'TEACHER' && submission.assignment.createdById !== user.id) continue;
       if (user.role === 'ADMIN' && submission.assignment.course.districtId !== user.districtId) continue;
       if (user.role === 'PARENT' && user.isHomeschoolParent && submission.assignment.course.districtId !== user.districtId) continue;
+
+      // Master demo: run AI grade but never persist or notify.
+      if (user.isMasterDemo) {
+        const result = await gradeSubmission(
+          submission.content,
+          submission.assignment.description,
+          submission.assignment.rubric,
+          submission.assignment.totalPoints
+        );
+        results.push({ submissionId: id, success: true, demo: true, result });
+        continue;
+      }
 
       await prisma.submission.update({
         where: { id },

@@ -54,7 +54,7 @@ const DEMO_EMAIL_ROLES: Record<string, string> = {
   'teacher@limud.edu': 'TEACHER',
   'admin@limud.edu': 'ADMIN',
   'parent@limud.edu': 'PARENT',
-  // master@limud.edu is NOT here — it uses a different password (LimudMaster2026!)
+  // erez.ofer4@gmail.com is NOT here — it uses a different password (LimudMaster2026!)
   // and has its own login path via the Master Demo button on /login
 };
 
@@ -198,10 +198,6 @@ export default function DemoPage() {
               <h3 className="font-bold text-gray-900">Ofer Academy</h3>
               <p className="text-sm text-gray-500">District demo with 3 students, 1 teacher, 1 admin (superintendent), 1 parent — all interconnected</p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">Premium</span>
-              <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">AI Enabled</span>
-            </div>
           </div>
         </motion.div>
 
@@ -322,10 +318,10 @@ export default function DemoPage() {
               <Home size={28} />
             </div>
             <div className="flex-1 text-center sm:text-left">
-              <h3 className="text-lg font-bold text-gray-900">Homeschool Families</h3>
+              <h3 className="text-lg font-bold text-gray-900">For families</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Limud is perfect for homeschool parents! Create a free account, add your children,
-                and use AI grading, progress tracking — completely free.
+                Up to 5 kids in one parent account. Free for families with K-12 kids at any school:
+                district, charter, private, or home. Optional Family Teaching Mode for parents who teach at home.
               </p>
             </div>
             <Link

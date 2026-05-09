@@ -4,6 +4,185 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [3.5.0] - 2026-05-08 — Update 3.5 (Deeper audit: secrets, schema, master-demo guards)
+
+A second meticulous parallel audit. 10 reviewers re-swept the surfaces
+that 3.4 left medium-priority, plus areas that hadn't been touched
+(secrets, schema relations, district-link endpoints, error handling).
+7 coders applied non-overlapping fixes. Heavier than 3.4 — this update
+includes a schema change (one new model, three new relations) and
+several genuine security holes that 3.4 missed.
+
+### Fixed — Secrets & credentials
+
+- **`src/lib/config.ts`**, **`src/middleware.ts`**, **`src/lib/security.ts`** —
+  the hardcoded `'limud-stable-secret-v9-…'` JWT/encryption fallback
+  was still active on three files. 3.4 had claimed it fixed; the audit
+  confirmed it did not. Now all three import from `config.ts`, and
+  `config.ts` throws at boot if `NEXTAUTH_SECRET` is missing or equals
+  the literal in production. Same boot-time guard added for
+  `PII_ENCRYPTION_KEY` (which previously silently derived from
+  `AUTH_SECRET` via sha256, a key-separation violation).
+- **`src/app/api/auth/forgot-password/route.ts`** — the route returned
+  the live `resetUrl` and `token` in JSON whenever `NODE_ENV !==
+  'production'`, and Render deploys often leave `NODE_ENV` unset.
+  Tightened to `=== 'development'`. Also removed the `console.log`
+  that printed the reset token to stdout.
+
+### Fixed — Public unauth endpoints that could seed ADMIN users
+
+- **`src/app/api/district-link/seed/route.ts`** — was a public,
+  unauthenticated POST (and aliased GET) that created up to ~30
+  superintendent ADMIN users with hard-coded passwords like
+  `District2026!`. Now gated by `Authorization: Bearer
+  ${process.env.CRON_SECRET}`, GET returns 405, passwords are
+  per-user random `crypto.randomBytes(16).toString('base64url')`,
+  and the operation is idempotent.
+- **`src/app/api/district-link/search/route.ts`** — was a "search"
+  endpoint that auto-seeded ADMIN users on a cold/empty DB. Removed
+  the seed side-effect entirely; the route is now strictly
+  read-only.
+
+### Fixed — Master-demo write guards
+
+The master-demo identity is supposed to read any tenant's data but
+never write to the real DB. Three routes still wrote:
+
+- **`POST /api/grade`** + **PUT /api/grade`** (batch) — added an early
+  return that runs the AI grading and returns the result without
+  `prisma.submission.update` or `prisma.notification.create`.
+- **`POST /api/messages`** — added an early return after the
+  FERPA `isAllowedDm` check, returning a synthetic message object
+  without `prisma.message.create` / `prisma.notification.create`.
+- **`/api/teacher/materials/[id]/personalized/*`** — generalized the
+  pre-existing `if (user.isMasterDemo && materialId.startsWith('demo-'))`
+  guard to fire for any material id.
+
+### Fixed — Misc API correctness
+
+- **`POST /api/auth/register`** — added enum validation on
+  `accountType` against the actual Prisma enum
+  (`DISTRICT|HOMESCHOOL|INDIVIDUAL|SELF_EDUCATION`). Previously a
+  caller could supply any string and Prisma would write it through.
+- **`/api/reports/export`** — used to fall back to `DEMO_REPORT` on
+  any DB exception, even when authorization had thrown before being
+  verified. Now: DB exception in the auth path returns 503; the
+  DEMO_REPORT path is reachable only after authorization passes and
+  the legitimate-no-data branch is hit.
+- **`/api/grade`** + **`/api/parent/ai-checkin`** — added missing
+  `export const maxDuration = 60`. Both call Gemini and were being
+  killed at the 10-second default mid-generation.
+
+### Fixed — Schema relations & missing model
+
+- **`Worksheet` model added** to `prisma/schema.prisma`. The route
+  `src/app/api/worksheets/route.ts` calls `prisma.worksheet.findMany`,
+  `create`, `update`, `delete`, but the model did not exist — the
+  endpoint was dead at runtime. Model has `id`, `teacherId` (FK to
+  `User`, cascade), `title`, `content`, `subject`, `gradeLevel`,
+  timestamps, `@@index([teacherId])`. Back-relation
+  `worksheets Worksheet[]` added on `User`.
+- **Three orphan FKs corrected** (deleting a parent left dangling
+  rows — FERPA risk because the dangling rows can include personal
+  AI-generated content):
+  - `Material.assignmentId` → `assignment Assignment? @relation(...,
+    onDelete: SetNull)` + `@@index([assignmentId])` + back-relation.
+  - `AdaptedAssignment.studentId` → `student User @relation(...,
+    onDelete: Cascade)` + back-relation.
+  - `PersonalizedMaterial.studentId` → `student User @relation(...,
+    onDelete: Cascade)` + back-relation.
+
+  These changes deploy via the existing `prisma db push` step in
+  `package.json` `build` — no migration files.
+
+### Fixed — Demo identity consolidated
+
+- **`src/lib/demo-accounts.ts`** is the single source of truth:
+  exports `MASTER_DEMO_EMAIL`, `MASTER_DEMO_PASSWORD`, `DEMO_EMAILS`,
+  `isDemoEmail()`, `isMasterDemoEmail()`. `src/lib/auth.ts`,
+  `src/lib/hooks.ts`, and `src/app/(auth)/login/page.tsx` now import
+  from this module instead of redeclaring the same email list. Adding
+  or removing a demo email is a one-file change.
+- The JWT callback in `src/lib/auth.ts` now actually populates
+  `token.isDemo = isDemoEmail(token.email)`. Routes like
+  `/api/district/announcements` were reading `token.isDemo` but
+  nothing ever set it, so the flag was always `undefined` and code
+  fell through unintended branches.
+- The session callback propagates `session.user.isDemo`.
+- `src/types/next-auth.d.ts` extended: `Session.user`, `User`, and
+  `JWT` now declare `gradeLevel`, `isMasterDemo`, `isDemo`,
+  `accountType`, and `role` is narrowed to a literal union. This
+  alone eliminates ~22 `as any` casts in `auth.ts` and 2 in
+  `hooks.ts` (mechanically — those casts can be dropped in a future
+  cleanup).
+
+### Fixed — Accessibility
+
+- **`src/app/(auth)/register/page.tsx`** — 9 `<label>` elements had
+  no `htmlFor`, and the per-child name/grade inputs had no label at
+  all. Added `id` + `htmlFor` pairs and template-literal
+  `aria-label={`Child ${idx + 1} name|grade`}`. Screen readers can
+  now associate each label with its input, and clicking a label
+  focuses the field.
+- **Skip-to-content links** added to `src/app/(auth)/layout.tsx`
+  (which was a new file — auth group had no shared layout) and
+  `src/app/(legal)/layout.tsx`. Combined with the existing
+  `DashboardLayout` skip link, every public route now lets a
+  keyboard user bypass the nav.
+- **Color contrast** — `text-gray-400` over white fails WCAG AA
+  (2.85:1). Bumped to `text-gray-500` (4.83:1) at the worst spots:
+  three locations in `LandingPage.tsx` and four in
+  `DashboardLayout.tsx`.
+- **FAQ accordion** in `LandingPage.tsx` got `aria-expanded`,
+  `aria-controls`, matching panel `id`. Mobile-menu hamburger got
+  `aria-expanded` + `aria-controls`.
+
+### Fixed — Marketing & docs hygiene
+
+- **`src/app/(auth)/demo/page.tsx`** — replaced the homeschool-only
+  "Limud is perfect for homeschool parents!" block (rule-14
+  violation) with parity-correct family copy. Removed decorative
+  `Premium` and `AI Enabled` pills.
+- **`src/app/help/page.tsx`** — removed the `Demo Mode` Quick Link
+  tile and the "How does Demo Mode work?" FAQ entry (rule 13: don't
+  promote demo as a user feature).
+- **`src/app/roadmap/page.tsx`** — removed the unused `Gamepad2`
+  lucide import; dropped legacy `v8.2`/`v8.0`/`v7.4` version chips
+  that were still on "Recently Shipped" cards from the old numbering
+  scheme.
+- **`src/app/layout.tsx`** — root OG description was claiming Limud
+  *replaces* Khan Academy / Google Classroom while landing copy
+  said the opposite. Aligned: "works alongside…".
+- **`src/components/landing/LandingPage.tsx`** — removed stale `v3.1`
+  version chips in nav and footer; renamed the `$6/student/mo` plan
+  card from `School` to `Standard` to match the pricing page.
+- **`src/app/(legal)/contact/page.tsx`** — removed the placeholder
+  phone `(555) 123-4567` and "123 Education Way, San Francisco" tile
+  (we don't have an office to publish). Added an `mailto:` fallback
+  notice next to the contact form, which was previously a no-op.
+- **`README.md`** + **`LIMUD-DEVELOPER-GUIDE.txt`** — three references
+  to the old `master@limud.edu` demo email replaced with the current
+  `erez.ofer4@gmail.com`.
+
+### Fixed — Dependency hygiene
+
+- **`recharts`** removed from `package.json`. It had been listed as
+  a dependency since v8 but no source file imports it (verified by
+  grep). Drops ~120 KB from the install footprint.
+
+### Notes
+
+- One schema change: a new `Worksheet` model + three new relations.
+  The existing `prisma db push --accept-data-loss` step in the build
+  script picks them up automatically on Render.
+- New env var (production): `PII_ENCRYPTION_KEY`. If unset in
+  production the app refuses to boot — set it to a 32+ byte random
+  hex string before deploy. `CRON_SECRET` is also now required for
+  `/api/district-link/seed`.
+- All other changes are backward compatible at the API surface.
+
+---
+
 ## [3.4.0] - 2026-05-05 — Update 3.4 (Site-wide bug-sweep audit)
 
 A meticulous parallel audit of the entire codebase by 13 reviewers, then

@@ -190,6 +190,15 @@ export const POST = apiHandler(async (req: Request) => {
     }
   }
 
+  // Master demo: don't persist messages or notifications — return a synthetic ack.
+  if (user.isMasterDemo) {
+    return NextResponse.json({
+      id: `demo-msg-${Date.now()}`,
+      demo: true,
+      sentAt: new Date().toISOString(),
+    });
+  }
+
   const message = await prisma.message.create({
     data: {
       senderId: user.id,

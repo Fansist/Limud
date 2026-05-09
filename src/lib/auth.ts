@@ -23,6 +23,11 @@ import {
   SECURITY_CONFIG,
 } from '@/lib/security';
 import { AUTH_SECRET, COOKIE_SECURE } from '@/lib/config';
+import {
+  MASTER_DEMO_EMAIL,
+  MASTER_DEMO_PASSWORD,
+  isDemoEmail,
+} from '@/lib/demo-accounts';
 
 // ═══════════════════════════════════════════════════════════════════
 // DEMO ACCOUNTS
@@ -30,11 +35,11 @@ import { AUTH_SECRET, COOKIE_SECURE } from '@/lib/config';
 
 // Master Demo account — full access to all features across all roles
 const MASTER_DEMO = {
-  email: 'erez.ofer4@gmail.com',
-  password: 'LimudMaster2026!',
+  email: MASTER_DEMO_EMAIL,
+  password: MASTER_DEMO_PASSWORD,
   user: {
     id: 'master-demo',
-    email: 'erez.ofer4@gmail.com',
+    email: MASTER_DEMO_EMAIL,
     name: 'Master Demo',
     role: 'TEACHER',
     accountType: 'DISTRICT',
@@ -290,6 +295,9 @@ export const authOptions: NextAuthOptions = {
         token.gradeLevel = (user as any).gradeLevel;
         token.isMasterDemo = (user as any).isMasterDemo || false;
       }
+      // Always recompute isDemo from the canonical demo email list so
+      // consumers (e.g. /api/district/announcements) can rely on it.
+      token.isDemo = isDemoEmail(token.email as string | undefined);
       return token;
     },
     async session({ session, token }) {
@@ -303,6 +311,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).isHomeschoolParent = token.isHomeschoolParent as boolean;
         (session.user as any).gradeLevel = token.gradeLevel as string;
         (session.user as any).isMasterDemo = token.isMasterDemo as boolean;
+        (session.user as any).isDemo = token.isDemo as boolean;
       }
       return session;
     },

@@ -24,6 +24,7 @@
  */
 
 import crypto from 'crypto';
+import { AUTH_SECRET } from './config';
 
 // ═══════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -476,9 +477,15 @@ export function validateSessionFingerprint(req: Request, storedFingerprint: stri
 // ═══════════════════════════════════════════════════════════════════
 
 function getEncryptionKey(): Buffer {
-  // v9.3.5: use the stable embedded secret — no env var needed
-  const secret = process.env.PII_ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || 'limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB';
-  return crypto.createHash('sha256').update(secret).digest();
+  const piiKey = process.env.PII_ENCRYPTION_KEY;
+  if (piiKey) {
+    return crypto.createHash('sha256').update(piiKey).digest();
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('PII_ENCRYPTION_KEY must be set in production');
+  }
+  // Non-production fallback: derive from AUTH_SECRET
+  return crypto.createHash('sha256').update(AUTH_SECRET).digest();
 }
 
 /**

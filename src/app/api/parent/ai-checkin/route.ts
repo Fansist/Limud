@@ -9,6 +9,9 @@ import { callGemini, isGeminiConfigured } from '@/lib/ai';
 import prisma from '@/lib/prisma';
 import type { Prisma, Submission, SkillRecord, StudyPlanSession, RewardStats } from '@prisma/client';
 
+// AI route — give Gemini calls headroom past Vercel's default 10s.
+export const maxDuration = 60;
+
 // v2.5 — H-9: eliminate `any` across this parent-facing endpoint. Untyped
 // child/submission/skill arrays were the leading indicator of future FERPA
 // leaks — narrow every shape to a Prisma-payload type.

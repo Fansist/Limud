@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v14.4.0 · Update 3.4 · Site-wide bug-sweep audit</code>
+  <code>v14.5.0 · Update 3.5 · Deeper audit: secrets, schema, master-demo guards</code>
 </p>
 
 ---
@@ -214,7 +214,7 @@ Every feature in Limud works *without a database* via demo mode — useful
 for local development, screenshots, and prospect walkthroughs but **not the
 front door of the product**. The user-facing demo CTAs were retired in
 v3.1; demo accounts are still reachable by signing in directly with
-`master@limud.edu` or by appending `?demo=true` to any URL during local
+`erez.ofer4@gmail.com` or by appending `?demo=true` to any URL during local
 development. Demo seed data lives in `src/lib/demo-data.ts`. Cross-role
 state lives in `localStorage` via `src/lib/demo-state.ts`.
 

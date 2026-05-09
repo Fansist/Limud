@@ -446,8 +446,9 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                  <label htmlFor="register-name" className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
                   <input
+                    id="register-name"
                     type="text"
                     value={name}
                     onChange={e => setName(e.target.value)}
@@ -458,8 +459,9 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+                  <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
                   <input
+                    id="register-email"
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
@@ -471,8 +473,9 @@ export default function RegisterPage() {
                 {/* District Name for admins */}
                 {accountType === 'admin' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">District / School Name</label>
+                    <label htmlFor="register-district-name" className="block text-sm font-medium text-gray-700 mb-1.5">District / School Name</label>
                     <input
+                      id="register-district-name"
                       type="text"
                       value={districtName}
                       onChange={e => setDistrictName(e.target.value)}
@@ -519,6 +522,7 @@ export default function RegisterPage() {
                         </div>
                         <input
                           type="text"
+                          aria-label={`Child ${idx + 1} name`}
                           value={child.name}
                           onChange={e => {
                             const updated = [...childrenList];
@@ -529,6 +533,7 @@ export default function RegisterPage() {
                           placeholder="Child's name"
                         />
                         <select
+                          aria-label={`Child ${idx + 1} grade`}
                           value={child.grade}
                           onChange={e => {
                             const updated = [...childrenList];
@@ -562,15 +567,15 @@ export default function RegisterPage() {
                       <p className="text-sm font-medium">Your Info</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Grade Level</label>
-                      <select value={gradeLevel} onChange={e => setGradeLevel(e.target.value)} className="input-field">
+                      <label htmlFor="register-student-grade" className="block text-xs font-medium text-gray-700 mb-1">Grade Level</label>
+                      <select id="register-student-grade" value={gradeLevel} onChange={e => setGradeLevel(e.target.value)} className="input-field">
                         <option value="">Select your grade</option>
                         {GRADE_LEVELS.map(g => (<option key={g} value={g}>{g}</option>))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-2">How do you learn best?</label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <label id="register-student-learning-style-label" className="block text-xs font-medium text-gray-700 mb-2">How do you learn best?</label>
+                      <div role="group" aria-labelledby="register-student-learning-style-label" className="grid grid-cols-3 gap-2">
                         {QUICK_LEARNING_STYLES.map(ls => (
                           <button
                             key={ls.id} type="button"
@@ -606,15 +611,15 @@ export default function RegisterPage() {
                       <p className="text-sm font-medium">Your Learning Profile</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Grade Level</label>
-                      <select value={gradeLevel} onChange={e => setGradeLevel(e.target.value)} className="input-field">
+                      <label htmlFor="register-self-grade" className="block text-xs font-medium text-gray-700 mb-1">Grade Level</label>
+                      <select id="register-self-grade" value={gradeLevel} onChange={e => setGradeLevel(e.target.value)} className="input-field">
                         <option value="">Select your grade</option>
                         {GRADE_LEVELS.map(g => (<option key={g} value={g}>{g}</option>))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-2">How do you learn best?</label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <label id="register-self-learning-style-label" className="block text-xs font-medium text-gray-700 mb-2">How do you learn best?</label>
+                      <div role="group" aria-labelledby="register-self-learning-style-label" className="grid grid-cols-3 gap-2">
                         {QUICK_LEARNING_STYLES.map(ls => (
                           <button
                             key={ls.id} type="button"
@@ -690,9 +695,10 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                  <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
                   <div className="relative">
                     <input
+                      id="register-password"
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
@@ -742,8 +748,9 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
+                  <label htmlFor="register-confirm-password" className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
                   <input
+                    id="register-confirm-password"
                     type="password"
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}

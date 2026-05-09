@@ -548,7 +548,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {userName || 'User'}
                 {isDemo && <span className="text-[10px] text-amber-500 ml-1">(Demo)</span>}
               </p>
-              <p className="text-[10px] text-gray-400 truncate">{userEmail}</p>
+              <p className="text-[10px] text-gray-500 truncate">{userEmail}</p>
             </div>
             {isDemo ? (
               <Link href="/register" className="text-primary-600 hover:bg-primary-50 p-1.5 rounded-lg transition flex-shrink-0" title="Create Real Account">
@@ -579,7 +579,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Menu size={20} />
           </button>
 
-          <div className="hidden sm:flex items-center gap-2 text-sm text-gray-400">
+          <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500">
             <span className="font-medium text-gray-500">{roleLabel}</span>
             <ChevronRight size={14} />
             <span className="font-medium text-gray-900 dark:text-white">
@@ -646,7 +646,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       {notifications.length === 0 ? (
                         <div className="p-6 text-center">
                           <Bell size={24} className="mx-auto text-gray-300 mb-2" />
-                          <p className="text-sm text-gray-400">No notifications yet</p>
+                          <p className="text-sm text-gray-500">No notifications yet</p>
                         </div>
                       ) : (
                         notifications.slice(0, 8).map(notif => {
@@ -664,7 +664,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{notif.title}</p>
                                 <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>
-                                <p className="text-[10px] text-gray-400 mt-1">{timeAgo}</p>
+                                <p className="text-[10px] text-gray-500 mt-1">{timeAgo}</p>
                               </div>
                               {!notif.isRead && <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-2" />}
                             </a>

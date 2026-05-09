@@ -31,9 +31,9 @@ export const GET = apiHandler(async (
     return NextResponse.json({ error: 'Missing id or studentId' }, { status: 400 });
   }
 
-  // Master demo viewing a demo-seed material: client reads demo sample
-  // directly via getDemoPersonalizedSample(); this route just confirms.
-  if (user.isMasterDemo && materialId.startsWith('demo-')) {
+  // Master demo: never hit the DB — client reads demo sample directly via
+  // getDemoPersonalizedSample(); this route just confirms (any material id).
+  if (user.isMasterDemo) {
     return NextResponse.json({
       demo: true,
       material: { id: materialId, title: 'Demo material' },

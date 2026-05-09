@@ -16,16 +16,22 @@
  * NextAuth requires this to be identical across all server instances
  * and across restarts, or every existing session becomes invalid.
  */
-export const AUTH_SECRET =
-  process.env.NEXTAUTH_SECRET ||
-  'limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB';
+const fallback = 'limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB';
+const envSecret = process.env.NEXTAUTH_SECRET;
+if (process.env.NODE_ENV === 'production' && (!envSecret || envSecret === fallback)) {
+  throw new Error('NEXTAUTH_SECRET must be set to a unique value in production');
+}
+export const AUTH_SECRET = envSecret || fallback;
 
 /**
  * PII encryption key (AES-256-GCM).
- * Falls back to AUTH_SECRET if PII_ENCRYPTION_KEY is not set.
+ * Falls back to AUTH_SECRET if PII_ENCRYPTION_KEY is not set (non-production only).
  */
-export const PII_ENCRYPTION_KEY =
-  process.env.PII_ENCRYPTION_KEY || AUTH_SECRET;
+const envPiiKey = process.env.PII_ENCRYPTION_KEY;
+if (process.env.NODE_ENV === 'production' && (!envPiiKey || envPiiKey === fallback)) {
+  throw new Error('PII_ENCRYPTION_KEY must be set to a unique value in production');
+}
+export const PII_ENCRYPTION_KEY = envPiiKey || AUTH_SECRET;
 
 // ═══════════════════════════════════════════════════════════════════
 // DATABASE

@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   })(),
   openGraph: {
     title: 'Limud — The All-in-One AI Learning Platform for K–12',
-    description: 'Stop juggling 6 apps. Limud replaces Khan Academy, Google Classroom, Quizlet, ClassDojo, IXL and more. AI tutoring, auto-grading, adaptive learning, and analytics in one platform. Free Family tier. Per-seat pricing for schools and districts.',
+    description: 'AI tutoring, auto-grading, adaptive learning, and analytics in one platform that works alongside Khan Academy, Google Classroom, Canvas, and 13+ more. Free Family tier. Per-seat pricing for schools and districts.',
     siteName: 'Limud',
     type: 'website',
     locale: 'en_US',

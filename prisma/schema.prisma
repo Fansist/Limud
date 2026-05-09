@@ -427,6 +427,15 @@ model User {
   // v9.6 District link requests
   districtLinkRequests DistrictLinkRequest[] @relation("StudentLinkRequests")
 
+  // Worksheets (teacher-authored)
+  worksheets         Worksheet[]          @relation("WorksheetTeacher")
+
+  // Personalized materials (student-scoped)
+  personalizedMaterials PersonalizedMaterial[] @relation("PersonalizedMaterialStudent")
+
+  // Adapted assignments (student-scoped)
+  adaptedAssignments AdaptedAssignment[]  @relation("AdaptedAssignmentStudent")
+
   @@index([email])
   @@index([role])
   @@index([districtId])
@@ -555,6 +564,7 @@ model Assignment {
   createdBy  User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
   submissions Submission[]
   adaptedVersions AdaptedAssignment[]
+  materials   Material[]  @relation("MaterialAssignment")
 
   @@index([courseId])
   @@index([dueDate])
@@ -621,11 +631,13 @@ model Material {
   course      Course?    @relation(fields: [courseId], references: [id], onDelete: SetNull)
   classroom   Classroom? @relation(fields: [classroomId], references: [id], onDelete: SetNull)
   createdBy   User       @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  assignment  Assignment? @relation("MaterialAssignment", fields: [assignmentId], references: [id], onDelete: SetNull)
   personalizedVersions PersonalizedMaterial[]
 
   @@index([courseId])
   @@index([classroomId])
   @@index([createdById])
+  @@index([assignmentId])
   @@map("materials")
 }
 
@@ -645,6 +657,7 @@ model PersonalizedMaterial {
   refreshedAt     DateTime @default(now())
 
   material  Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  student   User     @relation("PersonalizedMaterialStudent", fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([materialId, studentId])
   @@index([studentId])
@@ -665,10 +678,27 @@ model AdaptedAssignment {
   createdAt        DateTime @default(now())
 
   assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    User       @relation("AdaptedAssignmentStudent", fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([assignmentId, studentId])
   @@index([studentId])
   @@map("adapted_assignments")
+}
+
+// ─── WORKSHEET (teacher-authored) ───────────────────────────────────────────
+
+model Worksheet {
+  id          String   @id @default(cuid())
+  teacherId   String
+  teacher     User     @relation("WorksheetTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  title       String
+  content     String   @db.Text
+  subject     String?
+  gradeLevel  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([teacherId])
 }
 
 // ─── FILE UPLOAD ──────────────────────────────────────────────────────────

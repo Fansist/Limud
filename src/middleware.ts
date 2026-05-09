@@ -13,16 +13,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-
-// ═══════════════════════════════════════════════════════════════════
-// EMBEDDED SECRET (matches src/lib/config.ts AUTH_SECRET)
-// Edge middleware cannot safely import from @/lib/* in all setups,
-// so we duplicate the single constant here.
-// ═══════════════════════════════════════════════════════════════════
-
-const AUTH_SECRET =
-  process.env.NEXTAUTH_SECRET ||
-  'limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB';
+import { AUTH_SECRET } from '@/lib/config';
 
 // ═══════════════════════════════════════════════════════════════════
 // PATH CONFIGURATION

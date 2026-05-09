@@ -3,24 +3,14 @@
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
+import { DEMO_EMAILS } from './demo-accounts';
 
 /**
- * Known demo email addresses — if a session email matches,
- * the user is in demo mode regardless of localStorage.
+ * Known demo email addresses are sourced from `./demo-accounts` — the
+ * canonical single-source-of-truth for demo identity. Master demo email is
+ * `erez.ofer4@gmail.com`; legacy `*@limud.edu` aliases remain for
+ * backward-compatibility.
  */
-const DEMO_EMAILS = new Set([
-  'lior@ofer-academy.edu',
-  'eitan@ofer-academy.edu',
-  'noam@ofer-academy.edu',
-  'strachen@ofer-academy.edu',
-  'erez@ofer-academy.edu',
-  'david@ofer-academy.edu',
-  'student@limud.edu',
-  'teacher@limud.edu',
-  'admin@limud.edu',
-  'parent@limud.edu',
-  'erez.ofer4@gmail.com',
-]);
 
 /**
  * Hook to detect if we're in demo mode.
@@ -104,8 +94,8 @@ export function useIsDemo(options?: UseIsDemoOptions): boolean {
   // ─── Derive the final boolean (no more hooks past this line) ───
   // v13.4.1: AI-consuming components opt out of demo behavior for master demo.
   // We bypass BOTH the master-demo short-circuit AND the DEMO_EMAILS match
-  // (master@limud.edu is in DEMO_EMAILS — that's why returning false here is
-  // safe; it short-circuits the email check too).
+  // (erez.ofer4@gmail.com is in DEMO_EMAILS — that's why returning false here
+  // is safe; it short-circuits the email check too).
   if (options?.excludeMasterDemo && isMasterDemo) return false;
 
   // v9.7.7: Master Demo returns true — demo data for stat-driven dashboards

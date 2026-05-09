@@ -39,9 +39,9 @@ export const GET = apiHandler(async (req: Request, ctx: { params: { id: string }
     return NextResponse.json({ error: 'Missing material id' }, { status: 400 });
   }
 
-  // Master demo viewing a demo-seed material: synthesize a small set so the
-  // page renders end-to-end without hitting the database.
-  if (user.isMasterDemo && materialId.startsWith('demo-')) {
+  // Master demo: synthesize a small set so the page renders end-to-end
+  // without hitting the database — regardless of the material id.
+  if (user.isMasterDemo) {
     return NextResponse.json({
       material: {
         id: materialId,

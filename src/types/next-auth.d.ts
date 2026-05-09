@@ -6,12 +6,15 @@ declare module 'next-auth' {
       id: string;
       email: string;
       name: string;
-      role: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'PARENT';
-      accountType: 'DISTRICT' | 'HOMESCHOOL' | 'INDIVIDUAL';
+      role: 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN' | 'HOMESCHOOL_PARENT';
+      accountType: string;
       districtId: string;
       districtName: string;
       selectedAvatar: string;
       isHomeschoolParent: boolean;
+      gradeLevel: string;
+      isMasterDemo: boolean;
+      isDemo: boolean;
     };
   }
 
@@ -19,23 +22,29 @@ declare module 'next-auth' {
     id: string;
     email: string;
     name: string;
-    role: string;
+    role: 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN' | 'HOMESCHOOL_PARENT';
     accountType: string;
     districtId: string;
     districtName: string;
     selectedAvatar: string;
     isHomeschoolParent: boolean;
+    gradeLevel: string;
+    isMasterDemo: boolean;
+    isDemo: boolean;
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
-    role: string;
+    role: 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN' | 'HOMESCHOOL_PARENT';
     accountType: string;
     districtId: string;
     districtName: string;
     selectedAvatar: string;
     isHomeschoolParent: boolean;
+    gradeLevel: string;
+    isMasterDemo: boolean;
+    isDemo: boolean;
   }
 }

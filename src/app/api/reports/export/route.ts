@@ -70,6 +70,8 @@ export const POST = apiHandler(async (req: Request) => {
   if (targetStudentId !== user.id) {
     if (user.role === 'TEACHER') {
       // Teacher must teach a course the target student is enrolled in.
+      // DB exceptions here MUST NOT silently fall through to demo data —
+      // that would leak DEMO_REPORT past a failed authorization branch.
       try {
         const enrollment = await prisma.enrollment.findFirst({
           where: {
@@ -81,8 +83,9 @@ export const POST = apiHandler(async (req: Request) => {
         if (!enrollment) {
           return NextResponse.json({ error: 'Not authorized — student is not in your courses' }, { status: 403 });
         }
-      } catch {
-        // DB unavailable — demo mode will fall through to DEMO_REPORT below.
+      } catch (e) {
+        console.error('[reports/export] enrollment auth check failed:', (e as Error).message);
+        return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
       }
     } else if (user.role === 'ADMIN') {
       // Admins can export for students in their district — verified post-query at student fetch.
@@ -93,7 +96,9 @@ export const POST = apiHandler(async (req: Request) => {
     }
   }
 
-  // Try DB mode first; fall back to demo
+  // Authorization PASSED. Fetch from DB; on DB exceptions return 503.
+  // DEMO_REPORT only fires when the DB legitimately has no data for the
+  // (already-authorized) target student.
   let reportData;
   try {
     const student = await prisma.user.findFirst({
@@ -114,7 +119,8 @@ export const POST = apiHandler(async (req: Request) => {
     }
 
     if (!student) {
-      // Use demo data
+      // Authorization passed (or self-export) and DB has no row — safe to
+      // serve demo placeholder so the export still produces a PDF.
       reportData = DEMO_REPORT;
     } else {
       // Authorization verification
@@ -202,9 +208,10 @@ export const POST = apiHandler(async (req: Request) => {
         courses,
       };
     }
-  } catch {
-    // DB not available — use demo data
-    reportData = DEMO_REPORT;
+  } catch (e) {
+    // DB exception — DO NOT mask with DEMO_REPORT. Return 503.
+    console.error('[reports/export] DB error:', (e as Error).message);
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
   }
 
   // Generate PDF

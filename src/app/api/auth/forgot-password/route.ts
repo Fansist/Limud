@@ -98,7 +98,6 @@ export async function POST(req: Request) {
 
     // In production, send email here
     // await sendPasswordResetEmail(cleanEmail, resetUrl, user.name);
-    console.log(`[Password Reset] URL for ${cleanEmail}: ${resetUrl}`);
 
     // In-app notification
     try {
@@ -124,7 +123,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ...genericResponse,
       // Include reset URL in development ONLY
-      ...(process.env.NODE_ENV !== 'production' ? { resetUrl, token: resetToken } : {}),
+      ...(process.env.NODE_ENV === 'development' ? { resetUrl, token: resetToken } : {}),
     });
 
   } catch (error: any) {

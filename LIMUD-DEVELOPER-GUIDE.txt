@@ -534,7 +534,7 @@ KEY MODELS (grouped by domain):
                            canManageBilling, canViewAllData, canManageClasses
 
   MASTER DEMO
-    Email: master@limud.edu / Password: LimudMaster2026!
+    Email: erez.ofer4@gmail.com / Password: LimudMaster2026!
     Has isMasterDemo=true in JWT — bypasses ALL role checks
     Can access every page across all roles (for demonstration purposes)
 
@@ -1164,7 +1164,7 @@ DEMO ACCOUNTS (password for all: "password123"):
   Teacher: strachen@ofer-academy.edu (Gregory Strachen)
   Admin:   erez@ofer-academy.edu (Erez Ofer)
   Parent:  david@ofer-academy.edu (David Betzalel)
-  Master:  master@limud.edu / LimudMaster2026! (all access)
+  Master:  erez.ofer4@gmail.com / LimudMaster2026! (all access)
 
 Legacy aliases also work:
   student@limud.edu, teacher@limud.edu, admin@limud.edu, parent@limud.edu

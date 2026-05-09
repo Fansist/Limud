@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Send, MessageCircle, BookOpen, Clock } from 'lucide-react';
+import { Mail, Send, MessageCircle, BookOpen, Clock } from 'lucide-react';
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', role: '', message: '' });
@@ -17,11 +17,9 @@ export default function ContactPage() {
       <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Contact Us</h1>
       <p className="text-lg text-gray-500 mb-10">We&apos;d love to hear from you. Reach out with questions, feedback, or partnership inquiries.</p>
 
-      <div className="grid lg:grid-cols-3 gap-8 mb-12">
+      <div className="grid lg:grid-cols-1 gap-8 mb-12 max-w-md mx-auto">
         {[
           { icon: <Mail size={22} />, title: 'Email', desc: 'support@limud.edu', sub: 'General inquiries and support', color: 'bg-blue-50 text-blue-600' },
-          { icon: <Phone size={22} />, title: 'Phone', desc: '(555) 123-4567', sub: 'Mon-Fri, 8am-6pm PST', color: 'bg-green-50 text-green-600' },
-          { icon: <MapPin size={22} />, title: 'Address', desc: '123 Education Way, Suite 400', sub: 'San Francisco, CA 94102', color: 'bg-purple-50 text-purple-600' },
         ].map(item => (
           <div key={item.title} className="text-center p-6 rounded-2xl border border-gray-100">
             <div className={`w-12 h-12 ${item.color} rounded-xl flex items-center justify-center mx-auto mb-3`}>
@@ -114,6 +112,7 @@ export default function ContactPage() {
               <Send size={16} />
               Send Message
             </button>
+            <p className="text-sm text-amber-600">Note: this form is being wired up. In the meantime, please email <a href="mailto:support@limud.edu" className="underline">support@limud.edu</a> directly.</p>
           </form>
         </div>
       )}

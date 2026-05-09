@@ -7,12 +7,13 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { BookOpen, ArrowRight, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { MASTER_DEMO_EMAIL, MASTER_DEMO_PASSWORD } from '@/lib/demo-accounts';
 
 // Master demo credentials kept for the typed-in path (no on-page button).
 // The demo grid was removed in v3.1 to lead with the real product.
 const MASTER_DEMO = {
-  email: 'erez.ofer4@gmail.com',
-  password: 'LimudMaster2026!',
+  email: MASTER_DEMO_EMAIL,
+  password: MASTER_DEMO_PASSWORD,
   dashRole: 'TEACHER',
 };
 
@@ -72,7 +73,7 @@ export default function LoginPage() {
    * 2. Fallback: fetch session from NextAuth client
    * 3. Fallback: redirect to /student/dashboard
    *
-   * v9.3.5: Master Demo (master@limud.edu) is NOT treated as generic demo.
+   * v9.3.5: Master Demo (erez.ofer4@gmail.com) is NOT treated as generic demo.
    * It gets a real NextAuth session with isMasterDemo:true and the role-switcher.
    * Generic demo accounts get ?demo=true + localStorage flag.
    *

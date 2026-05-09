@@ -97,6 +97,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
+    // ── Validate accountType (must match Prisma AccountType enum) ──
+    const VALID_ACCOUNT_TYPES = ['DISTRICT', 'HOMESCHOOL', 'INDIVIDUAL', 'SELF_EDUCATION'];
+    if (accountType && !VALID_ACCOUNT_TYPES.includes(accountType)) {
+      return NextResponse.json({ error: 'Invalid accountType' }, { status: 400 });
+    }
+
     // ── Dynamic imports (resilience) ──
     const bcrypt = (await import('bcryptjs')).default;
     const { default: prisma } = await import('@/lib/prisma');

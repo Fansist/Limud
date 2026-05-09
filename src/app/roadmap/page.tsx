@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, ArrowLeft, ArrowRight, Rocket, Clock, CheckCircle2, Circle, Sparkles,
-  Brain, Gamepad2, Shield, Users, BarChart3, Globe, Smartphone, Zap, Heart,
+  Brain, Shield, Users, BarChart3, Globe, Smartphone, Zap, Heart,
   MessageSquare, Video, Mic, Palette, Code, Target, TrendingUp, Star,
   GraduationCap, Music, Camera, Layers, Database, Bot, Lightbulb,
   MapPin, Calendar, Bell, Award, Headphones, FileText, PieChart,
@@ -390,7 +390,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
       'Donut chart cost breakdown with sticky summary panel',
       '4 quick presets: Small School, Growing District, Large District, Max Everything',
     ],
-    tags: ['Pricing', 'Builder', 'v8.2'],
+    tags: ['Pricing', 'Builder'],
   },
   {
     id: 'cp-2', title: '6-Tier Pricing with Detailed Limitations', status: 'completed', quarter: 'Q1 2026',
@@ -402,7 +402,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
       'Full 50+ feature comparison table across 9 categories',
       'Consistent pricing across pricing, landing, onboard, and help pages',
     ],
-    tags: ['Pricing', 'Transparency', 'v8.2'],
+    tags: ['Pricing', 'Transparency'],
   },
   {
     id: 'cp-3', title: 'Competitor-Killer Landing Page', status: 'completed', quarter: 'Q1 2026',
@@ -414,7 +414,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
       'Competitor pricing comparison showing Limud\'s value',
       '"Replaces X" tags on every feature card',
     ],
-    tags: ['Landing Page', 'Marketing', 'v8.0'],
+    tags: ['Landing Page', 'Marketing'],
   },
   {
     id: 'cp-4', title: 'Cross-Platform Assignments & Integrations', status: 'completed', quarter: 'Q1 2026',
@@ -424,7 +424,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
       'Assign from any URL: Khan Academy, IXL, Newsela, Edpuzzle, etc.',
       '10 pre-built platform activities ready to assign',
     ],
-    tags: ['Assignments', 'Integrations', 'v7.4'],
+    tags: ['Assignments', 'Integrations'],
   },
 ];
 
