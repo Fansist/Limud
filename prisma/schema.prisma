@@ -125,6 +125,9 @@ model SchoolDistrict {
   // v10.0 Announcements
   announcements     Announcement[]
 
+  // Teacher district requests
+  teacherRequests   TeacherDistrictRequest[] @relation("DistrictTeacherRequests")
+
   @@map("school_districts")
 }
 
@@ -171,11 +174,14 @@ model Classroom {
 
   school     School?        @relation(fields: [schoolId], references: [id], onDelete: SetNull)
   district   SchoolDistrict @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  teacher    User?          @relation("ClassroomTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  course     Course?        @relation("ClassroomCourse", fields: [courseId], references: [id], onDelete: SetNull)
   students   ClassroomStudent[]
   materials  Material[]
 
   @@index([schoolId])
   @@index([districtId])
+  @@index([teacherId])
   @@map("classrooms")
 }
 
@@ -442,6 +448,12 @@ model User {
   // Adapted assignments (student-scoped)
   adaptedAssignments AdaptedAssignment[]  @relation("AdaptedAssignmentStudent")
 
+  // Teacher-student links
+  teacherLinks         TeacherStudentLink[] @relation("TeacherLinks")
+  studentLinks         TeacherStudentLink[] @relation("StudentLinks")
+  teacherDistrictReqs  TeacherDistrictRequest[] @relation("TeacherDistrictRequests")
+  taughtClassrooms     Classroom[]          @relation("ClassroomTeacher")
+
   @@index([email])
   @@index([role])
   @@index([districtId])
@@ -512,6 +524,7 @@ model Course {
   assignments Assignment[]
   materials   Material[]
   skillRecords SkillRecord[]
+  classrooms   Classroom[]   @relation("ClassroomCourse")
 
   @@index([districtId])
   @@map("courses")
@@ -1828,6 +1841,47 @@ model DistrictLinkRequest {
   @@map("district_link_requests")
 }
 
+model TeacherStudentLink {
+  id          String   @id @default(cuid())
+  teacherId   String
+  studentId   String
+  status      String   @default("PENDING")
+  message     String?  @db.Text
+  reviewNote  String?  @db.Text
+  reviewedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teacher User @relation("TeacherLinks", fields: [teacherId], references: [id], onDelete: Cascade)
+  student User @relation("StudentLinks", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, studentId])
+  @@index([teacherId, status])
+  @@index([studentId, status])
+  @@map("teacher_student_links")
+}
+
+model TeacherDistrictRequest {
+  id          String    @id @default(cuid())
+  teacherId   String
+  districtId  String
+  message     String?   @db.Text
+  status      String    @default("PENDING")
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNote  String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  teacher  User           @relation("TeacherDistrictRequests", fields: [teacherId], references: [id], onDelete: Cascade)
+  district SchoolDistrict @relation("DistrictTeacherRequests", fields: [districtId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, districtId, status])
+  @@index([districtId, status])
+  @@index([teacherId])
+  @@map("teacher_district_requests")
+}
+
 // ─── PARENT LOOP (v15.0.0 — Notification prefs, digests, alerts) ─────────
 
 model NotificationPreference {
@@ -1845,6 +1899,7 @@ model NotificationPreference {
   eventOnGradePosted  Boolean  @default(true)      // email when teacher grades a submission
   eventOnAtRisk       Boolean  @default(true)      // email when child crosses into medium/high risk
   eventOnAssignment   Boolean  @default(false)     // email when child receives a new assignment
+  eventOnTeacherMessage Boolean  @default(true)
 
   // Channels (in-app always on; only email is gated)
   channelEmail        Boolean  @default(true)
