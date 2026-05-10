@@ -141,11 +141,12 @@ interface SliderConfig {
 const CUSTOM_SLIDERS: SliderConfig[] = [
   {
     id: 'students', label: 'Students', icon: <Users size={16} />, category: 'Capacity',
-    min: 10, max: 5000, step: 10, defaultValue: 200, unitLabel: 'students',
+    // v15.2: lifted caps so the largest US districts (NYC ≈ 1M, LA ≈ 600K)
+    // can still configure a plan without hitting the slider's ceiling.
+    // Step is coarser at the top end so the drag-precision stays usable.
+    min: 10, max: 100000, step: 50, defaultValue: 200, unitLabel: 'students',
     // v15.1: bumped from $0.003 → $1.20/student/mo so a Large District
-    // preset (1K students) lands in the $25-40K/yr target band instead of
-    // $3K/yr. Per-student rates stay below the published Premium tier
-    // ($9/student/mo) so the custom builder remains competitive.
+    // preset (1K students) lands in the $25-40K/yr target band.
     pricePerUnit: 1.20,
     tiers: [
       { value: 5, label: '5', tierName: 'FAMILY' },
@@ -153,13 +154,13 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
       { value: 200, label: '200', tierName: 'GROWTH' },
       { value: 500, label: '500', tierName: 'STANDARD' },
       { value: 2000, label: '2K', tierName: 'PREMIUM' },
-      { value: 5000, label: '5K+', tierName: 'ENTERPRISE' },
+      { value: 100000, label: '100K+', tierName: 'ENTERPRISE' },
     ],
     description: 'Total active student accounts in your district',
   },
   {
     id: 'teachers', label: 'Teachers', icon: <BookOpen size={16} />, category: 'Capacity',
-    min: 2, max: 500, step: 1, defaultValue: 20, unitLabel: 'teachers',
+    min: 2, max: 10000, step: 5, defaultValue: 20, unitLabel: 'teachers',
     // v15.1: $0.01 → $4/teacher/mo
     pricePerUnit: 4,
     tiers: [
@@ -168,13 +169,13 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
       { value: 20, label: '20', tierName: 'GROWTH' },
       { value: 50, label: '50', tierName: 'STANDARD' },
       { value: 200, label: '200', tierName: 'PREMIUM' },
-      { value: 500, label: '500+', tierName: 'ENTERPRISE' },
+      { value: 10000, label: '10K+', tierName: 'ENTERPRISE' },
     ],
     description: 'Number of teacher accounts with full access',
   },
   {
     id: 'schools', label: 'Schools', icon: <School size={16} />, category: 'Capacity',
-    min: 1, max: 50, step: 1, defaultValue: 3, unitLabel: 'schools',
+    min: 1, max: 2000, step: 1, defaultValue: 3, unitLabel: 'schools',
     // v15.1: $0.50 → $40/school/mo (each site adds admin overhead).
     pricePerUnit: 40,
     tiers: [
@@ -183,7 +184,7 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
       { value: 3, label: '3', tierName: 'GROWTH' },
       { value: 5, label: '5', tierName: 'STANDARD' },
       { value: 20, label: '20', tierName: 'PREMIUM' },
-      { value: 50, label: '50+', tierName: 'ENTERPRISE' },
+      { value: 2000, label: '2K+', tierName: 'ENTERPRISE' },
     ],
     description: 'Separate school sites under one district',
   },
@@ -241,7 +242,9 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
   },
   {
     id: 'storage', label: 'Storage', icon: <Layers size={16} />, category: 'Capacity',
-    min: 500, max: 500000, step: 500, defaultValue: 10000, unitLabel: 'MB',
+    // v15.2: max bumped from 500GB to 10TB so storage tracks with the
+    // bigger student/teacher pools above. Step bumped accordingly.
+    min: 500, max: 10000000, step: 5000, defaultValue: 10000, unitLabel: 'MB',
     // v15.1: $0.00001 → $0.0008/MB ($0.80/GB/mo). 100GB = $80/mo.
     pricePerUnit: 0.0008,
     tiers: [
@@ -250,7 +253,7 @@ const CUSTOM_SLIDERS: SliderConfig[] = [
       { value: 10000, label: '10GB', tierName: 'GROWTH' },
       { value: 50000, label: '50GB', tierName: 'STANDARD' },
       { value: 200000, label: '200GB', tierName: 'PREMIUM' },
-      { value: 500000, label: '500GB+', tierName: 'ENTERPRISE' },
+      { value: 10000000, label: '10TB+', tierName: 'ENTERPRISE' },
     ],
     description: 'Total file storage for uploads, worksheets, and media',
   },
