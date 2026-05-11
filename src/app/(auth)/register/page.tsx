@@ -13,7 +13,7 @@ import {
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-type AccountType = 'homeschool' | 'admin' | 'self_education' | 'student_standalone';
+type AccountType = 'homeschool' | 'admin' | 'self_education' | 'student_standalone' | 'teacher';
 
 const QUICK_LEARNING_STYLES = [
   { id: 'visual', label: 'Visual', emoji: '👀' },
@@ -60,6 +60,15 @@ const ACCOUNT_OPTIONS = [
     desc: 'I want to learn on my own',
     detail: 'Create a student account and learn independently with AI-powered personalized methods. No school or parent account required.',
     tags: ['Free', 'AI Tutor', 'Personalized learning', 'Self-paced'],
+  },
+  {
+    value: 'teacher' as const,
+    label: 'Teacher',
+    icon: BookOpen,
+    color: 'from-amber-500 to-orange-500',
+    desc: 'I teach students and want to manage assignments and track progress',
+    detail: 'Create a free teacher account. Link directly to students or request to join your school district.',
+    tags: ['Free', 'Direct student links', 'Join a district', 'AI grading'],
   },
 ];
 
@@ -237,6 +246,41 @@ export default function RegisterPage() {
             toast.error(data.error || 'Registration failed');
           }
         }
+      } else if (accountType === 'teacher') {
+        // Teacher flow: register as TEACHER
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, email, password,
+            role: 'TEACHER',
+            accountType: 'INDIVIDUAL',
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          toast.success('Teacher account created! Let’s get you set up.');
+          const signInResult = await signIn('credentials', {
+            email, password, redirect: false,
+          });
+          if (signInResult?.ok) {
+            try {
+              localStorage.removeItem('limud-demo-mode');
+              localStorage.removeItem('limud-demo-role');
+            } catch {}
+            router.push('/teacher/setup');
+          } else {
+            router.push('/login');
+          }
+        } else {
+          if (data.passwordErrors && data.passwordErrors.length > 0) {
+            toast.error('Password: ' + data.passwordErrors.join('. '));
+          } else {
+            toast.error(data.error || 'Registration failed');
+          }
+        }
       } else {
         // District admin flow: register as ADMIN
         const res = await fetch('/api/auth/register', {
@@ -280,7 +324,8 @@ export default function RegisterPage() {
   const canProceedStep1 = accountType !== '';
   const canProceedStep2 = name.trim() !== '' && email.trim() !== '' &&
     (accountType === 'homeschool' ? childrenList.filter(c => c.name.trim()).length > 0 : true) &&
-    ((accountType === 'self_education' || accountType === 'student_standalone') ? gradeLevel !== '' : true);
+    ((accountType === 'self_education' || accountType === 'student_standalone') ? gradeLevel !== '' : true) &&
+    (accountType === 'teacher' ? true : true);
   const canProceedStep3 = pwErrors.length === 0 && password === confirmPassword;
 
   return (
@@ -435,7 +480,7 @@ export default function RegisterPage() {
               >
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">
-                    {accountType === 'student_standalone' ? 'Your Student Account' : accountType === 'self_education' ? 'Your Learning Account' : accountType === 'homeschool' ? 'Your Family Account' : 'School / District Admin Account'}
+                    {accountType === 'student_standalone' ? 'Your Student Account' : accountType === 'self_education' ? 'Your Learning Account' : accountType === 'homeschool' ? 'Your Family Account' : accountType === 'teacher' ? 'Your Teacher Account' : 'School / District Admin Account'}
                   </h1>
                   <p className="text-gray-500 mt-2">
                     {accountType === 'student_standalone'
@@ -444,6 +489,8 @@ export default function RegisterPage() {
                       ? 'Set up your account and tell us how you learn best'
                       : accountType === 'homeschool'
                       ? 'Set up your parent account and add your children'
+                      : accountType === 'teacher'
+                      ? 'Create your free teacher account'
                       : 'Create your administrator account'}
                   </p>
                 </div>
@@ -782,7 +829,7 @@ export default function RegisterPage() {
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200">
                   <p className="text-sm font-medium text-gray-700 mb-2">Account Summary</p>
                   <div className="space-y-1 text-sm text-gray-500">
-                    <p><span className="text-gray-400">Type:</span> {accountType === 'student_standalone' ? 'Student (Join a District)' : accountType === 'self_education' ? 'Independent Learner' : accountType === 'homeschool' ? 'Family' : 'School / District Admin'}</p>
+                    <p><span className="text-gray-400">Type:</span> {accountType === 'student_standalone' ? 'Student (Join a District)' : accountType === 'self_education' ? 'Independent Learner' : accountType === 'homeschool' ? 'Family' : accountType === 'teacher' ? 'Teacher' : 'School / District Admin'}</p>
                     <p><span className="text-gray-400">Name:</span> {name}</p>
                     <p><span className="text-gray-400">Email:</span> {email}</p>
                     {(accountType === 'self_education' || accountType === 'student_standalone') && gradeLevel && <p><span className="text-gray-400">Grade:</span> {gradeLevel}</p>}
