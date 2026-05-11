@@ -47,6 +47,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/student/messages', label: 'Messages', icon: <Mail size={20} /> },
       { href: '/student/platforms', label: 'My Platforms', icon: <Link2 size={20} /> },
       { href: '/student/link-district', label: 'Join District', icon: <Building2 size={20} /> },
+      { href: '/student/links', label: 'Teacher Links', icon: <UserPlus size={20} /> },
     ]},
   ],
   TEACHER: [
@@ -86,6 +87,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/admin/employees', label: 'Employees', icon: <UserCog size={20} /> },
       { href: '/admin/students', label: 'Students', icon: <Users size={20} /> },
       { href: '/admin/link-requests', label: 'Link Requests', icon: <UserPlus size={20} /> },
+      { href: '/admin/teacher-requests', label: 'Teacher Requests', icon: <Clipboard size={20} /> },
     ]},
     { label: 'Organization', items: [
       { href: '/admin/schools', label: 'Schools', icon: <Building2 size={20} /> },
