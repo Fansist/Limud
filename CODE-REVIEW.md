@@ -43,6 +43,18 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### 584c27f — `docs: add CODE-REVIEW.md + wire COO ownership into ROLES-GUIDE`
+- **files:** 2 · `CODE-REVIEW.md` (new), `ROLES-GUIDE.md`
+- **risk:** LOW (docs/process only)
+- **review:** ✅ reviewed (self — the meta entry that bootstraps the process)
+- **demo-mode:** n/a
+- **tests:** n/a
+- **notes:** First entry in this log. New universal rule 15 makes
+  CODE-REVIEW.md the operations source of truth and gives the COO
+  role ownership of keeping it current. From this commit forward,
+  every new entry on `main` is expected to land here the day it
+  ships.
+
 ### 747d048 — `fix(pricing): lift slider caps so largest districts can configure a plan`
 - **files:** 1 · `src/app/(auth)/pricing/page.tsx`
 - **risk:** LOW (UI-only; no schema/auth/PII)
