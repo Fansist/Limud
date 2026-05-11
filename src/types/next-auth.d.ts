@@ -15,6 +15,7 @@ declare module 'next-auth' {
       gradeLevel: string;
       isMasterDemo: boolean;
       isDemo: boolean;
+      onboardingComplete: boolean;
     };
   }
 
@@ -30,6 +31,7 @@ declare module 'next-auth' {
     isHomeschoolParent: boolean;
     gradeLevel: string;
     isMasterDemo: boolean;
+    onboardingComplete: boolean;
     // isDemo is computed in the jwt callback from the email, not set on the initial User
     isDemo?: boolean;
   }
@@ -47,5 +49,6 @@ declare module 'next-auth/jwt' {
     gradeLevel: string;
     isMasterDemo: boolean;
     isDemo: boolean;
+    onboardingComplete: boolean;
   }
 }

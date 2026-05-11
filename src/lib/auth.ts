@@ -50,6 +50,7 @@ const MASTER_DEMO: { email: string; password: string; user: User } = {
     isHomeschoolParent: false,
     gradeLevel: '',
     isMasterDemo: true,
+    onboardingComplete: true,
   },
 };
 
@@ -58,38 +59,38 @@ const DEMO_ACCOUNTS: Record<string, User> = {
   'lior@ofer-academy.edu': {
     id: 'demo-student-lior', email: 'lior@ofer-academy.edu', name: 'Lior Betzalel',
     role: 'STUDENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
-    selectedAvatar: 'astronaut', isHomeschoolParent: false, gradeLevel: '10th', isMasterDemo: false,
+    selectedAvatar: 'astronaut', isHomeschoolParent: false, gradeLevel: '10th', isMasterDemo: false, onboardingComplete: true,
   },
   'eitan@ofer-academy.edu': {
     id: 'demo-student-eitan', email: 'eitan@ofer-academy.edu', name: 'Eitan Balan',
     role: 'STUDENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
-    selectedAvatar: 'robot', isHomeschoolParent: false, gradeLevel: '9th', isMasterDemo: false,
+    selectedAvatar: 'robot', isHomeschoolParent: false, gradeLevel: '9th', isMasterDemo: false, onboardingComplete: true,
   },
   'noam@ofer-academy.edu': {
     id: 'demo-student-noam', email: 'noam@ofer-academy.edu', name: 'Noam Elgarisi',
     role: 'STUDENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
-    selectedAvatar: 'wizard', isHomeschoolParent: false, gradeLevel: '10th', isMasterDemo: false,
+    selectedAvatar: 'wizard', isHomeschoolParent: false, gradeLevel: '10th', isMasterDemo: false, onboardingComplete: true,
   },
   'strachen@ofer-academy.edu': {
     id: 'demo-teacher', email: 'strachen@ofer-academy.edu', name: 'Gregory Strachen',
     role: 'TEACHER', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
-    selectedAvatar: 'owl', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false,
+    selectedAvatar: 'owl', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false, onboardingComplete: true,
   },
   'erez@ofer-academy.edu': {
     id: 'demo-admin', email: 'erez@ofer-academy.edu', name: 'Erez Ofer',
     role: 'ADMIN', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
-    selectedAvatar: 'shield', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false,
+    selectedAvatar: 'shield', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false, onboardingComplete: true,
   },
   'david@ofer-academy.edu': {
     id: 'demo-parent', email: 'david@ofer-academy.edu', name: 'David Betzalel',
     role: 'PARENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy',
-    selectedAvatar: 'heart', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false,
+    selectedAvatar: 'heart', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false, onboardingComplete: true,
   },
   // Legacy backward-compatible aliases
-  'student@limud.edu': { id: 'demo-student-lior', email: 'lior@ofer-academy.edu', name: 'Lior Betzalel', role: 'STUDENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'astronaut', isHomeschoolParent: false, gradeLevel: '10th', isMasterDemo: false },
-  'teacher@limud.edu': { id: 'demo-teacher', email: 'strachen@ofer-academy.edu', name: 'Gregory Strachen', role: 'TEACHER', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'owl', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false },
-  'admin@limud.edu': { id: 'demo-admin', email: 'erez@ofer-academy.edu', name: 'Erez Ofer', role: 'ADMIN', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'shield', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false },
-  'parent@limud.edu': { id: 'demo-parent', email: 'david@ofer-academy.edu', name: 'David Betzalel', role: 'PARENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'heart', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false },
+  'student@limud.edu': { id: 'demo-student-lior', email: 'lior@ofer-academy.edu', name: 'Lior Betzalel', role: 'STUDENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'astronaut', isHomeschoolParent: false, gradeLevel: '10th', isMasterDemo: false, onboardingComplete: true },
+  'teacher@limud.edu': { id: 'demo-teacher', email: 'strachen@ofer-academy.edu', name: 'Gregory Strachen', role: 'TEACHER', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'owl', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false, onboardingComplete: true },
+  'admin@limud.edu': { id: 'demo-admin', email: 'erez@ofer-academy.edu', name: 'Erez Ofer', role: 'ADMIN', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'shield', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false, onboardingComplete: true },
+  'parent@limud.edu': { id: 'demo-parent', email: 'david@ofer-academy.edu', name: 'David Betzalel', role: 'PARENT', accountType: 'DISTRICT', districtId: 'demo-district', districtName: 'Ofer Academy', selectedAvatar: 'heart', isHomeschoolParent: false, gradeLevel: '', isMasterDemo: false, onboardingComplete: true },
 };
 
 /** Check if an email is a demo account */
@@ -324,6 +325,7 @@ export const authOptions: NextAuthOptions = {
             districtId: user.districtId || '', districtName: user.district?.name || '',
             selectedAvatar: user.selectedAvatar, isHomeschoolParent,
             gradeLevel: user.gradeLevel || '', isMasterDemo: false,
+            onboardingComplete: user.onboardingComplete,
           };
           return result;
         } catch (e: any) {
@@ -358,6 +360,7 @@ export const authOptions: NextAuthOptions = {
         token.isHomeschoolParent = user.isHomeschoolParent;
         token.gradeLevel = user.gradeLevel;
         token.isMasterDemo = user.isMasterDemo || false;
+        token.onboardingComplete = user.onboardingComplete ?? true;
       }
       // Always recompute isDemo from the canonical demo email list so
       // consumers (e.g. /api/district/announcements) can rely on it.
@@ -376,6 +379,7 @@ export const authOptions: NextAuthOptions = {
         session.user.gradeLevel = token.gradeLevel;
         session.user.isMasterDemo = token.isMasterDemo;
         session.user.isDemo = token.isDemo;
+        session.user.onboardingComplete = token.onboardingComplete ?? true;
       }
       return session;
     },
