@@ -4,9 +4,12 @@ import prisma from '@/lib/prisma';
 
 type DmReceiver = {
   id: string;
+  name: string;
   role: string;
   districtId: string | null;
   parentId: string | null;
+  email: string;
+  isDemo: boolean;
 };
 
 // FERPA relationship check for direct messages. Returns true iff the sender and
@@ -53,7 +56,14 @@ export async function isAllowedDm(sender: UserSession, receiver: DmReceiver): Pr
         },
         select: { id: true },
       });
-      return !!enrollment;
+      if (enrollment) return true;
+
+      // Accept direct teacher-student links
+      const directLink = await prisma.teacherStudentLink.findFirst({
+        where: { teacherId: sender.id, studentId: receiver.id, status: 'ACTIVE' },
+        select: { id: true },
+      });
+      return !!directLink;
     }
     if (receiver.role === 'PARENT') {
       // Parent of a student enrolled in one of the sender's courses.
@@ -174,7 +184,7 @@ export const POST = apiHandler(async (req: Request) => {
   // Verify receiver exists
   const receiver = await prisma.user.findUnique({
     where: { id: receiverId },
-    select: { id: true, name: true, role: true, districtId: true, parentId: true },
+    select: { id: true, name: true, role: true, districtId: true, parentId: true, email: true, isDemo: true },
   });
 
   if (!receiver) {
@@ -223,6 +233,34 @@ export const POST = apiHandler(async (req: Request) => {
       link: '/messages',
     },
   });
+
+  // v16.0: Email notification for teacher→student messages
+  if (user.role === 'TEACHER' && receiver.role === 'STUDENT' && !receiver.isDemo) {
+    try {
+      const pref = await prisma.notificationPreference.findUnique({
+        where: { userId: receiver.id },
+        select: { eventOnTeacherMessage: true, channelEmail: true },
+      });
+      const wantsEmail = (pref?.eventOnTeacherMessage ?? true) && (pref?.channelEmail ?? true);
+      if (wantsEmail) {
+        const { sendEmail } = await import('@/lib/email');
+        const { teacherMessageEmail } = await import('@/lib/email-templates');
+        await sendEmail({
+          to: receiver.email,
+          subject: `New message from ${user.name}: ${subject ?? '(no subject)'}`,
+          html: teacherMessageEmail({
+            studentName: receiver.name,
+            teacherName: user.name,
+            subject: subject ?? '(no subject)',
+            previewText: typeof content === 'string' && content.length > 150 ? content.slice(0, 150) : (content ?? ''),
+            dashboardUrl: `${process.env.NEXTAUTH_URL ?? 'https://limud.co'}/student/messages`,
+          }),
+        });
+      }
+    } catch {
+      // Email failure must never fail the API response
+    }
+  }
 
   return NextResponse.json({ message }, { status: 201 });
 });

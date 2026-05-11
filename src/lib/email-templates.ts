@@ -251,3 +251,30 @@ export function gradePostedToParent(opts: {
     text: textLines.join('\n'),
   };
 }
+
+/**
+ * Teacher-to-student message notification — sent when a teacher sends a DM to
+ * a student AND the student has eventOnTeacherMessage = true.
+ */
+export function teacherMessageEmail(opts: {
+  studentName: string;
+  teacherName: string;
+  subject: string;
+  previewText: string;   // first ~150 chars of message body, already sliced
+  dashboardUrl: string;
+}): string {
+  const { studentName, teacherName, subject, previewText, dashboardUrl } = opts;
+
+  return wrap(`
+    <h2 style="color:${BRAND_COLOR};font-size:18px;margin:0 0 8px;">You have a new message from ${esc(teacherName)}</h2>
+    <p style="margin:0 0 12px;">Hi ${esc(studentName)},</p>
+    <p style="margin:0 0 12px;">Your teacher <strong>${esc(teacherName)}</strong> sent you a message on Limud.</p>
+    <div style="background:#f3f4f6;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid ${BRAND_COLOR};">
+      <p style="margin:0;font-size:13px;color:#6b7280;">Subject</p>
+      <p style="margin:4px 0 12px;font-size:15px;font-weight:600;">${esc(subject)}</p>
+      <p style="margin:0;font-size:13px;color:#6b7280;">Preview</p>
+      <p style="margin:4px 0 0;font-size:14px;color:#374151;">${esc(previewText)}${previewText.length >= 150 ? '…' : ''}</p>
+    </div>
+    <a href="${esc(dashboardUrl)}" style="display:inline-block;background:${BRAND_COLOR};color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:4px;">View Message →</a>
+  `);
+}
