@@ -9,10 +9,10 @@ TABLE OF CONTENTS
   1.  WHAT IS LIMUD?
   2.  TECH STACK & ARCHITECTURE
   3.  PROJECT STRUCTURE — EVERY FILE EXPLAINED
-  4.  DATABASE SCHEMA (71 MODELS, 9 ENUMS)
+  4.  DATABASE SCHEMA (73 MODELS, 9 ENUMS)
   5.  USER ROLES & ACCESS CONTROL (RBAC)
   6.  FEATURE CATALOG — WHAT EVERY FEATURE DOES
-  7.  API ROUTES — ALL 93 ENDPOINTS
+  7.  API ROUTES — ALL 98 ENDPOINTS
   8.  AI SYSTEM (GEMINI 2.5 FLASH)
   9.  SECURITY & COMPLIANCE (COPPA / FERPA / OWASP)
   10. GAMIFICATION ENGINE
@@ -123,7 +123,7 @@ ROOT FILES
 
 /prisma
 ───────
-  schema.prisma         — THE database schema. 71 models, 9 enums.
+  schema.prisma         — THE database schema. 73 models, 9 enums.
                           Defines every table: Users, Districts, Schools,
                           Classrooms, Courses, Assignments, Submissions,
                           AI Tutor Logs, Games, Skill Tracking, Spaced Rep,
@@ -229,6 +229,7 @@ src/app/globals.css
   /survey/page.tsx          — Student interest survey (hobbies, learning style)
   /messages/page.tsx        — Message inbox (teacher-student communication)
   /link-district/page.tsx   — Request to join a school district
+  /links/page.tsx           — Review and accept/decline incoming teacher link requests
 
 /src/app/teacher — TEACHER PAGES
 ────────────────
@@ -252,6 +253,7 @@ src/app/globals.css
   /ai-feedback/page.tsx     — AI feedback assistant
   /onboarding/page.tsx      — Teacher onboarding flow
   /messages/page.tsx        — Message center
+  /setup/page.tsx           — Setup wizard: link to students directly or join a district
 
 /src/app/parent — PARENT PAGES
 ───────────────
@@ -264,7 +266,7 @@ src/app/globals.css
 ──────────────
   /dashboard/page.tsx       — Admin overview: district stats, user counts
   /schools/page.tsx         — Manage schools within district
-  /classrooms/page.tsx      — Manage all classrooms
+  /classrooms/page.tsx      — Create classrooms; assign teachers and students to them
   /students/page.tsx        — Manage all student accounts
   /employees/page.tsx       — Manage teacher/staff accounts
   /announcements/page.tsx   — Create/manage district announcements
@@ -273,6 +275,7 @@ src/app/globals.css
   /settings/page.tsx        — District settings
   /provision/page.tsx       — Bulk account provisioning (CSV import)
   /link-requests/page.tsx   — Review student-to-district link requests
+  /teacher-requests/page.tsx — Review teacher district join requests (PENDING/APPROVED/REJECTED)
   /security/page.tsx        — Security dashboard
   /audit/page.tsx           — Security audit log viewer
 
@@ -395,7 +398,7 @@ src/app/globals.css
 
 
 ================================================================================
-4. DATABASE SCHEMA (71 MODELS, 9 ENUMS)
+4. DATABASE SCHEMA (73 MODELS, 9 ENUMS)
 ================================================================================
 
 ENUMS:
@@ -809,7 +812,7 @@ CROSS-ROLE FEATURES:
 
 
 ================================================================================
-7. API ROUTES — ALL 93 ENDPOINTS
+7. API ROUTES — ALL 98 ENDPOINTS
 ================================================================================
 
 FORMAT: METHOD /path — Description
@@ -936,6 +939,16 @@ TEACHER-SPECIFIC:
   POST /api/teacher/assignment-diff — Assignment differentiation
   GET  /api/teacher/reports      — Teacher report data
   POST /api/teacher/onboarding   — Complete onboarding
+  GET  /api/teacher/students     — List teacher's direct student links
+  POST /api/teacher/students     — Create a direct teacher↔student link request
+  DELETE /api/teacher/students   — Remove a direct student link
+  GET  /api/teacher/district-requests — Teacher's district join requests
+  POST /api/teacher/district-requests — Submit district join request
+  DELETE /api/teacher/district-requests — Cancel a pending district join request
+
+STUDENT-SPECIFIC:
+  GET  /api/student/teacher-links — List incoming teacher link requests
+  PUT  /api/student/teacher-links — Accept or reject a teacher link request
 
 PARENT-SPECIFIC:
   GET  /api/parent              — Parent dashboard data
@@ -954,6 +967,12 @@ ADMIN-SPECIFIC:
   GET  /api/district/announcements — District announcements
   GET  /api/admin/districts      — Admin districts list
   POST /api/admin/provision      — Bulk account provisioning
+  GET  /api/admin/teacher-requests — List teacher district join requests
+  PUT  /api/admin/teacher-requests — Approve or reject a teacher join request
+  GET  /api/admin/classrooms     — List all classrooms (admin view)
+  POST /api/admin/classrooms     — Create a classroom
+  PUT  /api/admin/classrooms     — Update classroom (assign teacher/students)
+  DELETE /api/admin/classrooms   — Delete a classroom
 
 SECURITY:
   GET  /api/security             — Security overview

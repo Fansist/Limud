@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v15.0.0 · Update 4.0 · Parent Loop: weekly digest + at-risk alerts + per-district subdomains</code>
+  <code>v16.0.0 · Update 16.0 · Teacher Accounts: self-signup, teacher↔student linking, district join requests, admin classroom management</code>
 </p>
 
 ---
@@ -127,6 +127,7 @@ are recorded.
 - **/student/review** — spaced-repetition review queue
 - **/student/focus** — distraction-free study mode
 - **/student/study-planner**, **/study-groups**, **/forums**, **/messages**, **/survey**
+- **/student/links** — review and accept or decline incoming teacher link requests
 
 ### Teacher
 - **/teacher/dashboard** — class-wide intelligence, students who need attention today
@@ -141,6 +142,7 @@ are recorded.
 - **/teacher/insights**, **/learning-insights** — class- and per-student adaptive views
 - **/teacher/exchange** — peer-shared resources
 - **/teacher/forums**, **/messages**, **/onboarding**, **/reports**
+- **/teacher/setup** — link directly to students by user ID, or search for and join a district
 
 ### Parent
 - **/parent/dashboard** — every child at a glance
@@ -153,6 +155,8 @@ are recorded.
 - **/admin/students**, **/employees**, **/classrooms**, **/schools**
 - **/admin/analytics**, **/audit**, **/security**, **/settings**
 - **/admin/announcements**, **/payments**, **/provision**, **/link-requests**
+- **/admin/teacher-requests** — review teacher district join requests (PENDING / APPROVED / REJECTED)
+- **/admin/classrooms** — create classrooms and assign teachers and students
 
 ### Public
 - **/** — landing
@@ -337,7 +341,7 @@ src/
 │   └── api/
 │       ├── student/materials/         # NEW: list + personalized GET
 │       ├── teacher/materials/         # NEW: CRUD
-│       └── …~88 routes total
+│       └── …~98 routes total
 ├── components/
 │   ├── layout/DashboardLayout.tsx     # role-aware shell
 │   └── …
@@ -351,7 +355,7 @@ src/
 │   ├── middleware.ts    # role gates, auth guards
 │   └── constants.ts     # SUBJECTS, GRADE_LEVELS
 └── prisma/
-    └── schema.prisma    # 71 models (Material + PersonalizedMaterial new in 3.0)
+    └── schema.prisma    # 73 models (Material + PersonalizedMaterial new in 3.0; TeacherStudentLink + TeacherDistrictRequest new in 16.0)
 ```
 
 ---
