@@ -4,6 +4,96 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [16.0.0] - 2026-05-12 — Update 16.0 (Teacher Accounts)
+
+Adds first-class teacher accounts: self-signup, direct teacher↔student
+linking, district join requests, and district-admin classroom management.
+Closes the remaining dangling foreign keys on `Classroom` and adds an
+opt-in email notification when a teacher messages a student.
+
+### Added — Schema
+
+Two new Prisma models:
+
+- **`TeacherStudentLink`** — direct teacher↔student relationship. Status:
+  `PENDING` / `ACTIVE` / `REJECTED`. Approval-gated M:N join; the student
+  must accept before the link becomes active. Used to gate DM access and
+  the new teacher-message email notification.
+- **`TeacherDistrictRequest`** — teacher request to join a district.
+  Status: `PENDING` / `APPROVED` / `REJECTED`. Reviewed by district admin
+  via the new `/admin/teacher-requests` page.
+
+New field on `NotificationPreference`:
+
+- `eventOnTeacherMessage: Boolean @default(true)` — opt-in email sent when
+  a teacher sends the student an in-app message.
+
+### Fixed — Schema
+
+Two dangling foreign keys on `Classroom` that previously had no `@relation`
+directive:
+
+- `Classroom.teacherId` — now has `@relation("ClassroomTeacher")` to `User`.
+- `Classroom.courseId` — now has `@relation("ClassroomCourse")` to `Course`.
+
+### Added — API routes
+
+Five new route files:
+
+- `GET / POST / DELETE /api/teacher/students` — teacher creates, lists, and
+  removes direct student links.
+- `GET / PUT /api/student/teacher-links` — student lists incoming link
+  requests and accepts or rejects them.
+- `GET / POST / DELETE /api/teacher/district-requests` — teacher requests to
+  join a district; can cancel a pending request.
+- `GET / PUT /api/admin/teacher-requests` — district admin lists and
+  approves/rejects pending teacher join requests.
+- `GET / POST / PUT / DELETE /api/admin/classrooms` — district admin creates
+  classrooms and assigns teachers and students to them.
+
+### Modified — API routes
+
+- `POST /api/auth/register` — accepts `role: TEACHER, accountType:
+  INDIVIDUAL` for teacher self-signup.
+- `POST /api/messages/` — fires `teacherMessageEmail` as a side-effect when
+  a teacher messages a student, gated by
+  `NotificationPreference.eventOnTeacherMessage` and `!user.isDemo`.
+- `isAllowedDm` in messages — now also accepts a `TeacherStudentLink` with
+  `status: ACTIVE` as a valid relationship permitting direct messages.
+
+### Added — Email
+
+- **`teacherMessageEmail()`** in `src/lib/email-templates.ts` — notifies a
+  student by email when their linked teacher sends an in-app message.
+
+### Added — Pages
+
+- **/teacher/setup** — two-panel setup wizard: link directly to students by
+  user ID, or search for and join a district.
+- **/student/links** — student reviews, accepts, or declines incoming teacher
+  link requests.
+- **/admin/teacher-requests** — district admin reviews teacher join requests
+  (PENDING / APPROVED / REJECTED tabs).
+- **/admin/classrooms** — district admin creates classrooms and assigns
+  teachers and students (replaces read-only view).
+
+### Modified — Pages
+
+- **/(auth)/register** — teacher card added to the account-type selection
+  screen.
+- **DashboardLayout nav** — "Teacher Links" added to the student navigation;
+  "Teacher Requests" added to the admin navigation.
+
+### Fixed — Auth
+
+- `onboardingComplete` is now propagated through the NextAuth JWT and session
+  object. Previously it was stored in the database only and not available
+  client-side without an extra fetch.
+- All demo account fixtures include `onboardingComplete: true` so the setup
+  wizard is not shown for demo accounts.
+
+---
+
 ## [4.0.0] - 2026-05-09 — Update 4.0 (Parent Loop + per-district subdomains)
 
 The first feature update since v14.0.0's clean rebuild. Two

@@ -9,10 +9,10 @@ TABLE OF CONTENTS
   1.  WHAT IS LIMUD?
   2.  TECH STACK & ARCHITECTURE
   3.  PROJECT STRUCTURE — EVERY FILE EXPLAINED
-  4.  DATABASE SCHEMA (69 MODELS, 9 ENUMS)
+  4.  DATABASE SCHEMA (71 MODELS, 9 ENUMS)
   5.  USER ROLES & ACCESS CONTROL (RBAC)
   6.  FEATURE CATALOG — WHAT EVERY FEATURE DOES
-  7.  API ROUTES — ALL 88 ENDPOINTS
+  7.  API ROUTES — ALL 93 ENDPOINTS
   8.  AI SYSTEM (GEMINI 2.5 FLASH)
   9.  SECURITY & COMPLIANCE (COPPA / FERPA / OWASP)
   10. GAMIFICATION ENGINE
@@ -123,7 +123,7 @@ ROOT FILES
 
 /prisma
 ───────
-  schema.prisma         — THE database schema. 69 models, 9 enums, 1735 lines.
+  schema.prisma         — THE database schema. 71 models, 9 enums.
                           Defines every table: Users, Districts, Schools,
                           Classrooms, Courses, Assignments, Submissions,
                           AI Tutor Logs, Games, Skill Tracking, Spaced Rep,
@@ -363,7 +363,9 @@ src/app/globals.css
                        - sendEmail() — sends transactional email
                        - No-op if RESEND_API_KEY not set
 
-  email-templates.ts — HTML email templates (password reset, weekly digest)
+  email-templates.ts — HTML email templates (password reset, weekly digest,
+                       teacherMessageEmail — notifies student when linked
+                       teacher sends an in-app message)
 
   hooks.ts           — Custom React hooks
 
@@ -393,7 +395,7 @@ src/app/globals.css
 
 
 ================================================================================
-4. DATABASE SCHEMA (69 MODELS, 9 ENUMS)
+4. DATABASE SCHEMA (71 MODELS, 9 ENUMS)
 ================================================================================
 
 ENUMS:
@@ -414,10 +416,18 @@ KEY MODELS (grouped by domain):
   ORGANIZATION:
     SchoolDistrict    — Multi-tenant district (name, subdomain, subscription)
     School            — School within a district
-    Classroom         — Class within a school (subject, period, teacher)
+    Classroom         — Class within a school (subject, period, teacher).
+                        teacherId and courseId now carry explicit @relation
+                        directives ("ClassroomTeacher", "ClassroomCourse").
     ClassroomStudent  — M:N enrollment (student <-> classroom)
     DistrictAdmin     — District admin access levels & permissions
     DistrictLinkRequest — Student request to join a district
+    TeacherStudentLink — Direct teacher↔student link (status: PENDING/ACTIVE/REJECTED).
+                         Approval-gated; student must accept. Permits DM and
+                         teacher-message email notification.
+    TeacherDistrictRequest — Teacher request to join a district
+                         (status: PENDING/APPROVED/REJECTED). Reviewed by
+                         district admin.
 
   USERS & AUTH:
     User              — Core user (email, password, role, district, profile)
@@ -514,8 +524,11 @@ KEY MODELS (grouped by domain):
     Can access: /teacher/*
     Features: Create assignments, AI grading, quiz generator, analytics,
               student management, reports, lesson planner, intelligence,
-              resource exchange, content library, forums, messages
-    Special: Homeschool parents get teacher access too
+              resource exchange, content library, forums, messages,
+              teacher-student linking, district join requests
+    Special: Homeschool parents get teacher access too.
+             Teachers can self-signup via /register with
+             role: TEACHER, accountType: INDIVIDUAL.
 
   PARENT
     Can access: /parent/*
@@ -796,7 +809,7 @@ CROSS-ROLE FEATURES:
 
 
 ================================================================================
-7. API ROUTES — ALL 88 ENDPOINTS
+7. API ROUTES — ALL 93 ENDPOINTS
 ================================================================================
 
 FORMAT: METHOD /path — Description
