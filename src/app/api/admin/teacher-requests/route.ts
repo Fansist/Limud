@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import { isDemoEmail } from '@/lib/demo-accounts';
 
 // GET /api/admin/teacher-requests?status=PENDING|APPROVED|REJECTED
 export const GET = apiHandler(async (req: Request) => {
@@ -49,6 +50,10 @@ export const PUT = apiHandler(async (req: Request) => {
   }
   if (action !== 'approve' && action !== 'reject') {
     return NextResponse.json({ error: 'action must be "approve" or "reject"' }, { status: 400 });
+  }
+
+  if (isDemoEmail(user.email)) {
+    return NextResponse.json({ request: { id: requestId, status: action === 'approve' ? 'APPROVED' : 'REJECTED' }, demo: true });
   }
 
   const request = await prisma.teacherDistrictRequest.findUnique({

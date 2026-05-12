@@ -180,6 +180,12 @@ export const POST = apiHandler(async (req: Request) => {
       { status: 400 }
     );
   }
+  if (typeof content !== 'string' || !content.trim()) {
+    return NextResponse.json({ error: 'content must be a non-empty string' }, { status: 400 });
+  }
+  if (subject !== undefined && typeof subject !== 'string') {
+    return NextResponse.json({ error: 'subject must be a string' }, { status: 400 });
+  }
 
   // Verify receiver exists
   const receiver = await prisma.user.findUnique({
@@ -257,8 +263,8 @@ export const POST = apiHandler(async (req: Request) => {
           }),
         });
       }
-    } catch {
-      // Email failure must never fail the API response
+    } catch (emailErr) {
+      console.error('[messages] teacher→student email notification failed:', emailErr);
     }
   }
 

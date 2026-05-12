@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import { isDemoEmail } from '@/lib/demo-accounts';
 
 // ─── GET /api/student/teacher-links ──────────────────────────────────────────
 // Returns incoming PENDING teacher link requests for the authenticated student.
 export const GET = apiHandler(async (_req: Request) => {
   const user = await requireRole('STUDENT');
+
+  if (isDemoEmail(user.email)) {
+    return NextResponse.json({ requests: [] });
+  }
 
   const requests = await prisma.teacherStudentLink.findMany({
     where: { studentId: user.id, status: 'PENDING' },
@@ -44,6 +49,10 @@ export const PUT = apiHandler(async (req: Request) => {
   }
   if (raw.action !== 'approve' && raw.action !== 'reject') {
     return NextResponse.json({ error: 'action must be "approve" or "reject"' }, { status: 400 });
+  }
+
+  if (isDemoEmail(user.email)) {
+    return NextResponse.json({ link: { id: raw.linkId, status: raw.action === 'approve' ? 'ACTIVE' : 'REJECTED' }, demo: true });
   }
 
   const linkId = raw.linkId;

@@ -104,6 +104,50 @@ const DEFAULT_ADMIN_CLASSROOMS = [
 ];
 
 const SUBJECTS = ['All', 'Mathematics', 'Science', 'English Language Arts', 'Social Studies', 'Fine Arts', 'Physical Education', 'Special Education', 'Music'];
+
+interface ClassroomRow {
+  id: string;
+  name: string;
+  subject?: string;
+  gradeLevel?: string;
+  period?: string;
+  gamesDisabledDuringClass?: boolean;
+  allowAITutor?: boolean;
+  requireDailyChallenge?: boolean;
+  difficultyLevel?: string;
+  curriculum?: string;
+  description?: string;
+  learningObjectives?: string[];
+  color?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  maxCapacity?: number;
+  schoolId?: string;
+  teacherId?: string;
+  teacher?: { id: string; name: string } | null;
+  school?: { id?: string; name: string } | null;
+  _count?: { students: number };
+  schedule?: { days?: string[]; startTime?: string; endTime?: string } | null;
+}
+
+interface TeacherRow {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface StudentRow {
+  id: string;
+  name: string;
+  email?: string;
+  gradeLevel?: string;
+  classroomStudents?: { classroom: { id: string } }[];
+}
+
+interface SchoolRow {
+  id: string;
+  name: string;
+}
 const DIFFICULTY_LEVELS = ['Standard', 'Advanced', 'Honors', 'AP', 'IB', 'Remedial'];
 const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 const CLASS_COLORS = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4', '#EF4444', '#84CC16', '#F97316', '#6366F1'];
@@ -111,7 +155,7 @@ const CLASS_COLORS = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EC4899', '#0
 export default function AdminClassroomsPageEnhanced() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
-  const [classrooms, setClassrooms] = useState<any[]>([]);
+  const [classrooms, setClassrooms] = useState<ClassroomRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('All');
@@ -122,11 +166,11 @@ export default function AdminClassroomsPageEnhanced() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   // v12.4: Teacher assignment
-  const [teachers, setTeachers] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<TeacherRow[]>([]);
   const [assigningTeacher, setAssigningTeacher] = useState<string | null>(null);
   // v12.4.2: Student assignment & school assignment
-  const [students, setStudents] = useState<any[]>([]);
-  const [districtSchools, setDistrictSchools] = useState<any[]>([]);
+  const [students, setStudents] = useState<StudentRow[]>([]);
+  const [districtSchools, setDistrictSchools] = useState<SchoolRow[]>([]);
   const [assigningStudents, setAssigningStudents] = useState<string | null>(null); // classroomId
   const [assigningSchool, setAssigningSchool] = useState<string | null>(null); // classroomId
   const [studentSearch, setStudentSearch] = useState('');
@@ -369,7 +413,7 @@ export default function AdminClassroomsPageEnhanced() {
       ));
       setStudents(prev => prev.map(s =>
         s.id === studentId
-          ? { ...s, classroomStudents: (s.classroomStudents || []).filter((cs: any) => cs.classroom?.id !== classroomId) }
+          ? { ...s, classroomStudents: (s.classroomStudents || []).filter((cs) => cs.classroom?.id !== classroomId) }
           : s
       ));
       toast.success('Student removed');
@@ -509,7 +553,7 @@ export default function AdminClassroomsPageEnhanced() {
                   <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject</label>
                     <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} className="input-field">
                       <option value="">Select subject</option>
-                      {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.icon} {s.value}</option>)}
+                      {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select></div>
                   <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Grade Level</label>
                     <input value={form.gradeLevel} onChange={e => setForm(f => ({ ...f, gradeLevel: e.target.value }))} className="input-field" placeholder="e.g., 6th" /></div>
@@ -649,7 +693,7 @@ export default function AdminClassroomsPageEnhanced() {
                     <label className="block text-xs font-medium text-gray-500 mb-1">Subject</label>
                     <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)} className="input-field text-sm">
                       <option value="">All Subjects</option>
-                      {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.icon} {s.value}</option>)}
+                      {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                   <div>
@@ -801,12 +845,12 @@ export default function AdminClassroomsPageEnhanced() {
 
                           {/* Currently enrolled students */}
                           {(() => {
-                            const enrolled = students.filter(s => s.classroomStudents?.some((cs: any) => cs.classroom?.id === c.id));
+                            const enrolled = students.filter(s => s.classroomStudents?.some((cs) => cs.classroom?.id === c.id));
                             return enrolled.length > 0 ? (
                               <div className="mb-3">
                                 <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Enrolled ({enrolled.length})</p>
                                 <div className="space-y-1 max-h-32 overflow-y-auto">
-                                  {enrolled.map((s: any) => (
+                                  {enrolled.map((s) => (
                                     <div key={s.id} className="flex items-center justify-between bg-green-50 rounded-lg px-2 py-1.5">
                                       <div className="flex items-center gap-2">
                                         <div className="w-5 h-5 rounded-full bg-green-200 flex items-center justify-center text-[8px] font-bold text-green-700">
@@ -836,14 +880,14 @@ export default function AdminClassroomsPageEnhanced() {
                           {/* Available students list */}
                           <div className="max-h-40 overflow-y-auto space-y-1 mb-2">
                             {(() => {
-                              const enrolledIds = new Set(students.filter(s => s.classroomStudents?.some((cs: any) => cs.classroom?.id === c.id)).map(s => s.id));
+                              const enrolledIds = new Set(students.filter(s => s.classroomStudents?.some((cs) => cs.classroom?.id === c.id)).map(s => s.id));
                               const available = students.filter(s => {
                                 if (enrolledIds.has(s.id)) return false;
                                 if (!studentSearch) return true;
                                 const q = studentSearch.toLowerCase();
                                 return s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q) || s.gradeLevel?.toLowerCase().includes(q);
                               });
-                              return available.length > 0 ? available.map((s: any) => (
+                              return available.length > 0 ? available.map((s) => (
                                 <label key={s.id} className={cn('flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition',
                                   selectedStudents.has(s.id) ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-gray-50')}>
                                   <input type="checkbox" checked={selectedStudents.has(s.id)}

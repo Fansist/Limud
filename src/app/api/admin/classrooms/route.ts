@@ -73,8 +73,29 @@ export const POST = apiHandler(async (req: Request) => {
 
   const safeStudentIds = Array.isArray(studentIds) ? studentIds.filter((id) => typeof id === 'string' && id.trim() !== '') : [];
 
-  const [classroom] = await prisma.$transaction([
-    prisma.classroom.create({
+  // Validate all studentIds belong to this district
+  if (safeStudentIds.length > 0) {
+    const validStudents = await prisma.user.findMany({
+      where: {
+        id: { in: safeStudentIds },
+        districtId: user.districtId,
+        role: 'STUDENT',
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    const validIds = new Set(validStudents.map(s => s.id));
+    const invalidIds = safeStudentIds.filter(id => !validIds.has(id));
+    if (invalidIds.length > 0) {
+      return NextResponse.json(
+        { error: 'One or more student IDs do not belong to your district' },
+        { status: 400 }
+      );
+    }
+  }
+
+  const classroom = await prisma.$transaction(async (tx) => {
+    const created = await tx.classroom.create({
       data: {
         name: name.trim(),
         districtId: user.districtId,
@@ -86,26 +107,15 @@ export const POST = apiHandler(async (req: Request) => {
         period: period ?? null,
       },
       select: { id: true, name: true, teacherId: true },
-    }),
-    ...(safeStudentIds.length > 0
-      ? [
-          prisma.classroomStudent.createMany({
-            // We use a createMany with the classroom id after creation via $transaction
-            // Since we need the classroom id, we use nested create instead below
-            data: [],
-            skipDuplicates: true,
-          }),
-        ]
-      : []),
-  ]);
-
-  // If there are students, add them now (nested write after transaction above)
-  if (safeStudentIds.length > 0) {
-    await prisma.classroomStudent.createMany({
-      data: safeStudentIds.map((sid) => ({ classroomId: classroom.id, studentId: sid })),
-      skipDuplicates: true,
     });
-  }
+    if (safeStudentIds.length > 0) {
+      await tx.classroomStudent.createMany({
+        data: safeStudentIds.map((sid) => ({ classroomId: created.id, studentId: sid })),
+        skipDuplicates: true,
+      });
+    }
+    return created;
+  });
 
   return NextResponse.json(
     { classroom: { id: classroom.id, name: classroom.name, teacherId: classroom.teacherId, studentCount: safeStudentIds.length } },
@@ -144,6 +154,27 @@ export const PUT = apiHandler(async (req: Request) => {
 
   const safeAdd = Array.isArray(addStudentIds) ? addStudentIds.filter((id) => typeof id === 'string' && id.trim() !== '') : [];
   const safeRemove = Array.isArray(removeStudentIds) ? removeStudentIds.filter((id) => typeof id === 'string' && id.trim() !== '') : [];
+
+  // Validate all addStudentIds belong to this district
+  if (safeAdd.length > 0) {
+    const validStudents = await prisma.user.findMany({
+      where: {
+        id: { in: safeAdd },
+        districtId: user.districtId,
+        role: 'STUDENT',
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    const validIds = new Set(validStudents.map(s => s.id));
+    const invalidIds = safeAdd.filter(id => !validIds.has(id));
+    if (invalidIds.length > 0) {
+      return NextResponse.json(
+        { error: 'One or more student IDs do not belong to your district' },
+        { status: 400 }
+      );
+    }
+  }
 
   await prisma.$transaction([
     ...(safeAdd.length > 0
