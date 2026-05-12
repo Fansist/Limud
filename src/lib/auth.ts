@@ -14,6 +14,7 @@
 
 import { NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import {
   checkAccountLocked,
   recordFailedLogin,
@@ -286,6 +287,10 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Invalid email or password');
           }
 
+          if (!user.password) {
+            // OAuth-only account — no password to compare against
+            throw new Error('Invalid email or password');
+          }
           const bcrypt = (await import('bcryptjs')).default;
           const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) {
@@ -346,9 +351,84 @@ export const authOptions: NextAuthOptions = {
         }
       },
     }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      authorization: {
+        params: {
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+        },
+      },
+    }),
   ],
 
   callbacks: {
+    async signIn({ user, account }) {
+      // Credentials provider: nothing to do, authorize() already handled it
+      if (account?.provider !== 'google') return true;
+      if (!user.email) return false;
+
+      const { default: prisma } = await import('@/lib/prisma');
+      const email = user.email.toLowerCase().trim();
+
+      const existing = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true, email: true, name: true, role: true, accountType: true,
+          districtId: true, selectedAvatar: true, gradeLevel: true,
+          onboardingComplete: true, isActive: true,
+        },
+      });
+
+      if (existing) {
+        if (!existing.isActive) return false;
+        // Cache the existing user shape onto `user` so the jwt callback picks it up
+        user.id = existing.id;
+        user.role = existing.role;
+        user.accountType = existing.accountType ?? 'INDIVIDUAL';
+        user.districtId = existing.districtId ?? '';
+        user.districtName = '';
+        user.selectedAvatar = existing.selectedAvatar ?? 'default';
+        user.isHomeschoolParent = false;
+        user.gradeLevel = existing.gradeLevel ?? '';
+        user.isMasterDemo = false;
+        user.onboardingComplete = existing.onboardingComplete;
+        return true;
+      }
+
+      // First-time Google sign-in → create a standalone teacher account
+      const created = await prisma.user.create({
+        data: {
+          email,
+          name: user.name ?? email.split('@')[0],
+          role: 'TEACHER',
+          accountType: 'INDIVIDUAL',
+          isActive: true,
+          onboardingComplete: false,
+          selectedAvatar: 'default',
+          emailVerified: new Date(),
+          teacherSettings: { create: {} },
+        },
+        select: {
+          id: true, email: true, name: true, role: true, accountType: true,
+          selectedAvatar: true, onboardingComplete: true,
+        },
+      });
+
+      user.id = created.id;
+      user.role = created.role;
+      user.accountType = created.accountType ?? 'INDIVIDUAL';
+      user.districtId = '';
+      user.districtName = '';
+      user.selectedAvatar = created.selectedAvatar ?? 'default';
+      user.isHomeschoolParent = false;
+      user.gradeLevel = '';
+      user.isMasterDemo = false;
+      user.onboardingComplete = created.onboardingComplete;
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;

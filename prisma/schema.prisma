@@ -312,7 +312,8 @@ model User {
   name           String
   firstName      String?
   lastName       String?
-  password       String // bcrypt hashed
+  password       String? // bcrypt hashed (nullable for OAuth users)
+  emailVerified  DateTime?
   resetToken     String?   @unique
   resetTokenExp  DateTime?
   role           Role
