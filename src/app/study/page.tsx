@@ -1,0 +1,497 @@
+'use client';
+/**
+ * Exam Study Helper (v15.2)
+ *
+ * Public-facing individual-product page. Logged-in users (any role) drop
+ * coursework/exam material, pick a format, and get back study material
+ * rendered in their chosen style:
+ *   - Textbook  (long-form prose)
+ *   - Comic     (panel script + AI-generated panel images)
+ *   - Diagrams  (mermaid + prose)
+ *   - Cheatsheet (one-pager)
+ *   - Flashcards (Q/A pairs)
+ *
+ * Stateless on the server. Last 5 generations cached in localStorage so the
+ * user can switch back to a previous result without re-running the AI.
+ */
+import { useEffect, useMemo, useState } from 'react';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import toast from 'react-hot-toast';
+import {
+  BookOpen,
+  BookText,
+  Brain,
+  ClipboardList,
+  Loader2,
+  Network,
+  Sparkles,
+  Upload,
+  Wand2,
+  Layers,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+type StudyFormat = 'textbook' | 'comic' | 'diagrams' | 'cheatsheet' | 'flashcards';
+
+type FormatOption = {
+  id: StudyFormat;
+  label: string;
+  blurb: string;
+  icon: React.ReactNode;
+  ring: string;
+  estimate: string;
+};
+
+const FORMAT_OPTIONS: FormatOption[] = [
+  {
+    id: 'textbook',
+    label: 'Textbook chapter',
+    blurb: 'A long, friendly read with worked examples and a quick review.',
+    icon: <BookText size={20} />,
+    ring: 'from-blue-400 to-indigo-500',
+    estimate: '~20-30 s',
+  },
+  {
+    id: 'comic',
+    label: 'Comic series',
+    blurb: 'Panel-by-panel script with AI-generated illustrations.',
+    icon: <Sparkles size={20} />,
+    ring: 'from-fuchsia-400 to-pink-500',
+    estimate: '~60-90 s',
+  },
+  {
+    id: 'diagrams',
+    label: 'Diagrams',
+    blurb: 'Flowcharts and mind maps with short explanations.',
+    icon: <Network size={20} />,
+    ring: 'from-emerald-400 to-teal-500',
+    estimate: '~15-25 s',
+  },
+  {
+    id: 'cheatsheet',
+    label: 'Cheatsheet',
+    blurb: 'A tight one-pager you can review the morning of the exam.',
+    icon: <ClipboardList size={20} />,
+    ring: 'from-amber-400 to-orange-500',
+    estimate: '~15-20 s',
+  },
+  {
+    id: 'flashcards',
+    label: 'Flashcards',
+    blurb: '15-25 Q/A cards for spaced repetition.',
+    icon: <Layers size={20} />,
+    ring: 'from-violet-400 to-purple-500',
+    estimate: '~15-20 s',
+  },
+];
+
+type StudyResult = {
+  content: string;
+  format: StudyFormat;
+  model: string;
+  tokensApprox: number;
+  aiError?: string;
+};
+
+type HistoryEntry = {
+  id: string;
+  createdAt: number;
+  subject: string;
+  topicHint: string;
+  format: StudyFormat;
+  result: StudyResult;
+};
+
+const HISTORY_KEY = 'limud-study-history-v1';
+
+function loadHistory(): HistoryEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed;
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(entries: HistoryEntry[]) {
+  try {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, 5)));
+  } catch {
+    /* Quota or unavailable storage — silently skip. */
+  }
+}
+
+export default function StudyPage() {
+  const [rawMaterial, setRawMaterial] = useState('');
+  const [subject, setSubject] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('');
+  const [examDate, setExamDate] = useState('');
+  const [topicHint, setTopicHint] = useState('');
+  const [format, setFormat] = useState<StudyFormat>('textbook');
+  const [generating, setGenerating] = useState(false);
+  const [result, setResult] = useState<StudyResult | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
+
+  const wordCount = useMemo(
+    () => rawMaterial.trim().split(/\s+/).filter(Boolean).length,
+    [rawMaterial],
+  );
+
+  async function handleFileUpload(file: File) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File is over 5 MB — paste the most important parts instead.');
+      return;
+    }
+    try {
+      const text = await file.text();
+      setRawMaterial((prev) => (prev ? `${prev}\n\n${text}` : text));
+      toast.success(`Loaded ${file.name}`);
+    } catch {
+      toast.error("Couldn't read that file. Try copy-pasting the text instead.");
+    }
+  }
+
+  async function generate() {
+    if (rawMaterial.trim().length < 50) {
+      toast.error('Add at least a paragraph of material first.');
+      return;
+    }
+    setGenerating(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/study/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rawMaterial,
+          format,
+          subject: subject || undefined,
+          gradeLevel: gradeLevel || undefined,
+          examDate: examDate || undefined,
+          topicHint: topicHint || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Request failed with ${res.status}`);
+      }
+      const data: StudyResult = await res.json();
+      setResult(data);
+      const entry: HistoryEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        createdAt: Date.now(),
+        subject: subject || 'Untitled',
+        topicHint: topicHint || '',
+        format: data.format,
+        result: data,
+      };
+      const next = [entry, ...history].slice(0, 5);
+      setHistory(next);
+      saveHistory(next);
+      if (data.aiError) {
+        toast.error(`AI fell back to a basic outline — ${data.aiError}`);
+      } else {
+        toast.success(`Your ${data.format} is ready`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Generation failed.';
+      toast.error(msg);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  function loadFromHistory(entry: HistoryEntry) {
+    setResult(entry.result);
+    setSubject(entry.subject);
+    setTopicHint(entry.topicHint);
+    setFormat(entry.format);
+    toast.success(`Loaded "${entry.subject}"`);
+  }
+
+  function copyToClipboard() {
+    if (!result) return;
+    navigator.clipboard
+      .writeText(result.content)
+      .then(() => toast.success('Copied'))
+      .catch(() => toast.error("Couldn't copy"));
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-50 text-fuchsia-700 text-xs font-medium border border-fuchsia-100">
+            <Sparkles size={14} /> Individual product · Beta
+          </div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+            Exam Study Helper
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 max-w-2xl">
+            Drop in your coursework, notes, or a chapter from a textbook. Pick how you
+            want to study it. Limud rewrites the same content as a book, a comic, a
+            diagram set, a cheatsheet, or flashcards — your call.
+          </p>
+        </motion.div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* LEFT — input + controls */}
+          <div className="lg:col-span-2 space-y-5">
+            {/* Material textarea + file drop */}
+            <div className="card">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Brain size={16} className="text-primary-500" /> Your material
+                </h2>
+                <label className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 cursor-pointer">
+                  <Upload size={14} />
+                  <span>Upload a .txt or .md file</span>
+                  <input
+                    type="file"
+                    accept=".txt,.md,.markdown,.text"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleFileUpload(f);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+              <textarea
+                value={rawMaterial}
+                onChange={(e) => setRawMaterial(e.target.value)}
+                placeholder="Paste your notes, chapter, study guide, or exam outline here. The more you give Limud, the better the result."
+                rows={12}
+                className="input-field font-mono text-sm leading-relaxed"
+              />
+              <div className="mt-2 text-xs text-gray-400 flex justify-between">
+                <span>{wordCount.toLocaleString()} words</span>
+                <span>{rawMaterial.length > 45000 ? '⚠ Over 45K chars — will be truncated at 50K.' : 'Up to 50K characters'}</span>
+              </div>
+            </div>
+
+            {/* Context (optional) */}
+            <div className="card">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3">
+                Tell Limud about it <span className="text-gray-400 font-normal">(optional)</span>
+              </h2>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500" htmlFor="subject">Subject</label>
+                  <input
+                    id="subject"
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="Biology · Algebra II · APUSH"
+                    className="input-field mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500" htmlFor="grade">Grade level</label>
+                  <input
+                    id="grade"
+                    type="text"
+                    value={gradeLevel}
+                    onChange={(e) => setGradeLevel(e.target.value)}
+                    placeholder="10th · College intro"
+                    className="input-field mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500" htmlFor="examdate">Exam / due date</label>
+                  <input
+                    id="examdate"
+                    type="text"
+                    value={examDate}
+                    onChange={(e) => setExamDate(e.target.value)}
+                    placeholder="Friday · Next Tuesday · 5/16"
+                    className="input-field mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500" htmlFor="topic">Narrow focus</label>
+                  <input
+                    id="topic"
+                    type="text"
+                    value={topicHint}
+                    onChange={(e) => setTopicHint(e.target.value)}
+                    placeholder="Cellular respiration · Quadratics"
+                    className="input-field mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Format picker */}
+            <div className="card">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <Wand2 size={16} className="text-fuchsia-500" /> Pick a format
+              </h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {FORMAT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setFormat(opt.id)}
+                    className={cn(
+                      'text-left p-3 rounded-xl border-2 transition',
+                      format === opt.id
+                        ? 'border-primary-500 bg-primary-50/60 dark:bg-primary-900/20'
+                        : 'border-gray-100 hover:border-gray-200 dark:border-gray-800',
+                    )}
+                    aria-pressed={format === opt.id}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={cn(
+                          'w-9 h-9 rounded-lg bg-gradient-to-br flex items-center justify-center text-white flex-shrink-0',
+                          opt.ring,
+                        )}
+                      >
+                        {opt.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white">{opt.label}</div>
+                        <div className="text-xs text-gray-500 mt-0.5 leading-snug">{opt.blurb}</div>
+                        <div className="text-[10px] text-gray-400 mt-1">{opt.estimate}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={generate}
+              disabled={generating}
+              className={cn(
+                'w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-white font-semibold transition shadow-lg',
+                generating
+                  ? 'bg-gray-300 cursor-wait'
+                  : 'bg-gradient-to-r from-primary-600 to-fuchsia-600 hover:opacity-95 shadow-primary-600/20',
+              )}
+            >
+              {generating ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Generating your {FORMAT_OPTIONS.find((f) => f.id === format)?.label.toLowerCase()}…
+                </>
+              ) : (
+                <>
+                  <Sparkles size={18} />
+                  Generate
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* RIGHT — history + tips */}
+          <div className="space-y-5">
+            <div className="card">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <BookOpen size={16} className="text-gray-500" /> Recent
+              </h2>
+              {history.length === 0 ? (
+                <p className="text-xs text-gray-400">
+                  Your last 5 generations will show up here so you can come back to them
+                  without re-running the AI.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {history.map((h) => (
+                    <li key={h.id}>
+                      <button
+                        type="button"
+                        onClick={() => loadFromHistory(h)}
+                        className="w-full text-left p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                      >
+                        <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                          {h.subject || 'Untitled'}
+                        </div>
+                        <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
+                          <span className="capitalize">{h.format}</span>
+                          <span>·</span>
+                          <span>{new Date(h.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="card bg-gradient-to-br from-primary-50 to-fuchsia-50 border-primary-100">
+              <h3 className="text-sm font-bold text-gray-900 mb-2">Tips for a great result</h3>
+              <ul className="text-xs text-gray-600 space-y-1.5 list-disc pl-4">
+                <li>Paste full sentences, not just bullet points.</li>
+                <li>Set the subject — the tone shifts for science vs. humanities.</li>
+                <li>Use &ldquo;Narrow focus&rdquo; when your material covers more than one topic.</li>
+                <li>The comic format takes longer because it generates real panel art.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Result */}
+        {result && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card"
+          >
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white capitalize">
+                  Your {result.format}
+                </h2>
+                <p className="text-xs text-gray-500">
+                  ~{result.tokensApprox.toLocaleString()} tokens · model {result.model}
+                  {result.aiError && (
+                    <span className="text-amber-600 ml-2">· {result.aiError}</span>
+                  )}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={copyToClipboard}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                >
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setResult(null)}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <article className="prose prose-sm sm:prose dark:prose-invert max-w-none prose-img:rounded-2xl prose-img:shadow-md prose-img:my-4 prose-headings:font-bold">
+              <ReactMarkdown>{result.content}</ReactMarkdown>
+            </article>
+          </motion.div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}

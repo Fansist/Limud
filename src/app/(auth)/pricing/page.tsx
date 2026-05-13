@@ -882,6 +882,107 @@ export default function PricingPage() {
           })}
         </div>
 
+        {/* ═══ Individual Products (v15.2) ════════════════════════════════
+            District plans are still the core product. These are bite-sized
+            one-off purchases for a single learner who isn't part of a
+            district — students, parents, adult learners. Each product
+            stands alone; no subscription required. */}
+        <div className="text-center mb-6 mt-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-50 text-fuchsia-700 text-xs font-medium border border-fuchsia-100">
+            <Sparkles size={14} /> New · Individual products
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-3">
+            Studying solo? Grab a single product.
+          </h2>
+          <p className="text-sm text-gray-500 mt-2 max-w-2xl mx-auto">
+            Not at a Limud district? You can still pick up one of our standalone tools.
+            Pay once, use it for the exam you&apos;re actually studying for.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
+          {/* Card 1 — Exam Study Helper (shipped) */}
+          <div className="rounded-3xl border-2 border-fuchsia-100 bg-gradient-to-br from-white to-fuchsia-50 p-6 flex flex-col">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-500 text-white flex items-center justify-center shadow-md">
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Exam Study Helper</h3>
+                <p className="text-[11px] text-gray-500">Available now</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Drop in your coursework. Limud rewrites it as a textbook, a comic series,
+              a diagram set, a cheatsheet, or flashcards — whichever fits your brain.
+            </p>
+            <div className="mt-4 flex items-baseline gap-1">
+              <span className="text-2xl font-extrabold text-gray-900">$9</span>
+              <span className="text-xs text-gray-500">per exam · one-time</span>
+            </div>
+            <Link
+              href="/study"
+              className="mt-4 block text-center py-2.5 rounded-xl font-bold text-xs transition bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white hover:opacity-95"
+            >
+              Try it now
+            </Link>
+          </div>
+
+          {/* Card 2 — Coming soon placeholder */}
+          <div className="rounded-3xl border-2 border-dashed border-gray-200 bg-white p-6 flex flex-col">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center">
+                <Brain size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-700">Practice Generator</h3>
+                <p className="text-[11px] text-gray-400">Coming soon</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Endless practice questions for one topic, scored on the fly, tuned to where
+              you keep tripping up.
+            </p>
+            <div className="mt-4 flex items-baseline gap-1">
+              <span className="text-2xl font-extrabold text-gray-400">TBA</span>
+            </div>
+            <button
+              type="button"
+              disabled
+              className="mt-4 block text-center py-2.5 rounded-xl font-bold text-xs bg-gray-100 text-gray-400 cursor-not-allowed"
+            >
+              Notify me
+            </button>
+          </div>
+
+          {/* Card 3 — Coming soon placeholder */}
+          <div className="rounded-3xl border-2 border-dashed border-gray-200 bg-white p-6 flex flex-col">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center">
+                <BookOpen size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-700">Essay Coach</h3>
+                <p className="text-[11px] text-gray-400">Coming soon</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Paste a draft, get structure feedback that doesn&apos;t rewrite your voice and
+              doesn&apos;t flag every sentence as plagiarism.
+            </p>
+            <div className="mt-4 flex items-baseline gap-1">
+              <span className="text-2xl font-extrabold text-gray-400">TBA</span>
+            </div>
+            <button
+              type="button"
+              disabled
+              className="mt-4 block text-center py-2.5 rounded-xl font-bold text-xs bg-gray-100 text-gray-400 cursor-not-allowed"
+            >
+              Notify me
+            </button>
+          </div>
+        </div>
+
         {/* Custom Builder Toggle */}
         <div className="text-center mb-12">
           <button onClick={() => setShowCustomBuilder(!showCustomBuilder)}

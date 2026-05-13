@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v15.0.0 · Update 4.0 · Parent Loop: weekly digest + at-risk alerts + per-district subdomains</code>
+  <code>v16.0.0 · Update 5.0 · Individual products line + Exam Study Helper</code>
 </p>
 
 ---

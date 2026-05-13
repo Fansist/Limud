@@ -43,6 +43,28 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.0.0 — Update 5.0: Individual products + Exam Study Helper`
+- **files:** ~8 · `src/lib/ai.ts` (+`generateStudyMaterial`), NEW `src/app/api/study/generate/route.ts`, NEW `src/app/study/page.tsx`, `src/app/(auth)/pricing/page.tsx` (Individual section), `src/components/landing/LandingPage.tsx` (hero + footer copy), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** MEDIUM — new logged-in-user page that calls Gemini on user-supplied text. Two concerns to watch:
+  - (a) prompt-injection through the `rawMaterial` field. Current mitigation: the model is instructed to "rewrite material in the requested format" only; no agentic tools; no PII reads on the server side.
+  - (b) unbounded AI cost until a payment gate lands. The route is auth-required but has no per-user generation cap beyond the existing edge rate limiter in `middleware.ts`.
+- **review:** ⚠️ partial — ships behind login but with no per-user generation quota or payment gate yet. Open follow-ups:
+  - Stripe checkout for the $9/exam one-time purchase (CTA renders, payment plumbing doesn't exist)
+  - Per-user generation quota on `/api/study/generate`
+  - Anonymous trial mode (currently anon visitors get bounced to /login)
+  - `StudyMaterial` Prisma model for server-side history (currently localStorage only, 5-entry cap)
+- **demo-mode:** yes — any logged-in user (including master demo) hits the same AI path; no DB writes regardless of identity (route is stateless).
+- **tests:** manual — `generateStudyMaterial` typechecks against existing `callGemini` + `enrichComicWithImages` signatures. Render build will catch TS strictness issues. End-to-end click-through deferred to post-deploy smoke.
+- **notes:** Reuses the comic-panel image pipeline (`enrichComicWithImages`) so the "comic" format works end-to-end without new infrastructure. Other formats are pure markdown from `callGemini`. Last 5 generations cached in `localStorage` under key `limud-study-history-v1` — bump the key version if the shape ever changes.
+
+### 60c50a6 — `docs(code-review): log the bootstrap entry (584c27f)`
+- **files:** 1 · `CODE-REVIEW.md`
+- **risk:** LOW
+- **review:** ✅ reviewed (self)
+- **demo-mode:** n/a
+- **tests:** n/a
+- **notes:** Closed the self-referential loop introduced by 584c27f — every commit needs an entry, including the one that introduced the rule.
+
 ### 584c27f — `docs: add CODE-REVIEW.md + wire COO ownership into ROLES-GUIDE`
 - **files:** 2 · `CODE-REVIEW.md` (new), `ROLES-GUIDE.md`
 - **risk:** LOW (docs/process only)

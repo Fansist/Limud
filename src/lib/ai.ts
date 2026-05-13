@@ -1465,3 +1465,149 @@ export async function analyzeWriting(
     aiError,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// v15.2 — INDIVIDUAL STUDY HELPER
+// Generates a single piece of study material in the user's chosen format
+// (textbook | comic | diagrams | cheatsheet | flashcards). Used by the
+// new /api/study/generate route to support the Exam Study Helper product
+// purchased by individual learners outside the district plans.
+// Stateless: this function returns the rendered content; persistence is
+// the client's concern.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type StudyFormat = 'textbook' | 'comic' | 'diagrams' | 'cheatsheet' | 'flashcards';
+
+export interface StudyRequest {
+  rawMaterial: string;
+  format: StudyFormat;
+  subject?: string;
+  gradeLevel?: string;
+  examDate?: string;
+  topicHint?: string;
+}
+
+export interface StudyResult {
+  content: string;
+  format: StudyFormat;
+  model: string;
+  tokensApprox: number;
+  aiError?: string;
+}
+
+const STUDY_FORMAT_INSTRUCTIONS: Record<StudyFormat, string> = {
+  textbook: [
+    'Rewrite the supplied material as a friendly, clear textbook chapter.',
+    'Target 1500-3000 words. Use ## Chapter N headings (number sequentially).',
+    'Bold the key terms on first use. Include 2-3 worked examples that show the reasoning step by step.',
+    'End with a short "Quick Review" section: 5-8 bullet takeaways.',
+    'Tone: encouraging, patient. Avoid jargon without explaining it.',
+  ].join(' '),
+  comic: [
+    'Write a comic-book script that teaches the supplied material.',
+    'Use 4-6 panels. Each panel MUST start with a line "PANEL N" (capitalized exactly, where N is 1-6).',
+    'After each PANEL line, include "SETTING:" and "CHARACTERS:" lines, then the action body, then any dialog/captions on their own lines.',
+    'Do not include the panel images in the script — they will be generated separately. Just write the script.',
+    'Keep dialog snappy. The comic should make the core concept stick.',
+  ].join(' '),
+  diagrams: [
+    'Rewrite the supplied material as a series of 3-5 mermaid diagrams interleaved with short (2-4 sentence) explanatory paragraphs.',
+    'Use ```mermaid fenced code blocks. Pick diagram types that fit the content: graph TD / flowchart LR for processes, sequenceDiagram for interactions, mindmap for taxonomy.',
+    'Begin with a 2-sentence introduction. Between diagrams, write a short paragraph that links the previous diagram to the next.',
+  ].join(' '),
+  cheatsheet: [
+    'Rewrite the supplied material as a one-page cheatsheet.',
+    'Target 500-800 words total. Use tight bullets, key definitions, and formulas (inline LaTeX with $...$ for math).',
+    'Group by topic with ## headings. End with a short "Common mistakes" section (3-5 bullets).',
+    'No filler prose — every line must earn its place.',
+  ].join(' '),
+  flashcards: [
+    'Convert the supplied material into 15-25 flashcards. Output one card per block in this exact format:',
+    '',
+    '**Q:** <the question>',
+    '',
+    '**A:** <the answer>',
+    '',
+    'Separate cards with a horizontal rule (`---`). Cover definitions, key facts, and a few conceptual "why" cards.',
+  ].join('\n'),
+};
+
+/**
+ * Generate a single piece of study material in the requested format.
+ * Stateless — returns the rendered content. Caller persists if desired.
+ */
+export async function generateStudyMaterial(req: StudyRequest): Promise<StudyResult> {
+  const RAW_LIMIT = 50_000;
+  const truncated = req.rawMaterial.length > RAW_LIMIT;
+  const material = truncated ? req.rawMaterial.slice(0, RAW_LIMIT) : req.rawMaterial;
+
+  const contextLines: string[] = [];
+  if (req.subject) contextLines.push(`Subject: ${req.subject}`);
+  if (req.gradeLevel) contextLines.push(`Grade level: ${req.gradeLevel}`);
+  if (req.examDate) contextLines.push(`Exam / due: ${req.examDate}`);
+  if (req.topicHint) contextLines.push(`Specific focus: ${req.topicHint}`);
+  if (truncated) contextLines.push(`Note: the student provided more material than fit in this prompt. Cover the highest-value content from what is included.`);
+
+  const formatInstruction = STUDY_FORMAT_INSTRUCTIONS[req.format];
+
+  const prompt = [
+    'You are Limud, an AI study helper for individual learners.',
+    `The student wants their material rewritten as: ${req.format.toUpperCase()}.`,
+    '',
+    formatInstruction,
+    '',
+    contextLines.length ? 'Context:\n' + contextLines.join('\n') + '\n' : '',
+    'STUDENT MATERIAL (verbatim, as uploaded):',
+    '---',
+    material,
+    '---',
+    '',
+    'Rewrite the material in the requested format now. Return ONLY the rewritten content — no preamble, no apology, no meta commentary.',
+  ].filter(Boolean).join('\n');
+
+  const model = (process.env.AI_MODEL || '').trim() || 'gemini-2.5-flash';
+
+  try {
+    const content = await callGemini(prompt, { temperature: 0.7, maxTokens: 4096 });
+
+    // Comic format: post-process with panel image generation.
+    if (req.format === 'comic') {
+      const enriched = await enrichComicWithImages(content, req.topicHint || req.subject || 'Study material');
+      return {
+        content: enriched.content,
+        format: 'comic',
+        model,
+        tokensApprox: Math.ceil(enriched.content.length / 4),
+        aiError: enriched.aiError,
+      };
+    }
+
+    return {
+      content,
+      format: req.format,
+      model,
+      tokensApprox: Math.ceil(content.length / 4),
+    };
+  } catch (err) {
+    // Deterministic fallback — never leave the caller empty-handed.
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const classified = classifyGeminiError(errMsg);
+    const fallbackPreview = material.slice(0, 2000);
+    const fallback = [
+      "We couldn't generate the AI version of this material right now. Here's the raw outline you uploaded so you can keep studying:",
+      '',
+      '---',
+      '',
+      fallbackPreview,
+      truncated || material.length > 2000 ? '\n\n*(material truncated)*' : '',
+    ].join('\n');
+    log.warn('STUDY', `generateStudyMaterial fallback: ${classified.kind} :: ${classified.wrapped}`);
+    return {
+      content: fallback,
+      format: req.format,
+      model,
+      tokensApprox: Math.ceil(fallback.length / 4),
+      aiError: classified.wrapped,
+    };
+  }
+}

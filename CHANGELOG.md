@@ -4,6 +4,100 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.0.0] - 2026-05-12 — Update 5.0 (Individual products + Exam Study Helper)
+
+Business-model expansion. District plans remain the core product
+(no changes to district pricing, plans, or admin surface). On top
+of that, Limud now sells **individual products** — bite-sized
+one-off purchases for a single learner who isn't part of a district.
+The first such product ships in this update: the **Exam Study
+Helper**.
+
+### Added — `/study` (Exam Study Helper)
+
+The student drops in their coursework, notes, study guide, or
+exam outline. They pick a format. Limud rewrites the same content
+in that format. Format choices:
+
+- **Textbook chapter** — long-form prose with ## Chapter headings,
+  bolded key terms, worked examples, end-of-chapter quick review.
+- **Comic series** — 4-6 panel comic script with AI-generated
+  panel art (reuses `enrichComicWithImages` from the existing
+  two-upload personalization engine).
+- **Diagrams** — 3-5 mermaid diagrams (flowchart / sequence /
+  mindmap) interleaved with short explanatory paragraphs.
+- **Cheatsheet** — tight one-pager with bullets, formulas (inline
+  LaTeX), and a "common mistakes" section.
+- **Flashcards** — 15-25 Q/A cards separated by horizontal rules.
+
+The page is at `/study` and works for any logged-in user (district
+student, family parent, or individual). It's stateless server-side
+— the last 5 generations are cached in the client's `localStorage`
+so the user can flip between them without re-running the AI.
+
+### Added — `generateStudyMaterial` in `src/lib/ai.ts`
+
+New exported function. Takes `{ rawMaterial, format, subject?,
+gradeLevel?, examDate?, topicHint? }`. Truncates input over 50K
+chars with a note in the prompt. Returns
+`{ content, format, model, tokensApprox, aiError? }`. Wraps
+`callGemini` with a deterministic fallback path so a Gemini outage
+returns the user's raw outline instead of an empty response.
+
+### Added — `/api/study/generate`
+
+Stateless POST endpoint. Auth: any logged-in user (no role gate).
+Validates input, calls `generateStudyMaterial`, returns the result.
+`maxDuration = 120` to give the comic format enough room for image
+generation.
+
+### Added — Pricing page "Individual products" section
+
+A new band on `/pricing`, below the standard plan cards and above
+the Custom Plan Builder. Three cards: **Exam Study Helper**
+(shipped, $9/exam one-time), **Practice Generator** (coming soon),
+**Essay Coach** (coming soon). District plan cards above are
+unchanged.
+
+### Changed — Landing page copy
+
+- Hero subhead now reads "Built for districts, families, and
+  individual learners — same engine, every tier."
+- Hero secondary CTA changed from "See how it works" to "Try the
+  Exam Study Helper" so visitors who came for a study tool aren't
+  forced through the district signup funnel.
+- Trust-badge row updated to "Districts · families · individuals".
+- Footer description and pricing-section sub-badge updated to
+  match.
+
+### Notes
+
+- No schema changes. The Exam Study Helper is stateless and stores
+  its history in the browser. A future iteration may add a
+  `StudyMaterial` Prisma model for server-side history once the
+  Stripe wiring lands.
+- No new env vars.
+- Stripe / payment wiring for the individual products is NOT in
+  this update. The "Try it now" link on the Exam Study Helper card
+  routes straight to `/study`, which is currently free to any
+  logged-in user. Monetization plumbing (per-generation credits,
+  trial caps, one-time purchase) is a follow-up.
+- The new `/study` page goes through standard NextAuth — anonymous
+  visitors are redirected to `/login` like every other gated page.
+  A future iteration may add an "anonymous trial" mode that allows
+  one generation without an account.
+
+### Out of scope (deferred)
+
+- Stripe checkout for the $9 one-time purchase.
+- Per-user generation credits / quota.
+- `StudyMaterial` Prisma model for server-side history.
+- Anonymous trial.
+- Practice Generator and Essay Coach are placeholder cards only —
+  no backend behind them yet.
+
+---
+
 ## [4.0.0] - 2026-05-09 — Update 4.0 (Parent Loop + per-district subdomains)
 
 The first feature update since v14.0.0's clean rebuild. Two

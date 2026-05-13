@@ -202,21 +202,21 @@ export default function LandingPage() {
             </h1>
 
             <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-              The AI rewrites every chapter for every student in the format that fits how they actually learn. Same facts. Same assignments. The doorway in is theirs. Built for districts and families — same engine, same outcomes, every tier.
+              The AI rewrites every chapter for every student in the format that fits how they actually learn. Same facts. Same assignments. The doorway in is theirs. Built for districts, families, and individual learners — same engine, every tier.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/register" className="group inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-7 py-3.5 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-600/20">
                 Get started <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
-              <Link href="#how-it-works" className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-7 py-3.5 rounded-xl font-bold border border-gray-200 hover:border-primary-200 hover:bg-primary-50 transition">
-                See how it works
+              <Link href="/study" className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-7 py-3.5 rounded-xl font-bold border border-gray-200 hover:border-primary-200 hover:bg-primary-50 transition">
+                Try the Exam Study Helper
               </Link>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
               {[
-                { icon: Check, text: 'For districts and families' },
+                { icon: Check, text: 'Districts · families · individuals' },
                 { icon: Lock, text: 'FERPA & COPPA compliant' },
                 { icon: Zap, text: 'Set up in 5 minutes' },
               ].map(item => (
@@ -577,7 +577,7 @@ export default function LandingPage() {
               </Link>
             </div>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-sm text-white/50">
-              <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> For districts and families</span>
+              <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> Districts, families & individuals</span>
               <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> 14-day free trial on paid tiers</span>
               <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> FERPA compliant</span>
             </div>
@@ -594,7 +594,7 @@ export default function LandingPage() {
                 <img src="/logo.svg" alt="Limud" className="w-8 h-8 rounded-lg object-cover" />
                 <span className="text-base font-bold text-white">Limud</span>
               </div>
-              <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for districts and families.</p>
+              <p className="text-xs leading-relaxed">AI-powered adaptive learning platform. Every mind learns differently. Built for districts, families, and individual learners.</p>
               <div className="flex gap-2 mt-3">
                 {['FERPA', 'COPPA', 'WCAG'].map(badge => (
                   <span key={badge} className="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded border border-gray-700">{badge}</span>
