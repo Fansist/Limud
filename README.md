@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.0.0 · Update 5.0 · Individual products line + Exam Study Helper</code>
+  <code>v16.1.0 · Update 5.1 · Public /products + paid Family + AI training file</code>
 </p>
 
 ---

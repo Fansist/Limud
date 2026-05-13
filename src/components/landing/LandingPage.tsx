@@ -130,7 +130,7 @@ export default function LandingPage() {
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": [
-            { "@type": "Question", "name": "Is Limud really free?", "acceptedAnswer": { "@type": "Answer", "text": "The Family tier is free for up to 5 students per parent account. Districts and schools run on per-seat pricing that scales with capacity, AI usage, and admin controls. Both tiers are the same underlying product — the engine, the personalization, the AI tutor, the materials rewriting are identical." }},
+            { "@type": "Question", "name": "How much does Limud cost?", "acceptedAnswer": { "@type": "Answer", "text": "The Family tier is $7-9/month for up to 5 students per parent account (annual saves 22%). Districts and schools run on per-seat pricing that scales with capacity, AI usage, and admin controls. Both tiers are the same underlying product — the engine, the personalization, the AI tutor, the materials rewriting are identical." }},
             { "@type": "Question", "name": "What subjects does Limud cover?", "acceptedAnswer": { "@type": "Answer", "text": "Limud supports Math (Algebra, Geometry, Fractions), Science, English Language Arts, History, and more. Teachers can create custom content for any subject." }},
             { "@type": "Question", "name": "How does the AI tutor work?", "acceptedAnswer": { "@type": "Answer", "text": "Limud's AI tutor uses Socratic questioning — it guides students to discover answers rather than giving them directly. It adapts to each student's learning style and interests." }},
             { "@type": "Question", "name": "Is Limud FERPA and COPPA compliant?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Limud is built for compliance from the ground up with AES-256-GCM encryption, 7-year audit log retention, parental consent tracking, and role-based access control." }},
@@ -158,6 +158,7 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Link href="/products" className="hidden md:inline text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 px-3 py-2">Products</Link>
               <Link href="/login" className="hidden sm:inline text-sm font-semibold text-gray-600 hover:text-gray-900 px-3 py-2">Sign In</Link>
               <Link href="/register" className="inline-flex items-center gap-1 bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-700 transition shadow-sm">
                 Start Free <ArrowRight size={14} />
@@ -550,7 +551,7 @@ export default function LandingPage() {
             {[
               { q: 'What is "Learning DNA"?', a: 'Learning DNA is Limud\'s proprietary cognitive profiler. Through a quick onboarding survey and ongoing analysis of how a student interacts with content, it builds a profile that captures their learning modality (visual, auditory, kinesthetic, reading), cognitive speed, retention rate, and peak study hours. Every piece of content is then adapted to match.' },
               { q: 'Who is Limud built for?', a: 'Districts and families, equally. Districts run multi-school deployments with SSO, district-wide analytics, and dedicated support. Families run a parent account with up to 5 kids — wherever those kids go to school. Same engine, same AI, same outcomes; the difference is capacity, controls, and integrations.' },
-              { q: 'Is the Family plan really free?', a: 'Yes. The Family plan covers up to 5 kids in one parent account at no charge. Parents who teach at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload — included.' },
+              { q: 'How much is the Family plan?', a: 'The Family plan is $9/month (or $7/month billed yearly — saves 22%) for up to 5 kids in one parent account, with a 14-day free trial. Parents who teach at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload — included.' },
               { q: 'How does the Socratic AI tutor work?', a: 'Unlike ChatGPT which gives direct answers, Limud\'s AI tutor uses Socratic questioning to guide students to discover answers themselves. It uses analogies based on the student\'s interests (from their Learning DNA profile) to make concepts relatable. All conversations are logged for parent/teacher review.' },
               { q: 'How does a teacher upload one assignment for all students?', a: 'Teachers upload a single baseline assignment. Limud\'s AI Assignment Adapter automatically generates individualized versions for different learning styles — visual learners get diagrams, auditory learners get discussion prompts, kinesthetic learners get hands-on activities. Teachers review and approve the adaptations.' },
               { q: 'What is the AI parent check-in?', a: 'Parents click one button and receive a plain-English, conversational summary of their child\'s recent academic performance, emotional engagement, study habits, and areas needing attention. No more deciphering complex grade books.' },
@@ -612,7 +613,7 @@ export default function LandingPage() {
             <div>
               <h4 className="text-xs font-semibold text-white mb-3 uppercase tracking-wider">Company</h4>
               <ul className="space-y-2">
-                {[{ label: 'About', href: '/about' }, { label: 'Team', href: '/team' }, { label: 'Help', href: '/help' }, { label: 'Roadmap', href: '/roadmap' }, { label: 'Contact', href: '/contact' }].map(l => (
+                {[{ label: 'About', href: '/about' }, { label: 'Team', href: '/team' }, { label: 'Products', href: '/products' }, { label: 'Help', href: '/help' }, { label: 'Roadmap', href: '/roadmap' }, { label: 'Contact', href: '/contact' }].map(l => (
                   <li key={l.label}><Link href={l.href} className="text-xs hover:text-white transition">{l.label}</Link></li>
                 ))}
               </ul>

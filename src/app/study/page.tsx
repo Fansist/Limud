@@ -1,20 +1,19 @@
 'use client';
 /**
- * Exam Study Helper (v15.2)
+ * Exam Study Helper (v16.1 — anon-friendly public page)
  *
- * Public-facing individual-product page. Logged-in users (any role) drop
- * coursework/exam material, pick a format, and get back study material
- * rendered in their chosen style:
- *   - Textbook  (long-form prose)
- *   - Comic     (panel script + AI-generated panel images)
- *   - Diagrams  (mermaid + prose)
- *   - Cheatsheet (one-pager)
- *   - Flashcards (Q/A pairs)
+ * Individual-product page. Public surface: anonymous visitors can browse
+ * the form and read the format options; the Generate button prompts a
+ * sign-in. Authenticated users (any role, including master demo) generate
+ * normally and see their full dashboard chrome.
  *
- * Stateless on the server. Last 5 generations cached in localStorage so the
- * user can switch back to a previous result without re-running the AI.
+ * Stateless on the server. Last 5 generations cached in localStorage so
+ * the user can switch back to a previous result without re-running the AI.
  */
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
@@ -25,6 +24,7 @@ import {
   Brain,
   ClipboardList,
   Loader2,
+  LogIn,
   Network,
   Sparkles,
   Upload,
@@ -128,6 +128,11 @@ function saveHistory(entries: HistoryEntry[]) {
 }
 
 export default function StudyPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const isAuthed = status === 'authenticated';
+  const isLoadingSession = status === 'loading';
+
   const [rawMaterial, setRawMaterial] = useState('');
   const [subject, setSubject] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
@@ -140,6 +145,23 @@ export default function StudyPage() {
 
   useEffect(() => {
     setHistory(loadHistory());
+    // v16.1: restore a pre-sign-in draft if the user got bounced through
+    // /login and is now back. We only consume the draft once.
+    try {
+      const raw = window.localStorage.getItem('limud-study-draft');
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (typeof draft?.rawMaterial === 'string' && draft.rawMaterial) setRawMaterial(draft.rawMaterial);
+        if (typeof draft?.subject === 'string') setSubject(draft.subject);
+        if (typeof draft?.gradeLevel === 'string') setGradeLevel(draft.gradeLevel);
+        if (typeof draft?.examDate === 'string') setExamDate(draft.examDate);
+        if (typeof draft?.topicHint === 'string') setTopicHint(draft.topicHint);
+        if (typeof draft?.format === 'string') setFormat(draft.format as StudyFormat);
+        window.localStorage.removeItem('limud-study-draft');
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const wordCount = useMemo(
@@ -163,6 +185,23 @@ export default function StudyPage() {
   }
 
   async function generate() {
+    if (!isAuthed) {
+      // v16.1: anonymous browse is allowed, but generation needs an
+      // account so we can scope usage and (eventually) charge for it.
+      // Preserve their work in localStorage so they don't lose it on
+      // the round trip through /login.
+      try {
+        window.localStorage.setItem(
+          'limud-study-draft',
+          JSON.stringify({ rawMaterial, subject, gradeLevel, examDate, topicHint, format }),
+        );
+      } catch {
+        /* storage unavailable — proceed anyway */
+      }
+      toast('Sign in to generate — your work is saved.', { icon: '🔒' });
+      router.push('/login?callbackUrl=' + encodeURIComponent('/study'));
+      return;
+    }
     if (rawMaterial.trim().length < 50) {
       toast.error('Add at least a paragraph of material first.');
       return;
@@ -228,9 +267,37 @@ export default function StudyPage() {
       .catch(() => toast.error("Couldn't copy"));
   }
 
+  // v16.1: while NextAuth resolves the session, render a quiet skeleton.
+  // Anonymous users get a marketing-style top bar and a sign-in CTA; the
+  // form below renders normally so they can preview what they'll get.
+  const Shell = isAuthed ? DashboardLayout : AnonShell;
+
   return (
-    <DashboardLayout>
+    <Shell>
       <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-6">
+        {/* v16.1: anonymous banner — explains the sign-in gate so the
+            Generate button's behavior isn't a surprise. */}
+        {!isAuthed && !isLoadingSession && (
+          <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-primary-50 to-fuchsia-50 p-4 flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-white text-primary-600 flex items-center justify-center shadow-sm flex-shrink-0">
+              <LogIn size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900">Preview mode</p>
+              <p className="text-xs text-gray-600 mt-0.5">
+                You can fill out the form to see how it works. Generating a study set
+                needs a free account — we&apos;ll save your draft if you sign in now.
+              </p>
+            </div>
+            <Link
+              href="/login?callbackUrl=%2Fstudy"
+              className="inline-flex items-center gap-1 text-xs font-bold text-primary-600 hover:text-primary-700 px-3 py-1.5 rounded-lg border border-primary-200 bg-white shadow-sm whitespace-nowrap"
+            >
+              Sign in
+            </Link>
+          </div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -394,6 +461,11 @@ export default function StudyPage() {
                   <Loader2 size={18} className="animate-spin" />
                   Generating your {FORMAT_OPTIONS.find((f) => f.id === format)?.label.toLowerCase()}…
                 </>
+              ) : !isAuthed && !isLoadingSession ? (
+                <>
+                  <LogIn size={18} />
+                  Sign in to generate
+                </>
               ) : (
                 <>
                   <Sparkles size={18} />
@@ -492,6 +564,47 @@ export default function StudyPage() {
           </motion.div>
         )}
       </div>
-    </DashboardLayout>
+    </Shell>
+  );
+}
+
+/**
+ * Lightweight wrapper used when the visitor is anonymous. Mirrors enough of
+ * the DashboardLayout chrome that the page doesn't look broken without it.
+ */
+function AnonShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Limud" className="w-8 h-8 rounded-lg object-cover" />
+            <span className="text-lg font-extrabold text-gray-900 dark:text-white">Limud</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/products" className="hidden sm:inline text-sm font-medium text-gray-600 hover:text-gray-900">
+              Products
+            </Link>
+            <Link href="/pricing" className="hidden sm:inline text-sm font-medium text-gray-600 hover:text-gray-900">
+              Pricing
+            </Link>
+            <Link
+              href="/login?callbackUrl=%2Fstudy"
+              className="text-sm font-semibold text-gray-700 hover:text-gray-900 px-3 py-2"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-1 bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-700 transition shadow-sm"
+            >
+              Start free
+            </Link>
+          </div>
+        </div>
+      </header>
+      {children}
+    </div>
   );
 }

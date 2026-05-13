@@ -13,9 +13,13 @@ import { cn } from '@/lib/utils';
 // ─── PRICING DATA ───────────────────────────────────────────────────────
 const PLANS = [
   {
-    tier: 'FAMILY', price: 0, label: '/month', headline: 'Free for parents with K–12 kids — at any school',
-    icon: <Home size={20} />, color: 'from-gray-400 to-gray-500',
-    cta: 'Create family account', href: '/register', ctaStyle: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
+    // v16.1: Family is now a paid tier. Flat-fee per household (up to 5 kids)
+    // — recognizable price point for parents, real margin for Limud, and it
+    // stops the free tier from being abused at district scale.
+    tier: 'FAMILY', price: 9, label: '/month', annualPrice: 7, annualLabel: '/month (billed yearly, save 22%)',
+    headline: 'For parents with K–12 kids — at any school',
+    icon: <Home size={20} />, color: 'from-rose-400 to-pink-500',
+    cta: 'Start 14-Day Free Trial', href: '/onboard?plan=FAMILY', ctaStyle: 'bg-rose-500 text-white hover:bg-rose-600',
   },
   {
     tier: 'STARTER', price: 3, label: '/student/mo', annualPrice: 2, annualLabel: '/student/mo (billed yearly)',
@@ -1125,10 +1129,10 @@ export default function PricingPage() {
               <h3 className="font-bold text-gray-900">For families</h3>
             </div>
             <p className="text-sm text-gray-600">
-              Up to 5 kids in one parent account, free. Personalized material rewrites, AI tutor, parent dashboard, weekly check-ins, and optional Family Teaching Mode &mdash; included for any family with K&ndash;12 kids.
+              Up to 5 kids in one parent account for $9/month (or $7/month billed yearly). Personalized material rewrites, AI tutor, parent dashboard, weekly check-ins, and optional Family Teaching Mode &mdash; for any family with K&ndash;12 kids. 14-day free trial.
             </p>
-            <Link href="/register" className="bg-primary-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-700 transition whitespace-nowrap inline-flex items-center gap-2 self-start">
-              Create family account <ArrowRight size={14} />
+            <Link href="/onboard?plan=FAMILY" className="bg-primary-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-700 transition whitespace-nowrap inline-flex items-center gap-2 self-start">
+              Start 14-day trial <ArrowRight size={14} />
             </Link>
           </div>
         </motion.div>
@@ -1140,7 +1144,7 @@ export default function PricingPage() {
           <div className="space-y-4">
             {[
               { q: 'Who is Limud built for?', a: 'Districts and families, equally. Districts run multi-school deployments with SSO/SAML, district-wide analytics, custom AI training, and dedicated support. Families run a parent account with up to 5 kids — wherever those kids go to school. Same engine, same AI, same outcomes; the difference is capacity, controls, and integrations.' },
-              { q: 'Is the Family plan really free?', a: 'Yes. The Family plan covers up to 5 children in one parent account, no time limit, no credit card. You get 50 AI Tutor sessions/month, 3 quiz generations/month, adaptive material rewrites, the parent dashboard, weekly check-ins, and community support — for any family with kids in any school setting.' },
+              { q: 'How much is the Family plan?', a: 'The Family plan is $9/month (or $7/month billed yearly — saving 22%) for up to 5 children in one parent account. It includes 50 AI Tutor sessions/month, 3 quiz generations/month, adaptive material rewrites, the parent dashboard, weekly check-ins, and Family Teaching Mode. Every paid tier (including Family) comes with a 14-day free trial — no credit card required to start.' },
               { q: 'What happens when I hit a limit?', a: 'You will see a friendly notification and can either upgrade or wait for your monthly limit to reset. We never cut off access to existing work — students can always view their past assignments, grades, and progress.' },
               { q: 'Can I switch plans at any time?', a: 'Absolutely. Upgrade instantly and we will prorate the difference. Downgrade at the end of your billing cycle. Your data is always preserved regardless of plan changes.' },
               { q: 'How does the Custom Plan Builder work?', a: 'Our Custom Plan Builder lets you mix and match exactly what you need. Adjust student/teacher capacity, AI usage limits (tutor sessions, grading, quizzes, writing coach), analytics modules, and add-on features like SSO, custom branding, and priority support. The builder calculates your monthly and annual cost in real time, and shows which standard plan most closely matches your selection.' },

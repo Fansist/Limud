@@ -4,6 +4,100 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.1.0] - 2026-05-12 — Update 5.1 (Public /products, paid Family, AI training file)
+
+Follow-up to 5.0. Closes the loop on three things:
+
+1. Visitors couldn't actually open `/study` without an account —
+   it bounced through `/login`. Fixed: `/study` and `/products`
+   are now public-browseable, with the Generate button gating
+   behind login (preserving cost protection on the AI call).
+2. The Family plan was still listed as free. It now costs money.
+3. New `AI-TRAINING.md` at the repo root so the maintainer can
+   configure any AI (Claude, GPT, Cursor, etc.) to work on Limud
+   without re-explaining the codebase every session.
+
+### Added — `/products` public catalog
+
+Public landing page at `/products` for the individual-product
+line. Three cards: Exam Study Helper (shipped), Practice
+Generator (coming soon), Essay Coach (coming soon). Has its own
+top nav (Sign in · Start free) and footer — does NOT use
+`DashboardLayout`, so anonymous visitors see a clean marketing
+page. A new "Products" link in the landing-page top nav and
+footer routes here.
+
+### Added — `AI-TRAINING.md`
+
+Single self-contained system-prompt-ready document covering:
+what Limud is, the tech stack, absolute rules, codebase map,
+code patterns, role system, voice/style, anti-patterns, recent
+history. Top of the file is "HOW TO USE" with concrete
+instructions for Claude Projects, Claude Code, Cursor, ChatGPT
+custom instructions, and direct API system prompts. ~600 lines.
+
+### Changed — `/study` is now publicly browseable
+
+- Added `/products` and `/study` to `PUBLIC_PATHS` in middleware
+  so anonymous visitors aren't bounced to `/login`.
+- `/study` page now uses `useSession`. When anonymous, the form
+  renders with a "Preview mode" banner at top and a lightweight
+  `<AnonShell>` instead of `<DashboardLayout>`. The Generate
+  button shows "Sign in to generate" and persists the user's
+  current draft to `localStorage` before redirecting to
+  `/login?callbackUrl=/study`. On return, the draft is restored
+  and consumed.
+- The underlying `/api/study/generate` endpoint still requires
+  `requireAuth` — public access is browse-only.
+
+### Changed — Master demo access on individual products
+
+Master demo (`isMasterDemo=true` on the session) is just a
+regular authenticated user from the API's perspective, so
+making `/study` public + gating the Generate button on
+`isAuthed` is exactly what the user asked for: master demo can
+walk through every product live without hitting paywalls or
+auth walls. Future products under `/products/*` get the same
+treatment automatically thanks to the prefix-based PUBLIC_PATHS
+match.
+
+### Changed — Family plan is now paid
+
+Family tier on `/pricing`:
+
+- Was: $0/month, "Free for parents with K–12 kids".
+- Now: **$9/month** (or $7/month billed yearly, save 22%).
+- 14-day free trial like every other paid tier.
+- Up to 5 kids in one parent account, all features included.
+
+Updates land in:
+
+- `src/app/(auth)/pricing/page.tsx` — `PLANS[FAMILY]` definition,
+  the "For families" callout card, the pricing FAQ entry that
+  read "Is the Family plan really free?".
+- `src/app/layout.tsx` — root metadata description and Twitter
+  card description (both said "Free for families").
+- `src/components/landing/LandingPage.tsx` — schema.org JSON-LD
+  FAQ + on-page pricing FAQ.
+- `src/app/(auth)/demo/page.tsx` — "For families" card.
+
+The CTA changes from "Create family account" to "Start 14-day
+trial" and routes to `/onboard?plan=FAMILY` (was `/register`).
+
+### Notes
+
+- No new env vars.
+- No schema changes.
+- Stripe wiring for the paid Family tier is still NOT in this
+  update — the CTA renders correctly but the onboarding flow
+  doesn't take a card yet. Same status as the individual
+  products in 5.0. Tracked in `CODE-REVIEW.md`.
+- The `AI-TRAINING.md` file is self-referential — when the
+  codebase changes substantially, the rule at the bottom asks
+  the operator to update this file in the same commit.
+
+---
+
 ## [5.0.0] - 2026-05-12 — Update 5.0 (Individual products + Exam Study Helper)
 
 Business-model expansion. District plans remain the core product

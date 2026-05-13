@@ -320,8 +320,8 @@ export default function DemoPage() {
             <div className="flex-1 text-center sm:text-left">
               <h3 className="text-lg font-bold text-gray-900">For families</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Up to 5 kids in one parent account. Free for families with K-12 kids at any school:
-                district, charter, private, or home. Optional Family Teaching Mode for parents who teach at home.
+                Up to 5 kids in one parent account for $9/month ($7/month billed yearly). For any family with K-12 kids at any school:
+                district, charter, private, or home. 14-day free trial. Optional Family Teaching Mode for parents who teach at home.
               </p>
             </div>
             <Link

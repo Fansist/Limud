@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     default: 'Limud — AI-Powered Adaptive Learning for K-12',
     template: '%s | Limud',
   },
-  description: 'Eliminate the one-size-fits-all classroom. AI adapts curriculum to every student\'s Learning DNA. Free for families with K-12 kids. Per-seat pricing for districts and schools. FERPA & COPPA compliant.',
+  description: 'Eliminate the one-size-fits-all classroom. AI adapts curriculum to every student\'s Learning DNA. Family plans from $7/month. Per-seat pricing for districts and schools. FERPA & COPPA compliant.',
   keywords: ['adaptive learning', 'AI tutor', 'K-12', 'districts', 'schools', 'families', 'personalized education', 'FERPA', 'COPPA'],
   authors: [{ name: 'Limud Education Inc.' }],
   icons: {
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Limud — AI-Powered K–12 Learning Platform',
-    description: 'Replace 6+ education apps with one. AI tutoring, auto-grading, adaptive learning. Free for families. Per-seat for districts. FERPA compliant.',
+    description: 'Replace 6+ education apps with one. AI tutoring, auto-grading, adaptive learning. Family plans from $7/mo. Per-seat for districts. FERPA compliant.',
   },
   robots: {
     index: true,

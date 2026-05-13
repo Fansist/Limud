@@ -43,6 +43,16 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.1.0 — Update 5.1: public /products + paid Family + AI training`
+- **files:** ~9 · NEW `src/app/products/page.tsx`, NEW `AI-TRAINING.md`, `src/middleware.ts` (PUBLIC_PATHS +2), `src/app/study/page.tsx` (anon shell + sign-in gate on Generate), `src/app/(auth)/pricing/page.tsx` (Family tier paid), `src/components/landing/LandingPage.tsx` (Products nav link + FAQ + JSON-LD), `src/app/layout.tsx` (metadata), `src/app/(auth)/demo/page.tsx` (callout copy), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** MEDIUM
+  - `/study` is now publicly reachable; the Generate button is the only thing standing between an anonymous visitor and the AI cost. Mitigation: the `/api/study/generate` route enforces `requireAuth`, and the page-level check redirects to /login before firing. Still no per-user generation cap.
+  - Family becomes paid — copy is updated everywhere I could find. If a marketing page I missed still says "free", the discrepancy will look unprofessional but isn't a security or correctness issue.
+- **review:** ⚠️ partial — same open items as v16.0.0 carry forward (Stripe checkout, per-user quota, StudyMaterial Prisma model). New open item: an `/onboard?plan=FAMILY` flow that takes a card (currently the route exists but doesn't actually charge — fine for the 14-day trial period, breaks at day 14).
+- **demo-mode:** yes — master demo (logged-in) sees the same public surface plus the authed flows. Anonymous visitors can browse `/study` and `/products` end-to-end with no DB writes.
+- **tests:** manual smoke — `/study` and `/products` should render anonymous; clicking Generate while anonymous should bounce to /login then restore the draft; signing in should let Generate work. Render build will catch TS issues.
+- **notes:** `AI-TRAINING.md` is the new artifact — single comprehensive document the maintainer can paste into any AI system-prompt slot. Includes the codebase map, code patterns, anti-patterns, and recent history. The "HOW TO USE" section up top covers Claude Projects, Claude Code, Cursor, ChatGPT, and direct API calls.
+
 ### 4de74e9 — `v16.0.0 — Update 5.0: Individual products + Exam Study Helper`
 - **files:** ~8 · `src/lib/ai.ts` (+`generateStudyMaterial`), NEW `src/app/api/study/generate/route.ts`, NEW `src/app/study/page.tsx`, `src/app/(auth)/pricing/page.tsx` (Individual section), `src/components/landing/LandingPage.tsx` (hero + footer copy), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** MEDIUM — new logged-in-user page that calls Gemini on user-supplied text. Two concerns to watch:
