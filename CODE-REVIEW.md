@@ -43,6 +43,17 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.3.0 — Update 5.3: 8 products + bundles + dual pricing + multi-file uploads`
+- **files:** 5 · `src/app/products/page.tsx` (full rewrite — 8 products, 4 bundles, billing-mode toggle), `src/app/study/page.tsx` (multi-file upload — new `handleFilesUpload()` + `<input multiple>`), `CHANGELOG.md`, `CODE-REVIEW.md`, `README.md`, `package.json`
+- **risk:** LOW
+  - Catalog/page is mostly marketing copy + a presentational toggle. No new API surface, no new auth, no schema. Worst case: a catalog card renders weirdly on a narrow viewport.
+  - Multi-file upload: new code path inside `handleFilesUpload()`. The 5 MB per-file ceiling and the 50 KB raw cap inside `generateStudyMaterial()` already bound total payload — no escalation in upload size limits.
+  - The new catalog page is a `'use client'` component (was server-rendered before) because of the `useState` for the billing toggle. Slightly larger client bundle on /products. Acceptable for a marketing page.
+- **review:** ⚠️ partial — Stripe is still not wired, so the catalog prices and bundle prices are marketing-side only. Bundle "Coming soon" buttons are dead placeholders. Same status carries from v16.0/v16.1/v16.2; not a new debt, but the bundle pricing is now in front of users and needs Stripe-backed reality before any real checkout.
+- **demo-mode:** yes — public catalog needs no auth. Master demo sees the same surface and (when logged in) can click through to the two shipped products as before.
+- **tests:** manual smoke — open /products, toggle One-time ↔ Monthly, verify both prices visible on every card and bundle; open /study, pick multiple .txt files in one selection, confirm each appears in the textarea under a `=== filename ===` header and the toast says "Loaded N files".
+- **notes:** Five new catalog teasers were chosen for distinct student personas (math, language, note-taker, science, research). All carry both an illustrative one-time and monthly price so the catalog reads honestly even though Stripe is absent. Bundle prices were sized to land ~20–45% under the sum of the included products' one-time prices.
+
 ### e369443 — `v16.2.0 — Update 5.2: Practice Generator + body-scan fix`
 - **files:** 7 · NEW `src/app/practice/page.tsx`, NEW `src/app/api/practice/generate/route.ts`, `src/lib/ai.ts` (+`generatePracticeQuiz` + tolerant JSON parser), `src/lib/middleware.ts` (key-based prototype check + `skipBodyScanning` option), `src/app/api/study/generate/route.ts` (apply `skipBodyScanning: true`), `src/app/products/page.tsx` (Practice marked Available, $5/topic), `src/middleware.ts` (/practice in PUBLIC_PATHS), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** MEDIUM-HIGH

@@ -1,15 +1,22 @@
+'use client';
 /**
- * Individual Products Catalog (v16.1)
+ * Individual Products Catalog (v16.3.0 — Update 5.3)
  *
  * Public-facing landing page for the standalone tools that any single
- * learner can use, with or without a district plan. The page is fully
- * browseable without an account; each product's "Try it" button routes
- * to the product surface, which decides whether to gate behind login.
+ * learner can use, with or without a district plan. Each product carries
+ * two prices side-by-side:
+ *   - one-time:  permanent use of that workflow (no expiry)
+ *   - monthly:   unlimited use as long as the subscription is active
  *
- * Future products go in the `PRODUCTS` array below. Mark `available: true`
- * once the product surface is reachable; until then it renders as a
+ * Bundles sit underneath the product grid for users who want more than
+ * one tool. Bundle discounts are applied against the corresponding
+ * one-time price total OR a flat monthly subscription.
+ *
+ * Future products go in the PRODUCTS array. Mark `available: true` once
+ * the product surface is reachable; until then it renders as a
  * coming-soon card with a disabled CTA.
  */
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -19,19 +26,42 @@ import {
   ClipboardList,
   Network,
   Wand2,
+  Calculator,
+  FileText,
+  Beaker,
+  Languages,
+  Quote,
+  Package,
+  Check,
+  Infinity as InfinityIcon,
 } from 'lucide-react';
+
+type BillingMode = 'oneTime' | 'monthly';
 
 type Product = {
   id: string;
   name: string;
   blurb: string;
   href: string;
-  price: string;
-  cadence: string;
+  oneTimePrice: number | null;       // one-time purchase (permanent use), null = "TBA"
+  oneTimeUnit: string;               // e.g. "per exam"
+  monthlyPrice: number | null;       // monthly subscription (unlimited use), null = "TBA"
   available: boolean;
   icon: React.ReactNode;
   ring: string;
   bullets: string[];
+};
+
+type Bundle = {
+  id: string;
+  name: string;
+  pitch: string;
+  productIds: string[];              // products included
+  oneTimePrice: number;              // bundle one-time price
+  monthlyPrice: number;              // bundle monthly price
+  savingsPct: number;                // estimated savings vs. buying separately
+  badge?: string;                    // e.g. "Best value"
+  ring: string;
 };
 
 const PRODUCTS: Product[] = [
@@ -39,27 +69,29 @@ const PRODUCTS: Product[] = [
     id: 'exam-study-helper',
     name: 'Exam Study Helper',
     blurb:
-      'Drop in your coursework. Limud rewrites it as a textbook, a comic, a diagram set, a cheatsheet, or flashcards — your call.',
+      'Drop in your coursework. Limud rewrites it as a textbook, comic, diagram set, cheatsheet, or flashcards. Now accepts multiple files at once.',
     href: '/study',
-    price: '$9',
-    cadence: 'per exam · one-time',
+    oneTimePrice: 9,
+    oneTimeUnit: 'per exam',
+    monthlyPrice: 5,
     available: true,
     icon: <Sparkles size={22} />,
     ring: 'from-fuchsia-500 to-pink-500',
     bullets: [
-      'Textbook chapter, comic series, diagrams, cheatsheet, or flashcards',
-      'AI-generated comic panel art for the comic format',
-      'Last 5 generations saved in your browser',
+      'Five output formats — textbook, comic, diagrams, cheatsheet, flashcards',
+      'AI-generated comic panel art when you pick the comic format',
+      'Multi-file upload — paste in chapter + notes + slides together',
     ],
   },
   {
     id: 'practice-generator',
     name: 'Practice Generator',
     blurb:
-      'Pick a topic, pick a difficulty, get a multiple-choice quiz with an explanation on every answer so you learn from the misses.',
+      'Pick a topic, pick a difficulty, get a multiple-choice quiz with explanations on every answer so you learn from the misses.',
     href: '/practice',
-    price: '$5',
-    cadence: 'per topic · one-time',
+    oneTimePrice: 5,
+    oneTimeUnit: 'per topic',
+    monthlyPrice: 4,
     available: true,
     icon: <Brain size={22} />,
     ring: 'from-blue-500 to-indigo-500',
@@ -70,13 +102,32 @@ const PRODUCTS: Product[] = [
     ],
   },
   {
+    id: 'math-solver',
+    name: 'Math Solver',
+    blurb:
+      'Paste any math problem. Limud shows the full step-by-step solution with a 1-line explanation at each step — algebra through calculus.',
+    href: '/products',
+    oneTimePrice: 7,
+    oneTimeUnit: 'pack of 50',
+    monthlyPrice: 4,
+    available: false,
+    icon: <Calculator size={22} />,
+    ring: 'from-orange-500 to-red-500',
+    bullets: [
+      'Step-by-step work, not just the answer',
+      'Pre-algebra through calculus and statistics',
+      'Catches the most common mistake patterns at each step',
+    ],
+  },
+  {
     id: 'essay-coach',
     name: 'Essay Coach',
     blurb:
-      "Paste a draft, get structure feedback that doesn't rewrite your voice and doesn't flag every sentence as plagiarism.",
+      "Paste a draft, get structural feedback that doesn't rewrite your voice and doesn't flag every sentence as plagiarism.",
     href: '/products',
-    price: 'TBA',
-    cadence: 'coming soon',
+    oneTimePrice: 7,
+    oneTimeUnit: 'per draft',
+    monthlyPrice: 5,
     available: false,
     icon: <BookOpen size={22} />,
     ring: 'from-emerald-500 to-teal-500',
@@ -86,15 +137,131 @@ const PRODUCTS: Product[] = [
       'Optional rubric alignment for school assignments',
     ],
   },
+  {
+    id: 'notes-cleaner',
+    name: 'Notes Cleaner',
+    blurb:
+      'Paste your messy lecture notes — abbreviations, fragments, gaps. Limud cleans them into organized, complete notes with the missing context filled in.',
+    href: '/products',
+    oneTimePrice: 4,
+    oneTimeUnit: 'per lecture',
+    monthlyPrice: 4,
+    available: false,
+    icon: <FileText size={22} />,
+    ring: 'from-amber-500 to-yellow-500',
+    bullets: [
+      'Fills gaps and decodes abbreviations from context',
+      'Adds section headings and a 5-bullet TL;DR',
+      'Cross-references concepts across your other uploads',
+    ],
+  },
+  {
+    id: 'lab-report-builder',
+    name: 'Lab Report Builder',
+    blurb:
+      'Drop your observations, data table, and hypothesis. Limud structures it into a proper lab report with intro, methods, results, and discussion.',
+    href: '/products',
+    oneTimePrice: 6,
+    oneTimeUnit: 'per report',
+    monthlyPrice: 4,
+    available: false,
+    icon: <Beaker size={22} />,
+    ring: 'from-cyan-500 to-sky-500',
+    bullets: [
+      'Standard intro / methods / results / discussion structure',
+      'Suggests graph types from your data table',
+      'Flags missing controls or unclear methodology',
+    ],
+  },
+  {
+    id: 'citation-finder',
+    name: 'Citation Finder',
+    blurb:
+      "Paste a claim or paragraph. Limud suggests real sources that back it up, formatted in APA, MLA, or Chicago. We don't write the essay — we find the evidence.",
+    href: '/products',
+    oneTimePrice: 4,
+    oneTimeUnit: 'pack of 25',
+    monthlyPrice: 3,
+    available: false,
+    icon: <Quote size={22} />,
+    ring: 'from-violet-500 to-purple-500',
+    bullets: [
+      'APA, MLA, and Chicago formats out of the box',
+      'Flags weak or unsupported claims before you submit',
+      'Prefers peer-reviewed and primary sources',
+    ],
+  },
+  {
+    id: 'language-lab',
+    name: 'Language Lab',
+    blurb:
+      'Spanish, French, Mandarin, Arabic, more. Daily vocab + grammar + reading drills adapted to your textbook and current chapter.',
+    href: '/products',
+    oneTimePrice: 12,
+    oneTimeUnit: 'per semester',
+    monthlyPrice: 5,
+    available: false,
+    icon: <Languages size={22} />,
+    ring: 'from-rose-500 to-pink-500',
+    bullets: [
+      'Anchors drills to your textbook, not generic content',
+      'Spaced repetition tuned to your error patterns',
+      'Reading passages at your current grammar level',
+    ],
+  },
 ];
 
-export const metadata = {
-  title: 'Individual Products',
-  description:
-    'Standalone AI study tools you can buy one at a time — no subscription, no district required.',
-};
+const BUNDLES: Bundle[] = [
+  {
+    id: 'all-access',
+    name: 'All-Access Pass',
+    pitch: 'Every current product + every future product. The cheapest way to use more than two tools.',
+    productIds: PRODUCTS.map((p) => p.id),
+    oneTimePrice: 79,
+    monthlyPrice: 15,
+    savingsPct: 45,
+    badge: 'Best value',
+    ring: 'from-fuchsia-500 via-purple-500 to-blue-500',
+  },
+  {
+    id: 'study-bundle',
+    name: 'Study Bundle',
+    pitch: 'Everything you need the week before an exam — material rewriting, practice questions, and notes cleanup.',
+    productIds: ['exam-study-helper', 'practice-generator', 'notes-cleaner'],
+    oneTimePrice: 15,
+    monthlyPrice: 9,
+    savingsPct: 22,
+    ring: 'from-fuchsia-500 to-blue-500',
+  },
+  {
+    id: 'writing-bundle',
+    name: 'Writing Bundle',
+    pitch: 'Coach your draft, find your sources, and clean your notes — for the essay-heavy classes.',
+    productIds: ['essay-coach', 'citation-finder', 'notes-cleaner'],
+    oneTimePrice: 12,
+    monthlyPrice: 8,
+    savingsPct: 20,
+    ring: 'from-emerald-500 to-teal-500',
+  },
+  {
+    id: 'stem-bundle',
+    name: 'STEM Bundle',
+    pitch: 'Math walkthroughs, lab report structure, and practice quizzes for the science/math grind.',
+    productIds: ['math-solver', 'lab-report-builder', 'practice-generator'],
+    oneTimePrice: 14,
+    monthlyPrice: 9,
+    savingsPct: 25,
+    ring: 'from-orange-500 to-blue-500',
+  },
+];
+
+function formatPrice(p: number | null): string {
+  return p === null ? 'TBA' : `$${p}`;
+}
 
 export default function ProductsPage() {
+  const [billing, setBilling] = useState<BillingMode>('oneTime');
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Top nav */}
@@ -124,17 +291,16 @@ export default function ProductsPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16">
         {/* Hero */}
-        <section className="text-center mb-12 lg:mb-16">
+        <section className="text-center mb-10 lg:mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-50 text-fuchsia-700 text-xs font-medium border border-fuchsia-100 mb-4">
-            <Sparkles size={14} /> New from Limud
+            <Sparkles size={14} /> 8 tools · 4 bundles
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight">
-            Single tools. <span className="bg-gradient-to-r from-primary-600 to-fuchsia-500 bg-clip-text text-transparent">Single payments.</span>
+            Single tools. <span className="bg-gradient-to-r from-primary-600 to-fuchsia-500 bg-clip-text text-transparent">Your choice how to pay.</span>
           </h1>
           <p className="mt-5 max-w-2xl mx-auto text-lg text-gray-500 leading-relaxed">
-            Not at a Limud district? You don&apos;t need to be. Buy one tool for the exam
-            you&apos;re actually studying for, or the essay you&apos;re actually writing. Pay
-            once, use it, move on.
+            Buy one tool for the exam you&apos;re actually studying for, pay once, keep it. Or
+            subscribe monthly and use everything as much as you want.
           </p>
           <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
@@ -144,83 +310,248 @@ export default function ProductsPage() {
               Try the Exam Study Helper <ArrowRight size={16} />
             </Link>
             <Link
-              href="/pricing"
+              href="/practice"
               className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-6 py-3 rounded-xl font-bold border border-gray-200 hover:border-primary-200 hover:bg-primary-50 transition"
             >
-              See district plans
+              Try the Practice Generator
             </Link>
           </div>
         </section>
 
-        {/* Product cards */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
-          {PRODUCTS.map((p) => (
-            <article
-              key={p.id}
+        {/* Billing mode toggle */}
+        <div className="flex items-center justify-center mb-8">
+          <div className="inline-flex items-center bg-white border-2 border-gray-100 rounded-2xl p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setBilling('oneTime')}
               className={
-                'rounded-3xl border-2 p-6 flex flex-col ' +
-                (p.available
-                  ? 'border-primary-100 bg-white shadow-sm hover:shadow-md transition'
-                  : 'border-dashed border-gray-200 bg-white')
+                'px-5 py-2 rounded-xl text-sm font-bold transition ' +
+                (billing === 'oneTime'
+                  ? 'bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white shadow'
+                  : 'text-gray-500 hover:text-gray-900')
               }
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div
+              One-time
+            </button>
+            <button
+              type="button"
+              onClick={() => setBilling('monthly')}
+              className={
+                'px-5 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ' +
+                (billing === 'monthly'
+                  ? 'bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white shadow'
+                  : 'text-gray-500 hover:text-gray-900')
+              }
+            >
+              Monthly <InfinityIcon size={14} />
+            </button>
+          </div>
+        </div>
+        <p className="text-center text-xs text-gray-500 -mt-4 mb-10 max-w-md mx-auto">
+          {billing === 'oneTime'
+            ? 'Pay once. Use that workflow permanently. No expiry.'
+            : 'One subscription. Unlimited use of that tool, every month.'}
+        </p>
+
+        {/* Product cards */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
+          {PRODUCTS.map((p) => {
+            const price = billing === 'oneTime' ? p.oneTimePrice : p.monthlyPrice;
+            const unit = billing === 'oneTime' ? p.oneTimeUnit : 'per month';
+            return (
+              <article
+                key={p.id}
+                className={
+                  'rounded-3xl border-2 p-6 flex flex-col ' +
+                  (p.available
+                    ? 'border-primary-100 bg-white shadow-sm hover:shadow-md transition'
+                    : 'border-dashed border-gray-200 bg-white')
+                }
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className={
+                      'w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md bg-gradient-to-br ' +
+                      (p.available ? p.ring : 'from-gray-300 to-gray-400')
+                    }
+                  >
+                    {p.icon}
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-gray-900">{p.name}</h2>
+                    <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
+                      {p.available ? 'Available now' : 'Coming soon · join waitlist'}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed">{p.blurb}</p>
+                <ul className="mt-4 space-y-1.5 flex-1">
+                  {p.bullets.map((b) => (
+                    <li key={b} className="text-xs text-gray-600 flex items-start gap-2">
+                      <span className="mt-1 w-1.5 h-1.5 rounded-full bg-primary-400 flex-shrink-0" />
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-5">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold text-gray-900">{formatPrice(price)}</span>
+                    <span className="text-xs text-gray-500">{unit}</span>
+                  </div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">
+                    {billing === 'oneTime'
+                      ? `or $${p.monthlyPrice ?? '—'}/mo unlimited`
+                      : `or $${p.oneTimePrice ?? '—'} ${p.oneTimeUnit}`}
+                  </div>
+                </div>
+                {p.available ? (
+                  <Link
+                    href={p.href}
+                    className="mt-4 block text-center py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white hover:opacity-95 transition"
+                  >
+                    Try it now
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="mt-4 block w-full text-center py-2.5 rounded-xl font-bold text-sm bg-gray-100 text-gray-400 cursor-not-allowed"
+                  >
+                    Notify me when it&apos;s ready
+                  </button>
+                )}
+              </article>
+            );
+          })}
+        </section>
+
+        {/* Bundles */}
+        <section className="mb-16">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium border border-primary-100 mb-3">
+              <Package size={14} /> Bundles
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
+              Use more than one tool? Pay less.
+            </h2>
+            <p className="mt-3 text-sm text-gray-500 max-w-xl mx-auto">
+              Stack the tools you actually use. Bundle prices include every product listed and any new product we add in the same category.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {BUNDLES.map((b) => {
+              const includes = b.productIds.map((id) => PRODUCTS.find((p) => p.id === id)?.name).filter(Boolean) as string[];
+              const price = billing === 'oneTime' ? b.oneTimePrice : b.monthlyPrice;
+              const unit = billing === 'oneTime' ? 'one-time' : 'per month';
+              return (
+                <article
+                  key={b.id}
                   className={
-                    'w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md bg-gradient-to-br ' +
-                    (p.available ? p.ring : 'from-gray-300 to-gray-400')
+                    'rounded-3xl p-6 flex flex-col bg-white border-2 ' +
+                    (b.badge ? 'border-primary-300 shadow-lg shadow-primary-500/10' : 'border-gray-100 shadow-sm')
                   }
                 >
-                  {p.icon}
-                </div>
-                <div>
-                  <h2 className="font-bold text-gray-900">{p.name}</h2>
-                  <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
-                    {p.available ? 'Available now' : 'Coming soon'}
-                  </p>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 leading-relaxed">{p.blurb}</p>
-              <ul className="mt-4 space-y-1.5 flex-1">
-                {p.bullets.map((b) => (
-                  <li key={b} className="text-xs text-gray-600 flex items-start gap-2">
-                    <span className="mt-1 w-1.5 h-1.5 rounded-full bg-primary-400 flex-shrink-0" />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-5 flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-gray-900">{p.price}</span>
-                <span className="text-xs text-gray-500">{p.cadence}</span>
-              </div>
-              {p.available ? (
-                <Link
-                  href={p.href}
-                  className="mt-4 block text-center py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white hover:opacity-95 transition"
-                >
-                  Try it now
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  disabled
-                  className="mt-4 block w-full text-center py-2.5 rounded-xl font-bold text-sm bg-gray-100 text-gray-400 cursor-not-allowed"
-                >
-                  Notify me
-                </button>
-              )}
-            </article>
-          ))}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={
+                          'w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md bg-gradient-to-br ' +
+                          b.ring
+                        }
+                      >
+                        <Package size={22} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900">{b.name}</h3>
+                        <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
+                          Save ~{b.savingsPct}%
+                        </p>
+                      </div>
+                    </div>
+                    {b.badge && (
+                      <span className="px-2.5 py-1 rounded-full bg-primary-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                        {b.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">{b.pitch}</p>
+
+                  <div className="mt-4 rounded-xl bg-gray-50 border border-gray-100 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">
+                      Includes {includes.length} {includes.length === 1 ? 'tool' : 'tools'}
+                    </p>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">
+                      {includes.map((name) => (
+                        <li key={name} className="text-xs text-gray-700 flex items-start gap-1.5">
+                          <Check size={12} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+                          <span>{name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-5 flex items-end justify-between gap-3">
+                    <div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-extrabold text-gray-900">${price}</span>
+                        <span className="text-xs text-gray-500">{unit}</span>
+                      </div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">
+                        {billing === 'oneTime'
+                          ? `or $${b.monthlyPrice}/mo unlimited`
+                          : `or $${b.oneTimePrice} one-time`}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled
+                      className="px-4 py-2.5 rounded-xl font-bold text-sm bg-gray-100 text-gray-400 cursor-not-allowed whitespace-nowrap"
+                    >
+                      Coming soon
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </section>
 
         {/* How it works */}
         <section className="rounded-3xl bg-gradient-to-br from-primary-50 to-fuchsia-50 border border-primary-100 p-8 lg:p-10 mb-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">How buying a single tool works</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">How the two pricing modes work</h2>
           <p className="text-sm text-gray-600 max-w-2xl mb-6">
-            No subscription, no district email required, no committee. Sign in once, use
-            the tool, keep your work.
+            Every tool has both. Pick whichever matches the moment.
           </p>
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="bg-white rounded-2xl p-5 border border-gray-100">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center">
+                  <Wand2 size={18} />
+                </div>
+                <span className="text-xs font-bold text-gray-400">Option 1</span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm">One-time purchase</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                One payment. Permanent access to that workflow — generate, regenerate, refine.
+                Best for a single exam, a single essay, a single lab report.
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-5 border border-gray-100">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-fuchsia-100 text-fuchsia-600 flex items-center justify-center">
+                  <InfinityIcon size={18} />
+                </div>
+                <span className="text-xs font-bold text-gray-400">Option 2</span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm">Monthly subscription</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Unlimited use of that tool every month. Cancel any time. Best for a full
+                semester or for studying that doesn&apos;t fit a single deadline.
+              </p>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4 mt-4">
             {[
               {
                 icon: <Wand2 size={18} />,

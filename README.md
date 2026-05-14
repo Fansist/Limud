@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.2.0 · Update 5.2 · Practice Generator + body-scan false-positive fix</code>
+  <code>v16.3.0 · Update 5.3 · 8-product catalog + bundles + dual pricing + multi-file uploads</code>
 </p>
 
 ---

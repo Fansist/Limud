@@ -4,6 +4,93 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.3.0] - 2026-05-12 — Update 5.3 (8 products, 4 bundles, dual pricing, multi-file uploads)
+
+The individual-products catalog grows from 2 shipped + 1 teased to
+2 shipped + 6 teased, with bundles for users who want more than one
+tool. Every product now carries TWO prices side by side: a one-time
+fee for permanent use of that workflow, and a monthly subscription
+for unlimited use. Plus a small but requested fix to the Exam Study
+Helper: it now accepts multiple files at once.
+
+### Added — Five new products on `/products`
+
+All five are catalog teasers (no detail pages yet — they render as
+"Coming soon · join waitlist"). Each gets the same dual-price
+treatment as the live products.
+
+- **Math Solver** — paste any problem, get full step-by-step work
+  with a 1-line explanation at each step. Pre-algebra → calculus.
+  $7 pack of 50, or $4/month unlimited.
+- **Notes Cleaner** — paste messy lecture notes; Limud fills the
+  gaps, decodes abbreviations, adds headings + a 5-bullet TL;DR.
+  $4 per lecture, or $4/month unlimited.
+- **Lab Report Builder** — drop observations + data + hypothesis;
+  Limud structures intro/methods/results/discussion and flags
+  missing controls. $6 per report, or $4/month unlimited.
+- **Citation Finder** — paste a claim, get real sources in APA /
+  MLA / Chicago. Doesn't write the essay, finds the evidence.
+  $4 pack of 25, or $3/month unlimited.
+- **Language Lab** — Spanish, French, Mandarin, Arabic, more.
+  Daily vocab + grammar + reading drills anchored to your textbook.
+  $12 per semester, or $5/month unlimited.
+
+### Added — Four bundles
+
+For users who want more than one tool. Bundle prices include every
+listed product and any new product we add in the same category.
+
+- **All-Access Pass** — every current product + every future
+  product. $79 one-time or $15/month. ~45% savings. (Best value.)
+- **Study Bundle** — Exam Study Helper + Practice Generator +
+  Notes Cleaner. $15 one-time or $9/month. ~22% savings.
+- **Writing Bundle** — Essay Coach + Citation Finder + Notes
+  Cleaner. $12 one-time or $8/month. ~20% savings.
+- **STEM Bundle** — Math Solver + Lab Report Builder + Practice
+  Generator. $14 one-time or $9/month. ~25% savings.
+
+### Added — Dual pricing model (one-time / monthly toggle)
+
+Every product card on `/products` now shows TWO prices side by
+side. A pill toggle at the top of the page switches the displayed
+price between modes. The "off mode" still shows as a small
+secondary line under the main price ("or $5/mo unlimited"), so
+both options are always visible without re-toggling.
+
+- **One-time** — pay once, use that workflow permanently. Best for
+  a single exam, a single essay, a single lab report.
+- **Monthly** — unlimited use of that tool, every month, cancel
+  any time. Best for a full semester.
+
+### Changed — Exam Study Helper now accepts multiple files at once
+
+`/study` upload now supports a multi-file `<input multiple>`. Each
+file's contents get appended to the material textarea with a
+`=== filename ===` separator so the AI knows where one source ends
+and the next begins. Toast feedback is plural-aware
+("Loaded 3 files"). Single-file uploads still work the same way.
+
+The 5 MB per-file limit and the 50 KB total raw-material cap inside
+`generateStudyMaterial()` are unchanged — files over 5 MB are
+skipped and the user is told which ones; the rest still load.
+
+### Notes
+
+- Stripe still not wired. Catalog prices and bundle prices are
+  marketing-side only. Both shipped products (Exam Study Helper +
+  Practice Generator) and any "Try it now" buttons still route
+  through the existing auth-gated flow; bundle and waitlist
+  buttons are non-functional placeholders.
+- All "Coming soon" products show a `Notify me when it's ready`
+  button — there is no waitlist signup behind it yet. Planned for
+  the same update that wires Stripe.
+- Bundle prices are illustrative — when Stripe lands we'll want
+  real Stripe Products + Prices objects backing each bundle, plus
+  a `Subscription` Prisma model linking a user to either a single
+  product, a single bundle, or the All-Access Pass.
+
+---
+
 ## [5.2.0] - 2026-05-12 — Update 5.2 (Practice Generator + body-scan fix)
 
 Two things ship together: the second product in the catalog and a

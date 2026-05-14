@@ -169,18 +169,45 @@ export default function StudyPage() {
     [rawMaterial],
   );
 
+  // v16.3: multi-file upload. Reads every file the user selects (or drops in)
+  // and appends each as a clearly-labelled block — "=== {filename} ===" —
+  // so the AI knows where one source ends and the next begins. Single-file
+  // uploads still work the same way.
   async function handleFileUpload(file: File) {
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File is over 5 MB — paste the most important parts instead.');
-      return;
+    await handleFilesUpload([file]);
+  }
+
+  async function handleFilesUpload(files: File[] | FileList) {
+    const list = Array.from(files);
+    if (list.length === 0) return;
+    const oversized = list.filter((f) => f.size > 5 * 1024 * 1024);
+    if (oversized.length > 0) {
+      toast.error(
+        `${oversized.length === 1 ? 'One file is' : `${oversized.length} files are`} over 5 MB. Paste the most important parts instead.`,
+      );
     }
-    try {
-      const text = await file.text();
-      setRawMaterial((prev) => (prev ? `${prev}\n\n${text}` : text));
-      toast.success(`Loaded ${file.name}`);
-    } catch {
-      toast.error("Couldn't read that file. Try copy-pasting the text instead.");
+    const ok = list.filter((f) => f.size <= 5 * 1024 * 1024);
+    if (ok.length === 0) return;
+    let loaded = 0;
+    const failed: string[] = [];
+    for (const f of ok) {
+      try {
+        const text = await f.text();
+        const block = `\n\n=== ${f.name} ===\n${text}`;
+        setRawMaterial((prev) => (prev ? `${prev}${block}` : block.trimStart()));
+        loaded += 1;
+      } catch {
+        failed.push(f.name);
+      }
+    }
+    if (loaded === 1 && failed.length === 0) {
+      toast.success(`Loaded ${ok[0].name}`);
+    } else if (loaded > 1 && failed.length === 0) {
+      toast.success(`Loaded ${loaded} files`);
+    } else if (loaded > 0 && failed.length > 0) {
+      toast.success(`Loaded ${loaded} of ${list.length} — couldn't read: ${failed.join(', ')}`);
+    } else {
+      toast.error("Couldn't read those files. Try copy-pasting the text instead.");
     }
   }
 
@@ -327,14 +354,15 @@ export default function StudyPage() {
                 </h2>
                 <label className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 cursor-pointer">
                   <Upload size={14} />
-                  <span>Upload a .txt or .md file</span>
+                  <span>Upload files (.txt, .md)</span>
                   <input
                     type="file"
                     accept=".txt,.md,.markdown,.text"
+                    multiple
                     className="hidden"
                     onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) handleFileUpload(f);
+                      const fs = e.target.files;
+                      if (fs && fs.length > 0) handleFilesUpload(fs);
                       e.target.value = '';
                     }}
                   />
