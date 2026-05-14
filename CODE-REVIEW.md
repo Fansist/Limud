@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.3.0 — Update 5.3: 8 products + bundles + dual pricing + multi-file uploads`
+### fbd273e — `v16.3.0 — Update 5.3: 8 products + bundles + dual pricing + multi-file uploads`
 - **files:** 5 · `src/app/products/page.tsx` (full rewrite — 8 products, 4 bundles, billing-mode toggle), `src/app/study/page.tsx` (multi-file upload — new `handleFilesUpload()` + `<input multiple>`), `CHANGELOG.md`, `CODE-REVIEW.md`, `README.md`, `package.json`
 - **risk:** LOW
   - Catalog/page is mostly marketing copy + a presentational toggle. No new API surface, no new auth, no schema. Worst case: a catalog card renders weirdly on a narrow viewport.
