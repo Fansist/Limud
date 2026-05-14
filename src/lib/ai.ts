@@ -1611,3 +1611,199 @@ export async function generateStudyMaterial(req: StudyRequest): Promise<StudyRes
     };
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRACTICE GENERATOR (v16.2.0 — Update 5.2)
+//
+// Generate multiple-choice quiz questions on a topic. Stateless: returns the
+// rendered questions; the client decides how to present and score them.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type PracticeDifficulty = 'intro' | 'standard' | 'challenging';
+
+export interface PracticeRequest {
+  topic: string;
+  gradeLevel?: string;
+  difficulty: PracticeDifficulty;
+  count: number;             // requested question count (clamped 3..20)
+  contextMaterial?: string;  // optional pasted material to anchor the questions
+}
+
+export interface PracticeQuestion {
+  /** 1-based index for stable rendering. */
+  id: number;
+  /** The question text — plain prose, no leading number. */
+  question: string;
+  /** Exactly 4 answer choices. */
+  choices: string[];
+  /** Index into `choices` of the correct answer (0-3). */
+  correctIndex: number;
+  /** 1-3 sentence explanation, shown after the student answers. */
+  explanation: string;
+}
+
+export interface PracticeResult {
+  questions: PracticeQuestion[];
+  topic: string;
+  difficulty: PracticeDifficulty;
+  model: string;
+  aiError?: string;
+}
+
+const DIFFICULTY_NOTES: Record<PracticeDifficulty, string> = {
+  intro:       'Easy / introductory level. Recall and recognition. No tricky distractors.',
+  standard:    'Standard level. Application of concepts, light synthesis. Distractors should be plausible.',
+  challenging: 'Challenging level. Multi-step reasoning, common misconception traps, edge cases.',
+};
+
+function clampCount(n: number): number {
+  if (!Number.isFinite(n)) return 10;
+  return Math.max(3, Math.min(20, Math.round(n)));
+}
+
+/**
+ * Generate a multiple-choice practice quiz.
+ *
+ * Returns up to `count` questions. If the model returns malformed JSON or
+ * fewer questions than requested, we return what we got and surface
+ * `aiError` so the caller can show a non-blocking warning. Total failure
+ * returns a small deterministic fallback so the caller never sees zero
+ * questions.
+ */
+export async function generatePracticeQuiz(req: PracticeRequest): Promise<PracticeResult> {
+  const count = clampCount(req.count);
+  const contextMaterial = (req.contextMaterial || '').slice(0, 8_000);
+
+  const contextLines: string[] = [];
+  if (req.gradeLevel) contextLines.push(`Grade level: ${req.gradeLevel}`);
+  contextLines.push(`Difficulty: ${req.difficulty} — ${DIFFICULTY_NOTES[req.difficulty]}`);
+  if (contextMaterial) {
+    contextLines.push('The student also pasted material to anchor the questions to (use it as the source of truth, do not invent facts):');
+    contextLines.push('---');
+    contextLines.push(contextMaterial);
+    contextLines.push('---');
+  }
+
+  const prompt = [
+    'You are Limud, an AI quiz writer for individual learners.',
+    `Write exactly ${count} multiple-choice questions on this topic: "${req.topic}".`,
+    '',
+    'Rules:',
+    '- Each question has exactly 4 answer choices.',
+    '- Exactly one choice is correct. Distractors are plausible — no "obviously wrong" options.',
+    '- Vary the position of the correct answer (do not always pick A).',
+    '- After each question, write a 1-3 sentence explanation of why the correct answer is correct.',
+    '- Do NOT prefix questions with numbers (1., Q1., etc.).',
+    '- Do NOT use letter labels (A, B, C, D) in the choices — just the text.',
+    '- Topic-appropriate, factually grounded, age-appropriate.',
+    '',
+    'Context:',
+    contextLines.join('\n'),
+    '',
+    `Return ONLY a JSON array of length ${count}. Each element has the shape:`,
+    '{ "question": string, "choices": [string, string, string, string], "correctIndex": 0|1|2|3, "explanation": string }',
+    '',
+    'No prose before or after the array. No markdown fences. Just the raw JSON array.',
+  ].filter(Boolean).join('\n');
+
+  const model = (process.env.AI_MODEL || '').trim() || 'gemini-2.5-flash';
+
+  try {
+    const raw = await callGemini(prompt, { temperature: 0.6, maxTokens: 4096 });
+    const parsed = parsePracticeQuizJson(raw);
+    if (!parsed || parsed.length === 0) {
+      throw new Error('Model returned no parseable questions');
+    }
+    const questions: PracticeQuestion[] = parsed.slice(0, count).map((q, i) => ({
+      id: i + 1,
+      question: q.question,
+      choices: q.choices,
+      correctIndex: q.correctIndex,
+      explanation: q.explanation,
+    }));
+    const aiError = questions.length < count
+      ? `Model returned ${questions.length} of ${count} requested questions.`
+      : undefined;
+    return { questions, topic: req.topic, difficulty: req.difficulty, model, aiError };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const classified = classifyGeminiError(errMsg);
+    log.warn('PRACTICE', `generatePracticeQuiz fallback: ${classified.kind} :: ${classified.wrapped}`);
+    // Deterministic fallback so the UI never crashes on zero questions.
+    const fallback: PracticeQuestion[] = [
+      {
+        id: 1,
+        question: `What is the main topic of "${req.topic}"?`,
+        choices: [
+          `${req.topic} itself`,
+          'An unrelated subject',
+          'A reading comprehension exercise',
+          'A blank placeholder',
+        ],
+        correctIndex: 0,
+        explanation:
+          "The quiz generator couldn't reach the AI right now. This placeholder lets you keep using the page; refresh in a minute to try again.",
+      },
+    ];
+    return {
+      questions: fallback,
+      topic: req.topic,
+      difficulty: req.difficulty,
+      model,
+      aiError: classified.wrapped,
+    };
+  }
+}
+
+/**
+ * Parse the model's response into PracticeQuestion shapes. Tolerant of
+ * common deviations (markdown code fences, trailing prose).
+ */
+function parsePracticeQuizJson(raw: string): Array<{
+  question: string;
+  choices: string[];
+  correctIndex: number;
+  explanation: string;
+}> | null {
+  if (!raw) return null;
+  let s = raw.trim();
+  // Strip ```json ... ``` or ``` ... ``` fences if present.
+  if (s.startsWith('```')) {
+    s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  }
+  // If the model added prose around the array, isolate the first [..].
+  const firstBracket = s.indexOf('[');
+  const lastBracket = s.lastIndexOf(']');
+  if (firstBracket >= 0 && lastBracket > firstBracket) {
+    s = s.slice(firstBracket, lastBracket + 1);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(s);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(parsed)) return null;
+  const out: Array<{ question: string; choices: string[]; correctIndex: number; explanation: string }> = [];
+  for (const item of parsed) {
+    if (!item || typeof item !== 'object') continue;
+    const r = item as Record<string, unknown>;
+    const question = typeof r.question === 'string' ? r.question.trim() : '';
+    const choices = Array.isArray(r.choices)
+      ? r.choices.filter((c): c is string => typeof c === 'string').map(c => c.trim())
+      : [];
+    const correctIndex = typeof r.correctIndex === 'number' ? r.correctIndex : -1;
+    const explanation = typeof r.explanation === 'string' ? r.explanation.trim() : '';
+    if (
+      question.length === 0 ||
+      choices.length !== 4 ||
+      correctIndex < 0 ||
+      correctIndex > 3 ||
+      explanation.length === 0
+    ) {
+      continue;
+    }
+    out.push({ question, choices, correctIndex, explanation });
+  }
+  return out.length > 0 ? out : null;
+}

@@ -105,6 +105,40 @@ interface SecureHandlerOptions {
   auditAction?: AuditAction;
   /** Alias for auditAction (backward compat) */
   auditType?: AuditAction;
+  /**
+   * Skip the XSS / SQL-injection / prototype-pollution body scanners.
+   * Set this on routes that legitimately accept user-uploaded free-form
+   * content (study material, AI tutor messages, writing-coach drafts) —
+   * the scanners are pattern-based and otherwise reject legitimate text
+   * like "constructor pattern", "prototype theory", code samples, or
+   * SQL course material as "Invalid request". The prototype-key check
+   * still runs even when this is true.
+   */
+  skipBodyScanning?: boolean;
+}
+
+/**
+ * Recursively check a parsed JSON value for prototype-pollution KEYS.
+ * Only property names are checked — string VALUES are not. This is the
+ * actual attack surface: `{ "__proto__": { "isAdmin": true } }` is
+ * dangerous; the word "prototype" appearing inside a paragraph of study
+ * material is not.
+ */
+function hasPrototypePollutionKey(value: unknown, depth = 0): boolean {
+  if (depth > 20) return false; // bail on pathologically nested input
+  if (!value || typeof value !== 'object') return false;
+  if (Array.isArray(value)) {
+    return value.some(v => hasPrototypePollutionKey(v, depth + 1));
+  }
+  for (const key of Object.keys(value)) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      return true;
+    }
+    if (hasPrototypePollutionKey((value as Record<string, unknown>)[key], depth + 1)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -221,10 +255,13 @@ export function secureApiHandler(
             const cloned = req.clone();
             const body = await cloned.json().catch(() => null);
             if (body && typeof body === 'object') {
-              const bodyStr = JSON.stringify(body);
-
-              // Prototype pollution detection
-              if (bodyStr.includes('__proto__') || bodyStr.includes('constructor') || bodyStr.includes('prototype')) {
+              // Prototype-pollution check — KEY-based, walks the parsed
+              // object. The previous substring check
+              // (`bodyStr.includes('constructor')`) flagged any free-text
+              // mention of "constructor" / "prototype" — which is most
+              // OOP, design, or biology study material. Always on,
+              // including when skipBodyScanning is true.
+              if (hasPrototypePollutionKey(body)) {
                 trackSecurityEvent('suspicious', ip);
                 createAuditLog({
                   action: 'SUSPICIOUS_ACTIVITY',
@@ -240,43 +277,53 @@ export function secureApiHandler(
                 return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
               }
 
-              // XSS detection in body
-              if (/<script|javascript:|on\w+\s*=/i.test(bodyStr)) {
-                trackSecurityEvent('xss', ip);
-                createAuditLog({
-                  action: 'XSS_ATTEMPT',
-                  userId: user?.id,
-                  userEmail: user?.email,
-                  ip, userAgent: ua,
-                  resource: path,
-                  details: { method, reason: 'XSS pattern detected in request body' },
-                  severity: 'critical',
-                  success: false,
-                  blocked: true,
-                });
-                return NextResponse.json({ error: 'Invalid request content' }, { status: 400 });
-              }
-
-              // SQL injection detection in body
-              if (/(\bUNION\b.*\bSELECT\b|\bDROP\b.*\bTABLE\b|\bINSERT\b.*\bINTO\b.*\bVALUES\b|--\s*$|;\s*DROP\b)/i.test(bodyStr)) {
-                trackSecurityEvent('sqli', ip);
-                createAuditLog({
-                  action: 'SQL_INJECTION_ATTEMPT',
-                  userId: user?.id,
-                  userEmail: user?.email,
-                  ip, userAgent: ua,
-                  resource: path,
-                  details: { method, reason: 'SQL injection pattern detected' },
-                  severity: 'critical',
-                  success: false,
-                  blocked: true,
-                });
-                return NextResponse.json({ error: 'Invalid request content' }, { status: 400 });
-              }
-
-              // Payload size limit (100KB)
-              if (bodyStr.length > 100_000) {
+              // Payload size limit (100KB) — always on. /api/study/
+              // generate now bumps this to 200KB for textual uploads via
+              // the dedicated check inside the route handler before this
+              // wrapper runs; if you need a larger limit globally, raise
+              // this here.
+              const bodyStr = JSON.stringify(body);
+              if (bodyStr.length > 100_000 && !options.skipBodyScanning) {
                 return NextResponse.json({ error: 'Request payload too large' }, { status: 413 });
+              }
+
+              // XSS / SQL-injection scanners — pattern-based, so they
+              // reject legitimate code samples and SQL course material.
+              // Routes that accept user-uploaded free-form content (e.g.
+              // /api/study/generate, /api/tutor) opt out via
+              // skipBodyScanning. Everything else runs the checks.
+              if (!options.skipBodyScanning) {
+                if (/<script|javascript:|on\w+\s*=/i.test(bodyStr)) {
+                  trackSecurityEvent('xss', ip);
+                  createAuditLog({
+                    action: 'XSS_ATTEMPT',
+                    userId: user?.id,
+                    userEmail: user?.email,
+                    ip, userAgent: ua,
+                    resource: path,
+                    details: { method, reason: 'XSS pattern detected in request body' },
+                    severity: 'critical',
+                    success: false,
+                    blocked: true,
+                  });
+                  return NextResponse.json({ error: 'Invalid request content' }, { status: 400 });
+                }
+
+                if (/(\bUNION\b.*\bSELECT\b|\bDROP\b.*\bTABLE\b|\bINSERT\b.*\bINTO\b.*\bVALUES\b|--\s*$|;\s*DROP\b)/i.test(bodyStr)) {
+                  trackSecurityEvent('sqli', ip);
+                  createAuditLog({
+                    action: 'SQL_INJECTION_ATTEMPT',
+                    userId: user?.id,
+                    userEmail: user?.email,
+                    ip, userAgent: ua,
+                    resource: path,
+                    details: { method, reason: 'SQL injection pattern detected' },
+                    severity: 'critical',
+                    success: false,
+                    blocked: true,
+                  });
+                  return NextResponse.json({ error: 'Invalid request content' }, { status: 400 });
+                }
               }
             }
           } catch {
@@ -345,10 +392,11 @@ export function secureApiHandler(
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function apiHandler(
-  handler: (req: Request) => Promise<NextResponse>
+  handler: (req: Request) => Promise<NextResponse>,
+  options: Pick<SecureHandlerOptions, 'skipBodyScanning' | 'skipRateLimit'> = {},
 ): (req: Request) => Promise<NextResponse> {
   return secureApiHandler(
     async (req, _user) => handler(req),
-    { skipRateLimit: false }
+    { skipRateLimit: false, ...options }
   );
 }

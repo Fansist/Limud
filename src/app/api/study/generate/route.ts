@@ -39,6 +39,13 @@ function isStringOrUndefined(v: unknown): v is string | undefined {
   return v === undefined || typeof v === 'string';
 }
 
+// v16.1.1: opt out of the middleware's pattern-based XSS / SQL scanners.
+// They reject legitimate study material as "Invalid request content" any
+// time the upload contains a code snippet, an HTML tag mention, SQL
+// course material, or even the word "constructor" / "prototype" in
+// free text. The prototype-pollution KEY check still runs (it's safe
+// — it walks property names only, not values) and the per-route input
+// validation below is what actually guards this endpoint.
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireAuth();
 
@@ -106,4 +113,4 @@ export const POST = apiHandler(async (req: Request) => {
       { status: 500 },
     );
   }
-});
+}, { skipBodyScanning: true });

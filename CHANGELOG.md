@@ -4,6 +4,91 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.2.0] - 2026-05-12 — Update 5.2 (Practice Generator + body-scan fix)
+
+Two things ship together: the second product in the catalog and a
+silent fix for the most-likely cause of the "Invalid request" wall
+the master demo kept hitting on the Exam Study Helper.
+
+### Added — Practice Generator (`/practice`)
+
+The second tile on `/products` is no longer "coming soon". Public,
+anonymous-browseable, login-gated at generation.
+
+- **Page:** `src/app/practice/page.tsx`. Same UX shape as
+  `/study` — public preview with sign-in gate, draft persisted to
+  `localStorage` across the login round-trip, last 5 quizzes
+  cached client-side. Configure a topic + grade level + count
+  (3-20) + difficulty (intro / standard / challenging) + optional
+  reference material (up to 20 KB).
+- **AI:** new `generatePracticeQuiz()` in `src/lib/ai.ts`. Returns
+  a structured `PracticeResult` (questions × choices ×
+  `correctIndex` × explanation). Tolerant JSON parser handles
+  markdown fences and trailing prose. Deterministic fallback when
+  the model is unreachable so the UI never sees zero questions.
+- **Quiz UX:** pick one of four choices per question; submit when
+  all answered; reveals correctness + explanations + a score
+  percentage; "New quiz" button resets state without leaving the
+  page.
+- **API:** `POST /api/practice/generate`. Auth-gated. `maxDuration
+  = 60`. Same `skipBodyScanning: true` opt-out as `/study` (see
+  fix below). Body validated for shape and length.
+- **Catalog:** `/products` now lists Practice Generator as
+  Available at `$5/topic · one-time`, routing to `/practice`.
+- **Middleware:** `/practice` added to `PUBLIC_PATHS`.
+
+### Fixed — Middleware body-scan false positive
+
+`secureApiHandler` was rejecting any POST/PUT/PATCH whose JSON
+body, when stringified, contained the substring `constructor`,
+`prototype`, or `__proto__`. That is: every OOP, design, biology,
+or JS-tutorial study upload triggered a 400 "Invalid request".
+The XSS regex (`<script|javascript:|on\w+\s*=`) similarly
+rejected any upload mentioning script tags or HTML attribute
+names, and the SQL-injection regex rejected any SQL course
+material.
+
+Three changes in `src/lib/middleware.ts`:
+
+1. **Prototype-pollution check is now KEY-based.** A new
+   `hasPrototypePollutionKey()` helper recursively walks the
+   parsed object and only flags property NAMES equal to
+   `__proto__`, `constructor`, or `prototype`. String values are
+   no longer scanned — those are user content, not attack
+   vectors. The actual attack surface
+   (`{ "__proto__": { "isAdmin": true } }`) is still blocked.
+   This check stays ON for every route.
+
+2. **New `skipBodyScanning` option** on `SecureHandlerOptions`.
+   When `true`, the pattern-based XSS and SQL-injection scanners
+   are skipped (the prototype-key check still runs). Use this on
+   routes that legitimately accept user-uploaded free-form
+   content. The payload-size limit is also relaxed under this
+   flag because uploads of study material can exceed 100 KB.
+
+3. **`apiHandler` now forwards `skipBodyScanning`** and
+   `skipRateLimit` to `secureApiHandler` so the simpler wrapper
+   can opt in without dropping to the lower-level handler.
+
+`/api/study/generate` and `/api/practice/generate` both pass
+`{ skipBodyScanning: true }`. Every other route is unchanged.
+
+### Notes
+
+- The Practice Generator stores nothing server-side. A future
+  iteration may add a `PracticeAttempt` Prisma model for
+  cross-device history and adaptive difficulty.
+- The `$5/topic` price on the catalog is the marketing-side
+  number — Stripe wiring is still NOT in this update.
+- The body-scan fix is a SECURITY-FACING change. The
+  prototype-pollution KEY check is strictly stronger than the
+  old substring check (no more false positives, same true
+  positives). The XSS/SQL opt-out is route-specific and is
+  applied only where the upload format is free-form text the
+  user pastes.
+
+---
+
 ## [5.1.0] - 2026-05-12 — Update 5.1 (Public /products, paid Family, AI training file)
 
 Follow-up to 5.0. Closes the loop on three things:

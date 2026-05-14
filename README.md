@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.1.0 · Update 5.1 · Public /products + paid Family + AI training file</code>
+  <code>v16.2.0 · Update 5.2 · Practice Generator + body-scan false-positive fix</code>
 </p>
 
 ---

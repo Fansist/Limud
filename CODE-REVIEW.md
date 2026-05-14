@@ -43,6 +43,17 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.2.0 — Update 5.2: Practice Generator + body-scan fix`
+- **files:** 7 · NEW `src/app/practice/page.tsx`, NEW `src/app/api/practice/generate/route.ts`, `src/lib/ai.ts` (+`generatePracticeQuiz` + tolerant JSON parser), `src/lib/middleware.ts` (key-based prototype check + `skipBodyScanning` option), `src/app/api/study/generate/route.ts` (apply `skipBodyScanning: true`), `src/app/products/page.tsx` (Practice marked Available, $5/topic), `src/middleware.ts` (/practice in PUBLIC_PATHS), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** MEDIUM-HIGH
+  - SECURITY-FACING: prototype-pollution check moved from substring scan to key-based recursion. The new check is strictly tighter on the actual attack surface (`__proto__`/`constructor`/`prototype` as property names) and drops the false-positive scan of free-text values. Reviewed by hand.
+  - The `skipBodyScanning` opt-out is applied to two AI generation routes only. XSS / SQL-injection scanners still run on every other route.
+  - Payload-size limit (100 KB) is lifted when `skipBodyScanning: true`; per-route checks (study: 50 KB raw cap, practice: 20 KB context cap) enforce sane bounds.
+- **review:** ⚠️ partial — the prototype-key fix needs adversarial test cases before this entry becomes ✅ reviewed. Open: build a small test that POSTs `{"__proto__": {"x": 1}}`, `{"constructor": {"x": 1}}`, and `{"deeply": {"nested": {"prototype": {}}}}` and confirms each returns 400 from `secureApiHandler`. Also: confirm that POSTing the string `"prototype design course"` inside a value field NOW returns 200 (or 401 for auth) and not 400.
+- **demo-mode:** yes — master demo (logged-in) generates quizzes normally. Anonymous visitors can configure a quiz and see the preview banner; the Generate button bounces through `/login?callbackUrl=/practice` and restores the draft on return.
+- **tests:** manual smoke — /practice loads anonymous → sign in → generate intro/standard/challenging quizzes → submit → score appears → "New quiz" resets state. /study still works (regression check for the body-scan fix).
+- **notes:** Stripe is still not wired. The `$5/topic` price on /products is marketing-side; nothing charges yet. `PracticeAttempt` Prisma model deferred to a later release.
+
 ### 5d33a64 — `v16.1.0 — Update 5.1: public /products + paid Family + AI training`
 - **files:** ~9 · NEW `src/app/products/page.tsx`, NEW `AI-TRAINING.md`, `src/middleware.ts` (PUBLIC_PATHS +2), `src/app/study/page.tsx` (anon shell + sign-in gate on Generate), `src/app/(auth)/pricing/page.tsx` (Family tier paid), `src/components/landing/LandingPage.tsx` (Products nav link + FAQ + JSON-LD), `src/app/layout.tsx` (metadata), `src/app/(auth)/demo/page.tsx` (callout copy), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** MEDIUM

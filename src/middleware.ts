@@ -38,6 +38,8 @@ const PUBLIC_PATHS = [
   // generation APIs (e.g. /api/study/generate) still require login.
   '/products',
   '/study',
+  // v16.2: Practice Generator — same pattern.
+  '/practice',
 ];
 
 const PUBLIC_API_PATHS = [
