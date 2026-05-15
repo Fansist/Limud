@@ -4,6 +4,66 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.4.2] - 2026-05-12 — Update 5.4 hotfix (tool truncation + comic image generation)
+
+Two user-reported bugs, both root-caused and fixed.
+
+### Fixed — Tool outputs cut off mid-answer
+
+`generateProductTool()` in `src/lib/ai.ts` was passing `maxTokens:
+3072` to `callGemini`. That's ~12,000 characters of output. For the
+tools whose prompts demand structured multi-section markdown — Math
+Solver (Problem / Solution / Answer / Watch out, with full LaTeX
+work shown for every step), Lab Report Builder (5 sections), and
+Citation Finder (multiple claims with HIGH/MED/LOW confidence
+analyses) — that ceiling was being hit mid-response.
+
+Bumped to `maxTokens: 6144` (~24,000 chars). Still well inside
+Gemini 2.5 Flash's per-response limit, but ~doubles the headroom.
+The other two product generators (`generateStudyMaterial`,
+`generatePracticeQuiz`) were already at 4096 and aren't reporting
+truncation, so they were left as-is.
+
+### Fixed — `/study` comic format produced no images
+
+Two root causes:
+
+1. **Image model fallback chain was stale.**
+   `gemini-2.5-flash-image-preview` was renamed to
+   `gemini-2.5-flash-image` when it went GA. Many API keys can
+   reach the GA name even after the preview alias stopped routing.
+   The chain now tries the GA name first, then the preview alias,
+   then `gemini-2.0-flash-image`, then the older
+   `*-exp-image-generation` alias, then `imagen-3.0-generate-002`.
+2. **The comic-panel parser was too strict.** It only recognized
+   panel headings of the exact form `PANEL N` (optionally
+   case-insensitive). When Gemini wrapped the heading in markdown
+   formatting (`**PANEL 1**`, `## PANEL 1`, `- PANEL 1`, `1. PANEL
+   1`), the parser returned **zero panels** and `enrichComicWithImages`
+   short-circuited with `aiError: 'No PANEL headings found in
+   script'` — the comic shipped as text-only. Both the parser
+   (`parseComicPanels`) and the injection regex inside
+   `enrichComicWithImages` now accept those formatting variants.
+
+The two regexes are kept in sync — they must accept identical
+headings or we'd find panels but never inject images for them.
+
+### Notes
+
+- Comic image generation still requires a Gemini API key with image
+  generation access. If the key's tier doesn't include image
+  generation, `generateImage` returns `null` with a surfaced
+  `aiError`, and the comic ships as text-only with the script
+  unchanged. The toast on `/study` shows the aiError so the user
+  knows why.
+- If image generation continues to fail after this deploy, the most
+  likely remaining causes are: (a) the API key tier doesn't include
+  image gen, in which case the env error message says so; (b) the
+  `LIMUD_COMIC_IMAGES` env var has been set to `false`; (c) the
+  Gemini SDK response shape changed again (unlikely for v1.x).
+
+---
+
 ## [5.4.1] - 2026-05-12 — Update 5.4 follow-up (dead-end sweep: breadcrumb, footer, pricing CTAs)
 
 Five concrete dead ends the user found while walking the site after

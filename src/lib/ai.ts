@@ -830,8 +830,14 @@ Begin:`;
 // image generation, the call fails and the helper returns null with a
 // surfaced aiError — the caller falls back to text-only.
 
+// v16.4.2: GA model names first, then preview / experimental aliases.
+// `gemini-2.5-flash-image-preview` was renamed to `gemini-2.5-flash-image`
+// when it went GA; many API keys can reach the GA name even when the
+// preview alias is no longer routed. We try GA first, then fall back.
 const IMAGE_MODEL_FALLBACK_CHAIN = [
+  'gemini-2.5-flash-image',
   'gemini-2.5-flash-image-preview',
+  'gemini-2.0-flash-image',
   'gemini-2.0-flash-exp-image-generation',
   'imagen-3.0-generate-002',
 ];
@@ -929,7 +935,17 @@ export function parseComicPanels(script: string): ComicPanel[] {
   const lines = script.split(/\r?\n/);
   const blocks: { index: number; lines: string[] }[] = [];
   let current: { index: number; lines: string[] } | null = null;
-  const panelHeading = /^\s*PANEL\s+(\d+)\b.*$/i;
+  // v16.4.2: more tolerant of markdown formatting Gemini sometimes adds
+  // around the heading. We now match the panel heading when the line
+  // begins (after optional whitespace) with one of:
+  //   PANEL N
+  //   **PANEL N**          (bold)
+  //   ## PANEL N           (markdown heading)
+  //   - PANEL N            (list item)
+  //   1. PANEL N           (numbered list item)
+  // Previously a leading `**` or `#` made the parser return zero panels
+  // and the comic shipped text-only with no images.
+  const panelHeading = /^\s*(?:[-*#]+\s*|\d+\.\s+)?\**\s*PANEL\s+(\d+)\b.*$/i;
 
   for (const line of lines) {
     const m = line.match(panelHeading);
@@ -1016,7 +1032,10 @@ export async function enrichComicWithImages(
   // Inject the images by rebuilding the script panel-by-panel. Iterate the
   // original full-panel list so panels beyond `limit` still appear (just
   // without an image).
-  const panelHeading = /^\s*PANEL\s+(\d+)\b.*$/im;
+  // v16.4.2: keep this in sync with `parseComicPanels` — both must accept
+  // markdown-formatted headings (**, #, list markers) or images get parsed
+  // but never injected.
+  const panelHeading = /^\s*(?:[-*#]+\s*|\d+\.\s+)?\**\s*PANEL\s+(\d+)\b.*$/im;
   let result = script;
   // Use a forward scan with regex; build a new string.
   const out: string[] = [];
@@ -1985,7 +2004,12 @@ export async function generateProductTool(req: ProductGenRequest): Promise<Produ
   const prompt = buildProductToolPrompt(req);
 
   try {
-    const content = await callGemini(prompt, { temperature: 0.5, maxTokens: 3072 });
+    // v16.4.2: bumped from 3072 → 6144 because product-tool outputs were
+    // getting truncated mid-answer (math solutions with many numbered steps,
+    // full lab reports with five structured sections, citation finder with
+    // multiple claims). 6144 is well within Gemini 2.5 Flash's per-response
+    // ceiling and ~doubles the previous budget.
+    const content = await callGemini(prompt, { temperature: 0.5, maxTokens: 6144 });
     return {
       content,
       tool: req.tool,

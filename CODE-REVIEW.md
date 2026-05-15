@@ -43,6 +43,17 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.4.2 — Update 5.4 hotfix: tool truncation + comic image generation`
+- **files:** 4 · `src/lib/ai.ts` (bump `generateProductTool` maxTokens 3072 → 6144, expand image-model fallback chain, loosen `parseComicPanels` + the matching injection regex in `enrichComicWithImages`), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** LOW–MEDIUM
+  - The maxTokens bump is purely additive — outputs that fit in 3072 still fit in 6144. No behavior change for non-truncated calls. Cost per call goes up only when the model actually uses the extra headroom.
+  - The image-model fallback chain change is also additive — GA model names tried first, every previous name preserved. The memoized `_workingImageModelMemo` will repin to whichever model first succeeds for the deployed API key.
+  - The two regex changes (parser + injector) both relax `^\s*PANEL` to also accept leading `-` / `*` / `#` / `**` / numbered-list markers. Strict tier (plain `PANEL N`) still matches. The two regexes must stay in lockstep — they're commented to flag that.
+- **review:** ⚠️ partial — won't be ✅ until we see real comic generations land with inlined panel images. Open: test a comic-format /study run after the deploy and confirm (a) the script comes back with `PANEL N` (or markdown variants) and (b) `enrichComicWithImages` injects images and the page renders them. If still no images, the failure mode shifts from "parser miss" to either "image model unauthorized for this API key" (surfaced via the existing aiError toast) or "Gemini SDK response shape changed" (would need targeted logging).
+- **demo-mode:** N/A — same behavior for master demo and normal users. Both hit the same generation path.
+- **tests:** manual smoke — run a Math Solver on a multi-step problem and confirm the output now reaches the "Watch out" section. Run a Lab Report on a real dataset and confirm all five sections complete. Run a comic /study generation and confirm the result contains `![Panel N](data:image/...)` blocks above each PANEL heading.
+- **notes:** No new files, no API surface change, no schema, no env vars (existing optional `GEMINI_IMAGE_MODEL` / `LIMUD_COMIC_IMAGES` / `LIMUD_COMIC_IMAGE_LIMIT` / `LIMUD_COMIC_IMAGE_CONCURRENCY` still respected).
+
 ### 8b821f8 — `v16.4.1 — Update 5.4 follow-up: breadcrumb + footer + pricing CTA dead-end sweep`
 - **files:** 5 · `src/components/layout/DashboardLayout.tsx` (breadcrumb fallback map for utility routes), `src/components/landing/LandingPage.tsx` (Standard + Family pricing-card CTAs + Product footer column anchors), `src/app/(auth)/pricing/page.tsx` (Custom Plan Builder Get Started button — ENTERPRISE branches to /contact), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** LOW
