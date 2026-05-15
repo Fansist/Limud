@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.4.0 — Update 5.4: 5 new products + dead-end CTA fix`
+### 06cef39 — `v16.4.0 — Update 5.4: 5 new products + dead-end CTA fix`
 - **files:** 14 · NEW `src/components/products/MarkdownToolPage.tsx`, NEW `src/components/AuthAwareCTA.tsx`, NEW `src/app/api/products/generate/route.ts`, NEW `src/app/math-solver/page.tsx`, NEW `src/app/notes-cleaner/page.tsx`, NEW `src/app/lab-report/page.tsx`, NEW `src/app/citation-finder/page.tsx`, NEW `src/app/language-lab/page.tsx`, `src/lib/ai.ts` (+`generateProductTool` + 5 system prompts), `src/middleware.ts` (5 new public paths), `src/app/products/page.tsx` (5 cards flipped to available + AuthAwareCTA in top nav), `src/components/landing/LandingPage.tsx` (AuthAwareCTA in top nav + hero + mobile menu + inline bottom-CTA fix), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** MEDIUM
   - Five new public-by-prefix routes — each one routes through the same shared `<MarkdownToolPage>` component and the same `/api/products/generate` endpoint. The generation API is auth-gated and uses `skipBodyScanning: true` (same opt-out as `/study` and `/practice` from v16.2).
