@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.4.1 — Update 5.4 follow-up: breadcrumb + footer + pricing CTA dead-end sweep`
+### 8b821f8 — `v16.4.1 — Update 5.4 follow-up: breadcrumb + footer + pricing CTA dead-end sweep`
 - **files:** 5 · `src/components/layout/DashboardLayout.tsx` (breadcrumb fallback map for utility routes), `src/components/landing/LandingPage.tsx` (Standard + Family pricing-card CTAs + Product footer column anchors), `src/app/(auth)/pricing/page.tsx` (Custom Plan Builder Get Started button — ENTERPRISE branches to /contact), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** LOW
   - All copy / href changes. No new API surface, no schema, no auth. Worst case is a label rendering wrong on one page.
