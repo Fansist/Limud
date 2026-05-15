@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.4.2 — Update 5.4 hotfix: tool truncation + comic image generation`
+### bf1df92 — `v16.4.2 — Update 5.4 hotfix: tool truncation + comic image generation`
 - **files:** 4 · `src/lib/ai.ts` (bump `generateProductTool` maxTokens 3072 → 6144, expand image-model fallback chain, loosen `parseComicPanels` + the matching injection regex in `enrichComicWithImages`), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** LOW–MEDIUM
   - The maxTokens bump is purely additive — outputs that fit in 3072 still fit in 6144. No behavior change for non-truncated calls. Cost per call goes up only when the model actually uses the extra headroom.
