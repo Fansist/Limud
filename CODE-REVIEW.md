@@ -43,6 +43,17 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.4.1 — Update 5.4 follow-up: breadcrumb + footer + pricing CTA dead-end sweep`
+- **files:** 5 · `src/components/layout/DashboardLayout.tsx` (breadcrumb fallback map for utility routes), `src/components/landing/LandingPage.tsx` (Standard + Family pricing-card CTAs + Product footer column anchors), `src/app/(auth)/pricing/page.tsx` (Custom Plan Builder Get Started button — ENTERPRISE branches to /contact), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** LOW
+  - All copy / href changes. No new API surface, no schema, no auth. Worst case is a label rendering wrong on one page.
+  - The breadcrumb fallback walks a list of `pathname.startsWith()` checks — order matters because `/practice` would also match a hypothetical `/practice-something`, but for the current path inventory this is fine. Strict-equality could be tightened later if we ever add a route that shadows another.
+  - The Custom Plan Builder branch keys on `closestPlan === 'ENTERPRISE'`. If `closestPlan`'s value space ever changes, the branch silently falls back to the onboard flow — fine, fail-open is the right direction for a marketing button.
+- **review:** ⚠️ partial — same Stripe deferral as v16.4.0. The trial CTAs now route to `/onboard?plan=STANDARD` and `/onboard?plan=FAMILY`, but the onboard flow does not yet take a card; the trial doesn't actually expire because there's no billing layer to expire it.
+- **demo-mode:** N/A — these are all anonymous-facing marketing/breadcrumb changes; the master demo sees the same fixes.
+- **tests:** manual smoke — visit `/help` while signed in as a student → topbar reads "Student Portal · Help & FAQ" (not "Dashboard"). Visit landing → Standard card says "Start 14-day free trial" → click → land on `/onboard?plan=STANDARD` (or `/login` if signed out). Family card shows $9 / 14-day trial. Build a custom plan that hits ENTERPRISE → button reads "Talk to us" → routes to `/contact?ref=custom-plan`. Footer Product column: every link reaches a real destination (anchor scrolls or page loads).
+- **notes:** No new files. Five distinct dead-ends were reachable from the screenshots the user surfaced; all five are fixed. The footer Product column previously had 4 of 5 anchors pointing at non-existent section IDs (`#features`, `#ai-tutor`, `#learning-dna`, `#integrations`) — replaced with five working destinations.
+
 ### 06cef39 — `v16.4.0 — Update 5.4: 5 new products + dead-end CTA fix`
 - **files:** 14 · NEW `src/components/products/MarkdownToolPage.tsx`, NEW `src/components/AuthAwareCTA.tsx`, NEW `src/app/api/products/generate/route.ts`, NEW `src/app/math-solver/page.tsx`, NEW `src/app/notes-cleaner/page.tsx`, NEW `src/app/lab-report/page.tsx`, NEW `src/app/citation-finder/page.tsx`, NEW `src/app/language-lab/page.tsx`, `src/lib/ai.ts` (+`generateProductTool` + 5 system prompts), `src/middleware.ts` (5 new public paths), `src/app/products/page.tsx` (5 cards flipped to available + AuthAwareCTA in top nav), `src/components/landing/LandingPage.tsx` (AuthAwareCTA in top nav + hero + mobile menu + inline bottom-CTA fix), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** MEDIUM

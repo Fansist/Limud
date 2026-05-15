@@ -621,9 +621,14 @@ function CustomPlanBuilder() {
                   </div>
                 </div>
 
-                <Link href={`/onboard?plan=${closestPlan}`}
-                  className="mt-4 block w-full text-center py-2.5 bg-white text-indigo-700 rounded-xl font-bold text-sm hover:bg-gray-100 transition">
-                  Get Started <ArrowRight size={14} className="inline ml-1" />
+                {/* v16.4.1: ENTERPRISE-sized custom plans aren't a self-serve
+                    onboard — they need a sales conversation. Route those to
+                    /contact. Everyone else keeps the onboard flow. */}
+                <Link
+                  href={closestPlan === 'ENTERPRISE' ? '/contact?ref=custom-plan' : `/onboard?plan=${closestPlan}`}
+                  className="mt-4 block w-full text-center py-2.5 bg-white text-indigo-700 rounded-xl font-bold text-sm hover:bg-gray-100 transition"
+                >
+                  {closestPlan === 'ENTERPRISE' ? 'Talk to us' : 'Get Started'} <ArrowRight size={14} className="inline ml-1" />
                 </Link>
               </div>
 

@@ -513,19 +513,27 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {[
               {
+                // v16.4.1: Enterprise → /contact is correct (custom pricing).
                 name: 'Enterprise', price: 'Custom', period: '', desc: 'Districts and statewide deployments',
                 features: ['Unlimited students & schools', 'SSO / SAML', 'Custom AI training', 'Data residency', '99.9% SLA', 'Dedicated account manager'],
                 cta: 'Contact sales', link: '/contact', highlight: false,
               },
               {
+                // v16.4.1: Standard CTA changed from "Talk to us" / /contact —
+                // wrong for a self-serve $6 plan — to "Start 14-day free trial"
+                // / /onboard?plan=STANDARD so logged-out visitors go to the
+                // onboarding flow and the button does what it advertises.
                 name: 'Standard', price: '$6', period: '/student/mo, billed annually', desc: 'Classrooms and small schools',
                 features: ['Up to 500 students', 'Unlimited AI features', 'All 16+ integrations', 'Intelligence dashboard', 'AI Safety Monitor', 'Priority support'],
-                cta: 'Talk to us', link: '/contact', highlight: true,
+                cta: 'Start 14-day free trial', link: '/onboard?plan=STANDARD', highlight: true,
               },
               {
-                name: 'Family', price: '$0', period: '/month', desc: 'For parents and their kids',
+                // v16.4.1: Family price updated from stale $0 (v16.1 made the
+                // Family tier paid: $9/mo or $7/mo annual). CTA reflects the
+                // 14-day trial that every paid tier comes with.
+                name: 'Family', price: '$9', period: '/month, 14-day free trial', desc: 'For parents and their kids',
                 features: ['Up to 5 children per parent', 'AI Tutor (50/mo)', 'Personalized material rewrites', 'Parent dashboard + AI check-in', 'Family Teaching Mode (optional)', 'Weekly digest emails'],
-                cta: 'Create family account', link: '/register', highlight: false,
+                cta: 'Start 14-day free trial', link: '/onboard?plan=FAMILY', highlight: false,
               },
             ].map(plan => (
               <div key={plan.name} className={cn('rounded-2xl p-6 flex flex-col',
@@ -636,8 +644,21 @@ export default function LandingPage() {
             <div>
               <h4 className="text-xs font-semibold text-white mb-3 uppercase tracking-wider">Product</h4>
               <ul className="space-y-2">
-                {['Features', 'Pricing', 'AI Tutor', 'Learning DNA', 'Integrations'].map(l => (
-                  <li key={l}><a href={`#${l.toLowerCase().replace(/\s+/g, '-')}`} className="text-xs hover:text-white transition">{l}</a></li>
+                {/* v16.4.1: previous list ('Features', 'AI Tutor', 'Learning
+                    DNA', 'Integrations') anchored to section IDs that do not
+                    exist on this page — they were dead links. Replaced with
+                    real destinations: #pillars + #pricing on this page,
+                    /pricing + /products + /demo for the dedicated pages. */}
+                {[
+                  { label: 'How it works', href: '#how-it-works', external: false },
+                  { label: 'Pillars', href: '#pillars', external: false },
+                  { label: 'Pricing', href: '/pricing', external: true },
+                  { label: 'Individual products', href: '/products', external: true },
+                  { label: 'Demo', href: '/demo', external: true },
+                ].map(l => l.external ? (
+                  <li key={l.label}><Link href={l.href} className="text-xs hover:text-white transition">{l.label}</Link></li>
+                ) : (
+                  <li key={l.label}><a href={l.href} className="text-xs hover:text-white transition">{l.label}</a></li>
                 ))}
               </ul>
             </div>

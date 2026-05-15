@@ -4,6 +4,70 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.4.1] - 2026-05-12 — Update 5.4 follow-up (dead-end sweep: breadcrumb, footer, pricing CTAs)
+
+Five concrete dead ends the user found while walking the site after
+the 5.4 ship, all fixed in one pass.
+
+### Fixed — Help & FAQ topbar breadcrumb said "Dashboard"
+
+`/help` (and the other utility / individual-product routes) aren't
+listed in any role's nav, so the topbar breadcrumb in
+`DashboardLayout` fell through to the literal default
+`'Dashboard'`. Added a path-prefix fallback map so the topbar now
+reads "Student Portal · Help & FAQ" / "Products" / "Exam Study
+Helper" / "Math Solver" / etc. depending on the actual path. Twelve
+utility routes mapped, covers everything in `/products/*` plus
+about / team / pricing / contact / roadmap / help.
+
+### Fixed — Landing pricing card "Talk to us" was a sales-y dead end
+
+The middle "Most Popular" Standard plan card on the landing page
+($6 / student / mo) used to say "Talk to us" and route to
+`/contact`. That's the wrong CTA for a self-serve $6 plan — it sent
+buyers into a sales conversation when they wanted to start a trial.
+Changed to "Start 14-day free trial" routing to
+`/onboard?plan=STANDARD`.
+
+### Fixed — Stale Family card on the landing page ($0 → $9)
+
+The Family card on the landing pricing section still listed `$0 /
+month` with "Create family account" → `/register`. Family became
+paid in v16.1.0 ($9/mo or $7/mo annual with 14-day free trial).
+Card now reads `$9 / month, 14-day free trial` with the CTA "Start
+14-day free trial" routing to `/onboard?plan=FAMILY`.
+
+### Fixed — Custom Plan Builder "Get Started" pushed enterprise-sized configs into self-serve onboarding
+
+The summary card on the Custom Plan Builder (e.g. the $249,391/month
+ENTERPRISE-scale config the user demoed) used to route every
+configuration to `/onboard?plan=ENTERPRISE`. Self-serve onboarding
+isn't the right experience at that scale — those buyers need a
+sales conversation. Now: when `closestPlan === 'ENTERPRISE'` the
+button reads "Talk to us" and routes to `/contact?ref=custom-plan`;
+every other plan tier keeps the existing self-serve onboard flow.
+
+### Fixed — Landing footer "Product" column had 4 dead anchors out of 5
+
+Footer column read: Features · Pricing · AI Tutor · Learning DNA ·
+Integrations. The hrefs were `#features`, `#ai-tutor`,
+`#learning-dna`, `#integrations` — none of those section IDs exist
+on the landing page (the actual section IDs are `how-it-works`,
+`pillars`, `pricing`, `faq`). So 4 of the 5 links did nothing.
+Replaced with a working set: "How it works" (`#how-it-works`),
+"Pillars" (`#pillars`), "Pricing" (`/pricing`), "Individual
+products" (`/products`), "Demo" (`/demo`). All hrefs verified
+against actual section IDs and route pages.
+
+### Notes
+
+- Same deferrals as v16.4.0 — Stripe still not wired, the
+  `/onboard?plan=X` flow does not yet take a card. The trial buttons
+  go somewhere meaningful but the trial doesn't actually start
+  charging at day 14 yet.
+
+---
+
 ## [5.4.0] - 2026-05-12 — Update 5.4 (5 new products shipped + dead-end CTA fix)
 
 The five products that were "Coming soon" teasers in v16.3 are now live,

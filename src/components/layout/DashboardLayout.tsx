@@ -592,7 +592,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="font-medium text-gray-500">{roleLabel}</span>
             <ChevronRight size={14} />
             <span className="font-medium text-gray-900 dark:text-white">
-              {navItems.find(item => pathname === item.href || pathname.startsWith(item.href + '/'))?.label || 'Dashboard'}
+              {
+                navItems.find(item => pathname === item.href || pathname.startsWith(item.href + '/'))?.label
+                // v16.4.1: utility / individual-product routes aren't in any
+                // role's nav, so they were falling through to "Dashboard" in
+                // the topbar. Map them to readable labels here.
+                || (pathname.startsWith('/help') ? 'Help & FAQ'
+                  : pathname.startsWith('/products') ? 'Products'
+                  : pathname.startsWith('/study') ? 'Exam Study Helper'
+                  : pathname.startsWith('/practice') ? 'Practice Generator'
+                  : pathname.startsWith('/math-solver') ? 'Math Solver'
+                  : pathname.startsWith('/notes-cleaner') ? 'Notes Cleaner'
+                  : pathname.startsWith('/lab-report') ? 'Lab Report Builder'
+                  : pathname.startsWith('/citation-finder') ? 'Citation Finder'
+                  : pathname.startsWith('/language-lab') ? 'Language Lab'
+                  : pathname.startsWith('/about') ? 'About'
+                  : pathname.startsWith('/team') ? 'Team'
+                  : pathname.startsWith('/pricing') ? 'Pricing'
+                  : pathname.startsWith('/contact') ? 'Contact'
+                  : pathname.startsWith('/roadmap') ? 'Roadmap'
+                  : 'Dashboard')
+              }
             </span>
           </div>
 

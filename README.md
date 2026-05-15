@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.4.0 · Update 5.4 · 5 new product features shipped + dead-end CTA fix</code>
+  <code>v16.4.1 · Update 5.4 · 5 new product features + dead-end CTA / footer / breadcrumb fixes</code>
 </p>
 
 ---
