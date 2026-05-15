@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.3.0 · Update 5.3 · 8-product catalog + bundles + dual pricing + multi-file uploads</code>
+  <code>v16.4.0 · Update 5.4 · 5 new product features shipped + dead-end CTA fix</code>
 </p>
 
 ---

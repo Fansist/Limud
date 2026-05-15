@@ -4,6 +4,107 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.4.0] - 2026-05-12 — Update 5.4 (5 new products shipped + dead-end CTA fix)
+
+The five products that were "Coming soon" teasers in v16.3 are now live,
+with working AI generation behind each one. Plus a fix for the common
+dead-end where a logged-in user hits a "Sign In" or "Start Free"
+button on the landing page and gets bounced back to the auth screen
+they're already past.
+
+### Added — Five new product pages
+
+All five run on a shared infrastructure:
+
+- **NEW `src/components/products/MarkdownToolPage.tsx`** — single shared
+  page component. Takes a `ToolConfig` (tool id, name, blurb, icon,
+  gradient, input/option fields, optional helper) and renders the full
+  anon-friendly page: marketing-style nav when signed out, dashboard
+  shell when signed in; "Preview mode" banner that explains the
+  sign-in gate; draft persisted to localStorage and restored after the
+  login round-trip; last 5 generations cached client-side; ReactMarkdown
+  output rendering; copy + clear buttons.
+- **NEW `POST /api/products/generate`** — single shared route. Takes a
+  `tool` discriminator + `input` + optional `option`, validates,
+  routes to the right generator in `src/lib/ai.ts`. Same
+  `skipBodyScanning: true` opt-out as `/study` and `/practice`.
+- **NEW `generateProductTool()` in `src/lib/ai.ts`** — fans out to one
+  of five tool-specific system prompts. Each prompt is opinionated
+  about output structure (headings, sections, what to flag, what
+  honesty rules apply). Deterministic fallback when the AI is
+  unreachable.
+
+The five pages:
+
+- **`/math-solver`** — paste any math problem; output has Problem /
+  Solution (numbered steps with explanations) / Answer (boxed) /
+  Watch out (common mistakes). Pre-algebra through calculus and stats.
+- **`/notes-cleaner`** — paste messy lecture notes; output preserves
+  your order and emphasis, decodes abbreviations, adds `##` headings
+  + a 5-bullet `## TL;DR`, marks every fill-in with a trailing `*`
+  so it's obvious what came from where, refuses to invent facts.
+- **`/lab-report`** — paste observations + data + hypothesis; output
+  is a properly structured lab report (intro / methods / results /
+  discussion / missing controls). Suggests a graph type for your data.
+  Won't fabricate results — sparse inputs get a flagged note instead.
+- **`/citation-finder`** — paste a claim or paragraph; choose APA /
+  MLA / Chicago / Harvard / IEEE; output lists the specific claims,
+  candidate sources for each (with HIGH / MED / LOW confidence), and
+  a separate "weak claims" section. Will refuse to fabricate DOIs.
+- **`/language-lab`** — pick one of 12 target languages, paste your
+  textbook chapter; output is a daily-drill set: 10-row vocab table,
+  one grammar focus with 3 example transformations, 5 fill-in-the-blank
+  drills with `<details>` answer key, and a short reading passage
+  with three English-language comprehension questions.
+
+All five are added to `PUBLIC_PATHS` so they're browseable anonymously
+(preview mode). All five are marked `available: true` on `/products`
+with their correct hrefs.
+
+### Fixed — Logged-in dead-end CTAs
+
+The most common UX paper cut: a logged-in user hits "Start Free" or
+"Sign In" on a marketing page and gets routed through `/login` →
+"already logged in" → manual navigation back to a dashboard. Three
+buttons fixed across two pages:
+
+- **`NEW src/components/AuthAwareCTA.tsx`** — single conditional button
+  component. Two variants:
+  - `topbar`: anon → "Sign In" + "Start Free" pair; authed → single
+    "Dashboard" button routing to the role-appropriate landing
+    page (`/student/dashboard`, `/teacher/dashboard`, `/parent/
+    dashboard`, `/admin/dashboard`, or `/demo` for master demo).
+  - `hero`: anon → "Get started" → `/register`; authed → "Open your
+    dashboard" → role-appropriate URL.
+- **`src/components/landing/LandingPage.tsx`** — three sites swapped:
+  - Top-nav Sign In / Start Free pair → `<AuthAwareCTA variant="topbar" />`.
+  - Hero CTA "Get started" → `<AuthAwareCTA variant="hero" />`.
+  - Mobile-menu auth row → conditional: single "Dashboard" button
+    when authed, original two-button pair when not.
+  - Dark-background bottom CTA: inline session check; logged-in
+    users see "Open your dashboard" with the same on-dark styling.
+- **`src/app/products/page.tsx`** top nav → `<AuthAwareCTA
+  variant="topbar" callbackUrl="/products" />`.
+
+Master demo accounts get `/demo` (the role-switcher) rather than a
+specific role dashboard, since that's where master-demo flows
+naturally start.
+
+### Notes
+
+- Stripe is still not wired. The 5 new products generate freely for
+  any logged-in user (incl. master demo) — usage caps and the
+  one-time-vs-monthly fork only matter once billing lands.
+- The five new pages share a single shared component and a single
+  shared API route, so adding a 9th tool in a future update is now
+  ~30 lines of config + a new prompt branch + a public-paths entry.
+- The /study and /practice pages already had their own
+  anon-friendly shells, so they don't need the `AuthAwareCTA`
+  treatment — anonymous users see the anon shell; logged-in users
+  see the dashboard shell.
+
+---
+
 ## [5.3.0] - 2026-05-12 — Update 5.3 (8 products, 4 bundles, dual pricing, multi-file uploads)
 
 The individual-products catalog grows from 2 shipped + 1 teased to

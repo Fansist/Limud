@@ -40,6 +40,12 @@ const PUBLIC_PATHS = [
   '/study',
   // v16.2: Practice Generator — same pattern.
   '/practice',
+  // v16.4: five more single-screen tools (all anon-friendly previews).
+  '/math-solver',
+  '/notes-cleaner',
+  '/lab-report',
+  '/citation-finder',
+  '/language-lab',
 ];
 
 const PUBLIC_API_PATHS = [

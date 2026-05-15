@@ -1807,3 +1807,209 @@ function parsePracticeQuizJson(raw: string): Array<{
   }
   return out.length > 0 ? out : null;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INDIVIDUAL PRODUCT TOOLS (v16.4.0 — Update 5.4)
+//
+// Five thin generators that all share the same shape: take a structured
+// request, return markdown content. Each has its own system prompt tuned
+// to the tool's purpose. The shared /api/products/generate route routes
+// to one of these based on the `tool` discriminator in the request body.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type ProductTool =
+  | 'math-solver'
+  | 'notes-cleaner'
+  | 'lab-report'
+  | 'citation-finder'
+  | 'language-lab';
+
+export interface ProductGenRequest {
+  tool: ProductTool;
+  /** Primary user input — the problem, the notes, the claim, etc. */
+  input: string;
+  /** Optional second field — citation style, target language, etc. */
+  option?: string;
+}
+
+export interface ProductGenResult {
+  content: string;
+  tool: ProductTool;
+  model: string;
+  tokensApprox: number;
+  aiError?: string;
+}
+
+/**
+ * Build the system prompt for a given tool + input. Each tool has a tight,
+ * opinionated prompt — no marketing language, just behavior.
+ */
+function buildProductToolPrompt(req: ProductGenRequest): string {
+  const input = req.input.trim().slice(0, 10_000); // hard cap per call
+  const option = (req.option || '').trim();
+
+  switch (req.tool) {
+    case 'math-solver':
+      return [
+        'You are Limud Math Solver. Solve the student\'s math problem with full step-by-step work.',
+        '',
+        'Output structure (use this exactly):',
+        '## Problem',
+        'Restate the problem in clean math notation. Use $...$ for inline LaTeX.',
+        '',
+        '## Solution',
+        'Numbered steps. Every step has TWO parts:',
+        '1. The math operation (LaTeX where helpful).',
+        '2. A 1-sentence explanation of WHY this step is the right move.',
+        '',
+        '## Answer',
+        'Final answer, boxed in $\\boxed{...}$. If multiple, list them.',
+        '',
+        '## Watch out',
+        '1-3 bullet points: the most common mistakes students make on this kind of problem.',
+        '',
+        'Never skip steps "for brevity". If you would skip a step, write it anyway and label it (algebra) or (arithmetic).',
+        'If the problem is ambiguous, state your interpretation in one line and solve under that assumption.',
+        '',
+        'PROBLEM:',
+        '---',
+        input,
+        '---',
+      ].join('\n');
+
+    case 'notes-cleaner':
+      return [
+        'You are Limud Notes Cleaner. The student took messy lecture notes — fragments, abbreviations, gaps. Restore them into clear, organized notes that match what the lecture actually covered.',
+        '',
+        'Rules:',
+        '- Keep the student\'s ORDER and EMPHASIS — they noticed what mattered. Don\'t reorganize the topic flow unless it\'s genuinely incoherent.',
+        '- Decode obvious abbreviations from context (e.g. "DNA pol" → "DNA polymerase", "wrt" → "with respect to").',
+        '- Fill small contextual gaps (a missing definition, an example the student wrote "ex:" but trailed off on). Mark every fill-in with a trailing `*` so the student knows it\'s yours, not theirs.',
+        '- Add `##` section headings inferred from the content.',
+        '- End with a `## TL;DR` block: 5 bullets, the key takeaways.',
+        '- Do NOT invent facts the student didn\'t reference. If a section is too sparse to reconstruct, leave a one-line note like `*(notes too sparse — couldn\'t reconstruct)*`.',
+        '',
+        'STUDENT NOTES (verbatim):',
+        '---',
+        input,
+        '---',
+      ].join('\n');
+
+    case 'lab-report':
+      return [
+        'You are Limud Lab Report Builder. The student dropped raw lab observations, data, and a hypothesis. Structure it into a proper scientific lab report.',
+        '',
+        'Output structure (use these exact headings):',
+        '## Introduction',
+        '2-4 sentences. State the background, the question, and the hypothesis.',
+        '',
+        '## Methods',
+        'Numbered list of procedural steps inferred from the observations. Be specific about what was measured and what was held constant.',
+        '',
+        '## Results',
+        'Restate the data plainly. If the input contains a table or numbers, reproduce them as a Markdown table. Note the units. Suggest the best graph type (bar/line/scatter) for visualizing the result and why — one line.',
+        '',
+        '## Discussion',
+        'Interpret the result against the hypothesis. Was it supported, partly supported, or refuted? Why? Then 2-4 sentences on sources of error and what a follow-up experiment would change.',
+        '',
+        '## Missing controls / concerns',
+        'Bullet list of any controls or methodology gaps you can identify from the input. If none, write "*None obvious from the description.*".',
+        '',
+        'Tone: scientific but not stiff. Active voice ("we measured", not "measurements were taken") unless the student\'s class style insists on passive — leave that for them to fix.',
+        '',
+        'STUDENT INPUT:',
+        '---',
+        input,
+        '---',
+      ].join('\n');
+
+    case 'citation-finder':
+      return [
+        'You are Limud Citation Finder. The student pasted a claim or a paragraph from their draft. Your job is to suggest real, verifiable sources that support each claim — formatted in the requested style.',
+        '',
+        `Citation style: ${option || 'APA 7th edition'}.`,
+        '',
+        'Output structure:',
+        '## Claims identified',
+        'Numbered list. Each claim is a one-sentence rephrasing of a specific factual assertion in the input. Skip opinions and rhetorical questions.',
+        '',
+        '## Suggested sources',
+        'For each claim, list 1-3 candidate sources in the requested citation style. Each entry is one full citation followed by:',
+        '- A 1-sentence note on WHY this source supports the claim.',
+        '- A confidence flag: HIGH (well-known peer-reviewed work), MEDIUM (reputable but secondary), LOW (you are unsure if the exact wording matches).',
+        '',
+        '## Weak claims',
+        'If any claim is unsupported, overgeneralized, or relies on a "common knowledge" framing that probably needs evidence in academic writing, flag it here. Suggest how to rephrase or what evidence to look for.',
+        '',
+        'Do NOT fabricate citations. If you can\'t find a real source, write "*No specific source recalled — search keywords: <keywords>*" and let the student verify. The student would rather have an honest blank than a fake DOI.',
+        '',
+        'STUDENT INPUT:',
+        '---',
+        input,
+        '---',
+      ].join('\n');
+
+    case 'language-lab':
+      return [
+        `You are Limud Language Lab. Target language: ${option || 'Spanish'}. Build a short daily-drill set anchored to whatever the student pastes (textbook chapter, vocab list, syllabus excerpt).`,
+        '',
+        'Output structure:',
+        '## Vocabulary (10 items)',
+        'A Markdown table with columns: Word · Translation · Part of speech · Example sentence (in target language) · English gloss of the example.',
+        '',
+        '## Grammar focus',
+        'Identify ONE grammar point that recurs in the input. Explain it in 3-5 sentences. Give 3 example transformations (e.g. present → past tense) using vocabulary from the table.',
+        '',
+        '## Drill (5 fill-in-the-blank)',
+        'Five sentences in the target language with one blank each, drawn from the grammar focus. Below the list, a `<details><summary>Show answers</summary>...` block with the keyed answers.',
+        '',
+        '## Reading (60-100 words)',
+        'A short reading passage in the target language at the student\'s implied level. Below it, three comprehension questions in English (so they\'re forced to demonstrate understanding, not pattern-match).',
+        '',
+        'Tone: encouraging, never condescending. Don\'t over-explain — they came here to learn, not be lectured.',
+        '',
+        'STUDENT INPUT:',
+        '---',
+        input,
+        '---',
+      ].join('\n');
+  }
+}
+
+/**
+ * Single entry point for the five new individual-product tools. Returns
+ * markdown content; the page renders it. Stateless — no DB writes.
+ */
+export async function generateProductTool(req: ProductGenRequest): Promise<ProductGenResult> {
+  const model = (process.env.AI_MODEL || '').trim() || 'gemini-2.5-flash';
+  const prompt = buildProductToolPrompt(req);
+
+  try {
+    const content = await callGemini(prompt, { temperature: 0.5, maxTokens: 3072 });
+    return {
+      content,
+      tool: req.tool,
+      model,
+      tokensApprox: Math.ceil(content.length / 4),
+    };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const classified = classifyGeminiError(errMsg);
+    log.warn('PRODUCT_TOOL', `${req.tool} fallback: ${classified.kind} :: ${classified.wrapped}`);
+    const fallback = [
+      `We couldn't reach the AI for the ${req.tool.replace('-', ' ')} right now. Here's your raw input so you don't lose it:`,
+      '',
+      '---',
+      '',
+      req.input.slice(0, 2000),
+      req.input.length > 2000 ? '\n\n*(truncated)*' : '',
+    ].join('\n');
+    return {
+      content: fallback,
+      tool: req.tool,
+      model,
+      tokensApprox: Math.ceil(fallback.length / 4),
+      aiError: classified.wrapped,
+    };
+  }
+}

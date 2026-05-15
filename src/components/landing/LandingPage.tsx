@@ -13,6 +13,8 @@ import {
   Upload, Headphones, Hand, Focus, Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AuthAwareCTA, { dashboardHrefFor } from '@/components/AuthAwareCTA';
+import { useSession } from 'next-auth/react';
 
 /* ── Helpers ────────────────────────────────────────────────── */
 
@@ -70,6 +72,13 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  // v16.4: session-aware so we can swap "Sign In / Start Free" for a
+  // dashboard link when the visitor is already logged in.
+  const { data: session, status } = useSession();
+  const isAuthed = status === 'authenticated';
+  const dashboardHref = isAuthed && session?.user
+    ? dashboardHrefFor(session.user as { role?: string; isHomeschoolParent?: boolean; isMasterDemo?: boolean })
+    : null;
   const [mobileMenu, setMobileMenu] = useState(false);
 
   useEffect(() => {
@@ -159,10 +168,11 @@ export default function LandingPage() {
 
             <div className="flex items-center gap-2">
               <Link href="/products" className="hidden md:inline text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 px-3 py-2">Products</Link>
-              <Link href="/login" className="hidden sm:inline text-sm font-semibold text-gray-600 hover:text-gray-900 px-3 py-2">Sign In</Link>
-              <Link href="/register" className="inline-flex items-center gap-1 bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-700 transition shadow-sm">
-                Start Free <ArrowRight size={14} />
-              </Link>
+              {/* v16.4: AuthAwareCTA replaces the hardcoded Sign In / Start Free
+                  pair so logged-in users see a Dashboard button instead of
+                  being bounced back through /login. */}
+              <AuthAwareCTA variant="topbar" />
+
               <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2 rounded-lg hover:bg-gray-100" aria-label="Menu" aria-expanded={mobileMenu} aria-controls="mobile-nav">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileMenu ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
@@ -180,8 +190,21 @@ export default function LandingPage() {
                 className="block px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">{item}</a>
             ))}
             <div className="flex gap-2 pt-2">
-              <Link href="/login" className="flex-1 text-center text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg py-2">Sign In</Link>
-              <Link href="/register" className="flex-1 text-center text-sm font-semibold bg-primary-600 text-white rounded-lg py-2">Start Free</Link>
+              {/* v16.4: mobile-menu auth row — collapse to a single Dashboard
+                  button when the visitor is already logged in. */}
+              {isAuthed && dashboardHref ? (
+                <Link
+                  href={dashboardHref}
+                  className="flex-1 text-center text-sm font-semibold bg-primary-600 text-white rounded-lg py-2"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" className="flex-1 text-center text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg py-2">Sign In</Link>
+                  <Link href="/register" className="flex-1 text-center text-sm font-semibold bg-primary-600 text-white rounded-lg py-2">Start Free</Link>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -207,9 +230,9 @@ export default function LandingPage() {
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/register" className="group inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-7 py-3.5 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-600/20">
-                Get started <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+              {/* v16.4: Hero CTA is now session-aware — logged-in users see
+                  "Open your dashboard" instead of being routed to /register. */}
+              <AuthAwareCTA variant="hero" />
               <Link href="/study" className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-7 py-3.5 rounded-xl font-bold border border-gray-200 hover:border-primary-200 hover:bg-primary-50 transition">
                 Try the Exam Study Helper
               </Link>
@@ -570,8 +593,16 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-extrabold">Every mind learns differently</h2>
             <p className="mt-3 text-white/70 max-w-lg mx-auto">Cognitive science + generative AI, adapted to every student. The same product for districts and families.</p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/register" className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-7 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg">
-                Get started <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              {/* v16.4: session-aware. Logged-in users go to their dashboard
+                  instead of getting bounced to /register. White-on-blue
+                  styling matches the surrounding gradient panel — different
+                  from the white-background hero CTA, so this stays inline. */}
+              <Link
+                href={dashboardHref ?? '/register'}
+                className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-7 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg"
+              >
+                {dashboardHref ? 'Open your dashboard' : 'Get started'}
+                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-white/10 text-white px-7 py-3.5 rounded-xl font-bold border border-white/20 hover:bg-white/20 transition">
                 Talk to district sales

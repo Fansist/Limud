@@ -35,6 +35,7 @@ import {
   Check,
   Infinity as InfinityIcon,
 } from 'lucide-react';
+import AuthAwareCTA from '@/components/AuthAwareCTA';
 
 type BillingMode = 'oneTime' | 'monthly';
 
@@ -106,11 +107,11 @@ const PRODUCTS: Product[] = [
     name: 'Math Solver',
     blurb:
       'Paste any math problem. Limud shows the full step-by-step solution with a 1-line explanation at each step — algebra through calculus.',
-    href: '/products',
+    href: '/math-solver',
     oneTimePrice: 7,
     oneTimeUnit: 'pack of 50',
     monthlyPrice: 4,
-    available: false,
+    available: true,
     icon: <Calculator size={22} />,
     ring: 'from-orange-500 to-red-500',
     bullets: [
@@ -128,7 +129,7 @@ const PRODUCTS: Product[] = [
     oneTimePrice: 7,
     oneTimeUnit: 'per draft',
     monthlyPrice: 5,
-    available: false,
+    available: false, // still teased — distinct product, separate spec coming
     icon: <BookOpen size={22} />,
     ring: 'from-emerald-500 to-teal-500',
     bullets: [
@@ -142,11 +143,11 @@ const PRODUCTS: Product[] = [
     name: 'Notes Cleaner',
     blurb:
       'Paste your messy lecture notes — abbreviations, fragments, gaps. Limud cleans them into organized, complete notes with the missing context filled in.',
-    href: '/products',
+    href: '/notes-cleaner',
     oneTimePrice: 4,
     oneTimeUnit: 'per lecture',
     monthlyPrice: 4,
-    available: false,
+    available: true,
     icon: <FileText size={22} />,
     ring: 'from-amber-500 to-yellow-500',
     bullets: [
@@ -160,11 +161,11 @@ const PRODUCTS: Product[] = [
     name: 'Lab Report Builder',
     blurb:
       'Drop your observations, data table, and hypothesis. Limud structures it into a proper lab report with intro, methods, results, and discussion.',
-    href: '/products',
+    href: '/lab-report',
     oneTimePrice: 6,
     oneTimeUnit: 'per report',
     monthlyPrice: 4,
-    available: false,
+    available: true,
     icon: <Beaker size={22} />,
     ring: 'from-cyan-500 to-sky-500',
     bullets: [
@@ -178,11 +179,11 @@ const PRODUCTS: Product[] = [
     name: 'Citation Finder',
     blurb:
       "Paste a claim or paragraph. Limud suggests real sources that back it up, formatted in APA, MLA, or Chicago. We don't write the essay — we find the evidence.",
-    href: '/products',
+    href: '/citation-finder',
     oneTimePrice: 4,
     oneTimeUnit: 'pack of 25',
     monthlyPrice: 3,
-    available: false,
+    available: true,
     icon: <Quote size={22} />,
     ring: 'from-violet-500 to-purple-500',
     bullets: [
@@ -196,11 +197,11 @@ const PRODUCTS: Product[] = [
     name: 'Language Lab',
     blurb:
       'Spanish, French, Mandarin, Arabic, more. Daily vocab + grammar + reading drills adapted to your textbook and current chapter.',
-    href: '/products',
+    href: '/language-lab',
     oneTimePrice: 12,
     oneTimeUnit: 'per semester',
     monthlyPrice: 5,
-    available: false,
+    available: true,
     icon: <Languages size={22} />,
     ring: 'from-rose-500 to-pink-500',
     bullets: [
@@ -276,15 +277,9 @@ export default function ProductsPage() {
             <Link href="/pricing" className="hidden sm:inline text-sm font-medium text-gray-600 hover:text-gray-900">
               District plans
             </Link>
-            <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-gray-900 px-3 py-2">
-              Sign in
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-1 bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-700 transition shadow-sm"
-            >
-              Start free
-            </Link>
+            {/* v16.4: AuthAwareCTA replaces the hardcoded Sign in / Start free
+                pair — logged-in users see a Dashboard button. */}
+            <AuthAwareCTA variant="topbar" callbackUrl="/products" />
           </div>
         </div>
       </header>

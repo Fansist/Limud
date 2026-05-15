@@ -43,6 +43,18 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.4.0 — Update 5.4: 5 new products + dead-end CTA fix`
+- **files:** 14 · NEW `src/components/products/MarkdownToolPage.tsx`, NEW `src/components/AuthAwareCTA.tsx`, NEW `src/app/api/products/generate/route.ts`, NEW `src/app/math-solver/page.tsx`, NEW `src/app/notes-cleaner/page.tsx`, NEW `src/app/lab-report/page.tsx`, NEW `src/app/citation-finder/page.tsx`, NEW `src/app/language-lab/page.tsx`, `src/lib/ai.ts` (+`generateProductTool` + 5 system prompts), `src/middleware.ts` (5 new public paths), `src/app/products/page.tsx` (5 cards flipped to available + AuthAwareCTA in top nav), `src/components/landing/LandingPage.tsx` (AuthAwareCTA in top nav + hero + mobile menu + inline bottom-CTA fix), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** MEDIUM
+  - Five new public-by-prefix routes — each one routes through the same shared `<MarkdownToolPage>` component and the same `/api/products/generate` endpoint. The generation API is auth-gated and uses `skipBodyScanning: true` (same opt-out as `/study` and `/practice` from v16.2).
+  - The `AuthAwareCTA` wraps `useSession`. It's used in marketing pages that are not behind `<SessionProvider>` at the SSR boundary — they ARE wrapped because the root `Providers` component (in `src/app/layout.tsx`) includes `SessionProvider` for the whole tree. Verified by reading `src/components/Providers.tsx`.
+  - Five new system prompts in `src/lib/ai.ts`. Each one has an explicit "don't fabricate" rule (notably citation-finder, which is the easiest to halucinate badly). Verify behavior on each before any paid launch.
+  - `/products` catalog page was previously a server component for v16.0–v16.2 then became `'use client'` in v16.3 (billing toggle). This update adds `AuthAwareCTA` to it — same client boundary.
+- **review:** ⚠️ partial — Stripe still not wired (same status as v16.0/.1/.2/.3). Five new products generate freely for any logged-in user. Will need per-user generation caps or a feature flag once billing lands. Master demo can use everything (intentional). Real users with no plan can also use everything (NOT intentional — needs a quota gate before commercial launch).
+- **demo-mode:** yes — master demo (logged in) hits the dashboard variants and lands on `/demo`. Anonymous visitors see the marketing variants and the "Preview mode" banner on each product page; clicking Generate persists their draft and bounces through `/login`.
+- **tests:** manual smoke — visit each new product page anon → see preview banner → fill a small input → click Generate → bounce to /login → sign in → return → draft restored → generate succeeds → result renders. Also: visit `/` while logged in → top-nav shows "Dashboard" not "Sign In", hero CTA reads "Open your dashboard" not "Get started", bottom CTA reads "Open your dashboard". Anonymous visit → both buttons read as before.
+- **notes:** Build cost: 14 files, mostly small. The `<MarkdownToolPage>` + shared API + shared generator is the long-term win — a 9th tool is now ~30 lines of config and a new prompt branch in `generateProductTool`'s switch. Two carried-over deferrals: Stripe + per-user quota.
+
 ### fbd273e — `v16.3.0 — Update 5.3: 8 products + bundles + dual pricing + multi-file uploads`
 - **files:** 5 · `src/app/products/page.tsx` (full rewrite — 8 products, 4 bundles, billing-mode toggle), `src/app/study/page.tsx` (multi-file upload — new `handleFilesUpload()` + `<input multiple>`), `CHANGELOG.md`, `CODE-REVIEW.md`, `README.md`, `package.json`
 - **risk:** LOW
