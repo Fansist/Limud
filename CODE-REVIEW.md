@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.5.0 — Update 5.5: anti-cheating redesign + Essay Coach shipped`
+### 8984625 — `v16.5.0 — Update 5.5: anti-cheating redesign + Essay Coach shipped`
 - **files:** 8 · `src/lib/ai.ts` (rewrote math-solver / lab-report / notes-cleaner prompts + added essay-coach case + extended ProductTool union), `src/app/math-solver/page.tsx` (Math Tutor copy), `src/app/lab-report/page.tsx` (Lab Report Reviewer copy), NEW `src/app/essay-coach/page.tsx`, `src/app/api/products/generate/route.ts` (essay-coach in VALID_TOOLS), `src/middleware.ts` (/essay-coach in PUBLIC_PATHS), `src/app/products/page.tsx` (renamed/reframed three product cards + Essay Coach available + STEM Bundle pitch), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** LOW
   - Prompt rewrites only. No schema, no auth changes, no new API surface (essay-coach piggybacks the shared `/api/products/generate` route via the new tool id). No new env vars.
