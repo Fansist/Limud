@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.7.0 · Update 5.7 · AI grading for student-facing short-answer questions</code>
+  <code>v16.7.1 · Update 5.7 · Comic image data: URLs no longer stripped by markdown renderer</code>
 </p>
 
 ---

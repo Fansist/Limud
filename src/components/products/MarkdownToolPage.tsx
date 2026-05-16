@@ -54,6 +54,28 @@ export type ToolConfig = {
   helperText?: string;
 };
 
+/**
+ * URL transform for the ReactMarkdown rendering inside this shared
+ * tool shell. react-markdown v9 ships a default that strips
+ * `data:image/...` URLs entirely. Same fix as `/study`.
+ */
+function toolMarkdownUrlTransform(url: string): string {
+  if (typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.length === 0) return '';
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith('data:image/')) return trimmed;
+  if (
+    lower.startsWith('http://') ||
+    lower.startsWith('https://') ||
+    lower.startsWith('mailto:') ||
+    lower.startsWith('tel:') ||
+    lower.startsWith('#') ||
+    lower.startsWith('/')
+  ) return trimmed;
+  return '';
+}
+
 export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
   const { status } = useSession();
   const router = useRouter();
@@ -321,7 +343,13 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                   </div>
                 )}
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{content}</ReactMarkdown>
+                  {/* v16.7.1: see safeMarkdownUrlTransform note in
+                      /study/page.tsx. react-markdown v9's default
+                      strips data:image/... URLs. None of the current
+                      product tools generate images, but keeping the
+                      shells in sync so a future image-emitting tool
+                      doesn't silently lose its images. */}
+                  <ReactMarkdown urlTransform={toolMarkdownUrlTransform}>{content}</ReactMarkdown>
                 </div>
               </div>
             )}

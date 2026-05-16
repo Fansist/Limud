@@ -4,6 +4,58 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.7.1] - 2026-05-16 — Update 5.7 hotfix (comic images visible again)
+
+User-reported: the Exam Study Helper comic format showed panel
+headings ("Panel 1", "PANEL 1 SETTING: …") but no images, even
+though the result-card header showed ~3 million tokens — a
+character count only possible if the base64 data URLs for the panel
+images WERE in the content payload.
+
+### Fixed — react-markdown v9 default `urlTransform` was stripping data URLs
+
+`react-markdown@9` ships with a default `urlTransform` that filters
+URLs through a safety list. The list excludes `data:` URLs entirely.
+So `![Panel 1](data:image/png;base64,…)` rendered as nothing — the
+image src was silently removed before the browser even tried to
+display it. From the user's perspective: payload was huge, render
+was empty.
+
+Two sites use `<ReactMarkdown>` to render generated content:
+
+- `src/app/study/page.tsx` (textbook / comic / diagrams / cheatsheet
+  / flashcards output).
+- `src/components/products/MarkdownToolPage.tsx` (every individual
+  product tool — math tutor, notes cleaner, lab report reviewer,
+  citation finder, language lab, essay coach).
+
+Both now pass a `urlTransform={…}` prop that:
+
+- Allows `data:image/...` URLs through unchanged. This is the only
+  `data:` form Limud emits — the comic enricher hard-codes
+  `data:image/png;base64,…` and `data:image/jpeg;base64,…` strings
+  from the Gemini image API.
+- Allows the standard safe schemes for normal links (`http(s)`,
+  `mailto:`, `tel:`, fragment `#`, absolute path `/`).
+- Drops everything else (notably `javascript:`, `vbscript:`,
+  `data:text/html`) so we don't reopen XSS via crafted links.
+
+### Notes
+
+- The two transform helpers (`safeMarkdownUrlTransform` in
+  `study/page.tsx` and `toolMarkdownUrlTransform` in
+  `MarkdownToolPage.tsx`) are byte-identical. They live in their own
+  files to keep each shell self-contained; if a third place starts
+  rendering markdown we should pull them up to `src/lib/utils.ts`.
+- None of the current product tools emit images. The fix in
+  `MarkdownToolPage` is preventative — keeps the two shells in
+  lockstep so a future image-emitting tool doesn't silently lose
+  its images.
+- Comic-format `/study` runs end-to-end again: panel script + AI-
+  generated panel art interleaved in a single rendered comic page.
+
+---
+
 ## [5.7.0] - 2026-05-16 — Update 5.7 (AI grading for short-answer on /practice)
 
 The student-facing Practice Generator (`/practice`) now AI-grades

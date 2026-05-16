@@ -43,6 +43,17 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.7.1 — Update 5.7 hotfix: comic image data: URLs visible again`
+- **files:** 5 · `src/app/study/page.tsx` (+ `safeMarkdownUrlTransform` helper, applied to `<ReactMarkdown>`), `src/components/products/MarkdownToolPage.tsx` (+ identical `toolMarkdownUrlTransform`, applied to its `<ReactMarkdown>`), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** LOW
+  - Pure rendering change. No backend, no schema, no auth.
+  - Security review: the new transform passes `data:image/...` only — explicitly NOT `data:text/html` or any other `data:` flavor. `javascript:` / `vbscript:` / etc. are dropped (return `''`). Behavior on legitimate links (`http(s)`, `mailto:`, `tel:`, fragment, absolute path) is unchanged from react-markdown's default safelist for those schemes.
+  - The transform helper is duplicated across two files. If a third site starts rendering markdown the duplication should be lifted to `src/lib/utils.ts` — flagged in CHANGELOG notes.
+- **review:** ⚠️ partial — need real comic generation after deploy to confirm the panel images now render inline. A failure mode I want to rule out post-deploy: the embedded base64 strings can be 0.5-2 MB each; if the browser balks at >1MB inline images we'd need to switch to an actual hosted image URL instead. Tracked but not blocking.
+- **demo-mode:** N/A — same renderer for everyone. Master demo gets the same fix.
+- **tests:** manual smoke — generate a comic in /study; expect the result card token-count to read in millions (image payload present) AND the page to show 4-6 illustrated panels with rounded corners + drop shadows (`prose-img:rounded-2xl prose-img:shadow-md prose-img:my-4`). Plain-text formats (textbook / diagrams / cheatsheet / flashcards) should keep working unchanged.
+- **notes:** The current product tools don't emit images, so the MarkdownToolPage half of this fix is preventative. If we wire the math tutor or any other tool to embed inline diagrams later, the renderer already handles it.
+
 ### 07ea40e — `v16.7.0 — Update 5.7: AI grading for /practice short-answer`
 - **files:** 6 · `src/lib/ai.ts` (+ `gradePracticeShortAnswers` + types + tolerant JSON parser), NEW `src/app/api/practice/grade-short-answers/route.ts`, `src/app/practice/page.tsx` (new state, async `submitQuiz` that calls the grader, new short-answer reveal UI with verdict pill + "I disagree" override), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** MEDIUM

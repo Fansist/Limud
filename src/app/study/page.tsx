@@ -127,6 +127,35 @@ function saveHistory(entries: HistoryEntry[]) {
   }
 }
 
+/**
+ * URL transform for the ReactMarkdown comic / textbook output.
+ *
+ * react-markdown v9 ships with a default `urlTransform` that strips
+ * any `data:` URL — including the legitimate `data:image/png;base64,…`
+ * we generate per panel. This custom transform passes those through
+ * (plus the safe non-data schemes) and rejects everything else so we
+ * don't accidentally re-open `javascript:` link injection.
+ */
+function safeMarkdownUrlTransform(url: string): string {
+  if (typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.length === 0) return '';
+  const lower = trimmed.toLowerCase();
+  // Allow rendered image data URLs (the only "data:" form we emit).
+  if (lower.startsWith('data:image/')) return trimmed;
+  // Standard safe schemes for plain links inside textbook / diagram / etc.
+  if (
+    lower.startsWith('http://') ||
+    lower.startsWith('https://') ||
+    lower.startsWith('mailto:') ||
+    lower.startsWith('tel:') ||
+    lower.startsWith('#') ||
+    lower.startsWith('/')
+  ) return trimmed;
+  // Anything else (javascript:, vbscript:, data:text/html, etc.) → drop.
+  return '';
+}
+
 export default function StudyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -587,7 +616,19 @@ export default function StudyPage() {
               </div>
             </div>
             <article className="prose prose-sm sm:prose dark:prose-invert max-w-none prose-img:rounded-2xl prose-img:shadow-md prose-img:my-4 prose-headings:font-bold">
-              <ReactMarkdown>{result.content}</ReactMarkdown>
+              {/* v16.7.1: react-markdown v9 ships a default urlTransform that
+                  strips data: URLs entirely. That meant the comic-format
+                  output, which embeds panel images as
+                  `![Panel N](data:image/png;base64,…)`, had its image
+                  references silently dropped — token-count showed all the
+                  payload was there but no image rendered. Custom transform
+                  passes through http(s), mailto:, tel:, and data:image/…
+                  (the only data scheme that's actually rendered as an
+                  <img>); rejects everything else so we don't reintroduce
+                  javascript: links. */}
+              <ReactMarkdown urlTransform={safeMarkdownUrlTransform}>
+                {result.content}
+              </ReactMarkdown>
             </article>
           </motion.div>
         )}
