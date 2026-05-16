@@ -46,6 +46,8 @@ const PUBLIC_PATHS = [
   '/lab-report',
   '/citation-finder',
   '/language-lab',
+  // v16.5: Essay Coach (built out of the v16.0 catalog teaser).
+  '/essay-coach',
 ];
 
 const PUBLIC_API_PATHS = [

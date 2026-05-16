@@ -4,6 +4,125 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.5.0] - 2026-05-12 — Update 5.5 (Anti-cheating redesign + Essay Coach shipped)
+
+Honest audit: several of the solo tools shipped in v16.4.0 were
+doing-your-homework-for-you tools dressed up as study tools. A teacher
+or admissions officer reading the output couldn't tell the student
+from the AI. This update fixes that by redesigning the prompts so
+each tool TEACHES the student instead of doing the work.
+
+### Redesigned — Math Solver → **Math Tutor** (Socratic)
+
+The previous prompt produced the full worked solution + final answer
+on first request, which is indistinguishable from Photomath / Mathway.
+The new prompt is Socratic: the student pastes the problem AND what
+they've already tried, and the AI gives them:
+
+- What it sees (including what's right in their attempt)
+- The relevant concept (named, not used)
+- ONE next-step hint (phrased as a question, not the work itself)
+- The most common trap at that step
+- An invitation to paste their new attempt for the next hint
+
+Hard rules in the prompt: never write the final answer, never write
+the full worked solution, never write more than one step ahead.
+Refuses "just give me the answer" requests politely and redirects.
+
+Page renamed from "Math Solver" to "Math Tutor". URL kept at
+`/math-solver` for stability.
+
+### Redesigned — Lab Report Builder → **Lab Report Reviewer**
+
+The previous prompt wrote the entire lab report (intro / methods /
+results / discussion prose) from the student's bullet points. The
+student typed the data; the AI typed the report. Now: the student
+pastes data + hypothesis + their draft, and the AI gives them an
+outline of what each section should answer (as questions, not text
+to copy), suggests visualization for their data, and critiques their
+draft against rubric standards.
+
+Hard rules in the prompt: never write a draft intro / methods /
+results / discussion in prose form; never produce a single sentence
+the student could paste into the report; quote phrases from the
+student's draft when pointing out problems. Refuses "just write it
+for me" politely.
+
+Page renamed from "Lab Report Builder" to "Lab Report Reviewer".
+URL kept at `/lab-report`.
+
+### Tightened — Notes Cleaner
+
+The previous prompt allowed "fill small contextual gaps" which let
+the AI invent content the student didn't write — defeating the
+point of personal study notes. The new prompt is strictly
+re-formatting only:
+
+- Fix typos and decode unambiguous abbreviations: yes.
+- Add headings the content itself suggests: yes.
+- Produce a TL;DR using only points the student wrote down: yes.
+- Add a definition / fact / example the student didn't write,
+  even if it's "obviously" the next thing the lecture would cover:
+  NO. Even when the AI knows the answer.
+
+A blank `ex:` from the student now renders as `*(student left this
+blank — fill in yourself)*` instead of being silently completed
+with AI-generated content.
+
+### Added — Essay Coach shipped (was teased since v16.0)
+
+The Essay Coach was on the catalog as "Coming soon · join waitlist"
+for four releases. Now live at `/essay-coach`. Built with the same
+anti-cheating discipline as the Math Tutor and Lab Report Reviewer.
+
+What it does: the student pastes their draft + (optionally) a
+rubric. The AI mirrors the structure back, flags the strongest
+passages with quoted phrases, flags the weak ones with specific
+critique (quoting the line + naming the problem in concrete terms),
+calls out weak transitions, does a voice check, checks rubric
+alignment if given, and ends with exactly three concrete things to
+do before the next draft.
+
+Rubric picker on the page: high-school analytical, AP Lang
+argumentative, college admissions personal statement, undergrad
+humanities, undergrad social science, lab writeup, or no rubric.
+
+Hard rules in the prompt: never rewrite a sentence, never produce
+an "improved version", never suggest a specific thesis (only point
+out that the existing thesis is unclear / overbroad), quote only
+short phrases when pointing at issues. Refuses "rewrite this for
+me" politely and explicitly. If the entire draft reads as
+AI-generated, calls that out politely in the Voice check section
+and recommends the student write a real draft in their own words.
+
+`/essay-coach` added to PUBLIC_PATHS so anonymous visitors can
+preview the form (Generate gated on login, same pattern as the
+other tools). Essay Coach flipped from `available: false` to
+`available: true` on `/products` with the new blurb.
+
+### Changed — Catalog copy
+
+- All four redesigned/new product cards on `/products` have new
+  blurbs that lead with the anti-cheating discipline:
+  "It will not finish the problem for you", "It will not write
+  your report", "Never invents facts the lecture didn't cover",
+  "It will not rewrite a single sentence".
+- STEM Bundle pitch updated to match the new tool framings.
+
+### Notes
+
+- Untouched and still on the catalog: Exam Study Helper (rewrites
+  THEIR coursework into formats they choose — legitimate),
+  Practice Generator (generates MCQs FOR study — universally
+  accepted study aid), Citation Finder (finds sources for their
+  claims — that's what literature search is), Language Lab (daily
+  drills — practice, not assignments).
+- No new API surface, no schema, no new env vars. The five new
+  prompts and one new page slot into the existing shared
+  `/api/products/generate` route and `<MarkdownToolPage>` component.
+
+---
+
 ## [5.4.2] - 2026-05-12 — Update 5.4 hotfix (tool truncation + comic image generation)
 
 Two user-reported bugs, both root-caused and fixed.

@@ -43,6 +43,17 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.5.0 — Update 5.5: anti-cheating redesign + Essay Coach shipped`
+- **files:** 8 · `src/lib/ai.ts` (rewrote math-solver / lab-report / notes-cleaner prompts + added essay-coach case + extended ProductTool union), `src/app/math-solver/page.tsx` (Math Tutor copy), `src/app/lab-report/page.tsx` (Lab Report Reviewer copy), NEW `src/app/essay-coach/page.tsx`, `src/app/api/products/generate/route.ts` (essay-coach in VALID_TOOLS), `src/middleware.ts` (/essay-coach in PUBLIC_PATHS), `src/app/products/page.tsx` (renamed/reframed three product cards + Essay Coach available + STEM Bundle pitch), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** LOW
+  - Prompt rewrites only. No schema, no auth changes, no new API surface (essay-coach piggybacks the shared `/api/products/generate` route via the new tool id). No new env vars.
+  - All URL slugs preserved (`/math-solver`, `/lab-report`) for incoming link / search-engine stability — only the displayed names and the prompts changed.
+  - Catalog copy reframes the value proposition. Cheating-prone framing ("step-by-step solution", "structures it into a proper lab report") replaced with teaching framing ("never finishes the problem for you", "You write the report. Limud makes sure it lands"). Expect lower self-serve sign-ups from users specifically hunting cheating tools — intentional.
+- **review:** ⚠️ partial — prompts are loud about anti-cheating but Gemini is not deterministic; need to spot-check actual outputs after the deploy. Open: run a "just give me the answer" prompt at the math tutor, a "write the whole report" prompt at the lab reviewer, and an "improve this draft" prompt at the essay coach — verify all three politely refuse in the way the prompt asks.
+- **demo-mode:** N/A — master demo gets the same outputs as everyone else (this is generation-side, not data-side).
+- **tests:** manual smoke — (1) Math Tutor on a multi-step problem WITH an attempt → expect hint + concept, no answer. (2) Math Tutor with no attempt → expect "Your next step" pointing at the first move. (3) Lab Report Reviewer with data + hypothesis + draft → expect feedback on draft, no prose to copy. (4) Notes Cleaner with sparse notes → expect `*(student left this blank — fill in yourself)*` placeholders, not invented content. (5) Essay Coach with a 3-paragraph draft → expect mirrored structure + specific critiques + exactly three action items.
+- **notes:** The four untouched tools (Exam Study Helper, Practice Generator, Citation Finder, Language Lab) were audited and judged legitimate study tools — not redesigned. Documented in the CHANGELOG entry.
+
 ### bf1df92 — `v16.4.2 — Update 5.4 hotfix: tool truncation + comic image generation`
 - **files:** 4 · `src/lib/ai.ts` (bump `generateProductTool` maxTokens 3072 → 6144, expand image-model fallback chain, loosen `parseComicPanels` + the matching injection regex in `enrichComicWithImages`), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** LOW–MEDIUM

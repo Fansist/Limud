@@ -28,6 +28,7 @@ const VALID_TOOLS: ReadonlySet<ProductTool> = new Set([
   'lab-report',
   'citation-finder',
   'language-lab',
+  'essay-coach',
 ]);
 
 export const POST = apiHandler(async (req: Request) => {

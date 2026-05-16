@@ -104,9 +104,9 @@ const PRODUCTS: Product[] = [
   },
   {
     id: 'math-solver',
-    name: 'Math Solver',
+    name: 'Math Tutor',
     blurb:
-      'Paste any math problem. Limud shows the full step-by-step solution with a 1-line explanation at each step — algebra through calculus.',
+      "Paste the problem AND what you've already tried. Limud names the concept, hands you the next hint, and flags the common trap — but never finishes the problem for you. You do the math.",
     href: '/math-solver',
     oneTimePrice: 7,
     oneTimeUnit: 'pack of 50',
@@ -115,21 +115,21 @@ const PRODUCTS: Product[] = [
     icon: <Calculator size={22} />,
     ring: 'from-orange-500 to-red-500',
     bullets: [
-      'Step-by-step work, not just the answer',
-      'Pre-algebra through calculus and statistics',
-      'Catches the most common mistake patterns at each step',
+      "Socratic — gives hints, not answers",
+      "Names the concept and the common trap",
+      "Pre-algebra through calculus and statistics",
     ],
   },
   {
     id: 'essay-coach',
     name: 'Essay Coach',
     blurb:
-      "Paste a draft, get structural feedback that doesn't rewrite your voice and doesn't flag every sentence as plagiarism.",
-    href: '/products',
+      "Paste your draft. Limud mirrors your structure back, points at where the argument is strong and where it's wobbly, and gives you three specific things to fix before the next draft. It will not rewrite a single sentence — that's the assignment.",
+    href: '/essay-coach',
     oneTimePrice: 7,
     oneTimeUnit: 'per draft',
     monthlyPrice: 5,
-    available: false, // still teased — distinct product, separate spec coming
+    available: true,
     icon: <BookOpen size={22} />,
     ring: 'from-emerald-500 to-teal-500',
     bullets: [
@@ -142,7 +142,7 @@ const PRODUCTS: Product[] = [
     id: 'notes-cleaner',
     name: 'Notes Cleaner',
     blurb:
-      'Paste your messy lecture notes — abbreviations, fragments, gaps. Limud cleans them into organized, complete notes with the missing context filled in.',
+      "Paste your messy lecture notes. Limud fixes typos, decodes your abbreviations, adds headings, and writes a TL;DR — using only words and concepts YOU wrote down. Never invents content. Your notes stay your notes.",
     href: '/notes-cleaner',
     oneTimePrice: 4,
     oneTimeUnit: 'per lecture',
@@ -151,16 +151,16 @@ const PRODUCTS: Product[] = [
     icon: <FileText size={22} />,
     ring: 'from-amber-500 to-yellow-500',
     bullets: [
-      'Fills gaps and decodes abbreviations from context',
+      'Decodes your abbreviations from context',
       'Adds section headings and a 5-bullet TL;DR',
-      'Cross-references concepts across your other uploads',
+      "Never invents facts the lecture didn't cover",
     ],
   },
   {
     id: 'lab-report-builder',
-    name: 'Lab Report Builder',
+    name: 'Lab Report Reviewer',
     blurb:
-      'Drop your observations, data table, and hypothesis. Limud structures it into a proper lab report with intro, methods, results, and discussion.',
+      "Paste your data, hypothesis, and a draft (rough is fine). Limud outlines what each section should answer, suggests how to present your data, and critiques your draft against rubric standards. You write the report. Limud makes sure it lands.",
     href: '/lab-report',
     oneTimePrice: 6,
     oneTimeUnit: 'per report',
@@ -247,7 +247,7 @@ const BUNDLES: Bundle[] = [
   {
     id: 'stem-bundle',
     name: 'STEM Bundle',
-    pitch: 'Math walkthroughs, lab report structure, and practice quizzes for the science/math grind.',
+    pitch: 'Hints when you get stuck on a math problem, feedback on your lab report drafts, and practice quizzes to drill the concepts — for the science / math grind.',
     productIds: ['math-solver', 'lab-report-builder', 'practice-generator'],
     oneTimePrice: 14,
     monthlyPrice: 9,

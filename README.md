@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.4.2 · Update 5.4 · Tool truncation + comic image fixes</code>
+  <code>v16.5.0 · Update 5.5 · Anti-cheating redesign of solo tools + Essay Coach shipped</code>
 </p>
 
 ---
