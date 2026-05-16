@@ -43,6 +43,17 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.5.1 — Update 5.5 hotfix: Practice + Study Helper token budgets`
+- **files:** 4 · `src/lib/ai.ts` (bump generateStudyMaterial maxTokens 4096→8192, bump generatePracticeQuiz maxTokens 4096→8192, rewrite practice fallback to read as clear error not fake quiz, log raw error message in fallback path), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** LOW
+  - Token-budget bumps are purely additive — outputs that fit in 4096 still fit in 8192. Cost per call rises only when the model actually uses the extra headroom.
+  - Fallback rewrite is text-only content of the deterministic placeholder. No code path change. New text is unambiguously a status message; old text could be mistaken for a real quiz question.
+  - Raw-error logging trims to 400 chars before emitting via `log.warn` — no PII risk because the message is the model's own classification of its failure (rate limit, auth, malformed JSON, etc.), not user content.
+- **review:** ⚠️ partial — need to confirm the 20-question challenging-difficulty Civil War prompt that the user surfaced actually produces a real quiz after the deploy. If it still hits the fallback, the new log line tells us why.
+- **demo-mode:** N/A — same behavior for master demo and normal users.
+- **tests:** manual smoke — Practice Generator with `topic=Civil War`, `count=20`, `difficulty=challenging`, paragraph of reference material → expect 20 real questions with answers, not the fallback. Run /study comic format on a multi-paragraph upload → expect full enriched content with panel images. Render logs should show `[PRACTICE] generatePracticeQuiz fallback (...): ...` only when generation legitimately fails.
+- **notes:** Other six product tools (`math-solver`, `notes-cleaner`, `lab-report`, `citation-finder`, `language-lab`, `essay-coach`) all use the shared `generateProductTool` which was already bumped to 6144 in v16.4.2; no change needed.
+
 ### 8984625 — `v16.5.0 — Update 5.5: anti-cheating redesign + Essay Coach shipped`
 - **files:** 8 · `src/lib/ai.ts` (rewrote math-solver / lab-report / notes-cleaner prompts + added essay-coach case + extended ProductTool union), `src/app/math-solver/page.tsx` (Math Tutor copy), `src/app/lab-report/page.tsx` (Lab Report Reviewer copy), NEW `src/app/essay-coach/page.tsx`, `src/app/api/products/generate/route.ts` (essay-coach in VALID_TOOLS), `src/middleware.ts` (/essay-coach in PUBLIC_PATHS), `src/app/products/page.tsx` (renamed/reframed three product cards + Essay Coach available + STEM Bundle pitch), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** LOW

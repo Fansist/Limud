@@ -1587,7 +1587,11 @@ export async function generateStudyMaterial(req: StudyRequest): Promise<StudyRes
   const model = (process.env.AI_MODEL || '').trim() || 'gemini-2.5-flash';
 
   try {
-    const content = await callGemini(prompt, { temperature: 0.7, maxTokens: 4096 });
+    // v16.5.1: 4096 → 8192. A textbook format that targets 1500-3000 words
+    // can easily approach 4000 output tokens; the comic + flashcards
+    // formats with verbose dialog / Q&A pairs run higher still. 4096 was
+    // truncating mid-output for some inputs.
+    const content = await callGemini(prompt, { temperature: 0.7, maxTokens: 8192 });
 
     // Comic format: post-process with panel image generation.
     if (req.format === 'comic') {
@@ -1728,7 +1732,14 @@ export async function generatePracticeQuiz(req: PracticeRequest): Promise<Practi
   const model = (process.env.AI_MODEL || '').trim() || 'gemini-2.5-flash';
 
   try {
-    const raw = await callGemini(prompt, { temperature: 0.6, maxTokens: 4096 });
+    // v16.5.1: 4096 → 8192. 20 questions × a JSON object containing
+    // { question, choices[4], correctIndex, explanation } runs to ~5000
+    // output tokens on a realistic input. 4096 was truncating mid-array
+    // → tolerant parser returned null → deterministic fallback fired →
+    // page showed the embarrassing "What is the main topic of 'X'?"
+    // placeholder. With 8192 a full 20-question quiz has comfortable
+    // headroom.
+    const raw = await callGemini(prompt, { temperature: 0.6, maxTokens: 8192 });
     const parsed = parsePracticeQuizJson(raw);
     if (!parsed || parsed.length === 0) {
       throw new Error('Model returned no parseable questions');
@@ -1747,21 +1758,25 @@ export async function generatePracticeQuiz(req: PracticeRequest): Promise<Practi
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     const classified = classifyGeminiError(errMsg);
-    log.warn('PRACTICE', `generatePracticeQuiz fallback: ${classified.kind} :: ${classified.wrapped}`);
-    // Deterministic fallback so the UI never crashes on zero questions.
+    log.warn('PRACTICE', `generatePracticeQuiz fallback (${classified.kind}): ${classified.wrapped} :: raw=${errMsg.slice(0, 400)}`);
+    // v16.5.1: Deterministic fallback now reads honestly. The previous
+    // placeholder ("What is the main topic of 'Civil War'? — Civil War
+    // itself / unrelated subject / placeholder") looked like a real quiz
+    // question and embarrassed the page when the AI failed. This version
+    // is unmistakably a status message, not a quiz.
     const fallback: PracticeQuestion[] = [
       {
         id: 1,
-        question: `What is the main topic of "${req.topic}"?`,
+        question: "We couldn't reach the AI right now — please try again",
         choices: [
-          `${req.topic} itself`,
-          'An unrelated subject',
-          'A reading comprehension exercise',
-          'A blank placeholder',
+          'Wait a minute and click "Generate quiz" again',
+          'Switch to a different difficulty and retry',
+          'Try a shorter topic name',
+          'Drop a smaller reference text in the optional field',
         ],
         correctIndex: 0,
         explanation:
-          "The quiz generator couldn't reach the AI right now. This placeholder lets you keep using the page; refresh in a minute to try again.",
+          `The quiz generator hit an error talking to the model (${classified.kind}). All four options above are reasonable next steps. Your topic and settings are preserved so you can click Generate again without re-typing.`,
       },
     ];
     return {

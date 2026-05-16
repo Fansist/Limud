@@ -4,6 +4,66 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.5.1] - 2026-05-16 — Update 5.5 hotfix (Practice Generator + Study Helper token budgets)
+
+User-reported: Practice Generator was returning the embarrassing
+deterministic-fallback placeholder ("What is the main topic of
+'Civil War'? — Civil War itself / unrelated subject / placeholder")
+instead of a real quiz on a 20-question challenging-difficulty
+request with a paragraph of reference material attached.
+
+### Fixed — token-budget truncation in two generators
+
+The fallback only fires when `generatePracticeQuiz` catches an
+error OR parses zero questions from the AI response. Root cause
+was the response getting truncated mid-JSON:
+
+- A 20-question quiz with `{ question, choices[4], correctIndex,
+  explanation }` per item runs to ~5,000 output tokens.
+- The call was capped at `maxTokens: 4096`.
+- Gemini's response cut off mid-array → tolerant JSON parser
+  returned `null` → deterministic fallback fired.
+
+Bumped both `generatePracticeQuiz` and `generateStudyMaterial` to
+`maxTokens: 8192` — same headroom as the product-tool generator
+got in v16.4.2. The other six tools were already on 6144 from
+that earlier bump.
+
+### Fixed — fallback now reads as a clear error, not a fake quiz
+
+The previous practice-quiz fallback rendered as a real-looking
+multiple-choice question ("What is the main topic of 'X'? — X
+itself / unrelated subject / placeholder"). A user could
+reasonably mistake it for an actual quiz question with a joke
+explanation.
+
+New fallback reads unambiguously as a status message: the
+question is "We couldn't reach the AI right now — please try
+again", and the four "options" are the next steps to try (wait
+and retry, switch difficulty, shorten the topic, shrink the
+reference text). The explanation surfaces the classified error
+kind so support requests can be triaged faster.
+
+### Notes — other product audit
+
+While diagnosing this, audited every other shipped product for
+the same root cause:
+
+- `/study` (Exam Study Helper) — was on the same 4096 cap; bumped
+  preventatively to 8192. Long textbook outputs and flashcard
+  generations could have hit the same wall.
+- `/math-solver`, `/notes-cleaner`, `/lab-report`,
+  `/citation-finder`, `/language-lab`, `/essay-coach` — all use
+  the shared `generateProductTool` which was bumped to 6144 in
+  v16.4.2. No change needed.
+
+The error log line in `generatePracticeQuiz` now includes the
+raw error message (first 400 chars), so if the bumped budget
+isn't the whole story we can see what's actually failing in
+Render logs.
+
+---
+
 ## [5.5.0] - 2026-05-12 — Update 5.5 (Anti-cheating redesign + Essay Coach shipped)
 
 Honest audit: several of the solo tools shipped in v16.4.0 were

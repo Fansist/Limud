@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.5.0 · Update 5.5 · Anti-cheating redesign of solo tools + Essay Coach shipped</code>
+  <code>v16.5.1 · Update 5.5 · Practice Generator + Study Helper token-budget fix</code>
 </p>
 
 ---
