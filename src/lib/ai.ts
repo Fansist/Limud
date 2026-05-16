@@ -1950,6 +1950,149 @@ function parsePracticeQuizJson(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PRACTICE QUIZ — SHORT-ANSWER GRADING (v16.7.0 — Update 5.7)
+//
+// The student-facing /practice tool previously asked the student to
+// self-grade short-answer questions against a revealed model answer.
+// This grader lets the AI score them instead — same anti-cheating
+// guardrails (the tool is a self-quiz, not a graded assessment), much
+// faster signal for the learner.
+//
+// Batched in one Gemini call so an N-question short-answer set costs
+// one API roundtrip instead of N.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface PracticeGradeRequest {
+  qid: number;
+  question: string;
+  modelAnswer: string;
+  studentAnswer: string;
+}
+
+export interface PracticeGradeResult {
+  qid: number;
+  /** correct = essentially right; partial = on the right track with gaps; wrong = missed it. */
+  score: 'correct' | 'partial' | 'wrong';
+  /** 1-2 sentence feedback the student sees inline on that question card. */
+  feedback: string;
+}
+
+/**
+ * Grade a batch of short-answer responses against their model answers.
+ * Returns results aligned to the input by `qid`. Any input the model
+ * fails to grade is included in the output as { score: 'wrong',
+ * feedback: '(grader could not classify — please self-grade)' } so the
+ * caller can fall back to the manual self-grade UI for that one item.
+ */
+export async function gradePracticeShortAnswers(
+  items: PracticeGradeRequest[],
+): Promise<{ grades: PracticeGradeResult[]; aiError?: string }> {
+  if (!items || items.length === 0) return { grades: [] };
+
+  // Hard cap to keep the prompt + response within budget. Practice quizzes
+  // cap at 20 questions total, so 20 short-answers is the realistic max.
+  const batch = items.slice(0, 20);
+
+  // Build a numbered "Q" block per item. Trim very long responses so a
+  // single rambling student answer doesn't blow the prompt budget.
+  const lines: string[] = [];
+  for (const it of batch) {
+    lines.push(`---`);
+    lines.push(`QID: ${it.qid}`);
+    lines.push(`QUESTION: ${it.question.trim().slice(0, 800)}`);
+    lines.push(`MODEL ANSWER: ${it.modelAnswer.trim().slice(0, 800)}`);
+    lines.push(`STUDENT ANSWER: ${(it.studentAnswer || '').trim().slice(0, 1200) || '(blank)'}`);
+  }
+
+  const prompt = [
+    'You are Limud, an AI tutor grading a student\'s SELF-QUIZ. The student is practicing — they want fast, honest feedback so they can study.',
+    '',
+    'For each item below, compare the STUDENT ANSWER against the MODEL ANSWER and decide:',
+    '  "correct" — the student covered the same key idea(s) as the model answer, even if their wording is different. Synonyms, paraphrasing, and a more concise version all count as correct.',
+    '  "partial" — the student got part of the answer right but missed something important, or had the right idea but with a meaningful inaccuracy.',
+    '  "wrong"   — the student missed the core concept, gave a different answer, or left it blank.',
+    '',
+    'Then write a 1-2 sentence feedback note that:',
+    '  - Names ONE specific thing they did well or one specific thing to add (point at the concept, not the word).',
+    '  - Is encouraging but never sycophantic. Never say "great job" or "well done" — just describe what was right.',
+    '  - For "wrong" answers, says what the right answer should have contained — but in a way that helps them learn, not in a copy-pasteable form.',
+    '',
+    'Hard rules:',
+    '  - Be generous on phrasing but strict on accuracy.',
+    '  - "Different correct answer" still counts as correct (e.g. there are multiple valid examples).',
+    '  - A blank "STUDENT ANSWER" is always "wrong" with feedback "You left this blank — the model answer covers <one-sentence summary>."',
+    '',
+    'Items to grade:',
+    '',
+    lines.join('\n'),
+    '',
+    `Return ONLY a JSON array of length ${batch.length}. Each element has the shape:`,
+    '{ "qid": number, "score": "correct" | "partial" | "wrong", "feedback": string }',
+    '',
+    'No prose before or after. No markdown fences. Just the raw JSON array.',
+  ].join('\n');
+
+  try {
+    const raw = await callGemini(prompt, { temperature: 0.2, maxTokens: 4096 });
+    let s = raw.trim();
+    if (s.startsWith('```')) {
+      s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+    }
+    const first = s.indexOf('[');
+    const last = s.lastIndexOf(']');
+    if (first >= 0 && last > first) s = s.slice(first, last + 1);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(s);
+    } catch {
+      throw new Error('Grader returned unparseable JSON');
+    }
+    if (!Array.isArray(parsed)) throw new Error('Grader returned non-array JSON');
+
+    const byQid = new Map<number, PracticeGradeResult>();
+    for (const item of parsed) {
+      if (!item || typeof item !== 'object') continue;
+      const r = item as Record<string, unknown>;
+      const qid = typeof r.qid === 'number' ? r.qid : Number(r.qid);
+      const rawScore = typeof r.score === 'string' ? r.score.toLowerCase().trim() : '';
+      const score: PracticeGradeResult['score'] =
+        rawScore === 'correct' ? 'correct'
+        : rawScore === 'partial' ? 'partial'
+        : 'wrong';
+      const feedback = typeof r.feedback === 'string' ? r.feedback.trim() : '';
+      if (!Number.isFinite(qid)) continue;
+      byQid.set(qid, { qid, score, feedback: feedback || 'No feedback returned.' });
+    }
+
+    // Align output to input order. Any qid the grader missed gets a
+    // fallback row so the page can still render a result for every item.
+    const grades: PracticeGradeResult[] = batch.map((it) => {
+      const got = byQid.get(it.qid);
+      if (got) return got;
+      return {
+        qid: it.qid,
+        score: 'wrong',
+        feedback: '(grader could not classify this answer — please self-grade if you disagree)',
+      };
+    });
+    return { grades };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const classified = classifyGeminiError(errMsg);
+    log.warn('PRACTICE_GRADE', `gradePracticeShortAnswers fallback (${classified.kind}): ${classified.wrapped} :: raw=${errMsg.slice(0, 400)}`);
+    // Total failure — every item falls back to a "please self-grade" row.
+    return {
+      grades: batch.map((it) => ({
+        qid: it.qid,
+        score: 'wrong' as const,
+        feedback: '(grader unreachable — please self-grade)',
+      })),
+      aiError: classified.wrapped,
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // INDIVIDUAL PRODUCT TOOLS (v16.4.0 — Update 5.4)
 //
 // Five thin generators that all share the same shape: take a structured

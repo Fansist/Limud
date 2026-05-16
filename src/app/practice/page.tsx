@@ -92,7 +92,7 @@ const DIFFICULTIES: { value: Difficulty; label: string; blurb: string }[] = [
 const QUESTION_TYPES: { value: QuestionType; label: string; blurb: string }[] = [
   { value: 'mcq',            label: 'Multiple choice', blurb: 'Pick one of four. Auto-scored.' },
   { value: 'fill-in-blank',  label: 'Fill in the blank', blurb: 'Type the missing word. Auto-scored.' },
-  { value: 'short-answer',   label: 'Short answer', blurb: 'Write 1-3 sentences. You self-grade against a model answer.' },
+  { value: 'short-answer',   label: 'Short answer', blurb: 'Write 1-3 sentences. Limud grades it and gives you feedback.' },
 ];
 
 /** Normalize a free-text answer for comparison: trim, lowercase, collapse whitespace, strip outer punctuation. */
@@ -155,6 +155,16 @@ export default function PracticePage() {
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [submitted, setSubmitted] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  // v16.7.0: AI-grading state for short-answer questions.
+  //   - aiGrades  : keyed by qid; populated after the grader returns
+  //   - grading   : true while the grade-short-answers API call is in flight
+  //   - gradeError: surfaces in a small banner if the grader itself failed
+  //   - overrides : set of qids where the student clicked "I disagree" and
+  //                 took over manual self-grading. Their selfGrade wins.
+  const [aiGrades, setAiGrades] = useState<Record<number, { score: 'correct' | 'partial' | 'wrong'; feedback: string }>>({});
+  const [grading, setGrading] = useState(false);
+  const [gradeError, setGradeError] = useState<string | null>(null);
+  const [overrides, setOverrides] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setHistory(loadHistory());
@@ -250,6 +260,10 @@ export default function PracticePage() {
     setAnswers({});
     setRevealed(new Set());
     setSubmitted(false);
+    setAiGrades({});
+    setGrading(false);
+    setGradeError(null);
+    setOverrides(new Set());
     try {
       const res = await fetch('/api/practice/generate', {
         method: 'POST',
@@ -320,19 +334,75 @@ export default function PracticePage() {
     }));
   }, []);
 
-  function submitQuiz() {
+  async function submitQuiz() {
     if (!result || !allAnswered) return;
     setSubmitted(true);
     setRevealed(new Set(result.questions.map((q) => q.id)));
-    // Update history with the auto-scored portion. Short-answer questions
-    // count as 0 until the student self-grades them; the displayed score
-    // in the UI uses the live `scorePct` memo and will rise as the student
-    // marks each short-answer correct/partial/wrong.
+
+    // v16.7.0: kick off AI-grading for every short-answer question.
+    // MCQ + fill-in-blank are already scored locally; we only round-trip
+    // the short-answer items to the model.
+    const shortAnswers = result.questions
+      .filter((q) => q.type === 'short-answer')
+      .map((q) => {
+        const ans = answers[q.id];
+        return {
+          qid: q.id,
+          question: q.question,
+          modelAnswer: q.modelAnswer || '',
+          studentAnswer: (ans?.text || '').trim(),
+        };
+      })
+      .filter((it) => it.modelAnswer.length > 0);
+
+    let liveAiGrades: typeof aiGrades = {};
+    let liveAnswers = answers;
+
+    if (shortAnswers.length > 0) {
+      setGrading(true);
+      setGradeError(null);
+      try {
+        const res = await fetch('/api/practice/grade-short-answers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: shortAnswers }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Grader returned ${res.status}`);
+        }
+        const data: { grades: Array<{ qid: number; score: 'correct' | 'partial' | 'wrong'; feedback: string }>; aiError?: string } = await res.json();
+        const next: typeof aiGrades = { ...aiGrades };
+        const ansNext: typeof answers = { ...answers };
+        for (const g of data.grades) {
+          next[g.qid] = { score: g.score, feedback: g.feedback };
+          // Propagate the AI verdict into the answer's selfGrade so the
+          // shared `questionScore` helper picks it up. The student can
+          // still override later via the "I disagree" affordance.
+          ansNext[g.qid] = { ...(ansNext[g.qid] || {}), selfGrade: g.score };
+        }
+        setAiGrades(next);
+        setAnswers(ansNext);
+        liveAiGrades = next;
+        liveAnswers = ansNext;
+        if (data.aiError) setGradeError(data.aiError);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Grading failed.';
+        setGradeError(msg);
+        toast.error(`Short-answer grading failed — you can self-grade instead. (${msg.slice(0, 80)})`);
+      } finally {
+        setGrading(false);
+      }
+    }
+
+    // Update history with the final score using whatever liveAnswers
+    // ended up being (post-AI-grade if applicable). MCQ/fill auto-scored,
+    // short-answer scored from the AI selfGrade we just wrote in.
     setHistory((prev) => {
       if (prev.length === 0) return prev;
       const total = result.questions.length;
       const points = result.questions.reduce(
-        (acc, q) => acc + questionScore(q, answers[q.id]),
+        (acc, q) => acc + questionScore(q, liveAnswers[q.id]),
         0,
       );
       const pct = Math.round((points / total) * 100);
@@ -341,6 +411,9 @@ export default function PracticePage() {
       saveHistory(next);
       return next;
     });
+    // Suppress unused-var warning on liveAiGrades — kept so future hooks
+    // (e.g. logging the grade distribution) have access without rewiring.
+    void liveAiGrades;
   }
 
   function resetQuiz() {
@@ -348,6 +421,10 @@ export default function PracticePage() {
     setAnswers({});
     setRevealed(new Set());
     setSubmitted(false);
+    setAiGrades({});
+    setGrading(false);
+    setGradeError(null);
+    setOverrides(new Set());
   }
 
   function loadFromHistory(h: HistoryEntry) {
@@ -355,6 +432,10 @@ export default function PracticePage() {
     setAnswers({});
     setRevealed(new Set());
     setSubmitted(false);
+    setAiGrades({});
+    setGrading(false);
+    setGradeError(null);
+    setOverrides(new Set());
     setTopic(h.topic);
     setDifficulty(h.difficulty);
   }
@@ -695,49 +776,130 @@ export default function PracticePage() {
                         })()}
 
                         {/* ── Short answer ────────────────────────── */}
-                        {q.type === 'short-answer' && (
-                          <div className="space-y-2">
-                            <textarea
-                              value={ans?.text || ''}
-                              onChange={(e) => writeAnswerText(q.id, e.target.value)}
-                              disabled={submitted}
-                              placeholder="Write 1-3 sentences."
-                              className="input-field text-sm min-h-[100px]"
-                            />
-                            {isRevealed && (
-                              <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-3 space-y-2">
-                                <p className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Model answer</p>
-                                <p className="text-sm text-blue-900 dark:text-blue-100 whitespace-pre-wrap">{q.modelAnswer}</p>
-                                <p className="text-xs text-blue-700 dark:text-blue-300 pt-1">How did your answer compare?</p>
-                                <div className="grid grid-cols-3 gap-2">
-                                  {([
-                                    { v: 'correct',  label: 'I had it',   c: 'emerald' },
-                                    { v: 'partial',  label: 'Partial',    c: 'amber' },
-                                    { v: 'wrong',    label: 'Missed it',  c: 'red' },
-                                  ] as const).map((opt) => {
-                                    const active = ans?.selfGrade === opt.v;
-                                    return (
-                                      <button
-                                        key={opt.v}
-                                        type="button"
-                                        onClick={() => setSelfGrade(q.id, opt.v)}
-                                        className={cn(
-                                          'p-2 rounded-lg text-xs font-bold transition border',
-                                          active && opt.c === 'emerald' && 'bg-emerald-500 text-white border-emerald-500',
-                                          active && opt.c === 'amber' && 'bg-amber-500 text-white border-amber-500',
-                                          active && opt.c === 'red' && 'bg-red-500 text-white border-red-500',
-                                          !active && 'bg-white text-gray-700 border-gray-200 hover:border-gray-300',
-                                        )}
-                                      >
-                                        {opt.label}
-                                      </button>
-                                    );
-                                  })}
+                        {q.type === 'short-answer' && (() => {
+                          const ai = aiGrades[q.id];
+                          const isOverriding = overrides.has(q.id);
+                          const showManual = !ai || isOverriding;
+                          // Color classes per score for the AI verdict pill.
+                          const verdictBg =
+                            ans?.selfGrade === 'correct' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' :
+                            ans?.selfGrade === 'partial' ? 'bg-amber-50 border-amber-200 text-amber-900' :
+                            ans?.selfGrade === 'wrong'   ? 'bg-red-50 border-red-200 text-red-900' :
+                            'bg-gray-50 border-gray-200 text-gray-900';
+                          const verdictLabel =
+                            ans?.selfGrade === 'correct' ? 'Correct' :
+                            ans?.selfGrade === 'partial' ? 'Partial credit' :
+                            ans?.selfGrade === 'wrong'   ? 'Missed it' :
+                            '—';
+                          return (
+                            <div className="space-y-2">
+                              <textarea
+                                value={ans?.text || ''}
+                                onChange={(e) => writeAnswerText(q.id, e.target.value)}
+                                disabled={submitted}
+                                placeholder="Write 1-3 sentences."
+                                className="input-field text-sm min-h-[100px]"
+                              />
+                              {isRevealed && (
+                                <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-3 space-y-2">
+                                  <p className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Model answer</p>
+                                  <p className="text-sm text-blue-900 dark:text-blue-100 whitespace-pre-wrap">{q.modelAnswer}</p>
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                              )}
+
+                              {/* v16.7.0: AI grading. While the grader is in
+                                  flight we show a spinner card. When the AI
+                                  verdict comes back we render it inline with
+                                  short feedback; the student can hit
+                                  "I disagree" to override with the manual
+                                  three-button self-grade. */}
+                              {isRevealed && grading && !ai && (
+                                <div className="rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 p-3 flex items-center gap-2">
+                                  <Loader2 size={14} className="animate-spin text-gray-400" />
+                                  <span className="text-xs text-gray-500">Limud is reading your answer…</span>
+                                </div>
+                              )}
+
+                              {isRevealed && ai && !isOverriding && (
+                                <div className={cn('rounded-xl border p-3 space-y-2', verdictBg)}>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                      {ans?.selfGrade === 'correct' && <Check size={12} />}
+                                      {ans?.selfGrade === 'wrong' && <X size={12} />}
+                                      Limud says: {verdictLabel}
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => setOverrides((prev) => {
+                                        const next = new Set(prev);
+                                        next.add(q.id);
+                                        return next;
+                                      })}
+                                      className="text-[10px] font-bold underline opacity-70 hover:opacity-100"
+                                    >
+                                      I disagree — adjust
+                                    </button>
+                                  </div>
+                                  {ai.feedback && (
+                                    <p className="text-sm leading-snug">{ai.feedback}</p>
+                                  )}
+                                </div>
+                              )}
+
+                              {isRevealed && showManual && (!grading || ai) && (
+                                <div className="rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 p-3 space-y-2">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-xs font-bold text-gray-600 dark:text-gray-300">
+                                      {isOverriding ? 'Pick your own grade:' : 'How did your answer compare?'}
+                                    </p>
+                                    {isOverriding && ai && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOverrides((prev) => {
+                                            const next = new Set(prev);
+                                            next.delete(q.id);
+                                            return next;
+                                          });
+                                          // Restore Limud's verdict if user backs out.
+                                          if (ai) setSelfGrade(q.id, ai.score);
+                                        }}
+                                        className="text-[10px] font-bold underline opacity-70 hover:opacity-100"
+                                      >
+                                        Back to Limud&apos;s grade
+                                      </button>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {([
+                                      { v: 'correct',  label: 'I had it',   c: 'emerald' },
+                                      { v: 'partial',  label: 'Partial',    c: 'amber' },
+                                      { v: 'wrong',    label: 'Missed it',  c: 'red' },
+                                    ] as const).map((opt) => {
+                                      const active = ans?.selfGrade === opt.v;
+                                      return (
+                                        <button
+                                          key={opt.v}
+                                          type="button"
+                                          onClick={() => setSelfGrade(q.id, opt.v)}
+                                          className={cn(
+                                            'p-2 rounded-lg text-xs font-bold transition border',
+                                            active && opt.c === 'emerald' && 'bg-emerald-500 text-white border-emerald-500',
+                                            active && opt.c === 'amber' && 'bg-amber-500 text-white border-amber-500',
+                                            active && opt.c === 'red' && 'bg-red-500 text-white border-red-500',
+                                            !active && 'bg-white text-gray-700 border-gray-200 hover:border-gray-300',
+                                          )}
+                                        >
+                                          {opt.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {isRevealed && q.type !== 'short-answer' && (
                           <div className="rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 p-3">

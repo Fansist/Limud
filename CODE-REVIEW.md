@@ -43,6 +43,17 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.7.0 — Update 5.7: AI grading for /practice short-answer`
+- **files:** 6 · `src/lib/ai.ts` (+ `gradePracticeShortAnswers` + types + tolerant JSON parser), NEW `src/app/api/practice/grade-short-answers/route.ts`, `src/app/practice/page.tsx` (new state, async `submitQuiz` that calls the grader, new short-answer reveal UI with verdict pill + "I disagree" override), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** MEDIUM
+  - Cost: each /practice submission with short-answer questions now triggers an extra Gemini call. Batched (1 call total, not 1 per item), capped at 20 items, temperature 0.2. For a typical 10-question quiz with 3 short-answers the marginal cost is ~one third of the original generation call.
+  - Anti-cheating boundary check: this is the student-facing self-quiz product. AI-grading the student's own quiz is feedback. The teacher-facing `/teacher/quiz-generator` short-answer flow remains teacher-graded with the model answer as the rubric. Boundary documented in CHANGELOG.
+  - Grader prompt forbids sycophantic feedback explicitly. Spot-check after deploy to confirm Gemini follows ("great job" / "well done" / etc. should never appear).
+- **review:** ⚠️ partial — needs real-traffic verification. Open: (a) run a short-answer-only quiz, confirm the verdict pill appears with feedback and the score percentage reflects the AI's verdict; (b) deliberately submit a blank short-answer, confirm it's marked wrong with the canned "you left this blank" line; (c) trigger a grader failure (e.g. kill GEMINI_API_KEY temporarily) and confirm the page falls back to the manual three-button self-grade row with the toast warning.
+- **demo-mode:** master demo + isDemo students get the same flow — the grader API runs for any logged-in user. No special demo path needed because the grader is read-only on the model and doesn't write anything to the DB.
+- **tests:** manual smoke — Civil War / 10 questions / mixed types / submit. Verify (1) MCQ and fill-in-blank score instantly, (2) short-answer cards show the spinner briefly, (3) verdict pills appear in green / amber / red with 1-2 sentence feedback, (4) clicking "I disagree" reveals the manual three-button row with a "Back to Limud's grade" escape hatch, (5) the final score % updates to incorporate the AI verdicts.
+- **notes:** The AI verdict is propagated into `answers[qid].selfGrade` so the existing `questionScore` helper rolls it into the score without rewiring. This means the "I disagree" override and "Back to Limud's grade" affordances are just `setSelfGrade` calls — no new scoring path. The `aiGrades` state lives alongside for rendering the feedback text and for letting the "Back to Limud's grade" button restore the AI's score.
+
 ### d1dfaa7 — `v16.6.0 — Update 5.6: fill-in-the-blank + short-answer for Practice + Teacher Quiz`
 - **files:** 7 · `src/lib/ai.ts` (PracticeQuestion union + generatePracticeQuiz prompt + tolerant parser rewrite), `src/app/api/practice/generate/route.ts` (questionTypes validation + forwarding), `src/app/practice/page.tsx` (type picker + 3-way render + new state shape + new scoring), `src/app/api/quiz-generator/route.ts` (FILL_IN_BLANK type, per-call type filter, dynamic system prompt, normalization), `src/app/teacher/quiz-generator/page.tsx` (form.questionTypes + chip picker), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** MEDIUM

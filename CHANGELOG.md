@@ -4,6 +4,112 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.7.0] - 2026-05-16 — Update 5.7 (AI grading for short-answer on /practice)
+
+The student-facing Practice Generator (`/practice`) now AI-grades
+short-answer questions on submit instead of asking the student to
+self-grade against the revealed model answer. Faster feedback,
+genuine signal, anti-cheating discipline preserved (this is a
+self-quiz, not a graded assessment — the teacher-facing flow
+remains teacher-graded).
+
+### Added — `gradePracticeShortAnswers()` in `src/lib/ai.ts`
+
+Batched grader. Takes an array of `{ qid, question, modelAnswer,
+studentAnswer }` and returns `{ qid, score: 'correct' | 'partial'
+| 'wrong', feedback }` per item in one Gemini call.
+
+The system prompt is opinionated about the three scoring buckets:
+- `correct` — same key idea(s) as the model answer; synonyms,
+  paraphrasing, and a more concise version all count.
+- `partial` — right idea, missed something important, or
+  meaningful inaccuracy.
+- `wrong` — missed core concept, different answer, or blank.
+
+Feedback rule: 1-2 sentences, name one specific thing they did
+well or one specific thing to add; never sycophantic ("great
+job", "well done" forbidden in the prompt); for wrong answers,
+say what the right answer should have contained without giving
+copy-pasteable text. Blank answers are always `wrong` with a
+canned feedback line.
+
+Hard cap of 20 items per call (matches the practice quiz max).
+The tolerant parser strips markdown fences, isolates the JSON
+array, and aligns output to input by `qid`. Any qid the grader
+misses is filled in with a fallback `wrong` + "(grader could not
+classify — please self-grade)" so the page can always render
+something.
+
+Total failure (Gemini unreachable, invalid JSON, etc.) returns
+fallback rows for every item with feedback `"(grader unreachable
+— please self-grade)"` and surfaces an `aiError` so the page can
+warn.
+
+### Added — `POST /api/practice/grade-short-answers`
+
+Thin auth-gated wrapper. Validates each item shape, clamps to
+20 items, truncates oversized question/modelAnswer/studentAnswer
+fields, and forwards to `gradePracticeShortAnswers`.
+
+Same `skipBodyScanning: true` opt-out as the other generation
+routes — student answers legitimately include code snippets,
+SQL course material, or HTML/JS terminology that the body
+scanner would otherwise reject.
+
+### Changed — `/practice` page calls the grader on submit
+
+`src/app/practice/page.tsx`:
+
+- `submitQuiz` is now async. On submit it finds every short-
+  answer question, builds the grader payload, and calls the new
+  endpoint in one shot.
+- New state: `aiGrades` (keyed by qid), `grading` (in-flight),
+  `gradeError` (banner-worthy fail), `overrides` (set of qids the
+  student manually re-graded after the AI verdict).
+- For each AI-graded question, the student's `selfGrade` is
+  populated from the AI's score so the existing `questionScore`
+  helper rolls them into the final percentage automatically.
+- MCQ + fill-in-blank still score locally and instantly — only
+  short-answer items round-trip to the model.
+
+UI flow per short-answer card after submit:
+
+1. Model answer is revealed in a blue panel (same as before).
+2. While the grader is in flight: a small gray panel with a
+   spinner reading "Limud is reading your answer…".
+3. When the verdict arrives: a colored verdict pill (green /
+   amber / red) with "Limud says: Correct | Partial credit |
+   Missed it" and the 1-2 sentence feedback. An "I disagree —
+   adjust" link in the corner.
+4. If the student clicks "I disagree": the manual three-button
+   row appears with a "Back to Limud's grade" escape hatch that
+   restores the AI verdict.
+5. If the grader call fails entirely: the manual row appears by
+   default with a toast explaining the fallback.
+
+The short-answer chip blurb on the form changed from "Write 1-3
+sentences. You self-grade against a model answer." to "Write
+1-3 sentences. Limud grades it and gives you feedback." to set
+the right expectation up front.
+
+### Notes
+
+- Same anti-cheating boundary holds. The student-facing tool is
+  a practice quiz the learner chose to take; AI grading their
+  own self-quiz is feedback, not "doing the homework." The
+  teacher-facing `/teacher/quiz-generator` short-answer flow
+  still expects the teacher to grade, with the model answer
+  serving as the rubric.
+- Cost: one extra Gemini call per quiz submission, only when
+  the quiz contains short-answer questions. Cap is 20 items per
+  call. Temperature 0.2 (low — we want consistent grading, not
+  creative re-interpretation).
+- No schema changes. The history-score path still works because
+  AI verdicts write through `selfGrade` on `answers` and the
+  existing per-question scoring math is unchanged.
+
+---
+
 ## [5.6.0] - 2026-05-16 — Update 5.6 (Fill-in-the-blank + short-answer)
 
 Two new question types across the two quiz surfaces — `/practice`
