@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.5.1 — Update 5.5 hotfix: Practice + Study Helper token budgets`
+### f723ec6 — `v16.5.1 — Update 5.5 hotfix: Practice + Study Helper token budgets`
 - **files:** 4 · `src/lib/ai.ts` (bump generateStudyMaterial maxTokens 4096→8192, bump generatePracticeQuiz maxTokens 4096→8192, rewrite practice fallback to read as clear error not fake quiz, log raw error message in fallback path), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** LOW
   - Token-budget bumps are purely additive — outputs that fit in 4096 still fit in 8192. Cost per call rises only when the model actually uses the extra headroom.
