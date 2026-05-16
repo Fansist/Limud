@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.7.1 — Update 5.7 hotfix: comic image data: URLs visible again`
+### cadab6d — `v16.7.1 — Update 5.7 hotfix: comic image data: URLs visible again`
 - **files:** 5 · `src/app/study/page.tsx` (+ `safeMarkdownUrlTransform` helper, applied to `<ReactMarkdown>`), `src/components/products/MarkdownToolPage.tsx` (+ identical `toolMarkdownUrlTransform`, applied to its `<ReactMarkdown>`), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** LOW
   - Pure rendering change. No backend, no schema, no auth.
