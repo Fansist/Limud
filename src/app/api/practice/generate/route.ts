@@ -19,7 +19,11 @@
  */
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
-import { generatePracticeQuiz, type PracticeDifficulty } from '@/lib/ai';
+import {
+  generatePracticeQuiz,
+  type PracticeDifficulty,
+  type PracticeQuestionType,
+} from '@/lib/ai';
 import { log } from '@/lib/log';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +33,12 @@ const VALID_DIFFICULTIES: ReadonlySet<PracticeDifficulty> = new Set([
   'intro',
   'standard',
   'challenging',
+]);
+
+const VALID_QUESTION_TYPES: ReadonlySet<PracticeQuestionType> = new Set([
+  'mcq',
+  'fill-in-blank',
+  'short-answer',
 ]);
 
 function isStringOrUndefined(v: unknown): v is string | undefined {
@@ -53,6 +63,7 @@ export const POST = apiHandler(async (req: Request) => {
     count,
     gradeLevel,
     contextMaterial,
+    questionTypes,
   } = body as Record<string, unknown>;
 
   if (typeof topic !== 'string' || topic.trim().length < 3 || topic.length > 200) {
@@ -90,7 +101,29 @@ export const POST = apiHandler(async (req: Request) => {
     );
   }
 
-  log.info('PRACTICE', `generate request user=${user.id} topic=${topic.slice(0, 60)} difficulty=${difficulty} count=${count}`);
+  // v16.6.0: optional `questionTypes` — array of 'mcq' | 'fill-in-blank' |
+  // 'short-answer'. If absent or malformed, defaults to ['mcq'] downstream.
+  let validatedTypes: PracticeQuestionType[] | undefined;
+  if (questionTypes !== undefined) {
+    if (!Array.isArray(questionTypes)) {
+      return NextResponse.json(
+        { error: 'questionTypes must be an array if provided' },
+        { status: 400 },
+      );
+    }
+    const filtered = questionTypes
+      .filter((t): t is string => typeof t === 'string')
+      .filter((t) => VALID_QUESTION_TYPES.has(t as PracticeQuestionType)) as PracticeQuestionType[];
+    if (filtered.length === 0) {
+      return NextResponse.json(
+        { error: 'questionTypes must include at least one of: mcq, fill-in-blank, short-answer' },
+        { status: 400 },
+      );
+    }
+    validatedTypes = Array.from(new Set(filtered));
+  }
+
+  log.info('PRACTICE', `generate request user=${user.id} topic=${topic.slice(0, 60)} difficulty=${difficulty} count=${count} types=${(validatedTypes || ['mcq']).join(',')}`);
 
   try {
     const result = await generatePracticeQuiz({
@@ -99,6 +132,7 @@ export const POST = apiHandler(async (req: Request) => {
       count,
       gradeLevel: typeof gradeLevel === 'string' ? gradeLevel.trim() || undefined : undefined,
       contextMaterial: typeof contextMaterial === 'string' ? contextMaterial : undefined,
+      questionTypes: validatedTypes,
     });
     return NextResponse.json(result);
   } catch (err) {

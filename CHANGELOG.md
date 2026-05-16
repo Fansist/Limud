@@ -4,6 +4,123 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.6.0] - 2026-05-16 — Update 5.6 (Fill-in-the-blank + short-answer)
+
+Two new question types across the two quiz surfaces — `/practice`
+(student-facing individual product) and `/teacher/quiz-generator`
+(teacher tool). The student-facing flow auto-scores fill-in-the-blank
+and self-scores short-answer; the teacher flow generates a model
+answer that doubles as a grading rubric.
+
+### Added — `PracticeQuestion` is now a discriminated union
+
+`src/lib/ai.ts`:
+
+- New exported `PracticeQuestionType = 'mcq' | 'fill-in-blank' |
+  'short-answer'`.
+- `PracticeQuestion` gained a `type` discriminator. Per-type fields:
+  - `mcq`: `choices[4]`, `correctIndex`.
+  - `fill-in-blank`: `acceptedAnswers[1..4]` (case-insensitive,
+    trimmed match). Question text contains the literal `___`.
+  - `short-answer`: `modelAnswer` (1-3 sentence ideal answer used for
+    student self-grade or teacher rubric).
+- `PracticeRequest` gained an optional `questionTypes` array. Defaults
+  to `['mcq']` for backward compatibility.
+
+### Added — `generatePracticeQuiz` prompt rewritten for the union
+
+The system prompt now describes each type with its required JSON
+shape and tells the model to use a roughly even mix (or all of one
+type if only one is requested). Specific guardrails per type:
+
+- MCQ: 4 plausible choices, vary the correct position, no letter
+  labels in the option text.
+- Fill-in-blank: question MUST contain `___`, one blank per question,
+  1-4 accepted answers covering common alternate forms.
+- Short-answer: question should ask the student to explain, justify,
+  compare, or apply — not just recall.
+
+### Added — tolerant parser handles all three types
+
+`parsePracticeQuizJson` is now type-aware:
+
+- Accepts type aliases the model occasionally uses (`MULTIPLE_CHOICE`,
+  `cloze`, `open-ended`).
+- Falls back to shape inference when the `type` field is missing.
+- Normalizes blank markers (`__`, `_____`, `[blank]`) into the
+  canonical `___`.
+- Accepts `correctAnswer` as a fallback when the model uses singular
+  field names instead of `acceptedAnswers` / `modelAnswer`.
+
+### Added — `/practice` page renders three UIs
+
+`src/app/practice/page.tsx`:
+
+- New question-type picker on the form (multi-select chips with at
+  least one always required).
+- Quiz state now records per-question `{ mcqIndex?, text?, selfGrade? }`
+  instead of a bare choice index.
+- MCQ renders as before (4 buttons in a grid).
+- Fill-in-blank renders as a text input. On submit/reveal, the input
+  is bordered green if the trimmed/lowercased answer matches any
+  `acceptedAnswers` entry, red otherwise. The accepted answer set is
+  shown when the student misses.
+- Short-answer renders as a textarea. On submit, the model answer is
+  revealed in a blue panel along with three self-grade buttons
+  ("I had it" / "Partial" / "Missed it"). Self-grade contributes to
+  the final score (1 / 0.5 / 0 points respectively).
+- Type pill above each question name makes the format obvious.
+- Draft persistence (sign-in round-trip) now also preserves the
+  selected types.
+
+### Added — `/api/practice/generate` accepts `questionTypes`
+
+Per-type validation, falls back to `['mcq']` when absent for backward
+compatibility with the old client. Invalid array → 400.
+
+### Added — Teacher quiz generator gets FILL_IN_BLANK
+
+`src/app/api/quiz-generator/route.ts`:
+
+- New `QUIZ_QUESTION_TYPES = ['MULTIPLE_CHOICE', 'SHORT_ANSWER',
+  'FILL_IN_BLANK']` and a `coerceQuizTypes` helper.
+- System prompt is now built per request — the teacher's selection
+  determines which type blocks appear in the rules and which
+  examples appear in the example output.
+- User prompt explicitly names the allowed types so the model has
+  the constraint in two places.
+- Question normalization coerces type aliases (`fill-in-blank`,
+  `cloze`, `MCQ`, etc.) into the canonical enum, normalizes blank
+  markers into `___`, and preserves `acceptedAnswers` when the model
+  provides them (falls back to `[correctAnswer]` if not).
+
+### Added — Teacher quiz page type-picker
+
+`src/app/teacher/quiz-generator/page.tsx`:
+
+- `form.questionTypes` defaults to all three.
+- New chip row under the existing form grid lets the teacher toggle
+  any subset. At least one must remain selected — the last click is
+  a no-op.
+- The chip row is wired into the existing `generateQuiz` submit
+  (forwarded via `body = { ...form }`), so the new field flows to
+  the API automatically.
+
+### Notes
+
+- No schema changes. Stored `QuizTemplate.questions` is still a
+  JSON-stringified array of question objects, which the discriminated
+  union slots into without a migration.
+- Backward compat: callers that don't pass `questionTypes` (older
+  client builds, demo / fixture flows) get the old MCQ-only behavior
+  for `/practice` and the old MCQ+SA mix for the teacher quiz.
+- The student-facing short-answer is self-graded. There is no AI
+  grading of free text in `/practice` — the model answer is shown
+  for comparison and the student tells the page how they did. This
+  preserves the anti-cheating discipline established in v16.5.0.
+
+---
+
 ## [5.5.1] - 2026-05-16 — Update 5.5 hotfix (Practice Generator + Study Helper token budgets)
 
 User-reported: Practice Generator was returning the embarrassing

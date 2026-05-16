@@ -1644,23 +1644,56 @@ export async function generateStudyMaterial(req: StudyRequest): Promise<StudyRes
 
 export type PracticeDifficulty = 'intro' | 'standard' | 'challenging';
 
+// v16.6.0: three supported question types.
+//   - mcq            : multiple-choice, four options, one correct (auto-scored)
+//   - fill-in-blank  : sentence with a `___` blank; one or more accepted answers
+//                      (auto-scored, case-insensitive, with optional alt forms)
+//   - short-answer   : open-ended; the model produces a "model answer" the
+//                      student reveals after writing their own. NOT auto-scored
+//                      in the student-facing /practice tool (the student
+//                      self-grades) and is teacher-graded in the teacher quiz
+//                      generator surface.
+export type PracticeQuestionType = 'mcq' | 'fill-in-blank' | 'short-answer';
+
 export interface PracticeRequest {
   topic: string;
   gradeLevel?: string;
   difficulty: PracticeDifficulty;
   count: number;             // requested question count (clamped 3..20)
   contextMaterial?: string;  // optional pasted material to anchor the questions
+  /**
+   * Which question types the model is allowed to produce. Defaults to ['mcq']
+   * for backward compatibility. If multiple types are passed, the model is
+   * told to use a mix.
+   */
+  questionTypes?: PracticeQuestionType[];
 }
 
 export interface PracticeQuestion {
   /** 1-based index for stable rendering. */
   id: number;
-  /** The question text — plain prose, no leading number. */
+  /** Discriminator. */
+  type: PracticeQuestionType;
+  /**
+   * The question text. For fill-in-blank, the text contains the literal
+   * substring "___" (three underscores) marking the blank.
+   */
   question: string;
-  /** Exactly 4 answer choices. */
-  choices: string[];
-  /** Index into `choices` of the correct answer (0-3). */
-  correctIndex: number;
+  /** MCQ only: exactly 4 answer choices. */
+  choices?: string[];
+  /** MCQ only: index into `choices` of the correct answer (0-3). */
+  correctIndex?: number;
+  /**
+   * Fill-in-blank only: accepted answers (case-insensitive match, trimmed).
+   * Include common alternate spellings or equivalent forms.
+   */
+  acceptedAnswers?: string[];
+  /**
+   * Short-answer only: a 1-3 sentence model answer the student can reveal
+   * to self-grade against. Not shown to the student until they choose to
+   * see it.
+   */
+  modelAnswer?: string;
   /** 1-3 sentence explanation, shown after the student answers. */
   explanation: string;
 }
@@ -1696,6 +1729,16 @@ function clampCount(n: number): number {
 export async function generatePracticeQuiz(req: PracticeRequest): Promise<PracticeResult> {
   const count = clampCount(req.count);
   const contextMaterial = (req.contextMaterial || '').slice(0, 8_000);
+  // v16.6.0: question-type filter. Default keeps backward compat with
+  // existing callers (mcq only). When more than one type is requested,
+  // the prompt tells the model to use a mix.
+  const allTypes: PracticeQuestionType[] = ['mcq', 'fill-in-blank', 'short-answer'];
+  const requestedTypes: PracticeQuestionType[] =
+    Array.isArray(req.questionTypes) && req.questionTypes.length > 0
+      ? Array.from(new Set(req.questionTypes.filter((t) => allTypes.includes(t))))
+      : ['mcq'];
+  const typesValid: PracticeQuestionType[] =
+    requestedTypes.length > 0 ? requestedTypes : ['mcq'];
 
   const contextLines: string[] = [];
   if (req.gradeLevel) contextLines.push(`Grade level: ${req.gradeLevel}`);
@@ -1707,24 +1750,57 @@ export async function generatePracticeQuiz(req: PracticeRequest): Promise<Practi
     contextLines.push('---');
   }
 
+  // Build per-type instructions for the prompt.
+  const typeBlocks: string[] = [];
+  if (typesValid.includes('mcq')) {
+    typeBlocks.push([
+      'TYPE "mcq" (multiple-choice):',
+      '  Shape: { "type": "mcq", "question": string, "choices": [4 strings], "correctIndex": 0|1|2|3, "explanation": string }',
+      '  - Exactly 4 plausible choices. No "obviously wrong" filler. Vary the correct position.',
+      '  - Do NOT use letter labels (A, B, C, D) in the choices — just the text.',
+    ].join('\n'));
+  }
+  if (typesValid.includes('fill-in-blank')) {
+    typeBlocks.push([
+      'TYPE "fill-in-blank" (cloze):',
+      '  Shape: { "type": "fill-in-blank", "question": string, "acceptedAnswers": [1-4 strings], "explanation": string }',
+      '  - The question text MUST contain the literal three-underscore token "___" where the blank goes.',
+      '  - "acceptedAnswers" is a list of equivalent answers the student might type (alternate spellings, plural/singular, abbreviations). Match will be case-insensitive and trimmed.',
+      '  - One blank per question. Keep the blank to a single word or short phrase (1-4 words).',
+    ].join('\n'));
+  }
+  if (typesValid.includes('short-answer')) {
+    typeBlocks.push([
+      'TYPE "short-answer" (open-ended):',
+      '  Shape: { "type": "short-answer", "question": string, "modelAnswer": string, "explanation": string }',
+      '  - The "modelAnswer" is a 1-3 sentence ideal answer the student can self-grade against (or, in teacher mode, the teacher uses as a rubric).',
+      '  - Questions should ask the student to explain, justify, compare, or apply — not just recall.',
+    ].join('\n'));
+  }
+
+  const mixInstruction = typesValid.length === 1
+    ? `All questions must be type "${typesValid[0]}".`
+    : `Use a roughly even mix across these types: ${typesValid.map((t) => `"${t}"`).join(', ')}. Do NOT only use one type.`;
+
   const prompt = [
     'You are Limud, an AI quiz writer for individual learners.',
-    `Write exactly ${count} multiple-choice questions on this topic: "${req.topic}".`,
+    `Write exactly ${count} questions on this topic: "${req.topic}".`,
     '',
-    'Rules:',
-    '- Each question has exactly 4 answer choices.',
-    '- Exactly one choice is correct. Distractors are plausible — no "obviously wrong" options.',
-    '- Vary the position of the correct answer (do not always pick A).',
-    '- After each question, write a 1-3 sentence explanation of why the correct answer is correct.',
+    mixInstruction,
+    '',
+    'Question types you may use:',
+    '',
+    ...typeBlocks,
+    '',
+    'Rules that apply to every question:',
+    '- After each question, write a 1-3 sentence explanation of why the answer is correct (or what the answer should hit, for short-answer).',
     '- Do NOT prefix questions with numbers (1., Q1., etc.).',
-    '- Do NOT use letter labels (A, B, C, D) in the choices — just the text.',
     '- Topic-appropriate, factually grounded, age-appropriate.',
     '',
     'Context:',
     contextLines.join('\n'),
     '',
-    `Return ONLY a JSON array of length ${count}. Each element has the shape:`,
-    '{ "question": string, "choices": [string, string, string, string], "correctIndex": 0|1|2|3, "explanation": string }',
+    `Return ONLY a JSON array of length ${count}. Each element must include a "type" field set to one of: ${typesValid.map((t) => `"${t}"`).join(', ')}. The rest of the fields match the shape for that type above.`,
     '',
     'No prose before or after the array. No markdown fences. Just the raw JSON array.',
   ].filter(Boolean).join('\n');
@@ -1732,24 +1808,14 @@ export async function generatePracticeQuiz(req: PracticeRequest): Promise<Practi
   const model = (process.env.AI_MODEL || '').trim() || 'gemini-2.5-flash';
 
   try {
-    // v16.5.1: 4096 → 8192. 20 questions × a JSON object containing
-    // { question, choices[4], correctIndex, explanation } runs to ~5000
-    // output tokens on a realistic input. 4096 was truncating mid-array
-    // → tolerant parser returned null → deterministic fallback fired →
-    // page showed the embarrassing "What is the main topic of 'X'?"
-    // placeholder. With 8192 a full 20-question quiz has comfortable
-    // headroom.
     const raw = await callGemini(prompt, { temperature: 0.6, maxTokens: 8192 });
-    const parsed = parsePracticeQuizJson(raw);
+    const parsed = parsePracticeQuizJson(raw, typesValid);
     if (!parsed || parsed.length === 0) {
       throw new Error('Model returned no parseable questions');
     }
     const questions: PracticeQuestion[] = parsed.slice(0, count).map((q, i) => ({
       id: i + 1,
-      question: q.question,
-      choices: q.choices,
-      correctIndex: q.correctIndex,
-      explanation: q.explanation,
+      ...q,
     }));
     const aiError = questions.length < count
       ? `Model returned ${questions.length} of ${count} requested questions.`
@@ -1759,14 +1825,14 @@ export async function generatePracticeQuiz(req: PracticeRequest): Promise<Practi
     const errMsg = err instanceof Error ? err.message : String(err);
     const classified = classifyGeminiError(errMsg);
     log.warn('PRACTICE', `generatePracticeQuiz fallback (${classified.kind}): ${classified.wrapped} :: raw=${errMsg.slice(0, 400)}`);
-    // v16.5.1: Deterministic fallback now reads honestly. The previous
-    // placeholder ("What is the main topic of 'Civil War'? — Civil War
-    // itself / unrelated subject / placeholder") looked like a real quiz
-    // question and embarrassed the page when the AI failed. This version
-    // is unmistakably a status message, not a quiz.
+    // Deterministic fallback that reads as a status message, not a fake
+    // quiz question. Always MCQ-shaped regardless of what was requested,
+    // because the UI knows how to render MCQ even when the caller asked
+    // for blanks or short-answer.
     const fallback: PracticeQuestion[] = [
       {
         id: 1,
+        type: 'mcq',
         question: "We couldn't reach the AI right now — please try again",
         choices: [
           'Wait a minute and click "Generate quiz" again',
@@ -1793,12 +1859,10 @@ export async function generatePracticeQuiz(req: PracticeRequest): Promise<Practi
  * Parse the model's response into PracticeQuestion shapes. Tolerant of
  * common deviations (markdown code fences, trailing prose).
  */
-function parsePracticeQuizJson(raw: string): Array<{
-  question: string;
-  choices: string[];
-  correctIndex: number;
-  explanation: string;
-}> | null {
+function parsePracticeQuizJson(
+  raw: string,
+  allowedTypes: PracticeQuestionType[] = ['mcq'],
+): Array<Omit<PracticeQuestion, 'id'>> | null {
   if (!raw) return null;
   let s = raw.trim();
   // Strip ```json ... ``` or ``` ... ``` fences if present.
@@ -1818,26 +1882,69 @@ function parsePracticeQuizJson(raw: string): Array<{
     return null;
   }
   if (!Array.isArray(parsed)) return null;
-  const out: Array<{ question: string; choices: string[]; correctIndex: number; explanation: string }> = [];
+
+  const allowedSet = new Set<PracticeQuestionType>(allowedTypes);
+  // If the model omits "type" entirely, infer from shape — keeps the parser
+  // backward compatible when callers ask for mcq only and the model returns
+  // un-tagged objects.
+  function inferType(r: Record<string, unknown>): PracticeQuestionType | null {
+    const t = typeof r.type === 'string' ? r.type.toLowerCase().trim() : '';
+    if (t === 'mcq' || t === 'multiple_choice' || t === 'multiple-choice') return 'mcq';
+    if (t === 'fill-in-blank' || t === 'fill_in_blank' || t === 'cloze') return 'fill-in-blank';
+    if (t === 'short-answer' || t === 'short_answer' || t === 'open' || t === 'open-ended') return 'short-answer';
+    // Infer from shape if untagged.
+    if (Array.isArray(r.choices) && r.choices.length === 4) return 'mcq';
+    if (Array.isArray(r.acceptedAnswers)) return 'fill-in-blank';
+    if (typeof r.modelAnswer === 'string') return 'short-answer';
+    return null;
+  }
+
+  const out: Array<Omit<PracticeQuestion, 'id'>> = [];
   for (const item of parsed) {
     if (!item || typeof item !== 'object') continue;
     const r = item as Record<string, unknown>;
     const question = typeof r.question === 'string' ? r.question.trim() : '';
-    const choices = Array.isArray(r.choices)
-      ? r.choices.filter((c): c is string => typeof c === 'string').map(c => c.trim())
-      : [];
-    const correctIndex = typeof r.correctIndex === 'number' ? r.correctIndex : -1;
     const explanation = typeof r.explanation === 'string' ? r.explanation.trim() : '';
-    if (
-      question.length === 0 ||
-      choices.length !== 4 ||
-      correctIndex < 0 ||
-      correctIndex > 3 ||
-      explanation.length === 0
-    ) {
-      continue;
+    if (question.length === 0 || explanation.length === 0) continue;
+
+    const type = inferType(r);
+    if (!type || !allowedSet.has(type)) continue;
+
+    if (type === 'mcq') {
+      const choices = Array.isArray(r.choices)
+        ? r.choices.filter((c): c is string => typeof c === 'string').map((c) => c.trim())
+        : [];
+      const correctIndex = typeof r.correctIndex === 'number' ? r.correctIndex : -1;
+      if (choices.length !== 4 || correctIndex < 0 || correctIndex > 3) continue;
+      out.push({ type: 'mcq', question, choices, correctIndex, explanation });
+    } else if (type === 'fill-in-blank') {
+      // Must contain a blank marker. Accept the canonical "___" or common
+      // alternates the model sometimes produces ("____", "_____", "[blank]").
+      const blankRe = /(_{2,})|\[blank\]/i;
+      if (!blankRe.test(question)) continue;
+      // Normalize whatever the model used into "___".
+      const normalizedQuestion = question.replace(blankRe, '___');
+      let accepted = Array.isArray(r.acceptedAnswers)
+        ? r.acceptedAnswers.filter((a): a is string => typeof a === 'string').map((a) => a.trim()).filter(Boolean)
+        : [];
+      // Some models fall back to using `correctAnswer` (singular) — accept that too.
+      if (accepted.length === 0 && typeof r.correctAnswer === 'string' && r.correctAnswer.trim()) {
+        accepted = [r.correctAnswer.trim()];
+      }
+      if (accepted.length === 0) continue;
+      out.push({
+        type: 'fill-in-blank',
+        question: normalizedQuestion,
+        acceptedAnswers: accepted.slice(0, 4),
+        explanation,
+      });
+    } else if (type === 'short-answer') {
+      const modelAnswer = typeof r.modelAnswer === 'string' ? r.modelAnswer.trim() : '';
+      // Accept `correctAnswer` as an alias if the model used the older field name.
+      const finalModel = modelAnswer || (typeof r.correctAnswer === 'string' ? r.correctAnswer.trim() : '');
+      if (finalModel.length === 0) continue;
+      out.push({ type: 'short-answer', question, modelAnswer: finalModel, explanation });
     }
-    out.push({ question, choices, correctIndex, explanation });
   }
   return out.length > 0 ? out : null;
 }

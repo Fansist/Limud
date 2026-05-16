@@ -33,12 +33,34 @@ function coerceDifficulty(value: unknown): Difficulty {
   return (VALID_DIFFICULTIES as string[]).includes(upper) ? (upper as Difficulty) : Difficulty.MEDIUM;
 }
 
-const QUIZ_SYSTEM_PROMPT = `You are an expert K-12 educator and quiz creator. Generate high-quality, curriculum-aligned quiz questions.
+// v16.6.0: added FILL_IN_BLANK as a third question type. The teacher selects
+// which subset of types to generate via the `questionTypes` body param; if
+// omitted the prompt defaults to a mix of all three.
+const QUIZ_QUESTION_TYPES = ['MULTIPLE_CHOICE', 'SHORT_ANSWER', 'FILL_IN_BLANK'] as const;
+type QuizQuestionType = typeof QUIZ_QUESTION_TYPES[number];
+
+function quizSystemPrompt(allowedTypes: QuizQuestionType[]): string {
+  const typeBlocks: string[] = [];
+  if (allowedTypes.includes('MULTIPLE_CHOICE')) {
+    typeBlocks.push(`- MULTIPLE_CHOICE: exactly 4 plausible options, one correct. Distractors must NOT be obviously wrong.`);
+  }
+  if (allowedTypes.includes('FILL_IN_BLANK')) {
+    typeBlocks.push(`- FILL_IN_BLANK: the question text MUST contain the literal token "___" (three underscores) where the blank is. The "correctAnswer" is the short word or phrase that fills the blank. Optional: include alternate forms in an "acceptedAnswers" array (e.g. plural / singular / common spelling variants).`);
+  }
+  if (allowedTypes.includes('SHORT_ANSWER')) {
+    typeBlocks.push(`- SHORT_ANSWER: open-ended. The teacher will grade. "correctAnswer" is a 1-3 sentence model answer that serves as the grading rubric.`);
+  }
+
+  const mixLine = allowedTypes.length === 1
+    ? `Use ONLY the ${allowedTypes[0]} type for every question.`
+    : `Use a roughly even mix across these types: ${allowedTypes.join(', ')}. Do not use any other types.`;
+
+  return `You are an expert K-12 educator and quiz creator. Generate high-quality, curriculum-aligned quiz questions.
 
 RULES:
 - Create questions appropriate for the specified grade level and difficulty
-- Mix question types: roughly 40-50% MULTIPLE_CHOICE and 50-60% SHORT_ANSWER
-- Multiple choice questions MUST have exactly 4 options
+- ${mixLine}
+${typeBlocks.join('\n')}
 - Every question MUST have a clear correct answer and a helpful explanation
 - Each question should target a different skill or concept within the subject/topic
 - Difficulty levels: EASY (recall/basic), MEDIUM (application/analysis), HARD (synthesis/evaluation)
@@ -58,15 +80,37 @@ Example format:
     "difficulty": "MEDIUM"
   },
   {
+    "question": "The capital of France is ___.",
+    "type": "FILL_IN_BLANK",
+    "options": [],
+    "correctAnswer": "Paris",
+    "acceptedAnswers": ["Paris", "paris"],
+    "explanation": "Paris has been the capital of France since the 5th century.",
+    "skill": "European geography",
+    "difficulty": "EASY"
+  },
+  {
     "question": "Another question",
     "type": "SHORT_ANSWER",
     "options": [],
-    "correctAnswer": "The answer",
+    "correctAnswer": "The model answer — what the teacher is looking for",
     "explanation": "Why this is correct",
     "skill": "Another skill",
     "difficulty": "EASY"
   }
 ]`;
+}
+
+const DEFAULT_QUIZ_TYPES: QuizQuestionType[] = ['MULTIPLE_CHOICE', 'SHORT_ANSWER', 'FILL_IN_BLANK'];
+
+function coerceQuizTypes(value: unknown): QuizQuestionType[] {
+  if (!Array.isArray(value)) return DEFAULT_QUIZ_TYPES;
+  const filtered = value
+    .filter((t): t is string => typeof t === 'string')
+    .map((t) => t.toUpperCase().trim())
+    .filter((t) => (QUIZ_QUESTION_TYPES as readonly string[]).includes(t)) as QuizQuestionType[];
+  return filtered.length > 0 ? Array.from(new Set(filtered)) : DEFAULT_QUIZ_TYPES;
+}
 
 // Helper: safely import Prisma (may fail if DB unavailable)
 async function getPrisma(): Promise<any | null> {
@@ -106,6 +150,9 @@ export const POST = apiHandler(async (req: Request) => {
   // Coerce user-supplied difficulty to a known enum value — previously we cast
   // to `any`, which let a bogus value reach Prisma and crash the request.
   const difficulty: Difficulty = coerceDifficulty(body.difficulty);
+  // v16.6.0: which question types the teacher selected. Falls back to a mix
+  // of all three (MCQ + SA + FIB) if the body omits the field.
+  const quizTypes: QuizQuestionType[] = coerceQuizTypes(body.questionTypes);
 
   if (!subject || !gradeLevel) {
     return NextResponse.json({ error: 'Subject and grade level are required' }, { status: 400 });
@@ -118,6 +165,10 @@ export const POST = apiHandler(async (req: Request) => {
 
   // ── Attempt real AI generation ──────────────────────────────────
   if (hasApiKey()) {
+    const typeListForUserPrompt = quizTypes.length === 1
+      ? `Question type: only ${quizTypes[0]}.`
+      : `Question types allowed (use a mix): ${quizTypes.join(', ')}.`;
+
     const userPrompt = [
       `Generate exactly ${questionCount} quiz questions.`,
       `Subject: ${subject}`,
@@ -125,6 +176,7 @@ export const POST = apiHandler(async (req: Request) => {
       `Overall Difficulty: ${difficulty}`,
       topic ? `Topic/Focus: ${topic}` : '',
       standards ? `Align to standards: ${standards}` : '',
+      typeListForUserPrompt,
       '',
       `Create a mix of difficulties around the ${difficulty} level:`,
       difficulty === 'EASY' || difficulty === 'BEGINNER'
@@ -137,7 +189,7 @@ export const POST = apiHandler(async (req: Request) => {
     ].filter(Boolean).join('\n');
 
     const messages = [
-      { role: 'system', content: QUIZ_SYSTEM_PROMPT },
+      { role: 'system', content: quizSystemPrompt(quizTypes) },
       { role: 'user', content: userPrompt },
     ];
 
@@ -166,16 +218,47 @@ export const POST = apiHandler(async (req: Request) => {
             log.debug('QUIZ-GEN', `Parsed ${parsed.length} questions, ${valid.length} passed validation`);
 
             if (valid.length >= Math.min(2, questionCount)) {
-              // Ensure all questions have required fields with defaults
-              questions = valid.slice(0, questionCount).map((q: any) => ({
-                question: q.question,
-                type: q.type || (q.options?.length > 0 ? 'MULTIPLE_CHOICE' : 'SHORT_ANSWER'),
-                options: q.options || [],
-                correctAnswer: q.correctAnswer,
-                explanation: q.explanation || '',
-                skill: q.skill || subject,
-                difficulty: q.difficulty || difficulty,
-              }));
+              // Normalize each question. The model occasionally returns the
+              // type as "fill-in-blank" or "fill_in_blank" — coerce those
+              // into the canonical FILL_IN_BLANK enum value we use elsewhere.
+              questions = valid.slice(0, questionCount).map((q: any) => {
+                const rawType = typeof q.type === 'string' ? q.type.toUpperCase().replace(/-/g, '_').trim() : '';
+                let type: QuizQuestionType;
+                if (rawType === 'FILL_IN_BLANK' || rawType === 'CLOZE') type = 'FILL_IN_BLANK';
+                else if (rawType === 'SHORT_ANSWER' || rawType === 'OPEN' || rawType === 'OPEN_ENDED') type = 'SHORT_ANSWER';
+                else if (rawType === 'MULTIPLE_CHOICE' || rawType === 'MCQ') type = 'MULTIPLE_CHOICE';
+                else if (Array.isArray(q.options) && q.options.length > 0) type = 'MULTIPLE_CHOICE';
+                else if (typeof q.question === 'string' && /(_{2,}|\[blank\])/i.test(q.question)) type = 'FILL_IN_BLANK';
+                else type = 'SHORT_ANSWER';
+
+                // For fill-in-blank, normalize the blank marker to the
+                // canonical "___" form so the consumer can render it
+                // consistently.
+                const normalizedQuestion =
+                  type === 'FILL_IN_BLANK'
+                    ? String(q.question).replace(/(_{2,})|\[blank\]/gi, '___')
+                    : q.question;
+
+                // Preserve acceptedAnswers if the model included them; fall
+                // back to a single-element array containing correctAnswer.
+                const acceptedAnswers =
+                  type === 'FILL_IN_BLANK'
+                    ? (Array.isArray(q.acceptedAnswers)
+                        ? q.acceptedAnswers.filter((a: any) => typeof a === 'string')
+                        : [String(q.correctAnswer)])
+                    : undefined;
+
+                return {
+                  question: normalizedQuestion,
+                  type,
+                  options: Array.isArray(q.options) ? q.options : [],
+                  correctAnswer: q.correctAnswer,
+                  ...(acceptedAnswers ? { acceptedAnswers } : {}),
+                  explanation: q.explanation || '',
+                  skill: q.skill || subject,
+                  difficulty: q.difficulty || difficulty,
+                };
+              });
               aiGenerated = true;
               log.debug('QUIZ-GEN', `SUCCESS: ${questions.length} AI-generated questions`);
             } else {

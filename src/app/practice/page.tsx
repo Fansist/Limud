@@ -32,12 +32,23 @@ import {
 import { cn } from '@/lib/utils';
 
 type Difficulty = 'intro' | 'standard' | 'challenging';
+type QuestionType = 'mcq' | 'fill-in-blank' | 'short-answer';
 
+// v16.6.0: question shape is a discriminated union. The API/server is the
+// source of truth for which fields are present per type — see
+// PracticeQuestion in src/lib/ai.ts.
 type Question = {
   id: number;
+  type: QuestionType;
   question: string;
-  choices: string[];
-  correctIndex: number;
+  /** MCQ: 4 choices. */
+  choices?: string[];
+  /** MCQ: index 0-3. */
+  correctIndex?: number;
+  /** Fill-in-blank: list of accepted answers (case-insensitive, trimmed). */
+  acceptedAnswers?: string[];
+  /** Short-answer: ideal answer the student reveals to self-grade. */
+  modelAnswer?: string;
   explanation: string;
 };
 
@@ -47,6 +58,16 @@ type QuizResult = {
   difficulty: Difficulty;
   model: string;
   aiError?: string;
+};
+
+// v16.6.0: per-question answer record. Different types use different fields:
+//   - mcq           → mcqIndex
+//   - fill-in-blank → text
+//   - short-answer  → text (the student's answer) + selfGrade after reveal
+type AnswerRecord = {
+  mcqIndex?: number;
+  text?: string;
+  selfGrade?: 'correct' | 'partial' | 'wrong';
 };
 
 type HistoryEntry = {
@@ -67,6 +88,28 @@ const DIFFICULTIES: { value: Difficulty; label: string; blurb: string }[] = [
   { value: 'standard',    label: 'Standard',    blurb: 'Apply concepts. Plausible distractors.' },
   { value: 'challenging', label: 'Challenging', blurb: 'Multi-step. Catches common mistakes.' },
 ];
+
+const QUESTION_TYPES: { value: QuestionType; label: string; blurb: string }[] = [
+  { value: 'mcq',            label: 'Multiple choice', blurb: 'Pick one of four. Auto-scored.' },
+  { value: 'fill-in-blank',  label: 'Fill in the blank', blurb: 'Type the missing word. Auto-scored.' },
+  { value: 'short-answer',   label: 'Short answer', blurb: 'Write 1-3 sentences. You self-grade against a model answer.' },
+];
+
+/** Normalize a free-text answer for comparison: trim, lowercase, collapse whitespace, strip outer punctuation. */
+function normalizeFreeText(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/^[.,;:!?"'`]+|[.,;:!?"'`]+$/g, '');
+}
+
+/** Does the student's answer match any of the accepted answers? */
+function isFillInBlankCorrect(answer: string, accepted: string[] | undefined): boolean {
+  if (!answer || !Array.isArray(accepted) || accepted.length === 0) return false;
+  const a = normalizeFreeText(answer);
+  return accepted.some((acc) => normalizeFreeText(acc) === a);
+}
 
 function loadHistory(): HistoryEntry[] {
   try {
@@ -100,11 +143,15 @@ export default function PracticePage() {
   const [difficulty, setDifficulty] = useState<Difficulty>('standard');
   const [count, setCount] = useState(10);
   const [contextMaterial, setContextMaterial] = useState('');
+  // v16.6.0: which question types the model is allowed to produce.
+  // Default to MCQ-only so users who don't touch the toggle keep the
+  // existing behavior. Empty selection coerces back to ['mcq'] on send.
+  const [selectedTypes, setSelectedTypes] = useState<QuestionType[]>(['mcq']);
 
   // Quiz state
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [answers, setAnswers] = useState<Record<number, AnswerRecord>>({});
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [submitted, setSubmitted] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -121,6 +168,13 @@ export default function PracticePage() {
         if (typeof draft?.difficulty === 'string') setDifficulty(draft.difficulty as Difficulty);
         if (typeof draft?.count === 'number') setCount(draft.count);
         if (typeof draft?.contextMaterial === 'string') setContextMaterial(draft.contextMaterial);
+        if (Array.isArray(draft?.selectedTypes)) {
+          const filtered = draft.selectedTypes.filter(
+            (t: unknown): t is QuestionType =>
+              t === 'mcq' || t === 'fill-in-blank' || t === 'short-answer',
+          );
+          if (filtered.length > 0) setSelectedTypes(filtered);
+        }
         window.localStorage.removeItem(DRAFT_KEY);
       }
     } catch {
@@ -128,20 +182,45 @@ export default function PracticePage() {
     }
   }, []);
 
+  /** Is the student's response to this question correct? Used both for the
+   *  per-question reveal styling and for the final score. Short-answer is
+   *  scored from the student's self-grade (correct=1, partial=0.5, wrong=0). */
+  function questionScore(q: Question, a: AnswerRecord | undefined): number {
+    if (!a) return 0;
+    if (q.type === 'mcq') {
+      return typeof a.mcqIndex === 'number' && a.mcqIndex === q.correctIndex ? 1 : 0;
+    }
+    if (q.type === 'fill-in-blank') {
+      return isFillInBlankCorrect(a.text || '', q.acceptedAnswers) ? 1 : 0;
+    }
+    // short-answer
+    if (a.selfGrade === 'correct') return 1;
+    if (a.selfGrade === 'partial') return 0.5;
+    return 0;
+  }
+
   const scorePct = useMemo(() => {
     if (!result || !submitted) return null;
     const total = result.questions.length;
     if (total === 0) return 0;
-    const correct = result.questions.reduce((acc, q) => {
-      const pick = answers[q.id];
-      return acc + (pick === q.correctIndex ? 1 : 0);
-    }, 0);
-    return Math.round((correct / total) * 100);
+    const points = result.questions.reduce(
+      (acc, q) => acc + questionScore(q, answers[q.id]),
+      0,
+    );
+    return Math.round((points / total) * 100);
   }, [result, submitted, answers]);
 
   const allAnswered = useMemo(() => {
     if (!result) return false;
-    return result.questions.every(q => typeof answers[q.id] === 'number');
+    // Every question must have an answer recorded. For short-answer the
+    // student's text counts; the self-grade isn't required until reveal.
+    return result.questions.every((q) => {
+      const a = answers[q.id];
+      if (!a) return false;
+      if (q.type === 'mcq') return typeof a.mcqIndex === 'number';
+      // fill-in-blank or short-answer: non-empty text
+      return typeof a.text === 'string' && a.text.trim().length > 0;
+    });
   }, [result, answers]);
 
   async function generate() {
@@ -149,7 +228,7 @@ export default function PracticePage() {
       try {
         window.localStorage.setItem(
           DRAFT_KEY,
-          JSON.stringify({ topic, gradeLevel, difficulty, count, contextMaterial }),
+          JSON.stringify({ topic, gradeLevel, difficulty, count, contextMaterial, selectedTypes }),
         );
       } catch {
         /* storage unavailable */
@@ -160,6 +239,10 @@ export default function PracticePage() {
     }
     if (topic.trim().length < 3) {
       toast.error('Tell us the topic first (at least 3 characters).');
+      return;
+    }
+    if (selectedTypes.length === 0) {
+      toast.error('Pick at least one question type.');
       return;
     }
     setGenerating(true);
@@ -177,6 +260,7 @@ export default function PracticePage() {
           difficulty,
           count,
           contextMaterial: contextMaterial.trim() || undefined,
+          questionTypes: selectedTypes,
         }),
       });
       if (!res.ok) {
@@ -210,24 +294,48 @@ export default function PracticePage() {
     }
   }
 
+  /** MCQ choice picker. */
   const pickAnswer = useCallback((qid: number, choiceIdx: number) => {
     if (submitted) return;
-    setAnswers(prev => ({ ...prev, [qid]: choiceIdx }));
+    setAnswers((prev) => ({
+      ...prev,
+      [qid]: { ...(prev[qid] || {}), mcqIndex: choiceIdx },
+    }));
   }, [submitted]);
+
+  /** Fill-in-blank / short-answer text input handler. */
+  const writeAnswerText = useCallback((qid: number, text: string) => {
+    if (submitted) return;
+    setAnswers((prev) => ({
+      ...prev,
+      [qid]: { ...(prev[qid] || {}), text },
+    }));
+  }, [submitted]);
+
+  /** Short-answer self-grade after the model answer is revealed. */
+  const setSelfGrade = useCallback((qid: number, selfGrade: 'correct' | 'partial' | 'wrong') => {
+    setAnswers((prev) => ({
+      ...prev,
+      [qid]: { ...(prev[qid] || {}), selfGrade },
+    }));
+  }, []);
 
   function submitQuiz() {
     if (!result || !allAnswered) return;
     setSubmitted(true);
-    setRevealed(new Set(result.questions.map(q => q.id)));
-    // Update history with score.
-    setHistory(prev => {
+    setRevealed(new Set(result.questions.map((q) => q.id)));
+    // Update history with the auto-scored portion. Short-answer questions
+    // count as 0 until the student self-grades them; the displayed score
+    // in the UI uses the live `scorePct` memo and will rise as the student
+    // marks each short-answer correct/partial/wrong.
+    setHistory((prev) => {
       if (prev.length === 0) return prev;
       const total = result.questions.length;
-      const correct = result.questions.reduce((acc, q) => {
-        const pick = answers[q.id];
-        return acc + (pick === q.correctIndex ? 1 : 0);
-      }, 0);
-      const pct = Math.round((correct / total) * 100);
+      const points = result.questions.reduce(
+        (acc, q) => acc + questionScore(q, answers[q.id]),
+        0,
+      );
+      const pct = Math.round((points / total) * 100);
       const next = [...prev];
       next[0] = { ...next[0], scorePct: pct };
       saveHistory(next);
@@ -357,6 +465,51 @@ export default function PracticePage() {
                   ))}
                 </div>
 
+                {/* v16.6.0: Question-type multi-picker. Click any chip to
+                    toggle it in/out of the request. At least one must be
+                    selected (Generate enforces this). */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Question types (pick at least one)
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {QUESTION_TYPES.map((t) => {
+                      const active = selectedTypes.includes(t.value);
+                      return (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => {
+                            if (generating) return;
+                            setSelectedTypes((prev) => {
+                              const next = active
+                                ? prev.filter((v) => v !== t.value)
+                                : [...prev, t.value];
+                              // Don't allow empty selection — re-select the
+                              // chip the user just tried to remove.
+                              return next.length === 0 ? prev : next;
+                            });
+                          }}
+                          disabled={generating}
+                          aria-pressed={active}
+                          className={cn(
+                            'p-3 rounded-xl border text-left transition',
+                            active
+                              ? 'border-primary-300 bg-primary-50 ring-2 ring-primary-200'
+                              : 'border-gray-200 bg-white hover:border-gray-300',
+                          )}
+                        >
+                          <div className="font-bold text-sm text-gray-900 flex items-center justify-between">
+                            <span>{t.label}</span>
+                            {active && <Check size={14} className="text-primary-600" />}
+                          </div>
+                          <div className="text-[11px] text-gray-500 leading-snug mt-0.5">{t.blurb}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Optional context */}
                 <details className="rounded-xl border border-gray-100 bg-gray-50/50">
                   <summary className="px-3 py-2 text-xs font-medium text-gray-600 cursor-pointer">
@@ -435,65 +588,166 @@ export default function PracticePage() {
                   )}
 
                   {result.questions.map((q, idx) => {
-                    const pick = answers[q.id];
+                    const ans: AnswerRecord | undefined = answers[q.id];
                     const isRevealed = revealed.has(q.id) || submitted;
+                    // v16.6.0: render path branches on question type. The
+                    // type pill in the header makes the format obvious so
+                    // students don't try to click choices on a fill-in-blank.
+                    const typeLabel =
+                      q.type === 'mcq' ? 'Multiple choice' :
+                      q.type === 'fill-in-blank' ? 'Fill in the blank' :
+                      'Short answer';
                     return (
                       <div key={q.id} className="card space-y-3">
                         <div className="flex items-start gap-3">
                           <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
                             {idx + 1}
                           </div>
-                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white leading-snug pt-1.5">
-                            {q.question}
-                          </h3>
+                          <div className="flex-1">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">
+                              {typeLabel}
+                            </p>
+                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">
+                              {q.question}
+                            </h3>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {q.choices.map((c, ci) => {
-                            const isPicked = pick === ci;
-                            const isCorrect = ci === q.correctIndex;
-                            const showCorrect = isRevealed && isCorrect;
-                            const showWrong = isRevealed && isPicked && !isCorrect;
-                            return (
-                              <button
-                                key={ci}
-                                type="button"
-                                onClick={() => pickAnswer(q.id, ci)}
-                                disabled={submitted}
-                                className={cn(
-                                  'text-left p-3 rounded-xl border text-sm transition',
-                                  showCorrect
-                                    ? 'border-emerald-300 bg-emerald-50 ring-2 ring-emerald-200'
-                                    : showWrong
-                                    ? 'border-red-300 bg-red-50 ring-2 ring-red-200'
-                                    : isPicked
-                                    ? 'border-primary-300 bg-primary-50 ring-2 ring-primary-200'
-                                    : 'border-gray-200 bg-white hover:border-gray-300',
-                                )}
-                              >
-                                <div className="flex items-start gap-2">
-                                  <div
-                                    className={cn(
-                                      'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5',
-                                      showCorrect
-                                        ? 'border-emerald-500 bg-emerald-500 text-white'
-                                        : showWrong
-                                        ? 'border-red-500 bg-red-500 text-white'
-                                        : isPicked
-                                        ? 'border-primary-500 bg-primary-500 text-white'
-                                        : 'border-gray-300',
-                                    )}
-                                  >
-                                    {showCorrect ? <Check size={12} /> : showWrong ? <X size={12} /> : null}
+
+                        {/* ── MCQ ─────────────────────────────────── */}
+                        {q.type === 'mcq' && Array.isArray(q.choices) && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {q.choices.map((c, ci) => {
+                              const isPicked = ans?.mcqIndex === ci;
+                              const isCorrect = ci === q.correctIndex;
+                              const showCorrect = isRevealed && isCorrect;
+                              const showWrong = isRevealed && isPicked && !isCorrect;
+                              return (
+                                <button
+                                  key={ci}
+                                  type="button"
+                                  onClick={() => pickAnswer(q.id, ci)}
+                                  disabled={submitted}
+                                  className={cn(
+                                    'text-left p-3 rounded-xl border text-sm transition',
+                                    showCorrect
+                                      ? 'border-emerald-300 bg-emerald-50 ring-2 ring-emerald-200'
+                                      : showWrong
+                                      ? 'border-red-300 bg-red-50 ring-2 ring-red-200'
+                                      : isPicked
+                                      ? 'border-primary-300 bg-primary-50 ring-2 ring-primary-200'
+                                      : 'border-gray-200 bg-white hover:border-gray-300',
+                                  )}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <div
+                                      className={cn(
+                                        'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5',
+                                        showCorrect
+                                          ? 'border-emerald-500 bg-emerald-500 text-white'
+                                          : showWrong
+                                          ? 'border-red-500 bg-red-500 text-white'
+                                          : isPicked
+                                          ? 'border-primary-500 bg-primary-500 text-white'
+                                          : 'border-gray-300',
+                                      )}
+                                    >
+                                      {showCorrect ? <Check size={12} /> : showWrong ? <X size={12} /> : null}
+                                    </div>
+                                    <span className="text-gray-800 dark:text-gray-200">{c}</span>
                                   </div>
-                                  <span className="text-gray-800 dark:text-gray-200">{c}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* ── Fill in the blank ───────────────────── */}
+                        {q.type === 'fill-in-blank' && (() => {
+                          const text = ans?.text || '';
+                          const correct = isFillInBlankCorrect(text, q.acceptedAnswers);
+                          return (
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                value={text}
+                                onChange={(e) => writeAnswerText(q.id, e.target.value)}
+                                disabled={submitted}
+                                placeholder="Type your answer for the ___ blank"
+                                className={cn(
+                                  'input-field text-sm',
+                                  isRevealed && correct && 'border-emerald-300 ring-2 ring-emerald-200',
+                                  isRevealed && !correct && 'border-red-300 ring-2 ring-red-200',
+                                )}
+                              />
+                              {isRevealed && (
+                                <p className={cn(
+                                  'text-xs flex items-center gap-1.5 font-medium',
+                                  correct ? 'text-emerald-700' : 'text-red-700',
+                                )}>
+                                  {correct ? <Check size={12} /> : <X size={12} />}
+                                  {correct
+                                    ? 'Correct'
+                                    : `Accepted: ${(q.acceptedAnswers || []).join(' / ')}`}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* ── Short answer ────────────────────────── */}
+                        {q.type === 'short-answer' && (
+                          <div className="space-y-2">
+                            <textarea
+                              value={ans?.text || ''}
+                              onChange={(e) => writeAnswerText(q.id, e.target.value)}
+                              disabled={submitted}
+                              placeholder="Write 1-3 sentences."
+                              className="input-field text-sm min-h-[100px]"
+                            />
+                            {isRevealed && (
+                              <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-3 space-y-2">
+                                <p className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Model answer</p>
+                                <p className="text-sm text-blue-900 dark:text-blue-100 whitespace-pre-wrap">{q.modelAnswer}</p>
+                                <p className="text-xs text-blue-700 dark:text-blue-300 pt-1">How did your answer compare?</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {([
+                                    { v: 'correct',  label: 'I had it',   c: 'emerald' },
+                                    { v: 'partial',  label: 'Partial',    c: 'amber' },
+                                    { v: 'wrong',    label: 'Missed it',  c: 'red' },
+                                  ] as const).map((opt) => {
+                                    const active = ans?.selfGrade === opt.v;
+                                    return (
+                                      <button
+                                        key={opt.v}
+                                        type="button"
+                                        onClick={() => setSelfGrade(q.id, opt.v)}
+                                        className={cn(
+                                          'p-2 rounded-lg text-xs font-bold transition border',
+                                          active && opt.c === 'emerald' && 'bg-emerald-500 text-white border-emerald-500',
+                                          active && opt.c === 'amber' && 'bg-amber-500 text-white border-amber-500',
+                                          active && opt.c === 'red' && 'bg-red-500 text-white border-red-500',
+                                          !active && 'bg-white text-gray-700 border-gray-200 hover:border-gray-300',
+                                        )}
+                                      >
+                                        {opt.label}
+                                      </button>
+                                    );
+                                  })}
                                 </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {isRevealed && (
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {isRevealed && q.type !== 'short-answer' && (
                           <div className="rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 p-3">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Explanation</p>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">{q.explanation}</p>
+                          </div>
+                        )}
+                        {isRevealed && q.type === 'short-answer' && (
+                          <div className="rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700 p-3">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">What we were looking for</p>
                             <p className="text-sm text-gray-700 dark:text-gray-300">{q.explanation}</p>
                           </div>
                         )}

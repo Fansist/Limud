@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.5.1 · Update 5.5 · Practice Generator + Study Helper token-budget fix</code>
+  <code>v16.6.0 · Update 5.6 · Fill-in-the-blank + short-answer for Practice + Teacher Quiz</code>
 </p>
 
 ---

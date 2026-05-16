@@ -43,6 +43,17 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.6.0 — Update 5.6: fill-in-the-blank + short-answer for Practice + Teacher Quiz`
+- **files:** 7 · `src/lib/ai.ts` (PracticeQuestion union + generatePracticeQuiz prompt + tolerant parser rewrite), `src/app/api/practice/generate/route.ts` (questionTypes validation + forwarding), `src/app/practice/page.tsx` (type picker + 3-way render + new state shape + new scoring), `src/app/api/quiz-generator/route.ts` (FILL_IN_BLANK type, per-call type filter, dynamic system prompt, normalization), `src/app/teacher/quiz-generator/page.tsx` (form.questionTypes + chip picker), `package.json`, `README.md`, `CHANGELOG.md`
+- **risk:** MEDIUM
+  - Shape change to PracticeQuestion is additive — older callers that only consume MCQ continue working because the parser defaults `allowedTypes=['mcq']` and the question record still carries `choices` + `correctIndex` for that branch.
+  - Stored `QuizTemplate.questions` JSON now sometimes contains FILL_IN_BLANK rows with `acceptedAnswers`. The teacher quiz reader on the existing /teacher/quiz-generator page renders any unknown `type` value as plain text without crashing — verified by inspection.
+  - `/practice` state shape changed from `Record<number, number>` to `Record<number, AnswerRecord>`. Old localStorage history (saved before this deploy) is read but never used to repopulate the in-memory `answers` map, so no migration is needed; the worst case is a stale history entry whose `scorePct` was computed under the old scoring model — still valid as a number.
+- **review:** ⚠️ partial — needs a real run after deploy on each combination: (a) `/practice` MCQ-only (default) — should match v16.5.1 behavior; (b) `/practice` fill-in-blank-only with a 5-question Civil War quiz — verify the `___` token renders inside the question text and the auto-check accepts common alternate spellings; (c) `/practice` short-answer-only — verify the model answer reveal + three self-grade buttons score correctly (1 / 0.5 / 0); (d) teacher generator with all-three selected — verify the saved questions include FILL_IN_BLANK rows with `acceptedAnswers`.
+- **demo-mode:** master demo + isDemo students get the same generation flow. The teacher demo flow stays on its hardcoded MCQ+SA fixtures (no FIB fixtures shipped yet — could add to demo data later).
+- **tests:** manual smoke per the four-combination matrix above. The tolerant parser has additional coverage paths (alias type names, untagged objects, alternate blank markers) that won't be exercised by the happy-path tests — those run only when the model deviates from the prompt.
+- **notes:** Anti-cheating discipline preserved: the student-facing short-answer is NOT AI-graded. The model answer is shown for comparison; the student tells the page how they did. The teacher-facing short-answer continues to be teacher-graded with the model answer as the rubric. Fill-in-the-blank is the only new auto-scored type — appropriate given the answers are short and the comparison is deterministic.
+
 ### f723ec6 — `v16.5.1 — Update 5.5 hotfix: Practice + Study Helper token budgets`
 - **files:** 4 · `src/lib/ai.ts` (bump generateStudyMaterial maxTokens 4096→8192, bump generatePracticeQuiz maxTokens 4096→8192, rewrite practice fallback to read as clear error not fake quiz, log raw error message in fallback path), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** LOW
