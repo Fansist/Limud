@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.7.0 — Update 5.7: AI grading for /practice short-answer`
+### 07ea40e — `v16.7.0 — Update 5.7: AI grading for /practice short-answer`
 - **files:** 6 · `src/lib/ai.ts` (+ `gradePracticeShortAnswers` + types + tolerant JSON parser), NEW `src/app/api/practice/grade-short-answers/route.ts`, `src/app/practice/page.tsx` (new state, async `submitQuiz` that calls the grader, new short-answer reveal UI with verdict pill + "I disagree" override), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** MEDIUM
   - Cost: each /practice submission with short-answer questions now triggers an extra Gemini call. Batched (1 call total, not 1 per item), capped at 20 items, temperature 0.2. For a typical 10-question quiz with 3 short-answers the marginal cost is ~one third of the original generation call.
