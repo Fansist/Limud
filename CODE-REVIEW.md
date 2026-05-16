@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.6.0 — Update 5.6: fill-in-the-blank + short-answer for Practice + Teacher Quiz`
+### d1dfaa7 — `v16.6.0 — Update 5.6: fill-in-the-blank + short-answer for Practice + Teacher Quiz`
 - **files:** 7 · `src/lib/ai.ts` (PracticeQuestion union + generatePracticeQuiz prompt + tolerant parser rewrite), `src/app/api/practice/generate/route.ts` (questionTypes validation + forwarding), `src/app/practice/page.tsx` (type picker + 3-way render + new state shape + new scoring), `src/app/api/quiz-generator/route.ts` (FILL_IN_BLANK type, per-call type filter, dynamic system prompt, normalization), `src/app/teacher/quiz-generator/page.tsx` (form.questionTypes + chip picker), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** MEDIUM
   - Shape change to PracticeQuestion is additive — older callers that only consume MCQ continue working because the parser defaults `allowedTypes=['mcq']` and the question record still carries `choices` + `correctIndex` for that branch.
