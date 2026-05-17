@@ -203,7 +203,7 @@ export default function StudentGradesPage() {
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-600 bg-white/70 px-3 py-2 rounded-lg">
                 <Sparkles size={14} className="text-emerald-600" />
-                <span>Click any course below to see its submissions in <Link href="/student/assignments" className="font-bold text-emerald-700 hover:underline">Assignments</Link>.</span>
+                <span>Click any course below to see its submissions in Assignments.</span>
               </div>
             </div>
           </motion.div>
@@ -235,11 +235,15 @@ export default function StudentGradesPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}
-                  className={cn(
-                    'bg-white rounded-2xl border-2 transition-all hover:shadow-md',
-                    colors.border,
-                  )}
                 >
+                  <Link
+                    href={`/student/assignments?courseId=${course.id}`}
+                    aria-label={`View ${course.name} assignments`}
+                    className={cn(
+                      'block bg-white rounded-2xl border-2 transition-all hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2',
+                      colors.border,
+                    )}
+                  >
                   <div className="p-4 sm:p-5 flex items-center gap-4 flex-wrap sm:flex-nowrap">
                     {/* Subject icon */}
                     <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0', colors.bg)}>
@@ -324,6 +328,7 @@ export default function StudentGradesPage() {
                       </div>
                     </div>
                   )}
+                  </Link>
                 </motion.div>
               );
             })}

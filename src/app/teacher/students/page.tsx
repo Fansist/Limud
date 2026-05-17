@@ -1,7 +1,8 @@
 'use client';
-import { useIsDemo } from '@/lib/hooks';
+import { useIsDemo, useNeedsDemoParam } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
@@ -94,13 +95,42 @@ const DEMO_STUDENTS = DEMO_ANALYTICS.students.map((student, idx) => {
 export default function TeacherStudentsPage() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
+  const needsDemoParam = useNeedsDemoParam();
+  const demoSuffix = needsDemoParam ? '?demo=true' : '';
+  const searchParams = useSearchParams();
+  const requestedStudentId = searchParams?.get('student') ?? null;
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const studentRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const consumedDeepLinkRef = useRef(false);
 
   useEffect(() => { fetchStudents(); }, [isDemo]);
+
+  // v13.3: Accept ?student=<id> deep links from dashboard "at-risk" cards
+  useEffect(() => {
+    if (loading) return;
+    if (!requestedStudentId) return;
+    if (consumedDeepLinkRef.current) return;
+    const match = students.find((s: any) => s.id === requestedStudentId);
+    if (!match) return;
+    consumedDeepLinkRef.current = true;
+    setHighlightedStudentId(match.id);
+    toast.success(`Showing ${match.name}`);
+    // Wait one frame so the card has mounted before scrolling/highlighting
+    requestAnimationFrame(() => {
+      const el = studentRefs.current[match.id];
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+    // Clear the highlight ring after a short moment so it's not sticky
+    const t = setTimeout(() => setHighlightedStudentId(null), 3500);
+    return () => clearTimeout(t);
+  }, [loading, students, requestedStudentId]);
 
   async function fetchStudents() {
     // v9.7.7: isDemo is true for both generic demo and master demo users
@@ -301,8 +331,12 @@ export default function TeacherStudentsPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((student, i) => (
               <motion.div key={student.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                ref={(el) => { studentRefs.current[student.id] = el; }}
                 onClick={() => setSelectedStudent(student)}
-                className="card cursor-pointer hover:shadow-lg hover:border-primary-200 transition-all group">
+                className={cn(
+                  'card cursor-pointer hover:shadow-lg hover:border-primary-200 transition-all group',
+                  highlightedStudentId === student.id && 'ring-2 ring-primary-500 ring-offset-2 shadow-lg'
+                )}>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-primary-100 to-blue-200 rounded-xl flex items-center justify-center text-2xl">
                     {student.avatar}
@@ -344,7 +378,7 @@ export default function TeacherStudentsPage() {
             description="Add students from your classrooms or have them register and join your class."
             action={
               <Link
-                href="/teacher/coursework"
+                href={`/teacher/classrooms${demoSuffix}`}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm transition"
               >
                 Manage roster

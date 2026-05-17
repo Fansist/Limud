@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 const PLANS = [
   { tier: 'FREE', price: 0, priceLabel: 'Free forever', students: 5, teachers: 2, schools: 1, color: 'from-gray-400 to-gray-500', icon: <Home size={20} />,
     features: ['Up to 5 students, 2 teachers', 'AI Tutor (50 sessions/mo)', 'Adaptive learning', 'Parent dashboard', '3 platform links'] },
+  { tier: 'FAMILY', price: 9, annualPrice: 7, priceLabel: '$9/mo or $7/mo billed annually', students: 5, teachers: 1, schools: 1, color: 'from-amber-500 to-orange-500', icon: <Home size={20} />,
+    features: ['Up to 5 children per household', 'AI Tutor (50 sessions/mo)', 'Personalized material rewrites', 'Parent dashboard + AI check-in', 'Family Teaching Mode (optional)', '14-day free trial'] },
   { tier: 'STARTER', price: 2, priceLabel: '$2/student/mo (annual)', students: 50, teachers: 5, schools: 1, color: 'from-blue-500 to-cyan-500', icon: <Zap size={20} />,
     features: ['Up to 50 students, 5 teachers', 'AI Tutor (200/mo)', 'AI Auto-Grader (100/mo)', 'Advanced analytics', '6 platform links', 'Email support'] },
   { tier: 'GROWTH', price: 4, priceLabel: '$4/student/mo (annual)', students: 200, teachers: 20, schools: 3, color: 'from-teal-500 to-emerald-500', icon: <SlidersHorizontal size={20} />,
@@ -63,13 +65,21 @@ export default function OnboardPage() {
   // Homeschool-specific
   const [children, setChildren] = useState<Child[]>([{ name: '', grade: '' }]);
 
-  const plan = PLANS.find(p => p.tier === selectedPlan)!;
+  // PLANS.find may return undefined if the URL passes an unknown ?plan=, so we
+  // fall back to STANDARD instead of throwing on a `!` non-null assertion.
+  const plan = PLANS.find(p => p.tier === selectedPlan) ?? PLANS.find(p => p.tier === 'STANDARD')!;
   const isHomeschool = customerType === 'homeschool';
   const isFree = selectedPlan === 'FREE';
   const isEnterprise = selectedPlan === 'ENTERPRISE';
+  const isFamily = selectedPlan === 'FAMILY';
 
   const effectivePrice = plan.price;
-  const totalCost = isFree || isEnterprise ? 0 : Math.round(effectivePrice * studentCount * 12 * 100) / 100;
+  // FAMILY is a flat-fee household tier ($9/mo · $108/year), not per-student.
+  const totalCost = isFree || isEnterprise
+    ? 0
+    : isFamily
+      ? Math.round(effectivePrice * 12 * 100) / 100
+      : Math.round(effectivePrice * studentCount * 12 * 100) / 100;
 
   // Determine total steps based on customer type & plan
   const totalSteps = isFree ? 3 : 4; // type -> plan -> details -> payment (skip payment for free)
@@ -80,6 +90,14 @@ export default function OnboardPage() {
       if (!searchParams.get('plan')) setSelectedPlan('FREE');
     }
   }, [preselectedType]);
+
+  // FAMILY tier is a homeschool product — force the customer type when the user
+  // lands directly on /onboard?plan=FAMILY without an explicit ?type=.
+  useEffect(() => {
+    if (preselectedPlan === 'FAMILY' && !preselectedType) {
+      setCustomerType('homeschool');
+    }
+  }, [preselectedPlan, preselectedType]);
 
   function updateForm(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }));
@@ -107,8 +125,8 @@ export default function OnboardPage() {
       toast.error('Passwords do not match');
       return;
     }
-    if (form.adminPassword.length < 8) {
-      toast.error('Password must be at least 8 characters');
+    if (form.adminPassword.length < 10) {
+      toast.error('Password must be at least 10 characters');
       return;
     }
 
@@ -240,8 +258,8 @@ export default function OnboardPage() {
       }
       if (isFree) {
         // Skip payment for free plan, go straight to submit
-        if (!form.adminPassword || form.adminPassword.length < 8) {
-          toast.error('Password must be at least 8 characters');
+        if (!form.adminPassword || form.adminPassword.length < 10) {
+          toast.error('Password must be at least 10 characters');
           return;
         }
         handleSubmit();
@@ -375,7 +393,7 @@ export default function OnboardPage() {
               </div>
 
               <div className={cn('grid gap-4', isHomeschool ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto' : 'sm:grid-cols-2 lg:grid-cols-3')}>
-                {PLANS.filter(p => isHomeschool ? p.tier === 'FREE' || p.tier === 'STARTER' || p.tier === 'GROWTH' : p.tier !== 'FREE').map(p => (
+                {PLANS.filter(p => isHomeschool ? p.tier === 'FREE' || p.tier === 'FAMILY' || p.tier === 'STARTER' || p.tier === 'GROWTH' : p.tier !== 'FREE' && p.tier !== 'FAMILY').map(p => (
                   <button key={p.tier} onClick={() => {
                     setSelectedPlan(p.tier);
                     if (p.students > 0 && p.students < 100000) setStudentCount(Math.min(p.students, studentCount || p.students));
@@ -388,7 +406,9 @@ export default function OnboardPage() {
                     <p className="font-bold text-gray-900">{p.tier}</p>
                     <p className="text-2xl font-bold mt-1">
                       {p.price === 0 && p.tier === 'FREE' ? 'Free' : p.tier === 'ENTERPRISE' ? 'Custom' : `$${p.price}`}
-                      {p.price > 0 && p.tier !== 'ENTERPRISE' && <span className="text-sm text-gray-400 font-normal">/student/mo</span>}
+                      {p.price > 0 && p.tier !== 'ENTERPRISE' && (
+                        <span className="text-sm text-gray-400 font-normal">{p.tier === 'FAMILY' ? '/mo' : '/student/mo'}</span>
+                      )}
                     </p>
                     {p.priceLabel && <p className="text-[10px] text-gray-400 mt-0.5">{p.priceLabel}</p>}
                     <ul className="mt-3 space-y-1">
@@ -498,11 +518,14 @@ export default function OnboardPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
                   <div className="relative">
                     <input type={showPassword ? 'text' : 'password'} value={form.adminPassword}
-                      onChange={e => updateForm('adminPassword', e.target.value)} className="input-field pr-10" placeholder="Min 8 characters" />
+                      onChange={e => updateForm('adminPassword', e.target.value)} className="input-field pr-10" placeholder="Min 10 characters" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                  {form.adminPassword && form.adminPassword.length < 10 && (
+                    <p className="text-xs text-red-500 mt-1">Password must be at least 10 characters</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
@@ -598,14 +621,22 @@ export default function OnboardPage() {
                   {isHomeschool && (
                     <>
                       <div className="flex justify-between"><span className="text-gray-600">Children</span><span className="font-medium">{children.filter(c => c.name.trim()).length}</span></div>
-                      <div className="flex justify-between"><span className="text-gray-600">Annual price</span><span className="font-medium">${(plan.price * Math.max(children.filter(c => c.name.trim()).length, 5)).toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600">{isFamily ? 'Household plan' : 'Annual price'}</span>
+                        <span className="font-medium">
+                          ${isFamily ? `${plan.price}/mo` : (plan.price * Math.max(children.filter(c => c.name.trim()).length, 5)).toLocaleString()}
+                        </span>
+                      </div>
                     </>
                   )}
                   <hr />
                   <div className="flex justify-between text-lg">
                     <span className="font-bold text-gray-900">Total</span>
                     <span className="font-bold text-primary-600">
-                      ${isHomeschool ? (plan.price * Math.max(children.filter(c => c.name.trim()).length, 5)).toLocaleString() : totalCost.toLocaleString()}/year
+                      ${isFamily
+                          ? `${totalCost.toLocaleString()}/year`
+                          : isHomeschool
+                            ? `${(plan.price * Math.max(children.filter(c => c.name.trim()).length, 5)).toLocaleString()}/year`
+                            : `${totalCost.toLocaleString()}/year`}
                     </span>
                   </div>
                 </div>
@@ -663,7 +694,7 @@ export default function OnboardPage() {
                   {loading ? (
                     <><div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> Processing...</>
                   ) : (
-                    <><CreditCard size={18} /> Pay ${isHomeschool ? (plan.price * Math.max(children.filter(c => c.name.trim()).length, 5)).toLocaleString() : totalCost.toLocaleString()} & {isHomeschool ? 'Create Account' : 'Create District'}</>
+                    <><CreditCard size={18} /> Pay ${isFamily ? totalCost.toLocaleString() : isHomeschool ? (plan.price * Math.max(children.filter(c => c.name.trim()).length, 5)).toLocaleString() : totalCost.toLocaleString()} & {isHomeschool ? 'Create Account' : 'Create District'}</>
                   )}
                 </button>
               </div>

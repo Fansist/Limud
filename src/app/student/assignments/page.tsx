@@ -1,7 +1,8 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +23,7 @@ const ExerciseRenderer = dynamic(() => import('@/components/exercises/ExerciseRe
 export default function StudentAssignments() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
+  const searchParams = useSearchParams();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
@@ -32,10 +34,64 @@ export default function StudentAssignments() {
   const [uploading, setUploading] = useState(false);
   const [submissionType, setSubmissionType] = useState<'text' | 'link' | 'audio' | 'video' | 'code' | 'drawing'>('text');
   const [linkUrl, setLinkUrl] = useState('');
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [courseFilter, setCourseFilter] = useState<string | null>(null);
+  const deepLinkHandledRef = useRef(false);
 
   useEffect(() => {
     fetchAssignments();
   }, [isDemo]);
+
+  // v13.4.3: Wire deep-link params from dashboard / classrooms / grades pages.
+  // - focus / id: assignment to scroll into view + highlight (auto-open if id+method).
+  // - method: learning method label for the confirmation toast.
+  // - courseId: filter the assignments list to a single course.
+  useEffect(() => {
+    if (loading || assignments.length === 0 || deepLinkHandledRef.current) return;
+
+    const focusId = searchParams.get('focus');
+    const idParam = searchParams.get('id');
+    const method = searchParams.get('method');
+    const courseId = searchParams.get('courseId');
+    const targetId = focusId ?? idParam;
+
+    if (courseId) {
+      setCourseFilter(courseId);
+    }
+
+    if (!targetId) {
+      deepLinkHandledRef.current = true;
+      return;
+    }
+
+    const target = assignments.find(a => a.id === targetId);
+    if (!target) {
+      deepLinkHandledRef.current = true;
+      return;
+    }
+
+    deepLinkHandledRef.current = true;
+    setHighlightedId(target.id);
+
+    // Scroll the card into view (next paint, so it's mounted).
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`assignment-${target.id}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    // If we came from the classrooms method picker, auto-open the submission modal
+    // and confirm the method context with a toast.
+    if (idParam && method) {
+      const prettyMethod = method.replace(/-/g, ' ');
+      toast.success(`Starting ${target.title} with the ${prettyMethod} method`);
+      setSubmissionText('');
+      setSelectedAssignment(target);
+    }
+
+    // Drop the highlight after a beat so it isn't permanent.
+    const timer = window.setTimeout(() => setHighlightedId(null), 3500);
+    return () => window.clearTimeout(timer);
+  }, [loading, assignments, searchParams]);
 
   async function fetchAssignments() {
     try {
@@ -184,10 +240,15 @@ export default function StudentAssignments() {
   };
 
   const filtered = assignments.filter(a => {
+    if (courseFilter && a.courseId !== courseFilter) return false;
     if (filter === 'all') return true;
     if (filter === 'extra-credit') return a.isExtraCredit;
     return getStatus(a) === filter;
   });
+
+  const activeCourseName = courseFilter
+    ? assignments.find(a => a.courseId === courseFilter)?.course?.name ?? null
+    : null;
 
   return (
     <DashboardLayout>
@@ -208,6 +269,21 @@ export default function StudentAssignments() {
             ))}
           </div>
         </div>
+
+        {/* v13.4.3: course filter banner when deep-linked from /student/grades */}
+        {courseFilter && (
+          <div className="flex items-center justify-between gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
+            <p className="text-sm text-emerald-800">
+              Showing assignments for <span className="font-bold">{activeCourseName ?? 'this course'}</span>
+            </p>
+            <button
+              onClick={() => setCourseFilter(null)}
+              className="text-xs font-medium text-emerald-700 hover:text-emerald-900 underline"
+            >
+              Clear filter
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-12">
@@ -232,9 +308,18 @@ export default function StudentAssignments() {
               }
 
               return (
-                <motion.div key={assignment.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                <motion.div
+                  id={`assignment-${assignment.id}`}
+                  key={assignment.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={cn('card', assignment.isExtraCredit && 'border-2 border-pink-200 bg-pink-50/30')}>
+                  className={cn(
+                    'card scroll-mt-24 transition-shadow',
+                    assignment.isExtraCredit && 'border-2 border-pink-200 bg-pink-50/30',
+                    highlightedId === assignment.id && 'ring-2 ring-primary-400 ring-offset-2 shadow-lg'
+                  )}
+                >
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">

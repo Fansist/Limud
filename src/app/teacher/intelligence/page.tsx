@@ -1,7 +1,8 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
@@ -54,6 +55,10 @@ function pluralize(count: number, singular: string, plural?: string): string {
 
 export default function TeacherIntelligencePage() {
   const isDemo = useIsDemo();
+  const searchParams = useSearchParams();
+  const requestedStudentId = searchParams?.get('student') ?? null;
+  const consumedDeepLinkRef = useRef(false);
+  const studentRowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'overview' | 'students' | 'risk'>('overview');
@@ -161,6 +166,28 @@ export default function TeacherIntelligencePage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [isDemo]);
+
+  // v13.3: Accept ?student=<id> deep links from dashboard at-risk cards.
+  // Match the existing selection mechanism: switch to the All Students tab,
+  // expand the matching row, and scroll it into view.
+  useEffect(() => {
+    if (loading) return;
+    if (!data) return;
+    if (!requestedStudentId) return;
+    if (consumedDeepLinkRef.current) return;
+    const list: any[] = data.students || [];
+    const match = list.find((s: any) => s.id === requestedStudentId);
+    if (!match) return;
+    consumedDeepLinkRef.current = true;
+    setTab('students');
+    setExpandedStudent(match.id);
+    requestAnimationFrame(() => {
+      const el = studentRowRefs.current[match.id];
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }, [loading, data, requestedStudentId]);
 
   if (loading) return <DashboardLayout><SkeletonDashboard /></DashboardLayout>;
   if (!data) return <DashboardLayout><div className="text-center py-12 text-gray-400">Could not load intelligence data.</div></DashboardLayout>;
@@ -317,6 +344,7 @@ export default function TeacherIntelligencePage() {
                     return (
                       <>
                         <tr key={stu.id}
+                          ref={(el) => { studentRowRefs.current[stu.id] = el; }}
                           className="border-b border-gray-50 hover:bg-primary-50 transition cursor-pointer"
                           onClick={() => setExpandedStudent(isExpanded ? null : stu.id)}>
                           <td className="py-3 px-4">

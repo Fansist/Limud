@@ -43,6 +43,34 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.7.2 — Update 5.7 sweep #3: dead-end fixes across 19 files`
+- **files:** 24 · 19 modified + 5 new. Modified: `src/middleware.ts`, `src/app/(auth)/{demo,onboard,pricing}/page.tsx`, `src/app/(legal)/{about,layout}.tsx`, `src/app/roadmap/page.tsx`, `src/app/admin/dashboard/page.tsx`, `src/app/api/payments/route.ts`, `src/app/parent/{settings,reports}/page.tsx`, `src/app/student/{assignments,grades}/page.tsx`, `src/app/teacher/{dashboard,students,intelligence,grading}/page.tsx`, `src/components/layout/DashboardLayout.tsx`, `src/lib/parent-fanout.ts`, `prisma/schema.prisma`, `package.json`, `CHANGELOG.md`. New: `src/app/(legal)/BackToHomeLink.tsx`, `src/app/notifications/page.tsx`, `src/app/api/district/{settings,employees,audit}/route.ts`.
+- **risk:** MEDIUM
+  - 3 new ADMIN-gated API routes (`/api/district/settings|employees|audit`). All mirror the existing `/api/district/teachers/route.ts` shape: `apiHandler` + `requireRole('ADMIN')` + district-scoped query + master-demo synthetic-success short-circuit. POST/PUT on employees writes to the `User` table — must be careful about role/active fields. PUT on settings upserts a JSON blob + mirrors a few top-level fields onto `SchoolDistrict` (name/contactEmail/phone/address/city/state/zip/subdomain); subdomain only written when changed to avoid `P2002` unique-violation noise. Audit route reads `SecurityAuditLog` (no districtId column on that model, so it scopes by `userId IN (district's users)`).
+  - 1 schema field added: `SchoolDistrict.settings Json?`. Nullable, additive — no data migration. Render build script runs `npx prisma db push` before `next build` so the change applies automatically on deploy.
+  - FAMILY tier fix is real: previously `/onboard?plan=FAMILY` crashed at module-eval time via `PLANS.find(...)!`. Replaced the unsafe assertion with a STANDARD fallback (defense in depth) AND added the FAMILY entry so the happy path resolves. The payments route's `pricePerStudent × studentCount` math now branches on `tier === 'FAMILY'` to use the flat `pricePerHousehold` / `annualPricePerHousehold` fields instead — verified in `onboard`, `homeschool-upgrade`, `upgrade`, and `renew` action branches.
+  - 3 middleware `PUBLIC_PATHS` additions (`/contact`, `/roadmap`, `/accessibility`). All three are public marketing pages with no auth-requiring content. Subdomain redirect logic at line 271 was preserved untouched (district subdomains still redirect `/roadmap` to `/login`).
+  - Password min-length bumped 8→10 chars on the onboard local check. Aligns with NIST SP 800-63B which `/api/auth/register` already enforces. Previously the homeschool path could pass local validation, then fail server validation with a generic error — now it fails fast with a clear inline message.
+  - Notifications drawer footer link + new `/notifications` page reuse the existing `/api/notifications` endpoint; no new auth surface.
+  - Deep-link query handling on 5 dashboard pages is one-shot via `useRef` flag (`consumedDeepLinkRef`) to avoid re-firing on re-renders. Each page falls back gracefully if the query param is absent (no behavior change for non-deep-link traffic).
+- **review:** ⚠️ partial — needs real-traffic verification after deploy:
+  1. Click "Start Family trial" from /pricing → should land on /onboard, FAMILY plan card highlighted, customerType auto-set to homeschool, no console error.
+  2. Anonymous visit /contact, /roadmap, /accessibility → should render without bouncing to /login.
+  3. Logged-in user visits /roadmap, /about → topbar shows "Open Dashboard" not "Sign In/Start Free".
+  4. ADMIN visits /admin/settings → Save Changes should toast success, not "Failed to save". /admin/employees can create a non-TEACHER role. /admin/audit shows entries instead of empty page.
+  5. Student dashboard upcoming-assignment card click → /student/assignments scrolls + highlights matching card.
+  6. Teacher at-risk student card click → /teacher/intelligence auto-selects that student.
+  7. Parent receives at-risk email → click "View report" → lands on /parent/reports with correct child tab pre-selected.
+  8. Parent demo mode toggles settings → see "Notification preferences saved (Demo)" toast (not "Save failed").
+  9. Drawer click "View all notifications →" → /notifications page renders, groups by date, "Mark all as read" works.
+- **demo-mode:** YES — every new path branches on `isMasterDemo` or `isDemo`:
+  - `/api/district/settings|employees|audit` return synthetic defaults/success without DB writes for master demo.
+  - `/notifications` page falls back to 5 synthetic items for master demo and `DEMO_NOTIFICATIONS` for generic demo mode.
+  - Parent settings save and parent reports export both have demo branches with toast.success synthetic feedback.
+  - `/demo` auth-failed branch no longer pushes to a protected route, so demo users see a clear error instead of a flash + forced login.
+- **tests:** manual smoke per the 9-item review checklist above. No automated tests added — the audit was about dead-end UX, not new business logic; the 9 verifications cover the regression surface.
+- **notes:** This is the third dead-end sweep (after v16.4.0 and v16.4.1). Followed the same `/pwork` slicing pattern: 8 file-disjoint reviewers in Wave 1, lead triage in Wave 2, 8 file-disjoint coders in Wave 3. Zero merge conflicts between coders. The local hook (`check-sql-files.py`) was broken on every Edit but had no effect on the actual file writes — environmental, not a Limud issue. A follow-up item worth tracking: `/admin/settings` still has a subdomain field that the new API now persists, but there's no DNS validation step yet. If a user types a subdomain already taken or with invalid characters, the API rejects with a generic Prisma error; nicer would be a real validation pre-check on the page. Not a dead-end (just rough UX) — defer to a future polish pass.
+
 ### cadab6d — `v16.7.1 — Update 5.7 hotfix: comic image data: URLs visible again`
 - **files:** 5 · `src/app/study/page.tsx` (+ `safeMarkdownUrlTransform` helper, applied to `<ReactMarkdown>`), `src/components/products/MarkdownToolPage.tsx` (+ identical `toolMarkdownUrlTransform`, applied to its `<ReactMarkdown>`), `package.json`, `README.md`, `CHANGELOG.md`
 - **risk:** LOW

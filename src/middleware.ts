@@ -33,6 +33,9 @@ const PUBLIC_PATHS = [
   '/terms',
   '/help',
   '/pricing',
+  '/contact',
+  '/roadmap',
+  '/accessibility',
   // v16.1: Individual products surface — browseable without an account.
   // The product pages themselves render a public view; the underlying
   // generation APIs (e.g. /api/study/generate) still require login.

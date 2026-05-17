@@ -601,11 +601,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   : pathname.startsWith('/products') ? 'Products'
                   : pathname.startsWith('/study') ? 'Exam Study Helper'
                   : pathname.startsWith('/practice') ? 'Practice Generator'
-                  : pathname.startsWith('/math-solver') ? 'Math Solver'
+                  : pathname.startsWith('/math-solver') ? 'Math Tutor'
                   : pathname.startsWith('/notes-cleaner') ? 'Notes Cleaner'
-                  : pathname.startsWith('/lab-report') ? 'Lab Report Builder'
+                  : pathname.startsWith('/lab-report') ? 'Lab Report Reviewer'
                   : pathname.startsWith('/citation-finder') ? 'Citation Finder'
                   : pathname.startsWith('/language-lab') ? 'Language Lab'
+                  : pathname.startsWith('/essay-coach') ? 'Essay Coach'
                   : pathname.startsWith('/about') ? 'About'
                   : pathname.startsWith('/team') ? 'Team'
                   : pathname.startsWith('/pricing') ? 'Pricing'
@@ -658,14 +659,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         notifications.slice(0, 8).map(notif => {
                           const typeIcon = notif.type === 'assignment' ? '📝' : notif.type === 'grade' ? '📊' : notif.type === 'achievement' ? '🏆' : notif.type === 'announcement' ? '📢' : notif.type === 'alert' ? '⚠️' : notif.type === 'forum' ? '💬' : '🔔';
                           const timeAgo = (() => { const d = Date.now() - new Date(notif.createdAt).getTime(); if (d < 60000) return 'Just now'; if (d < 3600000) return `${Math.floor(d / 60000)}m ago`; if (d < 86400000) return `${Math.floor(d / 3600000)}h ago`; return `${Math.floor(d / 86400000)}d ago`; })();
-                          return (
-                            <a key={notif.id} href={notif.link || '#'}
-                              onClick={(e) => { if (!notif.link) e.preventDefault(); setShowNotifications(false); }}
-                              className={cn(
-                                'flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer no-underline',
-                                !notif.isRead && 'bg-primary-50/50 dark:bg-primary-900/20'
-                              )}
-                            >
+                          const itemClass = cn(
+                            'flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer no-underline w-full text-left',
+                            !notif.isRead && 'bg-primary-50/50 dark:bg-primary-900/20'
+                          );
+                          const body = (
+                            <>
                               <span className="text-base mt-0.5 flex-shrink-0">{typeIcon}</span>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{notif.title}</p>
@@ -673,11 +672,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <p className="text-[10px] text-gray-500 mt-1">{timeAgo}</p>
                               </div>
                               {!notif.isRead && <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-2" />}
-                            </a>
+                            </>
+                          );
+                          return notif.link ? (
+                            <Link key={notif.id} href={notif.link}
+                              onClick={() => setShowNotifications(false)}
+                              className={itemClass}
+                            >
+                              {body}
+                            </Link>
+                          ) : (
+                            <button key={notif.id} type="button"
+                              onClick={() => setShowNotifications(false)}
+                              className={itemClass}
+                            >
+                              {body}
+                            </button>
                           );
                         })
                       )}
                     </div>
+                    <Link
+                      href="/notifications"
+                      onClick={() => setShowNotifications(false)}
+                      className="block w-full text-center px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 text-xs font-medium text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                    >
+                      View all notifications →
+                    </Link>
                   </motion.div>
                 </>
               )}

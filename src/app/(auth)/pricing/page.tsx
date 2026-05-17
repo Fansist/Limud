@@ -937,58 +937,58 @@ export default function PricingPage() {
             </Link>
           </div>
 
-          {/* Card 2 — Coming soon placeholder */}
-          <div className="rounded-3xl border-2 border-dashed border-gray-200 bg-white p-6 flex flex-col">
+          {/* Card 2 — Practice Generator (shipped) */}
+          <div className="rounded-3xl border-2 border-fuchsia-100 bg-gradient-to-br from-white to-fuchsia-50 p-6 flex flex-col">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-500 text-white flex items-center justify-center shadow-md">
                 <Brain size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-gray-700">Practice Generator</h3>
-                <p className="text-[11px] text-gray-400">Coming soon</p>
+                <h3 className="font-bold text-gray-900">Practice Generator</h3>
+                <p className="text-[11px] text-gray-500">Available now</p>
               </div>
             </div>
-            <p className="text-sm text-gray-500 leading-relaxed">
+            <p className="text-sm text-gray-600 leading-relaxed">
               Endless practice questions for one topic, scored on the fly, tuned to where
               you keep tripping up.
             </p>
             <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-2xl font-extrabold text-gray-400">TBA</span>
+              <span className="text-2xl font-extrabold text-gray-900">$9</span>
+              <span className="text-xs text-gray-500">per exam · one-time</span>
             </div>
-            <button
-              type="button"
-              disabled
-              className="mt-4 block text-center py-2.5 rounded-xl font-bold text-xs bg-gray-100 text-gray-400 cursor-not-allowed"
+            <Link
+              href="/practice"
+              className="mt-4 block text-center py-2.5 rounded-xl font-bold text-xs transition bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white hover:opacity-95"
             >
-              Notify me
-            </button>
+              Try it now
+            </Link>
           </div>
 
-          {/* Card 3 — Coming soon placeholder */}
-          <div className="rounded-3xl border-2 border-dashed border-gray-200 bg-white p-6 flex flex-col">
+          {/* Card 3 — Essay Coach (shipped) */}
+          <div className="rounded-3xl border-2 border-fuchsia-100 bg-gradient-to-br from-white to-fuchsia-50 p-6 flex flex-col">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-500 text-white flex items-center justify-center shadow-md">
                 <BookOpen size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-gray-700">Essay Coach</h3>
-                <p className="text-[11px] text-gray-400">Coming soon</p>
+                <h3 className="font-bold text-gray-900">Essay Coach</h3>
+                <p className="text-[11px] text-gray-500">Available now</p>
               </div>
             </div>
-            <p className="text-sm text-gray-500 leading-relaxed">
+            <p className="text-sm text-gray-600 leading-relaxed">
               Paste a draft, get structure feedback that doesn&apos;t rewrite your voice and
               doesn&apos;t flag every sentence as plagiarism.
             </p>
             <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-2xl font-extrabold text-gray-400">TBA</span>
+              <span className="text-2xl font-extrabold text-gray-900">$9</span>
+              <span className="text-xs text-gray-500">per exam · one-time</span>
             </div>
-            <button
-              type="button"
-              disabled
-              className="mt-4 block text-center py-2.5 rounded-xl font-bold text-xs bg-gray-100 text-gray-400 cursor-not-allowed"
+            <Link
+              href="/essay-coach"
+              className="mt-4 block text-center py-2.5 rounded-xl font-bold text-xs transition bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white hover:opacity-95"
             >
-              Notify me
-            </button>
+              Try it now
+            </Link>
           </div>
         </div>
 

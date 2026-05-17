@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { BookOpen, ArrowLeft } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
+import BackToHomeLink from './BackToHomeLink';
 
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,10 +19,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
             </div>
             <span className="text-xl font-extrabold text-gray-900 tracking-tight">Limud</span>
           </Link>
-          <Link href="/" className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition">
-            <ArrowLeft size={16} />
-            Back to Home
-          </Link>
+          <BackToHomeLink />
         </div>
       </nav>
       <main id="main-content" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">

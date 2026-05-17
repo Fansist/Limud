@@ -1,7 +1,9 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,11 +15,14 @@ import {
 
 export default function ParentReportsPage() {
   const isDemo = useIsDemo();
+  const searchParams = useSearchParams();
+  const childIdParam = searchParams?.get('childId') ?? null;
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedChild, setSelectedChild] = useState(0);
   const [expandedActivity, setExpandedActivity] = useState<number | null>(null);
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
+  const childIdAppliedRef = useRef(false);
 
   useEffect(() => {
     if (isDemo) {
@@ -45,6 +50,19 @@ export default function ParentReportsPage() {
     fetch('/api/parent/reports').then(r => r.ok ? r.json() : null).then(d => { if (d) setReports(d.reports || []); }).catch(() => {}).finally(() => setLoading(false));
   }, [isDemo]);
 
+  // Auto-select child tab from ?childId= query param. Runs only once,
+  // and only if the user hasn't already changed the tab.
+  useEffect(() => {
+    if (childIdAppliedRef.current) return;
+    if (!childIdParam) return;
+    if (reports.length === 0) return;
+    const idx = reports.findIndex((rep: any) => rep?.child?.id === childIdParam);
+    if (idx >= 0) {
+      setSelectedChild(idx);
+      childIdAppliedRef.current = true;
+    }
+  }, [childIdParam, reports]);
+
   if (loading) return <DashboardLayout><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" /></div></DashboardLayout>;
 
   const r = reports[selectedChild];
@@ -65,10 +83,20 @@ export default function ParentReportsPage() {
           <div className="flex items-center gap-2">
             {/* v12.0.0: PDF Export */}
             <button onClick={async () => {
+              if (isDemo) {
+                toast.success('PDF export ready (Demo)');
+                return;
+              }
               try {
                 const res = await fetch('/api/reports/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'student-progress', studentId: r?.child?.id }) });
-                if (res.ok) { const toast = (await import('react-hot-toast')).default; toast.success('Growth report exported (PDF)'); }
-              } catch {}
+                if (res.ok) {
+                  toast.success('Growth report exported (PDF)');
+                } else {
+                  toast.error('Failed to export');
+                }
+              } catch {
+                toast.error('Failed to export. Please try again.');
+              }
             }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm transition">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Export PDF

@@ -8,8 +8,10 @@ import { SubscriptionTier } from '@prisma/client';
 // pricePerStudent is the MONTHLY rate. ENTERPRISE is quote-on-demand (custom: true);
 // pricePerStudent is left at a sentinel for type-shape compatibility — clients should
 // treat ENTERPRISE as "Contact us" rather than computing a price from this row.
-const PRICING: Record<string, { pricePerStudent: number; maxStudents: number; maxTeachers: number; maxSchools: number; custom?: boolean }> = {
-  FAMILY: { pricePerStudent: 0, maxStudents: 5, maxTeachers: 2, maxSchools: 1 },
+// FAMILY is a flat-fee household tier — pricePerStudent unused; charge a flat
+// pricePerHousehold ($9/mo or $7/mo when billed annually) for up to 5 kids.
+const PRICING: Record<string, { pricePerStudent: number; pricePerHousehold?: number; annualPricePerHousehold?: number; maxStudents: number; maxTeachers: number; maxSchools: number; custom?: boolean }> = {
+  FAMILY: { pricePerStudent: 0, pricePerHousehold: 9, annualPricePerHousehold: 7, maxStudents: 5, maxTeachers: 2, maxSchools: 1 },
   STARTER: { pricePerStudent: 3, maxStudents: 50, maxTeachers: 5, maxSchools: 1 },
   GROWTH: { pricePerStudent: 5, maxStudents: 200, maxTeachers: 20, maxSchools: 3 },
   STANDARD: { pricePerStudent: 8, maxStudents: 500, maxTeachers: 50, maxSchools: 5 },
@@ -48,6 +50,8 @@ export const GET = apiHandler(async (req: Request) => {
       pricing: Object.entries(PRICING).map(([tier, info]) => ({
         tier,
         pricePerStudent: info.pricePerStudent,
+        pricePerHousehold: info.pricePerHousehold,
+        annualPricePerHousehold: info.annualPricePerHousehold,
         maxStudents: info.maxStudents,
         maxTeachers: info.maxTeachers,
         maxSchools: info.maxSchools,
@@ -149,7 +153,16 @@ export const POST = apiHandler(async (req: Request) => {
       maxStudents = Math.max(studentCount, tierInfo.maxStudents);
     }
 
-    const amount = Math.round(pricePerStudent * studentCount * 100) / 100;
+    // FAMILY is a flat-fee household tier — annualPricePerHousehold * 12.
+    // Other tiers use the per-student price * student count.
+    let amount: number;
+    if (tierKey === 'FAMILY') {
+      const family = PRICING.FAMILY;
+      const monthlyFlat = family.annualPricePerHousehold ?? family.pricePerHousehold ?? 9;
+      amount = Math.round(monthlyFlat * 12 * 100) / 100;
+    } else {
+      amount = Math.round(pricePerStudent * studentCount * 100) / 100;
+    }
 
     // Check if admin email exists
     const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -282,7 +295,10 @@ export const POST = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'User or district not found' }, { status: 404 });
     }
 
-    const amount = tierInfo.pricePerStudent * (count || 5);
+    // FAMILY uses a flat household fee, not per-student math.
+    const amount = tierKey === 'FAMILY'
+      ? Math.round((tierInfo.annualPricePerHousehold ?? tierInfo.pricePerHousehold ?? 9) * 12 * 100) / 100
+      : tierInfo.pricePerStudent * (count || 5);
 
     // Update district subscription
     await prisma.schoolDistrict.update({
@@ -346,7 +362,10 @@ export const POST = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
     }
 
-    const amount = tierInfo.pricePerStudent * (studentCount || 100);
+    // FAMILY tier is a flat household fee, not per-student math.
+    const amount = tierKey === 'FAMILY'
+      ? Math.round((tierInfo.annualPricePerHousehold ?? tierInfo.pricePerHousehold ?? 9) * 12 * 100) / 100
+      : tierInfo.pricePerStudent * (studentCount || 100);
 
     const payment = await prisma.payment.create({
       data: {

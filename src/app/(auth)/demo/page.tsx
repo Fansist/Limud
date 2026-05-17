@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import toast from 'react-hot-toast';
 import {
   GraduationCap, BookOpen, Shield, Users, ArrowRight,
   Play, Home, User, Key, Eye, EyeOff, LogIn, Copy, Check,
@@ -105,24 +106,14 @@ export default function DemoPage() {
           router.refresh();
         }
       } else {
-        // Auth failed — still navigate to demo mode with ?demo=true
-        const knownRole = DEMO_EMAIL_ROLES[email.toLowerCase()];
-        if (knownRole) {
-          router.push(`${getDashboardPath(knownRole)}?demo=true`);
-        } else {
-          const cred = DEMO_CREDENTIALS.find(c => c.email === email);
-          const role = cred?.role?.toLowerCase() || 'student';
-          router.push(`/${role}/dashboard?demo=true`);
-        }
+        // Auth failed — stay on /demo and surface the error to the user.
+        // Pushing to a protected route here would bounce through middleware
+        // back to /login because no session exists.
+        toast.error('Demo session failed. Please try again or contact support.');
       }
     } catch {
-      // Network error — fallback to demo mode
-      const knownRole = DEMO_EMAIL_ROLES[email.toLowerCase()];
-      if (knownRole) {
-        router.push(`${getDashboardPath(knownRole)}?demo=true`);
-      } else {
-        router.push('/student/dashboard?demo=true');
-      }
+      // Network error — stay on /demo and surface the error to the user.
+      toast.error('Demo session failed. Please try again or contact support.');
     } finally {
       setLoading(null);
     }

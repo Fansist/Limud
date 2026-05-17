@@ -11,6 +11,7 @@ import {
   ChevronDown, ChevronRight, ExternalLink, Flame, Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AuthAwareCTA from '@/components/AuthAwareCTA';
 
 // ─── TYPES ──────────────────────────────────────────────────────────────
 
@@ -643,8 +644,7 @@ export default function RoadmapPage() {
           <div className="flex items-center gap-3">
             <Link href="/" className="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition"><ArrowLeft size={14} /> Home</Link>
             <Link href="/pricing" className="text-sm text-gray-500 hover:text-gray-700 transition">Pricing</Link>
-            <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-gray-900 transition px-4 py-2">Sign In</Link>
-            <Link href="/register" className="text-sm bg-primary-600 text-white px-5 py-2.5 rounded-xl hover:bg-primary-700 transition font-semibold shadow-sm">Start Free</Link>
+            <AuthAwareCTA variant="topbar" />
           </div>
         </div>
       </nav>
@@ -767,9 +767,7 @@ export default function RoadmapPage() {
             brings us closer to that vision.
           </p>
           <div className="flex items-center justify-center gap-4 mt-6">
-            <Link href="/register" className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition shadow-lg shadow-primary-500/25 flex items-center gap-2">
-              Join the Movement <ArrowRight size={14} />
-            </Link>
+            <AuthAwareCTA variant="hero" />
             <Link href="/contact" className="text-gray-400 hover:text-white text-sm font-medium transition flex items-center gap-1">
               Request a Feature <ExternalLink size={12} />
             </Link>

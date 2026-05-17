@@ -1,7 +1,8 @@
-import Link from 'next/link';
+'use client';
 import {
   Brain, BarChart3, Shield, Users, Heart, Target, Sparkles, GraduationCap,
 } from 'lucide-react';
+import AuthAwareCTA from '@/components/AuthAwareCTA';
 
 export default function AboutPage() {
   return (
@@ -51,10 +52,7 @@ export default function AboutPage() {
       </div>
 
       <div className="text-center">
-        <Link href="/register" className="inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-primary-700 transition-all shadow-lg">
-          <Sparkles size={18} />
-          Get Started for Free
-        </Link>
+        <AuthAwareCTA variant="hero" />
       </div>
     </article>
   );

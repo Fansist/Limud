@@ -109,6 +109,7 @@ model SchoolDistrict {
   maxSchools        Int                @default(1)
   isHomeschool      Boolean            @default(false)
   gamesEnabled      Boolean            @default(true)
+  settings          Json?              // District settings blob (academic/security/features/notifications/branding tabs)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 

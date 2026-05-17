@@ -271,7 +271,7 @@ export async function fanoutToParents(
       level: event.level,
       indicators: event.indicators,
       recommendations: event.recommendations,
-      reportUrl: buildUrl(appUrl, `/parent/reports/${child.id}`),
+      reportUrl: buildUrl(appUrl, `/parent/reports?childId=${child.id}`),
     });
   }
 

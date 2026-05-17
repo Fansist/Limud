@@ -4,6 +4,194 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.7.2] - 2026-05-16 — Update 5.7 sweep #3: dead-end fixes across 19 files
+
+Third dead-end sweep. Eight parallel reviewers audited eight
+independent slices of the site (pricing, marketing pages, auth
+flows, student / teacher / parent / admin dashboards, shared
+chrome). Eight parallel coders applied the fixes. Net result: 19
+files modified, 5 new files, no scope creep, no overlapping file
+edits between coders.
+
+### Fixed — FAMILY tier crash on `/onboard?plan=FAMILY`
+
+The pricing page and landing page both linked to
+`/onboard?plan=FAMILY` but the onboard `PLANS` array had no FAMILY
+entry. `PLANS.find(p => p.tier === 'FAMILY')!` returned `undefined`
+and the next line accessing `plan.price` threw. Anyone clicking
+"Start Family trial" got a blank page or a runtime crash.
+
+- Added a FAMILY entry to `src/app/(auth)/onboard/page.tsx`
+  (`price: 9`, `annualPrice: 7`, `students: 5`, household-fee
+  shape).
+- Replaced the unsafe `.find(...)!` with a STANDARD fallback so
+  unknown `?plan=` values can no longer crash the page.
+- Auto-flips `customerType` to `homeschool` when `?plan=FAMILY`
+  is present without `?type=`.
+- `src/app/api/payments/route.ts` now models FAMILY as a flat-fee
+  household tier (`pricePerHousehold: 9`,
+  `annualPricePerHousehold: 7`); `onboard` / `homeschool-upgrade`
+  / `upgrade` / `renew` actions all use the flat fee instead of
+  the nonsensical `pricePerStudent: 0 × studentCount` math.
+- Bumped the onboard local password check from 8 → 10 characters
+  to match the NIST SP 800-63B rule that `/api/auth/register`
+  enforces — previously the homeschool flow could pass local
+  validation then fail server validation with no clear reason.
+
+### Fixed — public marketing pages no longer require login
+
+`/contact`, `/roadmap`, and `/accessibility` were not in
+middleware's `PUBLIC_PATHS`. Anonymous prospects clicking
+"Contact us" or "Roadmap" from the landing page were redirected
+to `/login?callbackUrl=/contact` — exactly the dead-end pattern
+v16.4.x set out to eliminate, just on three new doors.
+
+- Added `/contact`, `/roadmap`, `/accessibility` to
+  `PUBLIC_PATHS` in `src/middleware.ts`.
+
+### Fixed — logged-in users no longer bounced to /register from marketing CTAs
+
+The v16.4 `AuthAwareCTA` conversion missed three pages.
+
+- `src/app/roadmap/page.tsx` — topbar Sign In/Start Free pair and
+  the bottom "Join the Movement" hero CTA now use
+  `<AuthAwareCTA variant="topbar" />` / `variant="hero" />`.
+- `src/app/(legal)/about/page.tsx` — "Get Started for Free" CTA
+  now session-aware via `<AuthAwareCTA variant="hero" />`.
+- `src/app/(legal)/layout.tsx` — "Back to Home" link now
+  role-aware via a new client subcomponent
+  `src/app/(legal)/BackToHomeLink.tsx` that calls
+  `useSession()` and routes through `dashboardHrefFor()`.
+
+### Fixed — three Admin pages had no backing API
+
+The Admin Settings, Employees, and Audit Log pages all fetched
+from API routes that did not exist. Save Changes silently failed,
+employee creation for non-TEACHER roles was impossible, and the
+Audit Log opened a blank screen with no error message.
+
+- New `src/app/api/district/settings/route.ts` (GET + PUT,
+  ADMIN-gated, master-demo synthetic).
+- New `src/app/api/district/employees/route.ts` (POST creates
+  TEACHER / ADMIN scoped to caller's district, PUT toggles
+  `isActive`; master-demo synthetic).
+- New `src/app/api/district/audit/route.ts` (GET reads
+  `SecurityAuditLog` rows for users in the caller's district,
+  maps to the page's expected shape; master-demo returns 5
+  synthetic rows).
+- `prisma/schema.prisma` — added `settings Json?` to
+  `SchoolDistrict` to hold the settings page's free-form fields.
+- `src/app/admin/dashboard/page.tsx` — System Status card no
+  longer links to `/api/health` (an API route, not a page); the
+  AI Tutor Sessions card no longer links to `/admin/analytics#ai`
+  (a fragment with no matching `<section id="ai">`). Both now
+  link to plain `/admin/analytics`.
+
+### Added — `/notifications` page + drawer "View all" link
+
+The notifications drawer in `DashboardLayout` capped at 8 items
+with no overflow page — users with >8 notifications had no way
+to see older ones.
+
+- New `src/app/notifications/page.tsx` — role-shared page
+  (STUDENT / TEACHER / PARENT / ADMIN), wraps `DashboardLayout`,
+  fetches `/api/notifications`, groups by Today / Yesterday /
+  This Week / Earlier, supports "Mark all as read", auth-gated by
+  default.
+- Drawer footer now has "View all notifications →" link.
+- Drawer items without a real link now render
+  `<button type="button">` instead of `<a href="#">` (no more
+  URL bar flicker on click).
+- Breadcrumb fallback chain in `DashboardLayout` now handles
+  `/essay-coach` → "Essay Coach".
+- Renamed stale breadcrumb labels: "Math Solver" → "Math Tutor",
+  "Lab Report Builder" → "Lab Report Reviewer" (v16.5.0 renames
+  had been missed in the breadcrumb config).
+
+### Fixed — deep-link query params now actually open the right thing
+
+Several dashboard cards built URLs with `?focus=`, `?student=`,
+`?assignment=`, `?id=`, `?method=` query params, but the
+destination pages never read them. Users clicked an at-risk
+student card and landed on the generic intelligence page; a
+focused assignment card and landed on the bare assignments list.
+
+- `src/app/student/assignments/page.tsx` — reads `focus`, `id`,
+  `method`, `courseId`. Matching assignment is scrolled into
+  view and highlighted; `method` opens the submission modal and
+  fires a toast; `courseId` applies a course filter with a clear
+  banner.
+- `src/app/student/grades/page.tsx` — course cards are now
+  wrapped in `<Link href="/student/assignments?courseId=…">`,
+  matching the banner copy that already promised the behavior.
+- `src/app/teacher/students/page.tsx` — reads `?student=<id>`,
+  scrolls + highlights matching card; empty-state CTA repointed
+  from `/teacher/coursework` (wrong) to `/teacher/classrooms`.
+- `src/app/teacher/intelligence/page.tsx` — reads `?student=<id>`,
+  auto-selects on the students tab.
+- `src/app/teacher/grading/page.tsx` — reads `?assignment=<id>`,
+  auto-selects on load (and in `fetchAssignments` for the demo
+  branch).
+- `src/app/teacher/dashboard/page.tsx` — empty-state "Upload
+  assignment" CTA repointed from `/teacher/coursework` (wrong)
+  to `/teacher/assignments` ("Create assignment" label).
+
+### Fixed — parent settings save / export error visibility
+
+- `src/app/parent/settings/page.tsx` — `handleSave` now branches
+  on `isDemo` (toast.success synthetic + return), mirroring the
+  load branch. Generic demo viewers no longer see "Save failed"
+  after toggling preferences.
+- `src/app/parent/reports/page.tsx` — Export PDF now toasts on
+  failure (previously `catch {}` swallowed errors); demo branch
+  shows a synthetic success toast instead of 404-ing on the
+  fake demo-student id. Also reads `?childId=` to auto-select
+  the child tab from the at-risk parent email.
+- `src/lib/parent-fanout.ts` — at-risk parent email links from
+  `/parent/reports/${child.id}` (non-existent dynamic route) to
+  `/parent/reports?childId=${child.id}` (handled by the static
+  page).
+
+### Fixed — `/demo` no longer flashes a dashboard URL on auth failure
+
+`src/app/(auth)/demo/page.tsx` — when `signIn` returned an error
+or threw, the code still pushed to `/student/dashboard?demo=true`,
+which then bounced back to `/login` because no session was
+created. Replaced both branches with `toast.error('Demo session
+failed. Please try again or contact support.')` and stay on the
+page.
+
+### Fixed — `/pricing` no longer marks shipped tools as "Coming soon"
+
+The Practice Generator and Essay Coach cards on `/pricing` were
+tagged "Coming soon · TBA" with disabled "Notify me" buttons.
+Both products have shipped at `/practice` and `/essay-coach`
+since v16.3 and v16.5 respectively.
+
+- Both cards now have real prices and `<Link>` to the shipped
+  product pages, styled to match the existing Exam Study Helper
+  card.
+
+### Notes
+
+- 8 reviewers ran in parallel (Wave 1); Lead triaged (Wave 2); 8
+  coders ran in parallel on file-disjoint slices (Wave 3); ship
+  + CHANGELOG + CODE-REVIEW (Wave 4). The file-disjoint guarantee
+  in `/pwork` held: zero merge conflicts between coders.
+- `prisma/schema.prisma` got one new field (`SchoolDistrict.settings
+  Json?`) — the build script already runs `npx prisma db push`
+  before `next build`, so the deploy applies the schema change
+  automatically.
+- The three new admin API routes mirror
+  `/api/district/teachers/route.ts` exactly for the apiHandler
+  + `requireRole('ADMIN')` + district-scoped + master-demo
+  synthetic-success pattern.
+- Notifications cap was a real user-blocking issue: any user with
+  >8 alerts had unreachable inbox state. Now bounded only by API
+  pagination.
+
+---
+
 ## [5.7.1] - 2026-05-16 — Update 5.7 hotfix (comic images visible again)
 
 User-reported: the Exam Study Helper comic format showed panel

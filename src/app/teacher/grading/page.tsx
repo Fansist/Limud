@@ -1,7 +1,8 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
@@ -15,6 +16,9 @@ import {
 export default function GradingPage() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
+  const searchParams = useSearchParams();
+  const requestedAssignmentId = searchParams?.get('assignment') ?? null;
+  const consumedDeepLinkRef = useRef(false);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<string>('');
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -30,16 +34,37 @@ export default function GradingPage() {
     if (selectedAssignment) fetchSubmissions(selectedAssignment);
   }, [selectedAssignment]);
 
+  // v13.3: Accept ?assignment=<id> deep links from dashboard "Recent Assignments" cards
+  useEffect(() => {
+    if (loading) return;
+    if (!requestedAssignmentId) return;
+    if (consumedDeepLinkRef.current) return;
+    const match = assignments.find((a: any) => a.id === requestedAssignmentId);
+    if (!match) return;
+    consumedDeepLinkRef.current = true;
+    setSelectedAssignment(match.id);
+  }, [loading, assignments, requestedAssignmentId]);
+
   async function fetchAssignments() {
     try {
       if (isDemo) {
         setAssignments(DEMO_TEACHER_ASSIGNMENTS);
-        const withPending = DEMO_TEACHER_ASSIGNMENTS.filter(
-          (a: any) => a.submissions?.some((s: any) => s.status === 'SUBMITTED')
-        );
-        if (withPending.length > 0) {
-          setSelectedAssignment(withPending[0].id);
-          setSubmissions(withPending[0].submissions || []);
+        // v13.3: Honor ?assignment=<id> deep link; otherwise fall back to first pending
+        const requested = requestedAssignmentId
+          ? DEMO_TEACHER_ASSIGNMENTS.find((a: any) => a.id === requestedAssignmentId)
+          : null;
+        if (requested) {
+          setSelectedAssignment(requested.id);
+          setSubmissions(requested.submissions || []);
+          consumedDeepLinkRef.current = true;
+        } else {
+          const withPending = DEMO_TEACHER_ASSIGNMENTS.filter(
+            (a: any) => a.submissions?.some((s: any) => s.status === 'SUBMITTED')
+          );
+          if (withPending.length > 0) {
+            setSelectedAssignment(withPending[0].id);
+            setSubmissions(withPending[0].submissions || []);
+          }
         }
         setLoading(false);
         return;
@@ -51,7 +76,14 @@ export default function GradingPage() {
         (a: any) => a.submissions?.some((s: any) => s.status === 'SUBMITTED')
       );
       setAssignments(data.assignments || []);
-      if (assignmentsWithPending.length > 0 && !selectedAssignment) {
+      // v13.3: Prefer ?assignment=<id> deep link if it exists in the loaded list
+      const requested = requestedAssignmentId
+        ? (data.assignments || []).find((a: any) => a.id === requestedAssignmentId)
+        : null;
+      if (requested) {
+        setSelectedAssignment(requested.id);
+        consumedDeepLinkRef.current = true;
+      } else if (assignmentsWithPending.length > 0 && !selectedAssignment) {
         setSelectedAssignment(assignmentsWithPending[0].id);
       }
     } catch {

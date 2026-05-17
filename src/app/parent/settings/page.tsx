@@ -142,6 +142,11 @@ export default function ParentSettingsPage() {
   async function handleSave() {
     if (!prefs) return;
     setSaving(true);
+    if (isDemo) {
+      toast.success('Notification preferences saved (Demo)');
+      setSaving(false);
+      return;
+    }
     try {
       const res = await fetch('/api/parent/preferences', {
         method: 'PUT',
