@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.7.2 — Update 5.7 sweep #3: dead-end fixes across 19 files`
+### 9d17fb4 — `v16.7.2 — Update 5.7 sweep #3: dead-end fixes across 19 files`
 - **files:** 24 · 19 modified + 5 new. Modified: `src/middleware.ts`, `src/app/(auth)/{demo,onboard,pricing}/page.tsx`, `src/app/(legal)/{about,layout}.tsx`, `src/app/roadmap/page.tsx`, `src/app/admin/dashboard/page.tsx`, `src/app/api/payments/route.ts`, `src/app/parent/{settings,reports}/page.tsx`, `src/app/student/{assignments,grades}/page.tsx`, `src/app/teacher/{dashboard,students,intelligence,grading}/page.tsx`, `src/components/layout/DashboardLayout.tsx`, `src/lib/parent-fanout.ts`, `prisma/schema.prisma`, `package.json`, `CHANGELOG.md`. New: `src/app/(legal)/BackToHomeLink.tsx`, `src/app/notifications/page.tsx`, `src/app/api/district/{settings,employees,audit}/route.ts`.
 - **risk:** MEDIUM
   - 3 new ADMIN-gated API routes (`/api/district/settings|employees|audit`). All mirror the existing `/api/district/teachers/route.ts` shape: `apiHandler` + `requireRole('ADMIN')` + district-scoped query + master-demo synthetic-success short-circuit. POST/PUT on employees writes to the `User` table — must be careful about role/active fields. PUT on settings upserts a JSON blob + mirrors a few top-level fields onto `SchoolDistrict` (name/contactEmail/phone/address/city/state/zip/subdomain); subdomain only written when changed to avoid `P2002` unique-violation noise. Audit route reads `SecurityAuditLog` (no districtId column on that model, so it scopes by `userId IN (district's users)`).
