@@ -14,6 +14,7 @@ import {
   Brain, Sparkles, RefreshCw, Heart,
 } from 'lucide-react';
 import EmptyState from '@/components/ui/EmptyState';
+import MySubscriptionsCard from '@/components/dashboard/MySubscriptionsCard';
 
 // v2.7.1 — shape of the GET /api/student/goals response payload.
 type ParentGoalCard = {
@@ -394,6 +395,15 @@ export default function StudentDashboard() {
             </motion.div>
           ))}
         </div>
+
+        {/* ═══ MY SUBSCRIPTIONS — bundle enrichment ═══ */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.22 }}
+        >
+          <MySubscriptionsCard />
+        </motion.div>
 
         {/* Skills Mastery & Review */}
         {skillsOverview && (

@@ -16,6 +16,7 @@ import {
   Sparkles, RefreshCw, ChevronDown, ChevronRight, Cpu, X,
   Search, Lightbulb,
 } from 'lucide-react';
+import MySubscriptionsCard from '@/components/dashboard/MySubscriptionsCard';
 
 /*
  * Parent Dashboard v9.9.0 — "The David Betzalel Experience"
@@ -183,6 +184,11 @@ export default function ParentDashboard() {
               <span className="text-xs font-medium">{action.label}</span>
             </Link>
           ))}
+        </motion.div>
+
+        {/* ═══ MY SUBSCRIPTIONS — bundle enrichment ═══ */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+          <MySubscriptionsCard />
         </motion.div>
 
         {children.length === 0 ? (

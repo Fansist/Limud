@@ -243,6 +243,24 @@ model Payment {
   @@map("payments")
 }
 
+model BundleSubscription {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bundleId    String   // 'all-access' | 'study-bundle' | 'writing-bundle' | 'stem-bundle'
+  billingMode String   // 'oneTime' | 'monthly'
+  status      String   @default("active") // 'active' | 'cancelled' | 'expired'
+  amount      Float    // recorded purchase price at time of sale
+  startedAt   DateTime @default(now())
+  expiresAt   DateTime? // null for one-time (permanent); set on cancel/period-end for monthly
+  cancelledAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([bundleId])
+}
+
 // ─── GAME STORE ─────────────────────────────────────────────────────────
 
 model Game {
@@ -399,6 +417,7 @@ model User {
   // v4 Game store & district
   gamePurchases      GamePurchase[]
   gameSessions       GameSession[]
+  bundleSubscriptions BundleSubscription[]
   districtAdmins     DistrictAdmin[]
   classroomStudents  ClassroomStudent[]
   fileUploads        FileUpload[]

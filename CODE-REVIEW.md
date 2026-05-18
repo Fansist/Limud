@@ -43,6 +43,29 @@ Required fields:
 
 <!-- prepend new entries here -->
 
+### (pending) — `v16.8.0 — Update 5.8: Bundles wired end-to-end`
+- **files:** 15 · 6 modified + 9 new. Modified: `prisma/schema.prisma` (+BundleSubscription model + User back-relation), `src/app/products/page.tsx` (CTA + ownership badges + useSession + useEffect fetch), `src/app/{student,parent,teacher}/dashboard/page.tsx` (MySubscriptionsCard slot), `src/app/admin/dashboard/page.tsx` (9th Quick Action tile + Package icon import), `package.json`, `CHANGELOG.md`. New: `src/lib/bundles.ts` (shared catalog + types + helpers), `src/app/api/products/bundle/purchase/route.ts`, `src/app/api/products/bundle/cancel/route.ts`, `src/app/api/products/subscriptions/route.ts`, `src/app/products/bundle/[bundleId]/checkout/page.tsx`, `src/app/account/page.tsx`, `src/app/account/subscriptions/page.tsx`, `src/components/dashboard/MySubscriptionsCard.tsx`.
+- **risk:** MEDIUM
+  - One new Prisma model (`BundleSubscription`). User-scoped, not district-scoped — first money-related model in the codebase that's per-user. `onDelete: Cascade` on the user relation, so deleting a user cleans up their rows. Two indexes (`[userId, status]` and `[bundleId]`). Render build script runs `npx prisma db push` before `next build` so the migration applies on deploy without manual steps.
+  - Three new API routes. Two writers (`POST /api/products/bundle/purchase`, `POST /api/products/bundle/cancel`) and one reader (`GET /api/products/subscriptions`). All three use `apiHandler` + `requireAuth()` + master-demo short-circuit. The purchase route validates bundleId AND billingMode against a server-side enum and looks up canonical price from a server-side table (matches `src/lib/bundles.ts`) — never trusts client-supplied amounts. The cancel route uses `updateMany({ where: { id, userId } })` and 404s on `count === 0`, so a user can't cancel someone else's subscription.
+  - No real payment provider. Like the existing district payments flow, the purchase action is a synthetic record-keeping write — no Stripe, no real charge. Schema and APIs are shaped so a payment provider integration can be slotted in later without changing call sites.
+  - No tool gating added. Bundle ownership is visibility-only — the "✓ Owned" chip on /products and the "Included in your bundle" chip on individual product cards. The existing "any logged-in user can try anything" UX is preserved.
+  - `BUNDLES` catalog now lives in TWO places: legacy inline const at `src/app/products/page.tsx:215-257` and the new `src/lib/bundles.ts`. They must stay in sync until a follow-up dedup. The server-side price table inside `api/products/bundle/purchase/route.ts` is a THIRD copy of the prices specifically — flagged in CHANGELOG.
+- **review:** ⚠️ partial — needs real-traffic verification after deploy:
+  1. Log in as student, visit `/products`, click "Get this bundle" on Study Bundle → land on `/products/bundle/study-bundle/checkout?billing=monthly` → click Confirm → success state appears → `/account/subscriptions` shows the new row → return to `/products` → Study Bundle now shows "✓ Owned" + 3 products in it show "Included in your bundle".
+  2. Same flow as master demo — synthetic record returns, no DB write.
+  3. Visit `/products/bundle/study-bundle/checkout?billing=oneTime` as anonymous → "Log in to purchase" with callbackUrl preserved → after login → continue to checkout.
+  4. From `/account/subscriptions`, cancel an active monthly subscription → row status flips to "Cancelled", chip color changes.
+  5. Try cancelling someone else's subscription via direct API call → expect 404.
+  6. Visit `/products/bundle/not-a-real-bundle/checkout` → "Bundle not found" card + Browse bundles link.
+- **demo-mode:** YES — all three new API routes branch on `user.isMasterDemo`:
+  - Purchase returns synthetic `{ id: 'demo-sub-<bundleId>', ... }` without writing.
+  - Cancel returns `{ success: true }` without writing.
+  - List returns 2 fixed synthetic active bundles (All-Access monthly + Study Bundle one-time) so the demo subscriptions page has real-looking content.
+  Master demo can complete the full purchase → manage → cancel loop with no DB writes.
+- **tests:** manual smoke per the 6-item checklist above. No automated tests added.
+- **notes:** This is a substantial feature add. Three latent improvements worth tracking but out of scope for this release: (a) dedup the `BUNDLES` catalog (3 copies — products inline, lib, server-side price table); (b) wire a real payment provider (Stripe Checkout would slot into the purchase API behind the master-demo branch); (c) add a `/student/profile`, `/teacher/profile`, etc. so the `/account` page's Profile link goes somewhere richer than the role dashboard. None block the release. The bundle data is district-orthogonal — a student in a district can buy a personal All-Access Pass without their admin's involvement, which is the intended UX.
+
 ### 9d17fb4 — `v16.7.2 — Update 5.7 sweep #3: dead-end fixes across 19 files`
 - **files:** 24 · 19 modified + 5 new. Modified: `src/middleware.ts`, `src/app/(auth)/{demo,onboard,pricing}/page.tsx`, `src/app/(legal)/{about,layout}.tsx`, `src/app/roadmap/page.tsx`, `src/app/admin/dashboard/page.tsx`, `src/app/api/payments/route.ts`, `src/app/parent/{settings,reports}/page.tsx`, `src/app/student/{assignments,grades}/page.tsx`, `src/app/teacher/{dashboard,students,intelligence,grading}/page.tsx`, `src/components/layout/DashboardLayout.tsx`, `src/lib/parent-fanout.ts`, `prisma/schema.prisma`, `package.json`, `CHANGELOG.md`. New: `src/app/(legal)/BackToHomeLink.tsx`, `src/app/notifications/page.tsx`, `src/app/api/district/{settings,employees,audit}/route.ts`.
 - **risk:** MEDIUM

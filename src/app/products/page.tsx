@@ -16,8 +16,9 @@
  * the product surface is reachable; until then it renders as a
  * coming-soon card with a disabled CTA.
  */
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import {
   Sparkles,
   ArrowRight,
@@ -262,6 +263,55 @@ function formatPrice(p: number | null): string {
 
 export default function ProductsPage() {
   const [billing, setBilling] = useState<BillingMode>('oneTime');
+  const { status } = useSession();
+  const [ownedBundles, setOwnedBundles] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/products/subscriptions', { cache: 'no-store' });
+        if (!res.ok) {
+          if (!cancelled) setOwnedBundles(new Set());
+          return;
+        }
+        const data: unknown = await res.json();
+        const ids: string[] = [];
+        if (data && typeof data === 'object') {
+          const maybeBundles = (data as { bundles?: unknown }).bundles;
+          if (Array.isArray(maybeBundles)) {
+            for (const entry of maybeBundles) {
+              if (typeof entry === 'string') {
+                ids.push(entry);
+              } else if (entry && typeof entry === 'object') {
+                const bundleId = (entry as { bundleId?: unknown }).bundleId;
+                const id = (entry as { id?: unknown }).id;
+                if (typeof bundleId === 'string') ids.push(bundleId);
+                else if (typeof id === 'string') ids.push(id);
+              }
+            }
+          }
+        }
+        if (!cancelled) setOwnedBundles(new Set(ids));
+      } catch {
+        if (!cancelled) setOwnedBundles(new Set());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
+
+  const ownedProductsViaBundle = useMemo(() => {
+    const set = new Set<string>();
+    BUNDLES.forEach((b) => {
+      if (ownedBundles.has(b.id)) {
+        b.productIds.forEach((pid) => set.add(pid));
+      }
+    });
+    return set;
+  }, [ownedBundles]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -372,8 +422,15 @@ export default function ProductsPage() {
                   >
                     {p.icon}
                   </div>
-                  <div>
-                    <h2 className="font-bold text-gray-900">{p.name}</h2>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="font-bold text-gray-900">{p.name}</h2>
+                      {ownedProductsViaBundle.has(p.id) && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold whitespace-nowrap">
+                          Included in your bundle
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
                       {p.available ? 'Available now' : 'Coming soon · join waitlist'}
                     </p>
@@ -464,11 +521,18 @@ export default function ProductsPage() {
                         </p>
                       </div>
                     </div>
-                    {b.badge && (
-                      <span className="px-2.5 py-1 rounded-full bg-primary-600 text-white text-[10px] font-bold uppercase tracking-wider">
-                        {b.badge}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {ownedBundles.has(b.id) && (
+                        <span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">
+                          ✓ Owned
+                        </span>
+                      )}
+                      {b.badge && (
+                        <span className="px-2.5 py-1 rounded-full bg-primary-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                          {b.badge}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed">{b.pitch}</p>
 
@@ -498,13 +562,21 @@ export default function ProductsPage() {
                           : `or $${b.oneTimePrice} one-time`}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      disabled
-                      className="px-4 py-2.5 rounded-xl font-bold text-sm bg-gray-100 text-gray-400 cursor-not-allowed whitespace-nowrap"
-                    >
-                      Coming soon
-                    </button>
+                    {ownedBundles.has(b.id) ? (
+                      <Link
+                        href="/account/subscriptions"
+                        className="mt-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:opacity-95 transition whitespace-nowrap"
+                      >
+                        ✓ Owned <ArrowRight size={14} />
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/products/bundle/${b.id}/checkout?billing=${billing}`}
+                        className="mt-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white hover:opacity-95 transition whitespace-nowrap"
+                      >
+                        Get this bundle <ArrowRight size={14} />
+                      </Link>
+                    )}
                   </div>
                 </article>
               );

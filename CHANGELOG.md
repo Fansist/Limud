@@ -4,6 +4,142 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.8.0] - 2026-05-17 — Update 5.8: Bundles wired end-to-end
+
+The four individual-product bundles (All-Access Pass, Study
+Bundle, Writing Bundle, STEM Bundle) had been shipped as catalog
+cards on `/products` since v16.3, but the "Coming soon" disabled
+buttons meant nobody could actually buy them. This release wires
+the full purchase → persistence → ownership-lookup → surfacing
+loop.
+
+### Added — `BundleSubscription` Prisma model
+
+User-scoped subscription record (not district-scoped — bundles
+are personal, not enterprise). Stored on
+`prisma.bundleSubscription`:
+
+```
+BundleSubscription {
+  id, userId, bundleId, billingMode ('oneTime' | 'monthly'),
+  status ('active' | 'cancelled' | 'expired'),
+  amount, startedAt, expiresAt?, cancelledAt?,
+  createdAt, updatedAt
+  @@index([userId, status]) + @@index([bundleId])
+}
+```
+
+Plus `User.bundleSubscriptions BundleSubscription[]` back-relation.
+`onDelete: Cascade` so deleting a user cleans up their rows.
+
+### Added — Three new API routes
+
+- `POST /api/products/bundle/purchase` — body
+  `{ bundleId, billingMode }`. Validates bundleId against the four
+  known IDs, validates billingMode, looks up the canonical price
+  from a server-side price table (matches `src/lib/bundles.ts`),
+  inserts a `BundleSubscription` row. Master demo returns a
+  synthetic record without writing to DB.
+- `POST /api/products/bundle/cancel` — body `{ subscriptionId }`.
+  Updates the row where `id === subscriptionId AND userId ===
+  session.user.id` (ownership-checked). Sets `status='cancelled'`,
+  `cancelledAt=now`, `expiresAt=now`. 404 on missing or
+  not-yours. Master demo returns synthetic success.
+- `GET /api/products/subscriptions` — returns the current user's
+  subscriptions, ordered by `startedAt` desc. Master demo returns
+  two synthetic active bundles (All-Access monthly + Study Bundle
+  one-time) so the demo shows a real-looking subscriptions page.
+
+All three use the standard `apiHandler` + `requireAuth()` pattern
+and the master-demo synthetic-response pattern established in
+v16.7.2.
+
+### Added — `src/lib/bundles.ts`
+
+Shared catalog so multiple pages can stay in sync. Exports:
+`BundleId` + `BillingMode` + `BundleProductId` types, the `BUNDLES`
+array (4 bundles), `BUNDLE_PRODUCT_NAMES` + `BUNDLE_PRODUCT_HREFS`
+lookups, and helpers (`findBundle`, `bundlePrice`). The local
+`BUNDLES` const on `/products` stays for now — it's a known
+duplicate flagged for cleanup but not blocking.
+
+### Added — `/products/bundle/[bundleId]/checkout` page
+
+The new checkout confirmation flow. Reads `bundleId` from the URL
++ `?billing=monthly|oneTime` from the query, looks up the bundle
+via `findBundle()`, and renders four states:
+
+- **Bundle not found** — unknown id → soft "Bundle not found"
+  card + `Browse bundles →` link
+- **Anonymous** — not logged in → "Log in to purchase" card with
+  a callbackUrl-preserving login link
+- **Confirmation** — bundle name + pitch + price + cadence +
+  savings % + included tools list + "Confirm purchase" button
+- **Success** — "You're all set!" + two links: View
+  subscriptions, Try the tools
+
+Errors surface via `react-hot-toast`. No auto-redirect on success
+— the user picks where to go next.
+
+### Added — `/account` + `/account/subscriptions` pages
+
+- `/account` — lightweight role-aware index. 2-column grid with
+  "My Subscriptions" + "Profile" (routes to the role's dashboard
+  since dedicated profile pages don't exist yet).
+- `/account/subscriptions` — the manage-subscriptions hub. Lists
+  every BundleSubscription with status pill (green/gray/amber),
+  billing mode, started-on date, amount, clickable included-tools
+  chips, and a "Cancel subscription" button for active monthly
+  rows (guarded by `window.confirm`). Empty state: "Browse
+  bundles →". `?welcome=<bundleId>` query renders a green success
+  banner.
+
+Both wrap `DashboardLayout` so they look right for every role.
+
+### Added — "My Subscriptions" surface across catalog + dashboards
+
+- `/products` — bundle cards now have real CTAs:
+  - Default: `Get this bundle` → `/products/bundle/<id>/checkout
+    ?billing=<mode>` (preserves the page's current billing toggle)
+  - If owned: `✓ Owned` chip + emerald link to
+    `/account/subscriptions`
+- Individual product cards on `/products` now show a small
+  "Included in your bundle" emerald chip when the user owns a
+  bundle that includes that tool.
+- A "My Subscriptions" widget now appears on the Student, Parent,
+  and Teacher dashboards (shared component
+  `src/components/dashboard/MySubscriptionsCard.tsx` that fetches
+  `/api/products/subscriptions` once and renders an inline card).
+- Admin dashboard gets a 9th Quick Action tile linking to
+  `/account/subscriptions` (matches the existing card-link grid
+  on that page rather than the shared component, by design).
+
+### Notes
+
+- **No gating added.** Every product page stays usable by every
+  logged-in user. Bundle ownership is purely visibility — buying
+  a bundle just gives you the "✓ Owned" chip and a row in your
+  manage page. The user explicitly asked to "add the bundles," not
+  "lock the tools behind them," and the existing UX is built on
+  "try anything, then buy what you keep using."
+- **No Stripe.** Like the rest of Limud's payment infra today, the
+  purchase action is a synthetic record-keeping flow — no real
+  charge. The schema and API are shaped so a real payment provider
+  can be slotted in without changing the call sites.
+- **Bundles list location.** The catalog is duplicated between
+  `src/app/products/page.tsx:215-257` (legacy inline const) and
+  `src/lib/bundles.ts` (new shared export). The shared module is
+  the source of truth going forward; the inline const is kept
+  intact to avoid a bigger CODER 4 diff in this release. A
+  follow-up will dedupe.
+- **6 parallel CODERs.** Wave 1: 2 RESEARCHERs (payments infra +
+  product gating). Wave 2 merged into Lead (synthesis). Wave 3: 6
+  parallel CODERs on file-disjoint slices (schema / APIs /
+  shared-lib+checkout / products-wire / account / dashboards).
+  Wave 4: ship. Zero merge conflicts between CODERs.
+
+---
+
 ## [5.7.2] - 2026-05-16 — Update 5.7 sweep #3: dead-end fixes across 19 files
 
 Third dead-end sweep. Eight parallel reviewers audited eight

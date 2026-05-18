@@ -13,6 +13,7 @@ import {
   Upload, Target, Brain, Lightbulb, Zap, Eye, Search, Building2,
 } from 'lucide-react';
 import EmptyState from '@/components/ui/EmptyState';
+import MySubscriptionsCard from '@/components/dashboard/MySubscriptionsCard';
 
 /*
  * Teacher Dashboard v12.4.3 — Simplified & Clean + My Classes
@@ -254,6 +255,11 @@ export default function TeacherDashboard() {
             </Link>
           ))}
         </div>
+
+        {/* ═══ MY SUBSCRIPTIONS — bundle enrichment ═══ */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
+          <MySubscriptionsCard />
+        </motion.div>
 
         {/* ═══ STATS STRIP — v11.0: All cards are clickable ═══ */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

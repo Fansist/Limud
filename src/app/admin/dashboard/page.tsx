@@ -13,7 +13,7 @@ import {
   Building2, Users, GraduationCap, DollarSign, Upload, ArrowRight, Shield, TrendingUp, Calendar, CreditCard,
   UserCog, Megaphone, Settings, ClipboardList, BookOpen, BarChart3, AlertTriangle,
   CheckCircle, Activity, Database, FileSearch, Lock, Globe, Cpu, Zap,
-  TrendingDown, Flame, Eye, Star, MessageSquare, Brain, Clock,
+  TrendingDown, Flame, Eye, Star, MessageSquare, Brain, Clock, Package,
 } from 'lucide-react';
 
 /*
@@ -318,6 +318,7 @@ export default function AdminDashboard() {
                 { href: `/admin/analytics${demoSuffix}`, icon: <BarChart3 className="text-cyan-600" size={24} />, bg: 'bg-cyan-100 group-hover:bg-cyan-200', title: 'Analytics & Reports', desc: 'Performance, engagement & compliance' },
                 { href: `/admin/payments${demoSuffix}`, icon: <CreditCard className="text-amber-600" size={24} />, bg: 'bg-amber-100 group-hover:bg-amber-200', title: 'Billing & Payments', desc: 'Subscription & payment history' },
                 { href: `/admin/settings${demoSuffix}`, icon: <Settings className="text-gray-600" size={24} />, bg: 'bg-gray-100 group-hover:bg-gray-200', title: 'Settings & Security', desc: 'Policies, branding, audit log & compliance' },
+                { href: '/account/subscriptions', icon: <Package className="text-fuchsia-600" size={24} />, bg: 'bg-fuchsia-100 group-hover:bg-fuchsia-200', title: 'My Subscriptions', desc: 'Manage bundle subscriptions & billing' },
               ].map((item, i) => (
                 <motion.div key={item.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.02 }}>
                   <Link href={item.href} className="card hover:shadow-lg transition-all flex items-center gap-4 group h-full">
