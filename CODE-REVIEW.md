@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v16.8.0 — Update 5.8: Bundles wired end-to-end`
+### d300c61 — `v16.8.0 — Update 5.8: Bundles wired end-to-end`
 - **files:** 15 · 6 modified + 9 new. Modified: `prisma/schema.prisma` (+BundleSubscription model + User back-relation), `src/app/products/page.tsx` (CTA + ownership badges + useSession + useEffect fetch), `src/app/{student,parent,teacher}/dashboard/page.tsx` (MySubscriptionsCard slot), `src/app/admin/dashboard/page.tsx` (9th Quick Action tile + Package icon import), `package.json`, `CHANGELOG.md`. New: `src/lib/bundles.ts` (shared catalog + types + helpers), `src/app/api/products/bundle/purchase/route.ts`, `src/app/api/products/bundle/cancel/route.ts`, `src/app/api/products/subscriptions/route.ts`, `src/app/products/bundle/[bundleId]/checkout/page.tsx`, `src/app/account/page.tsx`, `src/app/account/subscriptions/page.tsx`, `src/components/dashboard/MySubscriptionsCard.tsx`.
 - **risk:** MEDIUM
   - One new Prisma model (`BundleSubscription`). User-scoped, not district-scoped — first money-related model in the codebase that's per-user. `onDelete: Cascade` on the user relation, so deleting a user cleans up their rows. Two indexes (`[userId, status]` and `[bundleId]`). Render build script runs `npx prisma db push` before `next build` so the migration applies on deploy without manual steps.
