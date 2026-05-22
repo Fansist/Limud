@@ -24,9 +24,6 @@ import {
   ArrowRight,
   Brain,
   BookOpen,
-  ClipboardList,
-  Network,
-  Wand2,
   Calculator,
   FileText,
   Beaker,
@@ -34,6 +31,10 @@ import {
   Quote,
   Package,
   Check,
+  Layers,
+  Presentation,
+  Code2,
+  Target,
   Infinity as InfinityIcon,
 } from 'lucide-react';
 import AuthAwareCTA from '@/components/AuthAwareCTA';
@@ -211,6 +212,91 @@ const PRODUCTS: Product[] = [
       'Reading passages at your current grammar level',
     ],
   },
+  {
+    id: 'flashcard-forge',
+    name: 'Flashcard Forge',
+    blurb: 'Builds spaced-repetition decks from any chapter, slide, or PDF.',
+    href: '/flashcard-forge',
+    oneTimePrice: 5,
+    oneTimeUnit: 'per deck',
+    monthlyPrice: 4,
+    available: true,
+    icon: <Layers size={22} />,
+    ring: 'from-lime-500 to-green-500',
+    bullets: [
+      'Smart spaced repetition schedule',
+      'Auto-detects key terms + definitions',
+      'Export to Anki, Quizlet, or print',
+    ],
+  },
+  {
+    id: 'presentation-prep',
+    name: 'Presentation Prep',
+    blurb: "Turns a topic into a slide outline plus speaker notes you'll actually read.",
+    href: '/presentation-prep',
+    oneTimePrice: 6,
+    oneTimeUnit: 'per deck',
+    monthlyPrice: 4,
+    available: true,
+    icon: <Presentation size={22} />,
+    ring: 'from-indigo-500 to-fuchsia-500',
+    bullets: [
+      'Slide-by-slide outline with talking points',
+      'Speaker notes in your voice',
+      'Cue cards for the day-of',
+    ],
+  },
+  {
+    id: 'code-companion',
+    name: 'Code Companion',
+    blurb: 'Explains compiler errors and asks Socratic questions until your code runs.',
+    href: '/code-companion',
+    oneTimePrice: 8,
+    oneTimeUnit: 'pack of 30 sessions',
+    monthlyPrice: 5,
+    available: true,
+    icon: <Code2 size={22} />,
+    ring: 'from-slate-700 to-indigo-600',
+    bullets: [
+      'Explains stack traces in plain English',
+      'Walks you through fixes, never writes them',
+      'Python, JavaScript, Java, C++',
+    ],
+  },
+  {
+    id: 'reading-decoder',
+    name: 'Reading Decoder',
+    blurb: 'Maps a dense article into a thesis tree with vocab and key claims.',
+    href: '/reading-decoder',
+    oneTimePrice: 5,
+    oneTimeUnit: 'per article',
+    monthlyPrice: 4,
+    available: true,
+    icon: <BookOpen size={22} />,
+    ring: 'from-teal-500 to-cyan-500',
+    bullets: [
+      'Pulls the central thesis + supporting claims',
+      'Defines unfamiliar terms inline',
+      'Highlights what to quote later',
+    ],
+  },
+  {
+    id: 'exam-postmortem',
+    name: 'Exam Postmortem',
+    blurb: 'Paste your wrong answers, get the misconception map for next time.',
+    href: '/exam-postmortem',
+    oneTimePrice: 4,
+    oneTimeUnit: 'per exam',
+    monthlyPrice: 3,
+    available: true,
+    icon: <Target size={22} />,
+    ring: 'from-red-500 to-orange-500',
+    bullets: [
+      'Clusters mistakes by root cause',
+      'Targeted re-practice for each gap',
+      'Tracks improvement across exams',
+    ],
+  },
 ];
 
 const BUNDLES: Bundle[] = [
@@ -338,7 +424,7 @@ export default function ProductsPage() {
         {/* Hero */}
         <section className="text-center mb-10 lg:mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-50 text-fuchsia-700 text-xs font-medium border border-fuchsia-100 mb-4">
-            <Sparkles size={14} /> 8 tools · 4 bundles
+            <Sparkles size={14} /> 13 tools · 4 bundles
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight">
             Single tools. <span className="bg-gradient-to-r from-primary-600 to-fuchsia-500 bg-clip-text text-transparent">Your choice how to pay.</span>
@@ -347,20 +433,6 @@ export default function ProductsPage() {
             Buy one tool for the exam you&apos;re actually studying for, pay once, keep it. Or
             subscribe monthly and use everything as much as you want.
           </p>
-          <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/study"
-              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white px-6 py-3 rounded-xl font-bold hover:opacity-95 transition shadow-lg shadow-primary-600/20"
-            >
-              Try the Exam Study Helper <ArrowRight size={16} />
-            </Link>
-            <Link
-              href="/practice"
-              className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-6 py-3 rounded-xl font-bold border border-gray-200 hover:border-primary-200 hover:bg-primary-50 transition"
-            >
-              Try the Practice Generator
-            </Link>
-          </div>
         </section>
 
         {/* Billing mode toggle */}
@@ -584,89 +656,6 @@ export default function ProductsPage() {
           </div>
         </section>
 
-        {/* How it works */}
-        <section className="rounded-3xl bg-gradient-to-br from-primary-50 to-fuchsia-50 border border-primary-100 p-8 lg:p-10 mb-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">How the two pricing modes work</h2>
-          <p className="text-sm text-gray-600 max-w-2xl mb-6">
-            Every tool has both. Pick whichever matches the moment.
-          </p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl p-5 border border-gray-100">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center">
-                  <Wand2 size={18} />
-                </div>
-                <span className="text-xs font-bold text-gray-400">Option 1</span>
-              </div>
-              <h3 className="font-bold text-gray-900 text-sm">One-time purchase</h3>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                One payment. Permanent access to that workflow — generate, regenerate, refine.
-                Best for a single exam, a single essay, a single lab report.
-              </p>
-            </div>
-            <div className="bg-white rounded-2xl p-5 border border-gray-100">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-fuchsia-100 text-fuchsia-600 flex items-center justify-center">
-                  <InfinityIcon size={18} />
-                </div>
-                <span className="text-xs font-bold text-gray-400">Option 2</span>
-              </div>
-              <h3 className="font-bold text-gray-900 text-sm">Monthly subscription</h3>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Unlimited use of that tool every month. Cancel any time. Best for a full
-                semester or for studying that doesn&apos;t fit a single deadline.
-              </p>
-            </div>
-          </div>
-          <div className="grid sm:grid-cols-3 gap-4 mt-4">
-            {[
-              {
-                icon: <Wand2 size={18} />,
-                step: '1',
-                title: 'Pick the tool',
-                body: 'Each product solves one problem. Start with the one you need this week.',
-              },
-              {
-                icon: <ClipboardList size={18} />,
-                step: '2',
-                title: 'Drop in your material',
-                body: "Notes, a chapter, a draft — whatever you've got. The more context, the better the output.",
-              },
-              {
-                icon: <Network size={18} />,
-                step: '3',
-                title: 'Use it. Keep it.',
-                body: 'Your generated material is saved to your browser. Come back, regenerate, or copy it out.',
-              },
-            ].map((s) => (
-              <div key={s.step} className="bg-white rounded-2xl p-5 border border-gray-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center">
-                    {s.icon}
-                  </div>
-                  <span className="text-xs font-bold text-gray-400">Step {s.step}</span>
-                </div>
-                <h3 className="font-bold text-gray-900 text-sm">{s.title}</h3>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* CTA bottom */}
-        <section className="rounded-3xl bg-gray-900 text-white p-8 lg:p-10 text-center">
-          <h2 className="text-2xl font-bold">Run a school or district?</h2>
-          <p className="text-gray-400 text-sm mt-2 max-w-xl mx-auto">
-            Individual products are for solo learners. For classrooms, schools, and
-            districts, our full platform replaces 6+ tools with one.
-          </p>
-          <Link
-            href="/pricing"
-            className="mt-5 inline-flex items-center gap-2 bg-white text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition"
-          >
-            See district plans <ArrowRight size={16} />
-          </Link>
-        </section>
       </main>
 
       <footer className="bg-gray-900 text-gray-400 py-10 mt-12">

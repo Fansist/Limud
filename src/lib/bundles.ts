@@ -22,7 +22,12 @@ export type BundleProductId =
   | 'notes-cleaner'
   | 'lab-report-builder'
   | 'citation-finder'
-  | 'language-lab';
+  | 'language-lab'
+  | 'flashcard-forge'
+  | 'presentation-prep'
+  | 'code-companion'
+  | 'reading-decoder'
+  | 'exam-postmortem';
 
 export type BundleDef = {
   id: BundleId;
@@ -41,7 +46,7 @@ export const BUNDLES: BundleDef[] = [
     id: 'all-access',
     name: 'All-Access Pass',
     pitch: 'Every current product + every future product. The cheapest way to use more than two tools.',
-    productIds: ['exam-study-helper','practice-generator','math-solver','essay-coach','notes-cleaner','lab-report-builder','citation-finder','language-lab'],
+    productIds: ['exam-study-helper','practice-generator','math-solver','essay-coach','notes-cleaner','lab-report-builder','citation-finder','language-lab','flashcard-forge','presentation-prep','code-companion','reading-decoder','exam-postmortem'],
     oneTimePrice: 79,
     monthlyPrice: 15,
     savingsPct: 45,
@@ -90,6 +95,11 @@ export const BUNDLE_PRODUCT_NAMES: Record<BundleProductId, string> = {
   'lab-report-builder': 'Lab Report Reviewer',
   'citation-finder': 'Citation Finder',
   'language-lab': 'Language Lab',
+  'flashcard-forge': 'Flashcard Forge',
+  'presentation-prep': 'Presentation Prep',
+  'code-companion': 'Code Companion',
+  'reading-decoder': 'Reading Decoder',
+  'exam-postmortem': 'Exam Postmortem',
 };
 
 export const BUNDLE_PRODUCT_HREFS: Record<BundleProductId, string> = {
@@ -101,6 +111,11 @@ export const BUNDLE_PRODUCT_HREFS: Record<BundleProductId, string> = {
   'lab-report-builder': '/lab-report',
   'citation-finder': '/citation-finder',
   'language-lab': '/language-lab',
+  'flashcard-forge': '/flashcard-forge',
+  'presentation-prep': '/presentation-prep',
+  'code-companion': '/code-companion',
+  'reading-decoder': '/reading-decoder',
+  'exam-postmortem': '/exam-postmortem',
 };
 
 export function findBundle(id: string): BundleDef | undefined {

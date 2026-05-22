@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.7.1 · Update 5.7 · Comic image data: URLs no longer stripped by markdown renderer</code>
+  <code>v16.9.0 · Update 5.9 · Independent learner page refocused as a clean catalog + 5 new individual products (Flashcard Forge, Presentation Prep, Code Companion, Reading Decoder, Exam Postmortem)</code>
 </p>
 
 ---

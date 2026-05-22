@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import type { ProductTool } from '@/lib/ai';
 
 export type ToolConfig = {
-  /** Tool discriminator sent to /api/products/generate. */
+  /** Tool discriminator sent to the generation endpoint. */
   tool: ProductTool;
   /** Display name shown in the H1. */
   name: string;
@@ -50,6 +50,12 @@ export type ToolConfig = {
     /** Default value. */
     defaultValue?: string;
   };
+  /**
+   * Optional override for the generation endpoint. Defaults to the shared
+   * `/api/products/generate` route. Per-product tools (v16.7+) point this at
+   * their own dedicated `/api/{slug}/generate` route.
+   */
+  apiEndpoint?: string;
   /** Anchor copy block at the bottom of the page. */
   helperText?: string;
 };
@@ -139,7 +145,8 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
     setContent(null);
     setAiError(null);
     try {
-      const res = await fetch('/api/products/generate', {
+      const endpoint = config.apiEndpoint || '/api/products/generate';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

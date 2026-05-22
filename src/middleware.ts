@@ -51,6 +51,12 @@ const PUBLIC_PATHS = [
   '/language-lab',
   // v16.5: Essay Coach (built out of the v16.0 catalog teaser).
   '/essay-coach',
+  // v16.6: five more single-screen tools (all anon-friendly previews).
+  '/flashcard-forge',
+  '/presentation-prep',
+  '/code-companion',
+  '/reading-decoder',
+  '/exam-postmortem',
 ];
 
 const PUBLIC_API_PATHS = [

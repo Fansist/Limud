@@ -4,6 +4,146 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [5.9.0] - 2026-05-22 — Update 5.9: Independent learner page refocused + 5 new products
+
+The `/products` page (Limud's storefront for independent learners) was
+carrying three sections that didn't belong on a catalog: a "How the two
+pricing modes work" explainer, a "Run a school or district?" CTA banner,
+and a pair of secondary hero CTAs. They've been removed. The page now
+reads as what it actually is — a clean store catalog: nav → tight hero
+→ billing toggle → product grid → bundles → footer. Nothing else.
+
+At the same time, the catalog grew from 8 individual tools to 13. Each
+new tool ships with a working detail page wired into the existing
+shared `/api/products/generate` endpoint, a Gemini prompt tuned to
+Limud's "study-by-doing, never-write-it-for-you" stance, and a place
+in the All-Access Pass bundle.
+
+### Added — 5 new individual products
+
+| Slug | Name | One-time | Monthly | Gradient |
+|---|---|---|---|---|
+| `flashcard-forge` | Flashcard Forge | $5 per deck | $4 / mo | lime → green |
+| `presentation-prep` | Presentation Prep | $6 per deck | $4 / mo | indigo → fuchsia |
+| `code-companion` | Code Companion | $8 per pack of 30 | $5 / mo | slate → indigo |
+| `reading-decoder` | Reading Decoder | $5 per article | $4 / mo | teal → cyan |
+| `exam-postmortem` | Exam Postmortem | $4 per exam | $3 / mo | red → orange |
+
+Each new product:
+- Lives in `src/app/products/page.tsx` as a `PRODUCTS` array entry
+  with full `Product` shape (id, name, blurb, href, prices, ring,
+  bullets) — matches the existing 8 exactly.
+- Has a public detail page at `src/app/{slug}/page.tsx` that imports
+  the shared `MarkdownToolPage` component and passes a `ToolConfig` —
+  identical pattern to Notes Cleaner, Citation Finder, Language Lab.
+- Has a fully tuned system prompt in `src/lib/ai.ts`'s
+  `buildProductToolPrompt` (`case '{slug}'`). Prompts enforce the
+  same anti-cheating rules as the rewritten Math Tutor and Lab Report
+  Reviewer: Code Companion is Socratic-only (never writes the
+  corrected code), Flashcard Forge uses only the terms the student
+  pasted (never invents facts), Reading Decoder maps argument
+  structure without summarizing the article away, Exam Postmortem
+  clusters by HABIT (sign error, misread the question) not by topic,
+  Presentation Prep keeps on-slide content minimal and treats speaker
+  notes as guidance not a script.
+- Is routed: `src/middleware.ts`'s `PUBLIC_PATHS` includes all 5
+  slugs (v16.6 left-overs that were already in place — confirmed),
+  `src/components/layout/DashboardLayout.tsx`'s topbar label switch
+  maps all 5 pathnames, and `src/lib/bundles.ts`'s `BundleProductId`
+  union + `BUNDLE_PRODUCT_NAMES` + `BUNDLE_PRODUCT_HREFS` maps
+  include all 5.
+- Is included in the All-Access Pass bundle. The hardcoded
+  `productIds` array on `BUNDLES[0]` in `src/lib/bundles.ts` was
+  expanded from 8 → 13 IDs. The three topical bundles (Study,
+  Writing, STEM) were intentionally left alone — they curate
+  specific subjects.
+
+### Added — 5 new prompt cases in `src/lib/ai.ts`
+
+Extended `ProductTool` from 6 → 11 union variants and added 5 new
+`case` blocks in `buildProductToolPrompt` (lines ~2400–2575). Each
+case follows the same structure used by the existing tools: numbered
+output sections, hard rules at the bottom, refusal-to-cheat clauses
+for the homework-flavored tools (Code Companion + Exam Postmortem).
+
+### Added — VALID_TOOLS allowlist updated
+
+`src/app/api/products/generate/route.ts`'s `VALID_TOOLS` ReadonlySet
+now includes all 11 tools. The 400 error message was also made
+self-describing (joins `Array.from(VALID_TOOLS)`) so any future
+addition to the allowlist surfaces automatically in the error string.
+
+### Changed — `/products` page is now a clean catalog
+
+Removed three sections from `src/app/products/page.tsx`:
+- The two secondary hero CTAs ("Try the Exam Study Helper" /
+  "Try the Practice Generator").
+- The "How the two pricing modes work" explainer block — three cards
+  describing one-time vs monthly vs bundles. Repeated information
+  already conveyed by the billing toggle + per-card prices.
+- The "Run a school or district?" CTA banner. Districts have their
+  own pricing page; the products page exists for individual learners
+  and shouldn't push them sideways.
+
+Also removed the unused `Wand2`, `ClipboardList`, `Network` lucide
+imports those sections relied on.
+
+The hero pill copy updated `"8 tools · 4 bundles"` → `"13 tools · 4 bundles"`.
+
+### What's NOT in this release
+
+- No new API endpoints. The 5 new tools all share the existing
+  `/api/products/generate` route via the `tool` discriminator —
+  same architecture established for the original 6 tools in v16.4.
+- No new bundle. The 5 new products slot into the existing
+  All-Access Pass. No "Career bundle" or "AP bundle" was created;
+  curation can land later if signal supports it.
+- No tool gating. Like the original 8 individual products, anyone
+  logged in can use each new tool — billing is informational, not
+  enforced. Matches the existing `MarkdownToolPage` UX.
+
+### Files changed
+
+Modified (4):
+- `src/app/products/page.tsx` — 5 new PRODUCTS entries, 3 sections
+  removed, hero pill updated, lucide imports trimmed.
+- `src/lib/ai.ts` — `ProductTool` union extended; 5 new `case` blocks
+  added to `buildProductToolPrompt`.
+- `src/lib/bundles.ts` — All-Access Pass `productIds` expanded
+  8 → 13 (CODER C noted that the `BundleProductId` union and
+  lookup maps were already populated, likely from a v16.6
+  pre-stage).
+- `src/app/api/products/generate/route.ts` — `VALID_TOOLS` now 11
+  entries; error message made self-describing.
+
+New (5):
+- `src/app/flashcard-forge/page.tsx`
+- `src/app/presentation-prep/page.tsx`
+- `src/app/code-companion/page.tsx`
+- `src/app/reading-decoder/page.tsx`
+- `src/app/exam-postmortem/page.tsx`
+
+Each new page is a 25-line `MarkdownToolPage` wrapper — no bespoke
+inline scaffolding. The shared component handles auth-aware preview,
+localStorage draft persistence, history, generation, markdown render,
+copy-to-clipboard.
+
+### Risk
+
+LOW–MEDIUM. No schema changes, no new API routes, no new auth
+surface, no payment touch. The largest risk surface is the AI
+prompt tuning — five new prompts that need to hold the
+anti-cheating line under varied student inputs. Each prompt's
+"Hard rules" block was lifted from the patterns proven in v16.5's
+Math Tutor / Lab Report Reviewer / Essay Coach rewrites, so the
+behavioral envelope is the same.
+
+### Migration notes
+
+None. Schema unchanged. No DB writes added.
+
+---
+
 ## [5.8.0] - 2026-05-17 — Update 5.8: Bundles wired end-to-end
 
 The four individual-product bundles (All-Access Pass, Study

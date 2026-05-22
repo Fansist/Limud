@@ -29,6 +29,11 @@ const VALID_TOOLS: ReadonlySet<ProductTool> = new Set([
   'citation-finder',
   'language-lab',
   'essay-coach',
+  'flashcard-forge',
+  'presentation-prep',
+  'code-companion',
+  'reading-decoder',
+  'exam-postmortem',
 ]);
 
 export const POST = apiHandler(async (req: Request) => {
@@ -43,7 +48,7 @@ export const POST = apiHandler(async (req: Request) => {
 
   if (typeof tool !== 'string' || !VALID_TOOLS.has(tool as ProductTool)) {
     return NextResponse.json(
-      { error: 'tool must be one of: math-solver, notes-cleaner, lab-report, citation-finder, language-lab' },
+      { error: `tool must be one of: ${Array.from(VALID_TOOLS).join(', ')}` },
       { status: 400 },
     );
   }
