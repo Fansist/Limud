@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (uncommitted) — `v16.9.0 — Update 5.9: Independent learner page refocused + 5 new products`
+### 69b5df5 — `v16.9.0 — Update 5.9: Independent learner page refocused + 5 new products`
 - **files:** 9 · 4 modified + 5 new. Modified: `src/app/products/page.tsx` (5 new PRODUCTS entries appended, 3 sections removed — secondary hero CTAs, "How the two pricing modes work" explainer, "Run a school or district?" CTA banner; hero pill "8 tools · 4 bundles" → "13 tools · 4 bundles"; unused lucide imports `Wand2`/`ClipboardList`/`Network` removed), `src/lib/ai.ts` (`ProductTool` union extended 6 → 11 variants; 5 new `case` blocks added to `buildProductToolPrompt`), `src/lib/bundles.ts` (All-Access Pass `productIds` array expanded 8 → 13 to match the catalog), `src/app/api/products/generate/route.ts` (`VALID_TOOLS` ReadonlySet expanded to 11; 400 error message now self-describing via `Array.from(VALID_TOOLS).join(', ')`), `package.json` (16.8.0 → 16.9.0), `CHANGELOG.md`. New (all thin `MarkdownToolPage` wrappers — same pattern as `/notes-cleaner`): `src/app/flashcard-forge/page.tsx`, `src/app/presentation-prep/page.tsx`, `src/app/code-companion/page.tsx`, `src/app/reading-decoder/page.tsx`, `src/app/exam-postmortem/page.tsx`.
 - **risk:** LOW-MEDIUM
   - No schema changes. No new Prisma models. No DB writes added. No payment surface touched.
