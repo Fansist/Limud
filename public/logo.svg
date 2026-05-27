@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 280" role="img" aria-label="Limud logo">
+  <title>Limud — Every Mind Learns Differently</title>
+
+  <!-- Mint background rounded square -->
+  <rect x="0" y="0" width="240" height="240" rx="28" fill="#CFE0BC"/>
+
+  <!-- Graduation cap mortarboard (square plate, perspective tilt) -->
+  <polygon points="120,28 200,58 120,88 40,58" fill="#1B2A49"/>
+  <!-- Cap inner line -->
+  <polygon points="120,40 180,62 120,84 60,62" fill="#1B2A49" opacity="0.7"/>
+
+  <!-- Cap base / band (rounded under the mortarboard) -->
+  <path d="M 70 70 Q 70 65 75 65 L 165 65 Q 170 65 170 70 L 170 86 Q 170 98 120 102 Q 70 98 70 86 Z" fill="#1B2A49"/>
+
+  <!-- Tassel: cord + ball -->
+  <path d="M 195 60 L 195 108" stroke="#1B2A49" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="195" cy="116" r="8" fill="#1B2A49"/>
+  <circle cx="195" cy="116" r="4" fill="#D4AF37"/>
+
+  <!-- Shield body -->
+  <path d="M 56 102
+           Q 56 96 62 96
+           L 178 96
+           Q 184 96 184 102
+           L 184 158
+           Q 184 200 120 222
+           Q 56 200 56 158 Z"
+        fill="#1B2A49"/>
+
+  <!-- Inner shield highlight rim -->
+  <path d="M 64 105
+           Q 64 100 70 100
+           L 170 100
+           Q 176 100 176 105
+           L 176 156
+           Q 176 195 120 215
+           Q 64 195 64 156 Z"
+        fill="none" stroke="#2A3A5E" stroke-width="2"/>
+
+  <!-- Open book — gold lower pages (visible bottom edge) -->
+  <path d="M 76 158
+           L 116 153
+           L 120 156
+           L 124 153
+           L 164 158
+           L 164 178
+           L 124 173
+           L 120 176
+           L 116 173
+           L 76 178 Z"
+        fill="#D4AF37"/>
+
+  <!-- Open book — white upper pages -->
+  <path d="M 80 145
+           Q 100 138 116 144
+           L 120 148
+           L 124 144
+           Q 140 138 160 145
+           L 160 168
+           Q 140 162 124 167
+           L 120 170
+           L 116 167
+           Q 100 162 80 168 Z"
+        fill="#FFFFFF"/>
+
+  <!-- Book center spine -->
+  <line x1="120" y1="148" x2="120" y2="170" stroke="#1B2A49" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Subtle page lines (left page) -->
+  <line x1="90" y1="153" x2="112" y2="151" stroke="#9CB7C9" stroke-width="1" opacity="0.5"/>
+  <line x1="90" y1="158" x2="112" y2="156" stroke="#9CB7C9" stroke-width="1" opacity="0.5"/>
+  <line x1="90" y1="163" x2="112" y2="161" stroke="#9CB7C9" stroke-width="1" opacity="0.5"/>
+  <!-- Subtle page lines (right page) -->
+  <line x1="128" y1="151" x2="150" y2="153" stroke="#9CB7C9" stroke-width="1" opacity="0.5"/>
+  <line x1="128" y1="156" x2="150" y2="158" stroke="#9CB7C9" stroke-width="1" opacity="0.5"/>
+  <line x1="128" y1="161" x2="150" y2="163" stroke="#9CB7C9" stroke-width="1" opacity="0.5"/>
+
+  <!-- LIMUD wordmark -->
+  <text x="120" y="270"
+        text-anchor="middle"
+        font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif"
+        font-size="38"
+        font-weight="900"
+        letter-spacing="2"
+        fill="#1B2A49">LIMUD</text>
+</svg>
