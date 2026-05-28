@@ -1,24 +1,32 @@
 /**
- * Practice Generator — Generation Endpoint (v16.2.0 — Update 5.2)
+ * Practice Generator — Generation Endpoint (v17 — CODER E hardening)
  *
  * POST /api/practice/generate
  *   Auth: any logged-in user (no role gate — this product is for both
  *         district-affiliated students and individual purchasers).
- *   Body: {
- *     topic: string,                    // required, 3-200 chars
+ *   Body (zod-validated below): {
+ *     topic: string (3..200),
  *     difficulty: 'intro'|'standard'|'challenging',
- *     count: number,                    // requested count, clamped 3..20
- *     gradeLevel?: string,
- *     contextMaterial?: string,         // optional, up to 8KB
+ *     count: number (3..20),
+ *     gradeLevel?: string (1..200),
+ *     contextMaterial?: string (1..20_000),
+ *     questionTypes?: Array<'mcq'|'fill-in-blank'|'short-answer'>,
  *   }
  *   Response: { questions, topic, difficulty, model, aiError? }
+ *
+ * v17 hardening (CODER E):
+ *   - Zod validation replaces hand-rolled type checks.
+ *   - Switched to secureApiHandler with rateLimit: 'ai' so AI generation
+ *     calls share the stricter 10 req/min bucket instead of the generic
+ *     'api' (100/min) bucket.
  *
  * NOTE: stateless — no DB writes. The client persists results in
  * localStorage. Future iteration may add a `PracticeAttempt` Prisma
  * model for server-side history + per-user adaptive difficulty.
  */
 import { NextResponse } from 'next/server';
-import { requireAuth, apiHandler } from '@/lib/middleware';
+import { z } from 'zod';
+import { secureApiHandler } from '@/lib/middleware';
 import {
   generatePracticeQuiz,
   type PracticeDifficulty,
@@ -29,109 +37,73 @@ import { log } from '@/lib/log';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const VALID_DIFFICULTIES: ReadonlySet<PracticeDifficulty> = new Set([
-  'intro',
-  'standard',
-  'challenging',
-]);
-
-const VALID_QUESTION_TYPES: ReadonlySet<PracticeQuestionType> = new Set([
-  'mcq',
-  'fill-in-blank',
-  'short-answer',
-]);
-
-function isStringOrUndefined(v: unknown): v is string | undefined {
-  return v === undefined || typeof v === 'string';
-}
+const practiceGenerateSchema = z.object({
+  topic: z
+    .string()
+    .min(3, 'topic must be a 3-200 character string')
+    .max(200, 'topic must be a 3-200 character string'),
+  difficulty: z.enum(['intro', 'standard', 'challenging']),
+  count: z
+    .number()
+    .int('count must be an integer between 3 and 20')
+    .min(3, 'count must be between 3 and 20')
+    .max(20, 'count must be between 3 and 20'),
+  gradeLevel: z.string().min(1).max(200).optional(),
+  contextMaterial: z
+    .string()
+    .max(20_000, 'contextMaterial may be at most 20,000 characters')
+    .optional(),
+  questionTypes: z
+    .array(z.enum(['mcq', 'fill-in-blank', 'short-answer']))
+    .min(1, 'questionTypes must include at least one of: mcq, fill-in-blank, short-answer')
+    .optional(),
+});
 
 // Same rationale as /api/study/generate — the middleware's pattern-based
 // XSS / SQL scanners flag legitimate quiz topics ("constructor pattern",
 // "DROP TABLE in databases", "<script> tag intro"). The prototype-pollution
 // key check still runs.
-export const POST = apiHandler(async (req: Request) => {
-  const user = await requireAuth();
+export const POST = secureApiHandler(async (req, user) => {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body !== 'object') {
+  const raw = await req.json().catch(() => null);
+  if (!raw || typeof raw !== 'object') {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const {
-    topic,
-    difficulty,
-    count,
-    gradeLevel,
-    contextMaterial,
-    questionTypes,
-  } = body as Record<string, unknown>;
-
-  if (typeof topic !== 'string' || topic.trim().length < 3 || topic.length > 200) {
+  const parsed = practiceGenerateSchema.safeParse(raw);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    const path = first?.path?.join('.') || 'body';
+    const msg = first?.message || 'Invalid request body';
     return NextResponse.json(
-      { error: 'topic must be a 3-200 character string' },
+      { error: `${path}: ${msg}` },
       { status: 400 },
     );
   }
 
-  if (typeof difficulty !== 'string' || !VALID_DIFFICULTIES.has(difficulty as PracticeDifficulty)) {
-    return NextResponse.json(
-      { error: 'difficulty must be one of: intro, standard, challenging' },
-      { status: 400 },
-    );
-  }
+  const { topic, difficulty, count, gradeLevel, contextMaterial, questionTypes } = parsed.data;
 
-  if (typeof count !== 'number' || !Number.isFinite(count)) {
-    return NextResponse.json(
-      { error: 'count must be a number between 3 and 20' },
-      { status: 400 },
-    );
-  }
+  // De-dupe the validated question types — Zod gave us a non-empty array
+  // when present, but the caller may have repeated values.
+  const validatedTypes: PracticeQuestionType[] | undefined = questionTypes
+    ? Array.from(new Set(questionTypes))
+    : undefined;
 
-  if (!isStringOrUndefined(gradeLevel) || !isStringOrUndefined(contextMaterial)) {
-    return NextResponse.json(
-      { error: 'gradeLevel and contextMaterial must be strings if provided' },
-      { status: 400 },
-    );
-  }
-
-  if (typeof contextMaterial === 'string' && contextMaterial.length > 20_000) {
-    return NextResponse.json(
-      { error: 'contextMaterial may be at most 20,000 characters' },
-      { status: 400 },
-    );
-  }
-
-  // v16.6.0: optional `questionTypes` — array of 'mcq' | 'fill-in-blank' |
-  // 'short-answer'. If absent or malformed, defaults to ['mcq'] downstream.
-  let validatedTypes: PracticeQuestionType[] | undefined;
-  if (questionTypes !== undefined) {
-    if (!Array.isArray(questionTypes)) {
-      return NextResponse.json(
-        { error: 'questionTypes must be an array if provided' },
-        { status: 400 },
-      );
-    }
-    const filtered = questionTypes
-      .filter((t): t is string => typeof t === 'string')
-      .filter((t) => VALID_QUESTION_TYPES.has(t as PracticeQuestionType)) as PracticeQuestionType[];
-    if (filtered.length === 0) {
-      return NextResponse.json(
-        { error: 'questionTypes must include at least one of: mcq, fill-in-blank, short-answer' },
-        { status: 400 },
-      );
-    }
-    validatedTypes = Array.from(new Set(filtered));
-  }
-
-  log.info('PRACTICE', `generate request user=${user.id} topic=${topic.slice(0, 60)} difficulty=${difficulty} count=${count} types=${(validatedTypes || ['mcq']).join(',')}`);
+  log.info(
+    'PRACTICE',
+    `generate request user=${user.id} topic=${topic.slice(0, 60)} difficulty=${difficulty} count=${count} types=${(validatedTypes || ['mcq']).join(',')}`,
+  );
 
   try {
     const result = await generatePracticeQuiz({
       topic: topic.trim(),
       difficulty: difficulty as PracticeDifficulty,
       count,
-      gradeLevel: typeof gradeLevel === 'string' ? gradeLevel.trim() || undefined : undefined,
-      contextMaterial: typeof contextMaterial === 'string' ? contextMaterial : undefined,
+      gradeLevel: gradeLevel?.trim() || undefined,
+      contextMaterial,
       questionTypes: validatedTypes,
     });
     return NextResponse.json(result);
@@ -143,4 +115,4 @@ export const POST = apiHandler(async (req: Request) => {
       { status: 500 },
     );
   }
-}, { skipBodyScanning: true });
+}, { skipBodyScanning: true, rateLimit: 'ai' });

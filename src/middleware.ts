@@ -24,6 +24,10 @@ const PUBLIC_PATHS = [
   '/',
   '/login',
   '/register',
+  // v17: /onboard is the trial CTA destination from landing & /pricing.
+  // It must be reachable without a session so anonymous users can start
+  // the onboarding wizard instead of being bounced to /login.
+  '/onboard',
   '/demo',
   '/forgot-password',
   '/reset-password',
@@ -337,13 +341,22 @@ export async function middleware(request: NextRequest) {
 
   const role = token.role as string;
   const isHomeschoolParent = token.isHomeschoolParent as boolean;
-  const isMasterDemo = token.isMasterDemo as boolean;
+  // v17 SEC-3: `isMasterDemo` is no longer read at the edge — RBAC is
+  // pure. Per-route handlers may still read `token.isMasterDemo` to
+  // synthesize demo responses on writes.
 
   // ── 9. Role-based access control ──
 
+  // v17 SEC-3: removed `|| !isMasterDemo` / `&& !isMasterDemo` shortcuts
+  // from each role gate below. Master demo no longer bypasses RBAC at
+  // the edge — its session role (currently 'TEACHER', upgraded to
+  // 'OWNER' when OWNER_EMAIL matches) is the only thing that grants
+  // access. Per-route handlers may still synthesize demo data when
+  // they detect isMasterDemo on writes.
+
   // ADMIN paths
   if (matchesPath(pathname, ADMIN_PATHS) || matchesPath(pathname, ADMIN_API_PATHS)) {
-    if (role !== 'ADMIN' && !isMasterDemo) {
+    if (role !== 'ADMIN') {
       if (pathname.startsWith('/api/')) {
         return new NextResponse(
           JSON.stringify({ error: 'Forbidden: Admin access required' }),
@@ -356,7 +369,7 @@ export async function middleware(request: NextRequest) {
 
   // TEACHER paths — also allow homeschool parents
   if (matchesPath(pathname, TEACHER_PATHS) || matchesPath(pathname, TEACHER_API_PATHS)) {
-    if (role !== 'TEACHER' && !(role === 'PARENT' && isHomeschoolParent) && !isMasterDemo) {
+    if (role !== 'TEACHER' && !(role === 'PARENT' && isHomeschoolParent)) {
       if (pathname.startsWith('/api/')) {
         return new NextResponse(
           JSON.stringify({ error: 'Forbidden: Teacher access required' }),
@@ -369,7 +382,7 @@ export async function middleware(request: NextRequest) {
 
   // STUDENT paths
   if (matchesPath(pathname, STUDENT_PATHS) || matchesPath(pathname, STUDENT_API_PATHS)) {
-    if (role !== 'STUDENT' && !isMasterDemo) {
+    if (role !== 'STUDENT') {
       if (pathname.startsWith('/api/')) {
         return new NextResponse(
           JSON.stringify({ error: 'Forbidden: Student access required' }),
@@ -382,7 +395,7 @@ export async function middleware(request: NextRequest) {
 
   // PARENT paths
   if (matchesPath(pathname, PARENT_PATHS) || matchesPath(pathname, PARENT_API_PATHS)) {
-    if (role !== 'PARENT' && !isMasterDemo) {
+    if (role !== 'PARENT') {
       if (pathname.startsWith('/api/')) {
         return new NextResponse(
           JSON.stringify({ error: 'Forbidden: Parent access required' }),

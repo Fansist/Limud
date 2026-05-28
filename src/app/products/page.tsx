@@ -1,6 +1,6 @@
 'use client';
 /**
- * Individual Products Catalog (v16.3.0 — Update 5.3)
+ * Individual Products Catalog (v17 — Update 6.0)
  *
  * Public-facing landing page for the standalone tools that any single
  * learner can use, with or without a district plan. Each product carries
@@ -12,9 +12,10 @@
  * one tool. Bundle discounts are applied against the corresponding
  * one-time price total OR a flat monthly subscription.
  *
- * Future products go in the PRODUCTS array. Mark `available: true` once
- * the product surface is reachable; until then it renders as a
- * coming-soon card with a disabled CTA.
+ * v17: PRODUCTS data moved to `src/lib/products-catalog.ts` so the per-product
+ * checkout page and the entitlement gate on /api/products/generate can share
+ * the exact same catalog without importing JSX. Icon JSX lives below in the
+ * PRODUCT_ICONS map.
  */
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -38,310 +39,28 @@ import {
   Infinity as InfinityIcon,
 } from 'lucide-react';
 import AuthAwareCTA from '@/components/AuthAwareCTA';
+import { PRODUCTS } from '@/lib/products-catalog';
+import { BUNDLES } from '@/lib/bundles';
 
 type BillingMode = 'oneTime' | 'monthly';
 
-type Product = {
-  id: string;
-  name: string;
-  blurb: string;
-  href: string;
-  oneTimePrice: number | null;       // one-time purchase (permanent use), null = "TBA"
-  oneTimeUnit: string;               // e.g. "per exam"
-  monthlyPrice: number | null;       // monthly subscription (unlimited use), null = "TBA"
-  available: boolean;
-  icon: React.ReactNode;
-  ring: string;
-  bullets: string[];
+// Icons live on the client only — the catalog itself is pure data so it can
+// be imported from server contexts. Keys must match PRODUCTS[].id.
+const PRODUCT_ICONS: Record<string, React.ReactNode> = {
+  'exam-study-helper': <Sparkles size={22} />,
+  'practice-generator': <Brain size={22} />,
+  'math-solver': <Calculator size={22} />,
+  'essay-coach': <BookOpen size={22} />,
+  'notes-cleaner': <FileText size={22} />,
+  'lab-report-builder': <Beaker size={22} />,
+  'citation-finder': <Quote size={22} />,
+  'language-lab': <Languages size={22} />,
+  'flashcard-forge': <Layers size={22} />,
+  'presentation-prep': <Presentation size={22} />,
+  'code-companion': <Code2 size={22} />,
+  'reading-decoder': <BookOpen size={22} />,
+  'exam-postmortem': <Target size={22} />,
 };
-
-type Bundle = {
-  id: string;
-  name: string;
-  pitch: string;
-  productIds: string[];              // products included
-  oneTimePrice: number;              // bundle one-time price
-  monthlyPrice: number;              // bundle monthly price
-  savingsPct: number;                // estimated savings vs. buying separately
-  badge?: string;                    // e.g. "Best value"
-  ring: string;
-};
-
-const PRODUCTS: Product[] = [
-  {
-    id: 'exam-study-helper',
-    name: 'Exam Study Helper',
-    blurb:
-      'Drop in your coursework. Limud rewrites it as a textbook, comic, diagram set, cheatsheet, or flashcards. Now accepts multiple files at once.',
-    href: '/study',
-    oneTimePrice: 9,
-    oneTimeUnit: 'per exam',
-    monthlyPrice: 5,
-    available: true,
-    icon: <Sparkles size={22} />,
-    ring: 'from-fuchsia-500 to-pink-500',
-    bullets: [
-      'Five output formats — textbook, comic, diagrams, cheatsheet, flashcards',
-      'AI-generated comic panel art when you pick the comic format',
-      'Multi-file upload — paste in chapter + notes + slides together',
-    ],
-  },
-  {
-    id: 'practice-generator',
-    name: 'Practice Generator',
-    blurb:
-      'Pick a topic, pick a difficulty, get a multiple-choice quiz with explanations on every answer so you learn from the misses.',
-    href: '/practice',
-    oneTimePrice: 5,
-    oneTimeUnit: 'per topic',
-    monthlyPrice: 4,
-    available: true,
-    icon: <Brain size={22} />,
-    ring: 'from-blue-500 to-indigo-500',
-    bullets: [
-      'Three difficulty levels — intro, standard, challenging',
-      'Plausible distractors and 1-3 sentence explanations',
-      'Anchor questions to your own notes or assignment brief',
-    ],
-  },
-  {
-    id: 'math-solver',
-    name: 'Math Tutor',
-    blurb:
-      "Paste the problem AND what you've already tried. Limud names the concept, hands you the next hint, and flags the common trap — but never finishes the problem for you. You do the math.",
-    href: '/math-solver',
-    oneTimePrice: 7,
-    oneTimeUnit: 'pack of 50',
-    monthlyPrice: 4,
-    available: true,
-    icon: <Calculator size={22} />,
-    ring: 'from-orange-500 to-red-500',
-    bullets: [
-      "Socratic — gives hints, not answers",
-      "Names the concept and the common trap",
-      "Pre-algebra through calculus and statistics",
-    ],
-  },
-  {
-    id: 'essay-coach',
-    name: 'Essay Coach',
-    blurb:
-      "Paste your draft. Limud mirrors your structure back, points at where the argument is strong and where it's wobbly, and gives you three specific things to fix before the next draft. It will not rewrite a single sentence — that's the assignment.",
-    href: '/essay-coach',
-    oneTimePrice: 7,
-    oneTimeUnit: 'per draft',
-    monthlyPrice: 5,
-    available: true,
-    icon: <BookOpen size={22} />,
-    ring: 'from-emerald-500 to-teal-500',
-    bullets: [
-      'Structural feedback that keeps your voice intact',
-      'Thesis + evidence + transitions diagnostics',
-      'Optional rubric alignment for school assignments',
-    ],
-  },
-  {
-    id: 'notes-cleaner',
-    name: 'Notes Cleaner',
-    blurb:
-      "Paste your messy lecture notes. Limud fixes typos, decodes your abbreviations, adds headings, and writes a TL;DR — using only words and concepts YOU wrote down. Never invents content. Your notes stay your notes.",
-    href: '/notes-cleaner',
-    oneTimePrice: 4,
-    oneTimeUnit: 'per lecture',
-    monthlyPrice: 4,
-    available: true,
-    icon: <FileText size={22} />,
-    ring: 'from-amber-500 to-yellow-500',
-    bullets: [
-      'Decodes your abbreviations from context',
-      'Adds section headings and a 5-bullet TL;DR',
-      "Never invents facts the lecture didn't cover",
-    ],
-  },
-  {
-    id: 'lab-report-builder',
-    name: 'Lab Report Reviewer',
-    blurb:
-      "Paste your data, hypothesis, and a draft (rough is fine). Limud outlines what each section should answer, suggests how to present your data, and critiques your draft against rubric standards. You write the report. Limud makes sure it lands.",
-    href: '/lab-report',
-    oneTimePrice: 6,
-    oneTimeUnit: 'per report',
-    monthlyPrice: 4,
-    available: true,
-    icon: <Beaker size={22} />,
-    ring: 'from-cyan-500 to-sky-500',
-    bullets: [
-      'Standard intro / methods / results / discussion structure',
-      'Suggests graph types from your data table',
-      'Flags missing controls or unclear methodology',
-    ],
-  },
-  {
-    id: 'citation-finder',
-    name: 'Citation Finder',
-    blurb:
-      "Paste a claim or paragraph. Limud suggests real sources that back it up, formatted in APA, MLA, or Chicago. We don't write the essay — we find the evidence.",
-    href: '/citation-finder',
-    oneTimePrice: 4,
-    oneTimeUnit: 'pack of 25',
-    monthlyPrice: 3,
-    available: true,
-    icon: <Quote size={22} />,
-    ring: 'from-violet-500 to-purple-500',
-    bullets: [
-      'APA, MLA, and Chicago formats out of the box',
-      'Flags weak or unsupported claims before you submit',
-      'Prefers peer-reviewed and primary sources',
-    ],
-  },
-  {
-    id: 'language-lab',
-    name: 'Language Lab',
-    blurb:
-      'Spanish, French, Mandarin, Arabic, more. Daily vocab + grammar + reading drills adapted to your textbook and current chapter.',
-    href: '/language-lab',
-    oneTimePrice: 12,
-    oneTimeUnit: 'per semester',
-    monthlyPrice: 5,
-    available: true,
-    icon: <Languages size={22} />,
-    ring: 'from-rose-500 to-pink-500',
-    bullets: [
-      'Anchors drills to your textbook, not generic content',
-      'Spaced repetition tuned to your error patterns',
-      'Reading passages at your current grammar level',
-    ],
-  },
-  {
-    id: 'flashcard-forge',
-    name: 'Flashcard Forge',
-    blurb: 'Builds spaced-repetition decks from any chapter, slide, or PDF.',
-    href: '/flashcard-forge',
-    oneTimePrice: 5,
-    oneTimeUnit: 'per deck',
-    monthlyPrice: 4,
-    available: true,
-    icon: <Layers size={22} />,
-    ring: 'from-lime-500 to-green-500',
-    bullets: [
-      'Smart spaced repetition schedule',
-      'Auto-detects key terms + definitions',
-      'Export to Anki, Quizlet, or print',
-    ],
-  },
-  {
-    id: 'presentation-prep',
-    name: 'Presentation Prep',
-    blurb: "Turns a topic into a slide outline plus speaker notes you'll actually read.",
-    href: '/presentation-prep',
-    oneTimePrice: 6,
-    oneTimeUnit: 'per deck',
-    monthlyPrice: 4,
-    available: true,
-    icon: <Presentation size={22} />,
-    ring: 'from-indigo-500 to-fuchsia-500',
-    bullets: [
-      'Slide-by-slide outline with talking points',
-      'Speaker notes in your voice',
-      'Cue cards for the day-of',
-    ],
-  },
-  {
-    id: 'code-companion',
-    name: 'Code Companion',
-    blurb: 'Explains compiler errors and asks Socratic questions until your code runs.',
-    href: '/code-companion',
-    oneTimePrice: 8,
-    oneTimeUnit: 'pack of 30 sessions',
-    monthlyPrice: 5,
-    available: true,
-    icon: <Code2 size={22} />,
-    ring: 'from-slate-700 to-indigo-600',
-    bullets: [
-      'Explains stack traces in plain English',
-      'Walks you through fixes, never writes them',
-      'Python, JavaScript, Java, C++',
-    ],
-  },
-  {
-    id: 'reading-decoder',
-    name: 'Reading Decoder',
-    blurb: 'Maps a dense article into a thesis tree with vocab and key claims.',
-    href: '/reading-decoder',
-    oneTimePrice: 5,
-    oneTimeUnit: 'per article',
-    monthlyPrice: 4,
-    available: true,
-    icon: <BookOpen size={22} />,
-    ring: 'from-teal-500 to-cyan-500',
-    bullets: [
-      'Pulls the central thesis + supporting claims',
-      'Defines unfamiliar terms inline',
-      'Highlights what to quote later',
-    ],
-  },
-  {
-    id: 'exam-postmortem',
-    name: 'Exam Postmortem',
-    blurb: 'Paste your wrong answers, get the misconception map for next time.',
-    href: '/exam-postmortem',
-    oneTimePrice: 4,
-    oneTimeUnit: 'per exam',
-    monthlyPrice: 3,
-    available: true,
-    icon: <Target size={22} />,
-    ring: 'from-red-500 to-orange-500',
-    bullets: [
-      'Clusters mistakes by root cause',
-      'Targeted re-practice for each gap',
-      'Tracks improvement across exams',
-    ],
-  },
-];
-
-const BUNDLES: Bundle[] = [
-  {
-    id: 'all-access',
-    name: 'All-Access Pass',
-    pitch: 'Every current product + every future product. The cheapest way to use more than two tools.',
-    productIds: PRODUCTS.map((p) => p.id),
-    oneTimePrice: 79,
-    monthlyPrice: 15,
-    savingsPct: 45,
-    badge: 'Best value',
-    ring: 'from-fuchsia-500 via-purple-500 to-blue-500',
-  },
-  {
-    id: 'study-bundle',
-    name: 'Study Bundle',
-    pitch: 'Everything you need the week before an exam — material rewriting, practice questions, and notes cleanup.',
-    productIds: ['exam-study-helper', 'practice-generator', 'notes-cleaner'],
-    oneTimePrice: 15,
-    monthlyPrice: 9,
-    savingsPct: 22,
-    ring: 'from-fuchsia-500 to-blue-500',
-  },
-  {
-    id: 'writing-bundle',
-    name: 'Writing Bundle',
-    pitch: 'Coach your draft, find your sources, and clean your notes — for the essay-heavy classes.',
-    productIds: ['essay-coach', 'citation-finder', 'notes-cleaner'],
-    oneTimePrice: 12,
-    monthlyPrice: 8,
-    savingsPct: 20,
-    ring: 'from-emerald-500 to-teal-500',
-  },
-  {
-    id: 'stem-bundle',
-    name: 'STEM Bundle',
-    pitch: 'Hints when you get stuck on a math problem, feedback on your lab report drafts, and practice quizzes to drill the concepts — for the science / math grind.',
-    productIds: ['math-solver', 'lab-report-builder', 'practice-generator'],
-    oneTimePrice: 14,
-    monthlyPrice: 9,
-    savingsPct: 25,
-    ring: 'from-orange-500 to-blue-500',
-  },
-];
 
 function formatPrice(p: number | null): string {
   return p === null ? 'TBA' : `$${p}`;
@@ -492,7 +211,7 @@ export default function ProductsPage() {
                       (p.available ? p.ring : 'from-gray-300 to-gray-400')
                     }
                   >
-                    {p.icon}
+                    {PRODUCT_ICONS[p.id]}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -529,12 +248,20 @@ export default function ProductsPage() {
                   </div>
                 </div>
                 {p.available ? (
-                  <Link
-                    href={p.href}
-                    className="mt-4 block text-center py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white hover:opacity-95 transition"
-                  >
-                    Try it now
-                  </Link>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <Link
+                      href={p.href}
+                      className="block text-center py-2.5 rounded-xl font-bold text-sm border border-primary-200 text-primary-700 hover:bg-primary-50 transition"
+                    >
+                      Open
+                    </Link>
+                    <Link
+                      href={'/products/' + p.id + '/checkout?billing=' + billing}
+                      className="block text-center py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white hover:opacity-95 transition"
+                    >
+                      Buy
+                    </Link>
+                  </div>
                 ) : (
                   <button
                     type="button"

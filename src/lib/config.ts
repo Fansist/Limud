@@ -1,64 +1,95 @@
 /**
- * LIMUD v9.7.11 — Centralized Application Configuration
- * ALL defaults are embedded so the app runs with ZERO env vars.
- * Environment variables, when present, override the embedded defaults.
+ * LIMUD v17 — Centralized Application Configuration
+ *
+ * v17 (SEC-2): Secrets are NO LONGER hardcoded.
+ *   - Dev (NODE_ENV !== 'production'): deterministic dev-only secret
+ *     so local dev keeps working with zero env vars.
+ *   - Build phase (NEXT_PHASE === 'phase-production-build'): placeholder
+ *     so static generation doesn't crash on `next build`.
+ *   - Production runtime with the env var unset: THROWS at module-import
+ *     so the server refuses to start without a real secret. This is a
+ *     hard-fail — no fallback, no warning-and-continue.
  *
  * v9.4.0: Migrated from OpenAI to Google Gemini (@google/genai)
  * v9.7.6: Upgraded to Gemini 2.5 Flash (paid tier 1)
  */
 
 // ═══════════════════════════════════════════════════════════════════
-// AUTH / SESSION
+// AUTH / SESSION (SEC-2 hardened)
+// ═══════════════════════════════════════════════════════════════════
+
+const DEV_PLACEHOLDER = 'limud-dev-only-not-for-production-DO-NOT-USE';
+const BUILD_PLACEHOLDER = 'limud-build-phase-placeholder-not-runtime';
+
+function resolveSecret(envName: string, envValue: string | undefined): string {
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (envValue && envValue.length > 0) {
+    return envValue;
+  }
+
+  if (isBuildPhase) {
+    // Static generation runs without secrets; pages must compile.
+    return BUILD_PLACEHOLDER;
+  }
+
+  if (!isProduction) {
+    // Dev / test: deterministic so local sessions persist across restarts.
+    return DEV_PLACEHOLDER;
+  }
+
+  // Production runtime + missing secret = hard fail.
+  // Throwing at module-import causes every route to 500 with a clear
+  // message in the logs; better than silently signing tokens with a
+  // public placeholder that anyone could forge.
+  throw new Error(
+    `[Limud][config] ${envName} is not set in production. ` +
+    `Refusing to start. Set ${envName} in the deployment environment ` +
+    `(Render dashboard) and redeploy.`,
+  );
+}
+
+/**
+ * Stable JWT signing secret. Required in production.
+ * NextAuth requires this to be identical across all server instances
+ * and across restarts, or every existing session becomes invalid.
+ */
+export const AUTH_SECRET = resolveSecret('NEXTAUTH_SECRET', process.env.NEXTAUTH_SECRET);
+
+/**
+ * PII encryption key (AES-256-GCM). Required in production.
+ * Independent from AUTH_SECRET — rotating one must not invalidate the other.
+ */
+export const PII_ENCRYPTION_KEY = resolveSecret('PII_ENCRYPTION_KEY', process.env.PII_ENCRYPTION_KEY);
+
+// ═══════════════════════════════════════════════════════════════════
+// OWNER ROLE (v17)
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Stable JWT signing secret.
- * NextAuth requires this to be identical across all server instances
- * and across restarts, or every existing session becomes invalid.
- *
- * v15.0.2: NEVER throw at module-import. Module-import throws
- * cascade through every route in the standalone bundle and turn a
- * bad-config situation into a 500-on-every-request situation that
- * no one can debug from the outside. Instead, log warnings loudly
- * and fall back to the stable secret. NextAuth itself will reject
- * un-mintable / un-verifiable tokens in a clearer way at request
- * time if the fallback is mismatched across deploys.
+ * Email that gets elevated to the OWNER role at sign-in.
+ * Must match exactly (case-insensitive). When unset in production,
+ * OWNER elevation is disabled and we log a warning at boot.
  */
-const fallback = 'limud-stable-secret-v9-ofer-academy-2026-Xk7mQ3pZwR4vJ8nB';
-const envSecret = process.env.NEXTAUTH_SECRET;
-const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
-if (
-  process.env.NODE_ENV === 'production' &&
-  !isBuildPhase &&
-  (!envSecret || envSecret === fallback)
-) {
+const ownerEmailEnv = process.env.OWNER_EMAIL?.toLowerCase().trim() || '';
+if (process.env.NODE_ENV === 'production' && !ownerEmailEnv) {
   // eslint-disable-next-line no-console
-  console.error(
-    '[Limud][config] NEXTAUTH_SECRET is not set in production. ' +
-    'Falling back to the embedded default — sessions will work but ' +
-    'are not unique to this deployment. Set it in the Render dashboard.'
-  );
+  console.error('[Limud][config] OWNER_EMAIL not set — OWNER role disabled.');
 }
-export const AUTH_SECRET = envSecret || fallback;
+export const OWNER_EMAIL = ownerEmailEnv;
+export function isOwnerEmail(email?: string | null): boolean {
+  return !!email && !!OWNER_EMAIL && email.toLowerCase() === OWNER_EMAIL;
+}
 
-/**
- * PII encryption key (AES-256-GCM).
- * Falls back to AUTH_SECRET if PII_ENCRYPTION_KEY is not set (non-production only).
- */
-const envPiiKey = process.env.PII_ENCRYPTION_KEY;
-if (
-  process.env.NODE_ENV === 'production' &&
-  !isBuildPhase &&
-  (!envPiiKey || envPiiKey === fallback)
-) {
-  // eslint-disable-next-line no-console
-  console.error(
-    '[Limud][config] PII_ENCRYPTION_KEY is not set in production. ' +
-    'Falling back to AUTH_SECRET. Encrypted PII will not be portable ' +
-    'across deployments. Set it in the Render dashboard.'
-  );
-}
-export const PII_ENCRYPTION_KEY = envPiiKey || AUTH_SECRET;
+/** Resend From: header for transactional email. */
+export const EMAIL_FROM = process.env.EMAIL_FROM || 'Limud <noreply@limud.co>';
+
+/** TTL (seconds) for 2FA codes. Defaults to 5 minutes. */
+export const MFA_CODE_TTL_SECONDS = (() => {
+  const raw = Number.parseInt(process.env.MFA_CODE_TTL_SECONDS || '', 10);
+  return Number.isFinite(raw) && raw > 0 ? raw : 300;
+})();
 
 // ═══════════════════════════════════════════════════════════════════
 // DATABASE

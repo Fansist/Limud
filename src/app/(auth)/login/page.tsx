@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { BookOpen, ArrowRight, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Sparkles, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { MASTER_DEMO_EMAIL, MASTER_DEMO_PASSWORD } from '@/lib/demo-accounts';
 
 // Master demo credentials kept for the typed-in path (no on-page button).
@@ -26,6 +26,8 @@ function getDashboardPath(role?: string): string {
     case 'TEACHER': return '/teacher/dashboard';
     case 'ADMIN': return '/admin/dashboard';
     case 'PARENT': return '/parent/dashboard';
+    // v17: OWNER landing is at /owner (Finances + Prices cards).
+    case 'OWNER': return '/owner';
     default: return '/student/dashboard';
   }
 }
@@ -48,6 +50,12 @@ const DEMO_EMAIL_ROLES: Record<string, string> = {
   'erez.ofer4@gmail.com': 'TEACHER',
 };
 
+// v17 OWNER 2FA mode. We never persist the password — only hold it in
+// component state for the duration of the OTP step, then drop it.
+type LoginMode =
+  | { kind: 'password' }
+  | { kind: 'mfa'; challengeId: string; email: string; password: string };
+
 function LoginPageInner() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,6 +63,8 @@ function LoginPageInner() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [mode, setMode] = useState<LoginMode>({ kind: 'password' });
+  const [otpCode, setOtpCode] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
@@ -83,18 +93,36 @@ function LoginPageInner() {
    * v9.6 FIX: Real (non-demo) students are NEVER sent to the demo page.
    * Stale localStorage flags are aggressively cleared on every non-demo login.
    */
-  const doLogin = async (loginEmail: string, loginPassword: string, isDemo: boolean = false): Promise<boolean> => {
+  type LoginOutcome = 'ok' | 'failed' | 'mfa-required';
+
+  const doLogin = async (
+    loginEmail: string,
+    loginPassword: string,
+    isDemo: boolean = false,
+    mfaProof?: string,
+  ): Promise<LoginOutcome> => {
     const normalizedEmail = loginEmail.toLowerCase().trim();
     const isMaster = normalizedEmail === MASTER_DEMO.email.toLowerCase();
 
     const result = await signIn('credentials', {
       email: normalizedEmail,
       password: loginPassword,
+      ...(mfaProof ? { mfaProof } : {}),
       redirect: false,
     });
 
+    // v17 OWNER 2FA gate: authorize() throws `MFA_REQUIRED:<id>` on the
+    // first call. NextAuth surfaces that as result.error verbatim.
+    if (result?.error && result.error.startsWith('MFA_REQUIRED:')) {
+      const challengeId = result.error.slice('MFA_REQUIRED:'.length);
+      setMode({ kind: 'mfa', challengeId, email: normalizedEmail, password: loginPassword });
+      setOtpCode('');
+      setServerError(null);
+      return 'mfa-required';
+    }
+
     if (result?.error) {
-      return false; // Auth failed
+      return 'failed';
     }
 
     // Honor callbackUrl if provided (with open-redirect guard)
@@ -111,6 +139,18 @@ function LoginPageInner() {
       }
     } catch {}
 
+    // v17 OWNER: when we just completed the MFA leg, route to /owner.
+    // mfaProof is the unambiguous signal — only the OWNER flow supplies it.
+    if (mfaProof) {
+      try {
+        localStorage.removeItem('limud-demo-mode');
+        localStorage.removeItem('limud-demo-role');
+      } catch {}
+      router.push(safeCallbackUrl ?? getDashboardPath('OWNER'));
+      router.refresh();
+      return 'ok';
+    }
+
     // Master Demo: clear any stale demo-mode flag — it uses its own session path
     if (isMaster) {
       try {
@@ -120,7 +160,7 @@ function LoginPageInner() {
       // Redirect to teacher dashboard (default master role) without ?demo=true
       router.push(safeCallbackUrl ?? getDashboardPath(MASTER_DEMO.dashRole));
       router.refresh();
-      return true;
+      return 'ok';
     }
 
     // Determine if this is a demo account
@@ -146,7 +186,7 @@ function LoginPageInner() {
     if (knownRole) {
       router.push(safeCallbackUrl ?? (getDashboardPath(knownRole) + demoParam));
       router.refresh();
-      return true;
+      return 'ok';
     }
 
     // Strategy 2: Try to get session from NextAuth (for real DB users)
@@ -158,7 +198,7 @@ function LoginPageInner() {
         if (role) {
           router.push(safeCallbackUrl ?? getDashboardPath(role));
           router.refresh();
-          return true;
+          return 'ok';
         }
       }
     } catch {
@@ -168,7 +208,7 @@ function LoginPageInner() {
     // Strategy 3: Fallback redirect — real users go to student dashboard cleanly
     router.push(safeCallbackUrl ?? '/student/dashboard');
     router.refresh();
-    return true;
+    return 'ok';
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -177,9 +217,12 @@ function LoginPageInner() {
     setServerError(null);
 
     try {
-      const success = await doLogin(email, password);
-      if (success) {
+      const outcome = await doLogin(email, password);
+      if (outcome === 'ok') {
         toast.success('Welcome to Limud!');
+      } else if (outcome === 'mfa-required') {
+        // doLogin already flipped the page into MFA mode. Hold the
+        // welcome toast for the second leg (handleMfaSubmit).
       } else {
         setServerError('Invalid email or password.');
         toast.error('Invalid email or password');
@@ -189,6 +232,60 @@ function LoginPageInner() {
     } finally {
       setLoading(false);
     }
+  };
+
+  /**
+   * v17 OWNER 2FA: submit the 6-digit OTP, fetch an mfaProof JWT from
+   * /api/auth/verify-otp, then replay signIn() with the proof.
+   */
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode.kind !== 'mfa') return;
+    if (!/^\d{6}$/.test(otpCode)) {
+      setServerError('Enter the 6-digit code from your email.');
+      return;
+    }
+    setLoading(true);
+    setServerError(null);
+
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challengeId: mode.challengeId, code: otpCode }),
+      });
+      const data: { ok?: boolean; mfaProof?: string; error?: string } = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.ok || !data.mfaProof) {
+        setServerError(data.error || 'Code expired or invalid.');
+        toast.error(data.error || 'Code expired or invalid.');
+        setLoading(false);
+        return;
+      }
+
+      // Second signIn call with the proof — this completes the OWNER session.
+      const outcome = await doLogin(mode.email, mode.password, false, data.mfaProof);
+      if (outcome === 'ok') {
+        toast.success('Welcome to Limud!');
+      } else if (outcome === 'mfa-required') {
+        // Should not happen — proof was just minted. Bail out cleanly.
+        setServerError('We could not complete sign-in. Try again.');
+        toast.error('We could not complete sign-in.');
+      } else {
+        setServerError('We could not complete sign-in. Try again.');
+        toast.error('We could not complete sign-in.');
+      }
+    } catch {
+      toast.error('Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetToPasswordMode = () => {
+    setMode({ kind: 'password' });
+    setOtpCode('');
+    setServerError(null);
   };
 
 
@@ -267,98 +364,156 @@ function LoginPageInner() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <div className="mb-6">
-              <h1 className="text-xl font-bold text-gray-900">Welcome back</h1>
-              <p className="text-sm text-gray-500 mt-1">Sign in to your account to continue</p>
-            </div>
-
-            <form onSubmit={handleLogin} className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="email">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="input-field"
-                  placeholder="you@school.edu"
-                  required
-                  aria-label="Email address"
-                  autoComplete="email"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-sm font-medium text-gray-700" htmlFor="password">
-                    Password
-                  </label>
-                  <Link href="/forgot-password" className="text-xs text-primary-600 hover:text-primary-700 font-medium">
-                    Forgot password?
-                  </Link>
+            {mode.kind === 'password' ? (
+              <>
+                <div className="mb-6">
+                  <h1 className="text-xl font-bold text-gray-900">Welcome back</h1>
+                  <p className="text-sm text-gray-500 mt-1">Sign in to your account to continue</p>
                 </div>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="input-field pr-10"
-                    placeholder="Enter your password"
-                    required
-                    aria-label="Password"
-                    autoComplete="current-password"
-                  />
+
+                <form onSubmit={handleLogin} className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="email">
+                      Email
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className="input-field"
+                      placeholder="you@school.edu"
+                      required
+                      aria-label="Email address"
+                      autoComplete="email"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-medium text-gray-700" htmlFor="password">
+                        Password
+                      </label>
+                      <Link href="/forgot-password" className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <div className="relative">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        className="input-field pr-10"
+                        placeholder="Enter your password"
+                        required
+                        aria-label="Password"
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    {serverError && <p role="alert" className="text-red-600 text-sm mt-1">{serverError}</p>}
+                  </div>
+
+                  {/* v9.7: Remember Me checkbox */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="remember-me"
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={e => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                    />
+                    <label htmlFor="remember-me" className="text-sm text-gray-600 cursor-pointer select-none">
+                      Remember my email
+                    </label>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary w-full py-3 text-base flex items-center justify-center gap-2"
+                    aria-label="Sign in"
+                  >
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Signing in...
+                      </span>
+                    ) : (
+                      <>
+                        Sign In
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <div className="inline-flex items-center gap-2 text-primary-700 mb-2">
+                    <ShieldCheck size={18} />
+                    <span className="text-xs font-semibold uppercase tracking-wide">Two-factor verification</span>
+                  </div>
+                  <h1 className="text-xl font-bold text-gray-900">Enter your sign-in code</h1>
+                  <p className="text-sm text-gray-500 mt-1">
+                    We sent a 6-digit code to <strong>{mode.email}</strong>. It expires in a few minutes.
+                  </p>
+                </div>
+
+                <form onSubmit={handleMfaSubmit} className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="otp-code">
+                      6-digit code
+                    </label>
+                    <input
+                      id="otp-code"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="\d{6}"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="input-field font-mono tracking-[0.5em] text-center text-lg"
+                      placeholder="123456"
+                      required
+                      aria-label="6-digit verification code"
+                      autoComplete="one-time-code"
+                      autoFocus
+                    />
+                    {serverError && <p role="alert" className="text-red-600 text-sm mt-1">{serverError}</p>}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || otpCode.length !== 6}
+                    className="btn-primary w-full py-3 text-base flex items-center justify-center gap-2"
+                    aria-label="Verify code"
+                  >
+                    {loading ? 'Verifying...' : 'Verify & Sign In'}
+                  </button>
+
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    onClick={resetToPasswordMode}
+                    className="w-full text-sm text-gray-500 hover:text-gray-700"
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    &larr; Back to password
                   </button>
-                </div>
-                {serverError && <p role="alert" className="text-red-600 text-sm mt-1">{serverError}</p>}
-              </div>
-
-              {/* v9.7: Remember Me checkbox */}
-              <div className="flex items-center gap-2">
-                <input
-                  id="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
-                />
-                <label htmlFor="remember-me" className="text-sm text-gray-600 cursor-pointer select-none">
-                  Remember my email
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-primary w-full py-3 text-base flex items-center justify-center gap-2"
-                aria-label="Sign in"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Signing in...
-                  </span>
-                ) : (
-                  <>
-                    Sign In
-                    <ArrowRight size={16} />
-                  </>
-                )}
-              </button>
-            </form>
+                </form>
+              </>
+            )}
 
             <div className="mt-6 text-center space-y-3">
               <p className="text-sm text-gray-500">

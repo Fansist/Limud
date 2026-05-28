@@ -24,7 +24,9 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
 
   try {
     const data = await resend.emails.send({
-      from: 'Limud <noreply@limud.co>',
+      // v17: from-address comes from EMAIL_FROM env (with the same
+      // default as before for zero-config compatibility).
+      from: process.env.EMAIL_FROM || 'Limud <noreply@limud.co>',
       to,
       subject,
       html,

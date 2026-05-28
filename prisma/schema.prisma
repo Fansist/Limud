@@ -21,6 +21,7 @@ enum Role {
   TEACHER
   ADMIN
   PARENT
+  OWNER
 }
 
 enum AccountType {
@@ -418,6 +419,7 @@ model User {
   gamePurchases      GamePurchase[]
   gameSessions       GameSession[]
   bundleSubscriptions BundleSubscription[]
+  productSubscriptions ProductSubscription[]
   districtAdmins     DistrictAdmin[]
   classroomStudents  ClassroomStudent[]
   fileUploads        FileUpload[]
@@ -1920,4 +1922,56 @@ model ParentAlert {
   @@index([parentId, isRead])
   @@index([childId, level])
   @@index([parentId, childId, level, createdAt])     // for debounce lookups
+}
+
+// ─── v17 OWNER ROLE: 2FA + PRICE OVERRIDES + PER-PRODUCT SUBSCRIPTIONS ────
+
+model TwoFactorChallenge {
+  id          String    @id @default(cuid())
+  userId      String    // 'master-demo' for OWNER-via-demo, real cuid otherwise
+  codeHash    String    // SHA-256 hex of the 6-digit code
+  attempts    Int       @default(0)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  ip          String?
+  userAgent   String?   @db.VarChar(256)
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("two_factor_challenges")
+}
+
+model PriceOverride {
+  id            String   @id @default(cuid())
+  kind          String   // 'product' | 'bundle' | 'district'
+  productId     String   // PRODUCTS[].id, BUNDLES[].id, or districtId
+  oneTimePrice  Float?
+  monthlyPrice  Float?
+  pricePerYear  Float?   // only used for kind='district'
+  updatedById   String
+  reason        String?  @db.VarChar(280)
+  createdAt     DateTime @default(now())
+
+  @@index([kind, productId])
+  @@map("price_overrides")
+}
+
+model ProductSubscription {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId   String    // matches PRODUCTS[].id from src/lib/products-catalog.ts (created by CODER A)
+  billingMode String    // 'oneTime' | 'monthly'
+  status      String    @default("active")
+  amount      Float
+  startedAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@index([productId])
+  @@map("product_subscriptions")
 }

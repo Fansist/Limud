@@ -71,7 +71,12 @@ export const GET = apiHandler(async (req: Request) => {
 
 export const PUT = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
-  const { subscriptionStatus, subscriptionEnd, pricePerYear, maxStudents, maxTeachers } = await req.json();
+  // v17: pricePerYear is OWNER-only — edits go through /api/owner/prices
+  // with kind='district' and productId=<districtId>. Even with
+  // canManageBilling, an ADMIN cannot write district pricing here. The
+  // field is intentionally NOT destructured from the body; any value in
+  // the request payload is silently ignored.
+  const { subscriptionStatus, subscriptionEnd, maxStudents, maxTeachers } = await req.json();
 
   // Security: admins can only update their OWN district. Ignore any districtId
   // in the body — previously accepting it allowed cross-district privilege
@@ -80,8 +85,9 @@ export const PUT = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Admin has no district assigned' }, { status: 403 });
   }
 
-  // v2.5 — H-3: billing-adjacent fields (subscription*, pricePerYear, seat caps)
-  // require canManageBilling. Without it, return 403 before any write.
+  // v2.5 — H-3: billing-adjacent fields (subscription*, seat caps) require
+  // canManageBilling. Without it, return 403 before any write. pricePerYear
+  // is OWNER-only as of v17 and not editable through this route at all.
   const adminRecord = await prisma.districtAdmin.findUnique({
     where: { userId_districtId: { userId: user.id, districtId: user.districtId } },
     select: { canManageBilling: true },
@@ -95,7 +101,6 @@ export const PUT = apiHandler(async (req: Request) => {
     data: {
       ...(subscriptionStatus ? { subscriptionStatus } : {}),
       ...(subscriptionEnd ? { subscriptionEnd: new Date(subscriptionEnd) } : {}),
-      ...(pricePerYear ? { pricePerYear } : {}),
       ...(maxStudents ? { maxStudents } : {}),
       ...(maxTeachers ? { maxTeachers } : {}),
     },

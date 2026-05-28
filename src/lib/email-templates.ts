@@ -251,3 +251,20 @@ export function gradePostedToParent(opts: {
     text: textLines.join('\n'),
   };
 }
+
+/**
+ * v17 — 6-digit sign-in code for the OWNER 2FA challenge.
+ * Plain inline HTML (no wrap()) so the code stands out and is paste-friendly.
+ * `code` is server-generated and contains only digits, so no escaping needed.
+ */
+export function otpCodeEmail(code: string, ttlMin = 5): { subject: string; html: string } {
+  return {
+    subject: 'Your Limud sign-in code: ' + code,
+    html: '<div style="font:14px/1.5 system-ui;color:#111">' +
+      '<p>Your Limud sign-in code:</p>' +
+      '<p style="font:bold 28px monospace;letter-spacing:6px;padding:12px 0">' + code + '</p>' +
+      '<p>Expires in ' + ttlMin + ' minutes. Do not share this code.</p>' +
+      '<p>If you did not request this code, change your password immediately.</p>' +
+      '</div>',
+  };
+}

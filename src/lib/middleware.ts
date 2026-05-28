@@ -33,7 +33,7 @@ export type UserSession = {
   id: string;
   email: string;
   name: string;
-  role: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'PARENT';
+  role: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'PARENT' | 'OWNER';
   accountType: 'DISTRICT' | 'HOMESCHOOL' | 'INDIVIDUAL';
   districtId: string;
   districtName: string;
@@ -61,8 +61,10 @@ export async function requireAuth(): Promise<UserSession> {
 
 export async function requireRole(...roles: string[]): Promise<UserSession> {
   const user = await requireAuth();
-  // Master Demo has unrestricted access to all roles
-  if (user.isMasterDemo) return user;
+  // v17 SEC-3: master demo NO LONGER bypasses role gates. The demo
+  // account's role (set at sign-in) is what governs page access. The
+  // separate `isMasterDemo` flag is still respected by per-route write
+  // gates that synthesize demo data instead of touching the real DB.
   if (user.role === 'PARENT' && user.isHomeschoolParent && roles.includes('TEACHER')) {
     return user;
   }
@@ -73,7 +75,9 @@ export async function requireRole(...roles: string[]): Promise<UserSession> {
 }
 
 export function hasTeacherAccess(user: UserSession): boolean {
-  return user.role === 'TEACHER' || (user.role === 'PARENT' && user.isHomeschoolParent) || !!user.isMasterDemo;
+  // v17 SEC-3: do not grant teacher access on the basis of isMasterDemo alone.
+  // Master demo's session role is the source of truth.
+  return user.role === 'TEACHER' || (user.role === 'PARENT' && user.isHomeschoolParent);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -213,10 +217,14 @@ export function secureApiHandler(
         }
 
         // ── 3. Role Authorization ──
+        // v17 SEC-3: removed `isMasterBypass` shortcut. Master demo no
+        // longer bypasses role gates universally — its session role is
+        // the only thing that grants access. Per-route write gates may
+        // still inspect `isMasterDemo` to synthesize demo responses
+        // without touching the DB.
         if (options.roles && options.roles.length > 0) {
           const isHomeschoolTeacher = user.role === 'PARENT' && user.isHomeschoolParent && options.roles.includes('TEACHER');
-          const isMasterBypass = user.isMasterDemo;
-          if (!options.roles.includes(user.role) && !isHomeschoolTeacher && !isMasterBypass) {
+          if (!options.roles.includes(user.role) && !isHomeschoolTeacher) {
             trackSecurityEvent('suspicious', ip);
             createAuditLog({
               action: 'PRIVILEGE_ESCALATION',
@@ -393,7 +401,9 @@ export function secureApiHandler(
 
 export function apiHandler(
   handler: (req: Request) => Promise<NextResponse>,
-  options: Pick<SecureHandlerOptions, 'skipBodyScanning' | 'skipRateLimit'> = {},
+  // v17 (Update 6.0): `rateLimit` is now forwarded so routes can opt into the
+  // 'ai' / 'sensitiveData' buckets without dropping down to secureApiHandler.
+  options: Pick<SecureHandlerOptions, 'skipBodyScanning' | 'skipRateLimit' | 'rateLimit'> = {},
 ): (req: Request) => Promise<NextResponse> {
   return secureApiHandler(
     async (req, _user) => handler(req),

@@ -1,29 +1,23 @@
 // POST /api/products/bundle/purchase — start a bundle subscription for the
 // authenticated user. Any role can buy. Master demo returns a synthetic
 // success response and never writes to the DB. Real users get a
-// BundleSubscription row inserted with the validated price.
+// BundleSubscription row inserted with the price that
+// `getEffectivePrice('bundle', ...)` returns — i.e. the OWNER-issued
+// override if one exists, otherwise the static BUNDLES catalog price.
 //
-// Bundle prices below must match the BUNDLES array in
-// src/app/products/page.tsx. If the catalog moves, update both.
+// v17: the hardcoded BUNDLE_PRICES const was removed. Bundle catalog
+// lives in src/lib/bundles.ts and the effective price is resolved via
+// src/lib/pricing.ts.
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import { BUNDLES, findBundle, type BillingMode, type BundleId } from '@/lib/bundles';
+import { getEffectivePrice } from '@/lib/pricing';
 
-type BundleId = 'all-access' | 'study-bundle' | 'writing-bundle' | 'stem-bundle';
-type BillingMode = 'oneTime' | 'monthly';
-
-const BUNDLE_PRICES: Record<BundleId, Record<BillingMode, number>> = {
-  'all-access':    { oneTime: 79, monthly: 15 },
-  'study-bundle':  { oneTime: 15, monthly: 9 },
-  'writing-bundle':{ oneTime: 12, monthly: 8 },
-  'stem-bundle':   { oneTime: 14, monthly: 9 },
-};
-
-const VALID_BUNDLE_IDS: BundleId[] = ['all-access', 'study-bundle', 'writing-bundle', 'stem-bundle'];
 const VALID_BILLING_MODES: BillingMode[] = ['oneTime', 'monthly'];
 
 function isBundleId(v: unknown): v is BundleId {
-  return typeof v === 'string' && (VALID_BUNDLE_IDS as string[]).includes(v);
+  return typeof v === 'string' && BUNDLES.some((b) => b.id === v);
 }
 function isBillingMode(v: unknown): v is BillingMode {
   return typeof v === 'string' && (VALID_BILLING_MODES as string[]).includes(v);
@@ -49,7 +43,28 @@ export const POST = apiHandler(async (req: Request) => {
 
   const bundleId: BundleId = body.bundleId;
   const billingMode: BillingMode = body.billingMode;
-  const amount = BUNDLE_PRICES[bundleId][billingMode];
+
+  const bundle = findBundle(bundleId);
+  if (!bundle) {
+    // Should never happen — isBundleId checked above — but keep the
+    // type-narrowing explicit.
+    return NextResponse.json({ error: 'Invalid bundleId' }, { status: 400 });
+  }
+
+  const eff = await getEffectivePrice('bundle', bundleId, {
+    oneTimePrice: bundle.oneTimePrice,
+    monthlyPrice: bundle.monthlyPrice,
+  });
+
+  const resolved =
+    billingMode === 'oneTime' ? eff.oneTimePrice : eff.monthlyPrice;
+  if (resolved === null || resolved === undefined) {
+    return NextResponse.json(
+      { error: 'Bundle price is not available' },
+      { status: 400 },
+    );
+  }
+  const amount: number = resolved;
 
   // Master demo: synthetic success, no DB write.
   if (user.isMasterDemo) {

@@ -35,7 +35,7 @@ const CONFIG: ToolConfig = {
     ],
   },
   helperText:
-    "Drills are tuned to the level of what you paste — don't paste a grammar review if you're early in the chapter.",
+    "Drills are tuned to the level of what you paste — don't paste a grammar review if you're early in the chapter. These are practice drills — answers are shown so you can self-check. Do not submit them as homework.",
 };
 
 export default function LanguageLabPage() {

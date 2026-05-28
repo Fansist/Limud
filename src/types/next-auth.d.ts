@@ -6,7 +6,7 @@ declare module 'next-auth' {
       id: string;
       email: string;
       name: string;
-      role: 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN' | 'HOMESCHOOL_PARENT';
+      role: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'PARENT' | 'OWNER';
       accountType: string;
       districtId: string;
       districtName: string;
@@ -22,7 +22,7 @@ declare module 'next-auth' {
     id: string;
     email: string;
     name: string;
-    role: 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN' | 'HOMESCHOOL_PARENT';
+    role: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'PARENT' | 'OWNER';
     accountType: string;
     districtId: string;
     districtName: string;
@@ -38,7 +38,7 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
-    role: 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN' | 'HOMESCHOOL_PARENT';
+    role: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'PARENT' | 'OWNER';
     accountType: string;
     districtId: string;
     districtName: string;

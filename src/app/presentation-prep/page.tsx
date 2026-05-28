@@ -6,7 +6,7 @@ const CONFIG: ToolConfig = {
   tool: 'presentation-prep',
   name: 'Presentation Prep',
   blurb:
-    'Tell Limud what your talk is about — get a slide-by-slide outline with on-slide bullets and speaker notes you can actually deliver. Not a script to read off the screen.',
+    "Tell Limud what your talk is about — get a slide-by-slide outline with on-slide bullets and short talking-point cues. You write the actual delivery; Limud just scaffolds the structure.",
   icon: <Presentation size={22} />,
   ring: 'from-indigo-500 to-fuchsia-500',
   chipClass: 'bg-indigo-50 text-indigo-700 border-indigo-100',
@@ -20,7 +20,7 @@ const CONFIG: ToolConfig = {
     placeholder: 'e.g. AP Bio class, 8 minutes',
   },
   helperText:
-    'Slides stay minimal — bullets only. Speaker notes are guidance for delivery, not a paragraph script. Limud also drafts a few likely audience questions for you to rehearse.',
+    "Slides stay minimal. Talking-point cues are short phrases for your own cue cards — not sentences to read aloud. For likely audience questions, Limud lists angles to think through; you write your own answer.",
 };
 
 export default function PresentationPrepPage() {

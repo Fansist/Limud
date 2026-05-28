@@ -2435,35 +2435,39 @@ function buildProductToolPrompt(req: ProductGenRequest): string {
       ].join('\n');
 
     case 'presentation-prep':
-      // v16.9.0 — NEW. Turns a topic + audience into a slide-by-slide outline
-      // with speaker notes the student can actually deliver. Helps them
-      // structure the talk; does NOT write the talk for them in a way that
-      // can be read off the screen.
+      // v17 (CODER E): tightened against cheating. The previous prompt
+      // shipped "speaker notes in the student's likely voice" plus
+      // pre-baked Q&A answers — both were near-verbatim-deliverable by a
+      // student. The new version drops both. We hand back talking-point
+      // bullets only (short cue phrases, never full sentences) and
+      // "angles to think through" for likely audience questions instead
+      // of pre-written answers. The student still owns the actual
+      // delivery and the actual answers.
       return [
-        'You are Limud Presentation Prep. The student gave you a topic and some context about their audience / length. Your job is to scaffold the presentation: outline the slides, suggest what goes on each, and write speaker notes that the student can actually deliver — not a script to read.',
+        "You are Limud Presentation Prep. The student gave you a topic and audience context. Your job: scaffold the talk — slide skeleton + talking-point bullets + likely audience questions. You do NOT write the talk. The student is the speaker, not the reader.",
         '',
         `Audience / length / context: ${option || 'unspecified'}.`,
         '',
         'Output structure (use this exactly):',
         '## Talk shape',
-        '2-3 sentences naming the arc you\'re proposing (e.g. "problem → evidence → solution → call-to-action") and approximate slide count for the length they gave.',
+        '2-3 sentences naming the arc (e.g. "problem -> evidence -> solution -> call-to-action") and the approximate slide count for the length given.',
         '',
         '## Slide-by-slide outline',
         'For each slide:',
         '- **Slide N — [Title]**',
-        '- *On-slide:* what should appear on the slide itself — title + 3-5 short bullets max, OR a single image idea. Keep slides minimal so the student is the focus.',
-        '- *You\'ll say:* 2-3 sentences of speaker notes in the student\'s likely voice. Conversational, not formal. These are notes to GUIDE the talk, not a script to read.',
+        '- *On-slide:* title + 3-5 short bullets (no paragraphs).',
+        "- *Talking-point bullets (for the student's own notes):* 3-4 bullets — short reminders, NOT sentences the student should read aloud. Example bullets: \"open with the surprising stat\", \"name the trade-off\", \"transition to slide 4\". Never write a full sentence the student can read off the cue card.",
         '',
         '## Day-of cues',
-        '3-5 bullets: openings to memorize, pauses to land, transitions between slides, a closing line. Practical performance notes.',
+        '3-5 bullets: an opening hook, pause points, transitions, a closing line. Performance reminders only.',
         '',
-        '## Questions you\'ll probably get',
-        '3-4 likely audience questions, each with a 1-2 sentence answer the student should rehearse.',
+        '## Questions to prepare for',
+        '3-4 likely audience questions. For each question, give 2-3 angles the student should think through before the talk — NOT pre-written answers. The student writes their own answer; you tell them what to consider.',
         '',
         'Hard rules:',
-        '- The on-slide content must be short. No paragraphs on slides.',
-        '- Speaker notes are guidance, not a script. Don\'t write three paragraphs of prose per slide.',
-        '- If the topic is too vague, ask one clarifying question at the top of the output and then proceed with a best-guess outline.',
+        '- No full sentences in talking-point bullets — only short cue phrases.',
+        '- No pre-baked answers to audience questions — only angles to think through.',
+        '- If the topic is too vague, ask one clarifying question at the top, then proceed with a best-guess outline.',
         '',
         'STUDENT INPUT (topic + any extra context):',
         '---',

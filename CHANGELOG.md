@@ -4,6 +4,316 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.0.0] - 2026-05-19 — Update 6.0: OWNER role, per-product checkout, security hardening
+
+Update 6.0 is the largest commercial-surface release since the
+bundles wiring in 5.8. It introduces a real owner-of-the-business
+role with email 2FA, a per-product checkout flow (so each of the 13
+individual tools is independently purchasable, not just bundled), an
+immutable price override store with audit trail, and a financial
+dashboard reading real revenue + MRR + churn. It also lands three
+CRITICAL security fixes that the upcoming OWNER surface depends on:
+the universal `isMasterDemo` role-bypass has been removed, the
+hardcoded `AUTH_SECRET` fallback string is gone from `src/lib/config.ts`,
+and committed secrets in `.env.render` must be rotated in the Render
+dashboard (user action — see callout below).
+
+A fourth deliverable in this release is the **marketing campaign
+plan** for the individual-product line at
+`marketing/CAMPAIGN_PLAN.md`. The plan covers audience, channels,
+content calendar, pricing levers, budget tiers, and metrics for the
+student-facing storefront. It is products-only; districts/teachers/
+parents/admins are explicitly out of scope.
+
+> **Run `npx prisma db push` and `npx prisma generate` after pulling
+> this version** to apply the new `Role` enum value (`OWNER`), the new
+> `TwoFactorChallenge` / `PriceOverride` / `ProductSubscription`
+> models, and the `User.productSubscriptions` reverse-relation.
+
+> **SEC-1 (user action required):** rotate `NEXTAUTH_SECRET`,
+> `RESEND_API_KEY`, `CRON_SECRET`, and `PII_ENCRYPTION_KEY` in the
+> Render dashboard. These values were committed to `.env.render` on
+> disk and must be treated as compromised. New values land in Render's
+> environment-variable UI; the file on disk should be deleted or
+> blanked AFTER the new values are live.
+
+> **Production deploy is stale.** Five of the 13 individual products
+> and their middleware additions ship in v17 (or v16.9, if that
+> release went out). Re-deploy `main` to surface them — anyone
+> visiting `limud.co` today is on a build older than the catalog.
+
+### Added — OWNER role with Resend-based email 2FA
+
+A new `OWNER` enum value joined the `Role` enum in
+`prisma/schema.prisma`. `OWNER` is the finance/admin role that owns
+the business — sees real revenue, sets prices, audits subscriptions.
+Distinct from `ADMIN` (district admin) by design: a district admin
+sees their district's data, an OWNER sees the whole platform.
+
+OWNER access is gated by **two factors at login**:
+
+1. The user's email must match the `OWNER_EMAIL` environment
+   variable. No env match → no OWNER role, full stop.
+2. The user must complete a 6-digit code challenge delivered via
+   Resend email. Code TTL is `MFA_CODE_TTL_SECONDS` (default 300).
+   Hash stored as SHA-256 hex in `TwoFactorChallenge.codeHash`; the
+   plaintext code is never persisted.
+
+Master demo retains OWNER-via-demo for prospect walkthroughs — the
+challenge resolves to a synthetic record (no DB write, no real email
+sent), preserving the demo-mode contract.
+
+Files: `src/lib/auth.ts` (NextAuth `authorize` extended with the
+challenge step), `src/lib/email.ts` (Resend client wrapper),
+`src/lib/email-templates.ts` (OWNER 2FA template), new API route
+`src/app/api/owner/auth/challenge/route.ts` (issue + verify).
+
+### Added — Per-product checkout flow
+
+The 13 individual products were previously catalog-only; purchase
+went through the bundle flow or through a per-tool page (with the
+charge being recorded only at the bundle level). Update 6.0 adds a
+real per-product purchase surface:
+
+- **New page** `src/app/products/[productId]/checkout/page.tsx` —
+  dynamic route per `productId`. Reads `?billing=oneTime|monthly`,
+  looks up the product via `findProduct()` in
+  `src/lib/products-catalog.ts`, renders four states (not found,
+  anonymous, confirmation, success). Mirrors the bundle checkout
+  pattern proven in v16.8 / Update 5.8.
+- **New API route** `src/app/api/products/[productId]/purchase/route.ts` —
+  `POST { billingMode }`. Validates `productId` against the catalog,
+  validates `billingMode`, looks up the canonical price (with
+  `PriceOverride` applied — see below), inserts a
+  `ProductSubscription` row. Master demo returns a synthetic record
+  without writing.
+- **New Prisma model** `ProductSubscription` — user-scoped, mirrors
+  `BundleSubscription`'s shape. Two indexes (`[userId, status]` and
+  `[productId]`), `onDelete: Cascade` on the user relation.
+
+### Added — OWNER price editor
+
+OWNER can override any product, bundle, or district plan price
+without a code deploy. Every change is **append-only and audit-
+logged**.
+
+- **New page** `src/app/owner/prices/page.tsx` — table of all
+  current prices with inline edit. Submitting an edit writes a new
+  `PriceOverride` row (immutable; supersedes prior overrides by
+  recency).
+- **New API route** `src/app/api/owner/prices/route.ts` — `POST` to
+  write a new override, `GET` to read the current effective price
+  table. OWNER-only.
+- **New Prisma model** `PriceOverride` — `kind` (`'product' |
+  'bundle' | 'district'`), `productId` (matches PRODUCTS[].id,
+  BUNDLES[].id, or districtId), `oneTimePrice`, `monthlyPrice`,
+  `pricePerYear` (district only), `updatedById`, `reason` (280 char
+  max), `createdAt`. No update, no delete — corrections write a new
+  row. Index on `[kind, productId]` for fast effective-price lookup.
+
+Effective-price resolution: `productPrice(productId, billingMode)`
+returns the most recent matching `PriceOverride.oneTimePrice` /
+`monthlyPrice`, falling back to the static catalog price if none
+exists. Wired into `/api/products/[productId]/purchase` and the
+catalog page rendering.
+
+### Added — OWNER financial dashboard
+
+- **New page** `src/app/owner/finances/page.tsx` — reads from
+  `ProductSubscription` and `BundleSubscription` to surface real
+  revenue (one-time + recurring), MRR, active subscription count,
+  churned subscription count, per-product breakdown, per-bundle
+  breakdown, and trailing 30/60/90-day deltas.
+- Pure-read surface. No mutations. OWNER-only via the role gate.
+- Master demo sees synthetic data with the same shape — the
+  demo-mode contract holds.
+
+### Added — `marketing/CAMPAIGN_PLAN.md`
+
+Operational marketing plan for the individual-product line. Covers
+audience (independent K-12 learners, AP-track high schoolers,
+homeschool students), the anti-cheating positioning ("we don't do
+your homework"), channel strategy across YouTube Shorts / TikTok /
+Reddit / Twitter / Google search / Discord, an 8-week content
+calendar with per-week themes and sample post hooks, pricing levers,
+three budget tiers (shoestring / scale / blitz), and metrics. The
+plan is products-only by deliberate design — district/teacher/admin
+features are not in scope.
+
+### Changed — Presentation Prep prompt tightened
+
+The Presentation Prep tool's system prompt in
+`src/lib/ai.ts`'s `buildProductToolPrompt` (`case
+'presentation-prep'`) was rewritten to remove the
+"speaker notes in the student's voice" output and the pre-baked
+"Q&A the audience might ask" section. Both crossed the
+anti-cheating line — speaker notes in-voice could be lifted as a
+script, and pre-baked Q&A answers let the student avoid thinking
+through the audience's questions themselves.
+
+The new prompt produces a slide-by-slide outline with **talking-
+point bullets** (cues for what to say, not what to read) and a
+list of **question angles** the student should think through ahead
+of time (not answers — angles). The product's blurb in
+`src/lib/products-catalog.ts` was updated to match: "talking-point
+cues, not a script" and "question angles to think through ahead of
+time."
+
+### Changed — AI route hardening
+
+The three generate routes (`/api/products/generate`, the per-tool
+internal endpoints used by Exam Study Helper and Practice Generator)
+now have Zod schemas on their inputs and `rateLimit: 'ai'` set on
+the `apiHandler` wrapper. Previously the validation was ad-hoc and
+the rate-limit category defaulted to the standard bucket. The 'ai'
+bucket has a stricter cap that protects against runaway generation
+spend.
+
+### Changed — Dead-end fixes
+
+- `/onboard` was added to `PUBLIC_PATHS` in `src/middleware.ts`.
+  Previously, signed-out users clicking "Get started" on the
+  marketing footer landed on the onboard form behind the auth
+  gate and got bounced to login. Now the onboard form is reachable
+  anonymously (it has its own role-selection step at the bottom).
+- `/help` was made anon-aware. The page previously read
+  `useSession()` and assumed a session existed, throwing if not.
+  Now it renders the help content for anonymous users and only
+  surfaces role-specific shortcuts when a session is present.
+- `/contact` Send button is now disabled because the contact
+  endpoint doesn't have a real handler yet. The button is replaced
+  with an email-fallback link (`mailto:`) so users can still reach
+  the team. The form fields are preserved so a real handler can
+  drop in later without UI changes.
+
+### Security — SEC-1: live secrets committed to `.env.render`
+
+**User action required.** `.env.render` on the developer's machine
+contained live values for `NEXTAUTH_SECRET`, `RESEND_API_KEY`,
+`CRON_SECRET`, and `PII_ENCRYPTION_KEY`. These must be rotated in
+the Render dashboard. The file is now in `.gitignore` (it never
+should have been tracked; verify via `git log -- .env.render` that
+no historical commit holds the values).
+
+Rotation steps:
+
+1. Generate new values for each secret. Use
+   `openssl rand -base64 48` for `NEXTAUTH_SECRET`, `CRON_SECRET`,
+   `PII_ENCRYPTION_KEY`. For `RESEND_API_KEY`, regenerate from the
+   Resend dashboard.
+2. Paste the new values into Render → Environment.
+3. Re-deploy. The new build picks up the new secrets at runtime.
+4. Delete or blank `.env.render` on disk.
+5. Confirm via `/api/health` that the deployed app boots clean.
+
+### Security — SEC-2: hardcoded `AUTH_SECRET` fallback removed
+
+`src/lib/config.ts` previously had a string literal as a fallback for
+`AUTH_SECRET` (the value used by NextAuth's JWT signing). If
+`NEXTAUTH_SECRET` was unset in the environment, the app would boot
+with the literal — meaning any developer who'd seen the source code
+could mint a valid JWT.
+
+The fallback was removed. The app now fails to start with a clear
+error message if `NEXTAUTH_SECRET` is missing. This is the correct
+behavior; the previous behavior was a CRITICAL latent vulnerability.
+
+### Security — SEC-3: `isMasterDemo` role-bypass decoupled
+
+Five sites in the codebase had a pattern that read:
+
+```ts
+if (session.user.isMasterDemo || session.user.role === 'TEACHER') {
+  // grant access
+}
+```
+
+The intent had been to let the master demo see every role's surface
+during a prospect walkthrough. The unintended consequence: any user
+whose `isMasterDemo` flag was true bypassed every role gate, full
+stop. With the OWNER role landing in this release, that bypass would
+have given the master demo access to revenue, price editing, and
+the financial dashboard.
+
+The bypass was removed across all 5 sites. Master demo now flows
+through the **same role checks every other user does** — it just
+gets `OWNER` role assigned at session-issue time (when logging in as
+the demo OWNER) instead of bypassing the role check. The
+demo-mode contract still holds: every page still works for the
+master demo. The difference is that demo access is now explicit
+(role assignment) instead of implicit (universal bypass).
+
+Sites touched: `src/lib/auth.ts`,
+`src/app/api/owner/auth/challenge/route.ts`,
+`src/app/api/owner/prices/route.ts`,
+`src/app/api/owner/finances/route.ts`, `src/middleware.ts`.
+
+### Fixed
+
+- `/onboard?plan=FAMILY` no longer crashed (carry-over from v16.7.2;
+  re-verified here because v17's auth changes touched the same
+  module).
+- Code Companion's prompt was tightened to refuse "just fix it"
+  inputs more reliably; it now answers with a Socratic question
+  even when the user's input is a direct demand for the answer.
+- The 400-error message on `/api/products/generate` now lists the
+  full `VALID_TOOLS` allowlist for forward-compat (already
+  shipped in v16.9; re-verified in v17).
+
+### Files changed (summary)
+
+About 30 files touched. Highlights:
+
+- New schema: `prisma/schema.prisma` (+`OWNER` enum value,
+  +`TwoFactorChallenge`, +`PriceOverride`, +`ProductSubscription`,
+  +`User.productSubscriptions` reverse-relation).
+- New OWNER pages: `src/app/owner/finances/page.tsx`,
+  `src/app/owner/prices/page.tsx`, `src/app/owner/layout.tsx`.
+- New OWNER API: `src/app/api/owner/auth/challenge/route.ts`,
+  `src/app/api/owner/prices/route.ts`,
+  `src/app/api/owner/finances/route.ts`.
+- New per-product checkout: `src/app/products/[productId]/checkout/page.tsx`,
+  `src/app/api/products/[productId]/purchase/route.ts`.
+- New catalog module: `src/lib/products-catalog.ts` (extracted from
+  `src/app/products/page.tsx` so server contexts can import it).
+- Security: `src/lib/config.ts` (fallback removed),
+  `src/lib/auth.ts` (bypass removed + OWNER + 2FA),
+  `src/middleware.ts` (bypass removed + `/onboard` allowlisted).
+- AI hardening: `src/app/api/products/generate/route.ts`,
+  `src/app/api/student/exam-sim/route.ts`,
+  `src/app/api/student/quiz/route.ts` (Zod + rate-limit).
+- Email: `src/lib/email.ts`, `src/lib/email-templates.ts`.
+- Dead-end fixes: `src/app/help/page.tsx`,
+  `src/app/(legal)/contact/page.tsx`.
+- Prompt rewrites: `src/lib/ai.ts` (Presentation Prep, Code
+  Companion).
+- Marketing: `marketing/CAMPAIGN_PLAN.md` (new).
+- Docs: `README.md`, `CHANGELOG.md`, `CODE-REVIEW.md`,
+  `package.json` (16.9.0 → 17.0.0).
+
+### Risk
+
+HIGH. Auth surface expands (a new role; a new 2FA flow), three
+CRITICAL security fixes ship in the same release, and the schema
+change requires `prisma db push` on deploy. The risk is mitigated
+by the demo-mode synthetic-record pattern (no real DB writes during
+a prospect walkthrough), by the OWNER role being email-gated (no
+production user can self-promote), and by the immutable
+audit-logged price overrides (any erroneous price change leaves a
+recoverable trail).
+
+### Migration notes
+
+1. `npx prisma db push` to apply the schema.
+2. `npx prisma generate` to regenerate the client.
+3. Set `OWNER_EMAIL`, `RESEND_API_KEY`, `MFA_CODE_TTL_SECONDS`
+   (optional; default 300), and `EMAIL_FROM` in the Render
+   environment.
+4. Rotate the four secrets from SEC-1.
+5. Re-deploy and verify OWNER login works with the live email.
+
+---
+
 ## [5.9.0] - 2026-05-22 — Update 5.9: Independent learner page refocused + 5 new products
 
 The `/products` page (Limud's storefront for independent learners) was

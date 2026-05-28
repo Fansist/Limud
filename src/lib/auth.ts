@@ -1,17 +1,20 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║  LIMUD v9.3.5 — NextAuth Configuration                                   ║
- * ║  Zero-env-var authentication — all defaults are embedded.              ║
+ * ║  LIMUD v17 — NextAuth Configuration                                      ║
  * ║                                                                        ║
- * ║  Key v9.3.5 fixes:                                                       ║
- * ║  • Cookie names use plain names (no __Secure- / __Host- prefix)       ║
- * ║    so login works on both HTTP and HTTPS without any config.           ║
- * ║  • Secret is embedded — no NEXTAUTH_SECRET env var required.          ║
- * ║  • NEXTAUTH_URL is auto-derived from the request when not set.        ║
- * ║  • Brute-force + audit logging remain fully active.                   ║
+ * ║  v17 adds the OWNER role + Resend-based 2FA login challenge:          ║
+ * ║  • OWNER_EMAIL (set in env) gets elevated to role='OWNER' at sign-in. ║
+ * ║  • OWNER login flow: email+password ─→ MFA_REQUIRED:<challengeId> ─→  ║
+ * ║    user enters 6-digit code ─→ POST /api/auth/verify-otp returns      ║
+ * ║    mfaProof JWT ─→ second authorize() call with mfaProof completes.   ║
+ * ║  • Master demo can be the OWNER too (when MASTER_DEMO_EMAIL ===       ║
+ * ║    OWNER_EMAIL). Its session still carries isMasterDemo=true so write ║
+ * ║    gates downstream can synthesize demo data.                         ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
+import { createHash } from 'crypto';
+import jwt from 'jsonwebtoken';
 import { NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import {
@@ -22,13 +25,15 @@ import {
   trackSecurityEvent,
   SECURITY_CONFIG,
 } from '@/lib/security';
-import { AUTH_SECRET, COOKIE_SECURE } from '@/lib/config';
+import { AUTH_SECRET, COOKIE_SECURE, MFA_CODE_TTL_SECONDS, OWNER_EMAIL, isOwnerEmail } from '@/lib/config';
 import {
   MASTER_DEMO_EMAIL,
   MASTER_DEMO_PASSWORD,
   isDemoEmail,
 } from '@/lib/demo-accounts';
 import { extractSubdomain } from './district-host';
+import { sendEmail } from '@/lib/email';
+import { otpCodeEmail } from '@/lib/email-templates';
 
 // ═══════════════════════════════════════════════════════════════════
 // DEMO ACCOUNTS
@@ -141,9 +146,102 @@ async function enforceDistrictLockdown(
 
 /** Get role for an email (used for client-side redirect) */
 export function getDemoRole(email: string): string | null {
-  if (email === MASTER_DEMO.email) return 'TEACHER';
+  // v17: master demo can be elevated to OWNER if its email matches OWNER_EMAIL.
+  if (email === MASTER_DEMO.email) {
+    return OWNER_EMAIL && isOwnerEmail(email) ? 'OWNER' : 'TEACHER';
+  }
   const account = DEMO_ACCOUNTS[email];
   return account ? account.role : null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 2FA HELPERS (v17)
+// ═══════════════════════════════════════════════════════════════════
+
+interface MfaProofPayload {
+  challengeId: string;
+  userId: string;
+  purpose: string;
+}
+
+/**
+ * Generate a fresh 6-digit code, persist its SHA-256 hash in the
+ * TwoFactorChallenge table, and email the cleartext code via Resend.
+ * Returns the challenge id so the client can correlate the OTP screen.
+ */
+async function issueMfaChallenge(opts: {
+  userId: string;
+  email: string;
+  ip: string;
+  userAgent: string;
+}): Promise<string> {
+  const { userId, email, ip, userAgent } = opts;
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const codeHash = createHash('sha256').update(code).digest('hex');
+  const expiresAt = new Date(Date.now() + MFA_CODE_TTL_SECONDS * 1000);
+
+  const { default: prisma } = await import('@/lib/prisma');
+  const challenge = await prisma.twoFactorChallenge.create({
+    data: {
+      userId,
+      codeHash,
+      expiresAt,
+      ip: ip || null,
+      userAgent: userAgent ? userAgent.slice(0, 256) : null,
+    },
+    select: { id: true },
+  });
+
+  const ttlMin = Math.max(1, Math.round(MFA_CODE_TTL_SECONDS / 60));
+  const tmpl = otpCodeEmail(code, ttlMin);
+  try {
+    await sendEmail({ to: email, subject: tmpl.subject, html: tmpl.html });
+  } catch (err) {
+    // Don't leak the code or the failure to the client; log only.
+    console.error('[Limud Auth] OTP email send failed:', err);
+  }
+
+  return challenge.id;
+}
+
+/**
+ * Verify an mfaProof JWT against a consumed challenge.
+ * Returns `true` only when the proof is well-formed, signed by AUTH_SECRET,
+ * has `purpose === 'mfa'`, and its `challengeId` points to a consumed row
+ * whose userId matches the expected user.
+ */
+async function verifyMfaProof(opts: {
+  mfaProof: string;
+  expectedUserId: string;
+}): Promise<boolean> {
+  const { mfaProof, expectedUserId } = opts;
+  let payload: MfaProofPayload;
+  try {
+    const decoded = jwt.verify(mfaProof, AUTH_SECRET) as Partial<MfaProofPayload>;
+    if (
+      !decoded ||
+      typeof decoded.challengeId !== 'string' ||
+      typeof decoded.userId !== 'string' ||
+      decoded.purpose !== 'mfa'
+    ) {
+      return false;
+    }
+    payload = decoded as MfaProofPayload;
+  } catch {
+    return false;
+  }
+
+  if (payload.userId !== expectedUserId) return false;
+
+  const { default: prisma } = await import('@/lib/prisma');
+  const challenge = await prisma.twoFactorChallenge.findUnique({
+    where: { id: payload.challengeId },
+    select: { userId: true, consumedAt: true },
+  });
+  if (!challenge) return false;
+  if (!challenge.consumedAt) return false;
+  if (challenge.userId !== expectedUserId) return false;
+  return true;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -202,6 +300,8 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        // v17: optional MFA proof JWT issued by /api/auth/verify-otp.
+        mfaProof: { label: 'MFA Proof', type: 'text' },
       },
       async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
@@ -210,12 +310,15 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.toLowerCase().trim();
         const password = credentials.password;
+        const mfaProof = credentials.mfaProof?.trim() || '';
         const headers = req?.headers;
         const xff = headers?.['x-forwarded-for'];
         const xfwd = Array.isArray(xff) ? xff[0] : xff;
         const xreal = headers?.['x-real-ip'];
         const xrealStr = Array.isArray(xreal) ? xreal[0] : xreal;
         const ip = xfwd?.split(',')[0]?.trim() || xrealStr || '0.0.0.0';
+        const uaRaw = headers?.['user-agent'];
+        const userAgent = Array.isArray(uaRaw) ? (uaRaw[0] || '') : (uaRaw || '');
 
         // ── BRUTE-FORCE PROTECTION ──
         const lockStatus = checkAccountLocked(email);
@@ -234,114 +337,178 @@ export const authOptions: NextAuthOptions = {
         // Pull host once for district subdomain lockdown checks below.
         const host = getHostFromReq(headers);
 
+        // The user object we'll return at the end of the function. Each
+        // primary-credential branch below sets `verifiedUser`; the
+        // post-verification block handles the OWNER MFA gate uniformly.
+        let verifiedUser: User | null = null;
+
         // ── 1. Master Demo ──
         if (email === MASTER_DEMO.email && password === MASTER_DEMO.password) {
           // Master demo intentionally bypasses district subdomain lockdown.
-          recordSuccessfulLogin(email);
-          trackSecurityEvent('success_login', ip);
-          createAuditLog({
-            action: 'LOGIN_SUCCESS', userEmail: email, ip, userAgent: 'auth',
-            resource: '/api/auth/callback/credentials',
-            details: { type: 'master_demo' }, severity: 'info', success: true,
-          });
-          return MASTER_DEMO.user;
+          verifiedUser = MASTER_DEMO.user;
         }
 
         // ── 2. Demo accounts (password: password123) ──
-        const demoAccount = DEMO_ACCOUNTS[email];
-        if (demoAccount && password === 'password123') {
-          await enforceDistrictLockdown(host, email, demoAccount.districtId || '');
-          recordSuccessfulLogin(email);
-          trackSecurityEvent('success_login', ip);
-          createAuditLog({
-            action: 'LOGIN_SUCCESS', userEmail: email, ip, userAgent: 'auth',
-            resource: '/api/auth/callback/credentials',
-            details: { type: 'demo', role: demoAccount.role }, severity: 'info', success: true,
-          });
-          return demoAccount;
+        if (!verifiedUser) {
+          const demoAccount = DEMO_ACCOUNTS[email];
+          if (demoAccount && password === 'password123') {
+            await enforceDistrictLockdown(host, email, demoAccount.districtId || '');
+            verifiedUser = demoAccount;
+          }
         }
 
         // ── 3. Database authentication ──
-        try {
-          const { default: prisma } = await import('@/lib/prisma');
-          const user = await prisma.user.findUnique({
-            where: { email },
-            include: { district: true },
-          });
-
-          if (!user || !user.isActive) {
-            const lockResult = recordFailedLogin(email, ip);
-            trackSecurityEvent('failed_login', ip);
-            createAuditLog({
-              action: 'LOGIN_FAILURE', userEmail: email, ip, userAgent: 'auth',
-              resource: '/api/auth/callback/credentials',
-              details: { reason: 'Invalid credentials', remainingAttempts: lockResult.remainingAttempts },
-              severity: lockResult.locked ? 'critical' : 'warning', success: false,
+        if (!verifiedUser) {
+          try {
+            const { default: prisma } = await import('@/lib/prisma');
+            const user = await prisma.user.findUnique({
+              where: { email },
+              include: { district: true },
             });
-            if (lockResult.locked) {
-              trackSecurityEvent('lockout', ip);
-              throw new Error(`Too many failed attempts. Account locked for ${Math.ceil(lockResult.lockoutDurationMs / 60000)} minutes.`);
+
+            if (!user || !user.isActive) {
+              const lockResult = recordFailedLogin(email, ip);
+              trackSecurityEvent('failed_login', ip);
+              createAuditLog({
+                action: 'LOGIN_FAILURE', userEmail: email, ip, userAgent: 'auth',
+                resource: '/api/auth/callback/credentials',
+                details: { reason: 'Invalid credentials', remainingAttempts: lockResult.remainingAttempts },
+                severity: lockResult.locked ? 'critical' : 'warning', success: false,
+              });
+              if (lockResult.locked) {
+                trackSecurityEvent('lockout', ip);
+                throw new Error(`Too many failed attempts. Account locked for ${Math.ceil(lockResult.lockoutDurationMs / 60000)} minutes.`);
+              }
+              throw new Error('Invalid email or password');
             }
+
+            const bcrypt = (await import('bcryptjs')).default;
+            const isValid = await bcrypt.compare(password, user.password);
+            if (!isValid) {
+              const lockResult = recordFailedLogin(email, ip);
+              trackSecurityEvent('failed_login', ip);
+              createAuditLog({
+                action: 'LOGIN_FAILURE', userEmail: email, ip, userAgent: 'auth',
+                resource: '/api/auth/callback/credentials',
+                details: { reason: 'Wrong password', remainingAttempts: lockResult.remainingAttempts },
+                severity: lockResult.locked ? 'critical' : 'warning', success: false,
+              });
+              if (lockResult.locked) {
+                trackSecurityEvent('lockout', ip);
+                throw new Error(`Too many failed attempts. Account locked for ${Math.ceil(lockResult.lockoutDurationMs / 60000)} minutes.`);
+              }
+              throw new Error('Invalid email or password');
+            }
+
+            // ── District subdomain lockdown (v15.0) ──
+            await enforceDistrictLockdown(host, email, user.districtId || '');
+
+            const isHomeschoolParent = user.role === 'PARENT' && user.accountType === 'HOMESCHOOL';
+            verifiedUser = {
+              id: user.id, email: user.email, name: user.name, role: user.role,
+              accountType: user.accountType || 'DISTRICT',
+              districtId: user.districtId || '', districtName: user.district?.name || '',
+              selectedAvatar: user.selectedAvatar, isHomeschoolParent,
+              gradeLevel: user.gradeLevel || '', isMasterDemo: false,
+            };
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            // Re-throw known auth errors (district lockdown, account locked,
+            // invalid creds, missing fields).
+            if (
+              msg.includes('locked') ||
+              msg === 'Invalid email or password' ||
+              msg === 'Email and password are required' ||
+              msg === 'This subdomain does not match a Limud district.' ||
+              msg.startsWith('This account is not a member of ')
+            ) {
+              throw e;
+            }
+            console.error('[Limud Auth] Database error during login:', msg);
             throw new Error('Invalid email or password');
           }
+        }
 
-          const bcrypt = (await import('bcryptjs')).default;
-          const isValid = await bcrypt.compare(password, user.password);
-          if (!isValid) {
-            const lockResult = recordFailedLogin(email, ip);
-            trackSecurityEvent('failed_login', ip);
-            createAuditLog({
-              action: 'LOGIN_FAILURE', userEmail: email, ip, userAgent: 'auth',
-              resource: '/api/auth/callback/credentials',
-              details: { reason: 'Wrong password', remainingAttempts: lockResult.remainingAttempts },
-              severity: lockResult.locked ? 'critical' : 'warning', success: false,
-            });
-            if (lockResult.locked) {
-              trackSecurityEvent('lockout', ip);
-              throw new Error(`Too many failed attempts. Account locked for ${Math.ceil(lockResult.lockoutDurationMs / 60000)} minutes.`);
-            }
-            throw new Error('Invalid email or password');
-          }
-
-          // ── District subdomain lockdown (v15.0) ──
-          // Throws a clear error on subdomain/district mismatch.
-          await enforceDistrictLockdown(host, email, user.districtId || '');
-
-          // Success
-          recordSuccessfulLogin(email);
-          trackSecurityEvent('success_login', ip);
-          createAuditLog({
-            action: 'LOGIN_SUCCESS', userId: user.id, userEmail: email,
-            userRole: user.role, ip, userAgent: 'auth',
-            resource: '/api/auth/callback/credentials',
-            details: { type: 'database' }, severity: 'info', success: true,
-          });
-
-          const isHomeschoolParent = user.role === 'PARENT' && user.accountType === 'HOMESCHOOL';
-          const result: User = {
-            id: user.id, email: user.email, name: user.name, role: user.role,
-            accountType: user.accountType || 'DISTRICT',
-            districtId: user.districtId || '', districtName: user.district?.name || '',
-            selectedAvatar: user.selectedAvatar, isHomeschoolParent,
-            gradeLevel: user.gradeLevel || '', isMasterDemo: false,
-          };
-          return result;
-        } catch (e: any) {
-          // Re-throw known auth errors (district lockdown, account locked,
-          // invalid creds, missing fields).
-          if (
-            e.message.includes('locked') ||
-            e.message === 'Invalid email or password' ||
-            e.message === 'Email and password are required' ||
-            e.message === 'This subdomain does not match a Limud district.' ||
-            e.message.startsWith('This account is not a member of ')
-          ) {
-            throw e;
-          }
-          // Database unreachable — fall through to generic error
-          console.error('[Limud Auth] Database error during login:', e.message);
+        if (!verifiedUser) {
+          // Defensive — every branch above either set verifiedUser or threw.
           throw new Error('Invalid email or password');
         }
+
+        // ── 4. OWNER 2FA gate ──
+        // If this email is the configured OWNER_EMAIL, the user must
+        // present a valid mfaProof. The proof is issued by
+        // /api/auth/verify-otp after the user enters the 6-digit code
+        // we mailed them. Master demo is included: when OWNER_EMAIL
+        // === MASTER_DEMO_EMAIL, the demo session is also gated.
+        if (isOwnerEmail(email)) {
+          const ownerUserId = verifiedUser.id;
+
+          if (!mfaProof) {
+            // First call: mint a challenge, email the code, signal the client.
+            const challengeId = await issueMfaChallenge({
+              userId: ownerUserId,
+              email,
+              ip,
+              userAgent,
+            });
+            createAuditLog({
+              action: 'LOGIN_FAILURE', userId: ownerUserId, userEmail: email,
+              ip, userAgent: 'auth',
+              resource: '/api/auth/callback/credentials',
+              details: { reason: 'MFA challenge issued', challengeId },
+              severity: 'info', success: false,
+            });
+            // NextAuth surfaces this string as `result.error` on the
+            // client; the login UI parses it to switch to the OTP screen.
+            throw new Error(`MFA_REQUIRED:${challengeId}`);
+          }
+
+          const proofValid = await verifyMfaProof({
+            mfaProof,
+            expectedUserId: ownerUserId,
+          });
+          if (!proofValid) {
+            trackSecurityEvent('failed_login', ip);
+            createAuditLog({
+              action: 'LOGIN_FAILURE', userId: ownerUserId, userEmail: email,
+              ip, userAgent: 'auth',
+              resource: '/api/auth/callback/credentials',
+              details: { reason: 'Invalid MFA proof' },
+              severity: 'critical', success: false,
+            });
+            throw new Error('Invalid MFA proof');
+          }
+
+          // Override role to OWNER for this session.
+          verifiedUser = {
+            ...verifiedUser,
+            role: 'OWNER',
+          };
+        }
+
+        // Success — record audit + brute-force success and return.
+        recordSuccessfulLogin(email);
+        trackSecurityEvent('success_login', ip);
+        createAuditLog({
+          action: 'LOGIN_SUCCESS',
+          userId: verifiedUser.id,
+          userEmail: email,
+          userRole: verifiedUser.role,
+          ip, userAgent: 'auth',
+          resource: '/api/auth/callback/credentials',
+          details: {
+            type:
+              email === MASTER_DEMO.email
+                ? 'master_demo'
+                : isDemoEmail(email)
+                  ? 'demo'
+                  : 'database',
+            ownerElevated: verifiedUser.role === 'OWNER',
+          },
+          severity: 'info', success: true,
+        });
+
+        return verifiedUser;
       },
     }),
   ],

@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <code>v16.9.0 · Update 5.9 · Independent learner page refocused as a clean catalog + 5 new individual products (Flashcard Forge, Presentation Prep, Code Companion, Reading Decoder, Exam Postmortem)</code>
+  <code>v17.0.0 · Update 6.0 · OWNER role + Resend 2FA · Per-product checkout · Immutable price overrides · Financial dashboard · 3 CRITICAL security fixes · Marketing campaign plan</code>
 </p>
 
 ---
@@ -208,6 +208,167 @@ custom AI training, dedicated support) that families don't need.
 
 Read those again. We mean both.
 
+---
+
+## Individual products — the standalone tool line
+
+Beyond the district/family product, Limud sells 13 standalone study
+tools individually at `/products`. Anyone (signed in or anonymous,
+no district required) can buy a single tool, a bundle, or the
+All-Access Pass. Source of truth for the catalog is
+`src/lib/products-catalog.ts`. Source of truth for bundles is
+`src/lib/bundles.ts`. Marketing collateral for this line lives in
+`marketing/` (see `marketing/CAMPAIGN_PLAN.md` for the campaign
+plan, `marketing/AI_VIDEO_BRIEF.md` for the brand kit and ad spec).
+
+### The 13 tools
+
+| Tool | Page | One-time | Monthly |
+|---|---|---|---|
+| Exam Study Helper | `/study` | $9 / exam | $5/mo |
+| Practice Generator | `/practice` | $5 / topic | $4/mo |
+| Math Tutor | `/math-solver` | $7 / pack of 50 | $4/mo |
+| Essay Coach | `/essay-coach` | $7 / draft | $5/mo |
+| Notes Cleaner | `/notes-cleaner` | $4 / lecture | $4/mo |
+| Lab Report Reviewer | `/lab-report` | $6 / report | $4/mo |
+| Citation Finder | `/citation-finder` | $4 / pack of 25 | $3/mo |
+| Language Lab | `/language-lab` | $12 / semester | $5/mo |
+| Flashcard Forge | `/flashcard-forge` | $5 / deck | $4/mo |
+| Presentation Prep | `/presentation-prep` | $6 / deck | $4/mo |
+| Code Companion | `/code-companion` | $8 / pack of 30 | $5/mo |
+| Reading Decoder | `/reading-decoder` | $5 / article | $4/mo |
+| Exam Postmortem | `/exam-postmortem` | $4 / exam | $3/mo |
+
+### The 4 bundles
+
+| Bundle | One-time | Monthly | Includes |
+|---|---|---|---|
+| All-Access Pass | $79 | $15/mo | All 13 tools |
+| Study Bundle | $15 | $9/mo | Exam Study Helper + Practice Generator + Notes Cleaner |
+| Writing Bundle | $12 | $8/mo | Essay Coach + Citation Finder + Notes Cleaner |
+| STEM Bundle | $14 | $9/mo | Math Tutor + Lab Report Reviewer + Practice Generator |
+
+Every tool ships with a Socratic-by-design refusal: hints not
+answers, structural feedback not rewrites, decoded notes never
+invented. The anti-cheating posture is the differentiator, not an
+afterthought.
+
+### Per-product checkout (new in 6.0)
+
+Per-product checkout lives at
+`/products/[productId]/checkout?billing=oneTime|monthly`, with the
+purchase API at `/api/products/[productId]/purchase`. Purchases
+write to the `ProductSubscription` Prisma model (user-scoped, with
+`onDelete: Cascade`). Bundle checkout still lives at
+`/products/bundle/[bundleId]/checkout`.
+
+---
+
+## Auth roles
+
+| Role | Where it comes from | What it sees |
+|---|---|---|
+| `STUDENT` | self-registration or district provisioning | their own coursework |
+| `TEACHER` | district provisioning | their own classes |
+| `PARENT` | self-registration with up to 5 children | their own children |
+| `ADMIN` | district admin (one or more per district) | the whole district |
+| `OWNER` | email-gated by `OWNER_EMAIL` env + 2FA at login | the whole platform — finance, prices, all subs |
+
+`OWNER` is the finance/admin role for the business itself, distinct
+from `ADMIN` (which is district-level). See the **OWNER role**
+section below.
+
+---
+
+## OWNER role
+
+Internal-only. The `OWNER` role belongs to whoever runs the
+business — the person who needs to see real revenue, set prices,
+and audit subscription activity. Not customer-facing. Not marketed.
+
+Two factors gate every OWNER login:
+
+1. **Email match.** The user's email must equal the `OWNER_EMAIL`
+   environment variable. Anyone else who happens to know the
+   password still fails the role check.
+2. **Email 2FA.** A 6-digit code is mailed via Resend to the OWNER
+   address. The code's SHA-256 hash is stored in
+   `TwoFactorChallenge`; the plaintext is never persisted. Code TTL
+   defaults to 300 seconds (override with `MFA_CODE_TTL_SECONDS`).
+
+OWNER surfaces:
+
+- `/owner/finances` — real revenue + MRR + active subs + churn,
+  with per-product and per-bundle breakdowns, served by
+  `/api/owner/finances`.
+- `/owner/prices` — inline price editor for every product, bundle,
+  and district plan. Edits append a row to `PriceOverride`; nothing
+  is mutated in place. Served by `/api/owner/prices`.
+
+Master demo retains a synthetic OWNER walkthrough — the same pages
+render with mocked data, no DB writes, no real email sent during
+the 2FA step. The role gate itself is enforced for the demo the same
+way it is for real users; the `isMasterDemo` universal-role-bypass
+was removed in 6.0 (see CHANGELOG SEC-3).
+
+---
+
+## Environment variables
+
+The variables that operationally matter (defaults documented where
+applicable; full list in `LIMUD-DEVELOPER-GUIDE.txt`).
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `DATABASE_URL` | yes | Postgres connection string |
+| `NEXTAUTH_SECRET` | yes | NextAuth JWT signing key. **No fallback** — app fails to boot if unset (since 6.0). |
+| `NEXTAUTH_URL` | yes (in prod) | Base URL for callback redirects |
+| `GEMINI_API_KEY` | yes | Google AI key — paid tier |
+| `GEMINI_IMAGE_MODEL` | no | Override for image generation; defaults to `gemini-2.5-flash-image-preview` |
+| `LIMUD_COMIC_IMAGES` | no | `false` to disable AI comic illustrations |
+| `LIMUD_COMIC_IMAGE_LIMIT` | no | Max panels to illustrate; default 6 |
+| `PII_ENCRYPTION_KEY` | yes | Symmetric key for student PII at rest |
+| `CRON_SECRET` | yes | Shared secret for cron-job endpoints |
+| `FORCE_DEMO` | no | `true` to force every account into demo mode |
+| **`OWNER_EMAIL`** | yes (for OWNER login) | The email address allowed to assume the OWNER role |
+| **`RESEND_API_KEY`** | yes (for OWNER login + transactional email) | Resend API key for delivering 2FA codes |
+| **`MFA_CODE_TTL_SECONDS`** | no | TTL for OWNER 2FA codes in seconds; default 300 |
+| **`EMAIL_FROM`** | yes (for any outbound email) | The `From` address Resend uses, e.g. `noreply@limud.co` |
+
+The four secrets `NEXTAUTH_SECRET`, `RESEND_API_KEY`, `CRON_SECRET`,
+and `PII_ENCRYPTION_KEY` were previously committed to a local
+`.env.render` file. They have been removed and must be rotated in
+the Render dashboard — see CHANGELOG SEC-1.
+
+---
+
+## Database — Prisma models
+
+The schema has 74 models as of 6.0. Highlights of recent additions:
+
+- `Material`, `PersonalizedMaterial` — the two-upload teaching
+  engine (new in 3.0).
+- `RewardStats` — preserved for historical data continuity;
+  dormant in 3.1.
+- `BundleSubscription` — bundle purchase records (new in 5.8).
+- **`TwoFactorChallenge`** — OWNER 2FA codes (new in 6.0).
+- **`PriceOverride`** — append-only price audit trail (new in 6.0).
+- **`ProductSubscription`** — per-product purchase records (new
+  in 6.0).
+
+Schema changes always go through `npx prisma db push` — Limud does
+not ship migration history. After pulling 6.0, run:
+
+```bash
+npx prisma db push
+npx prisma generate
+```
+
+to apply the new `OWNER` enum value, the three new models, and the
+`User.productSubscriptions` reverse-relation.
+
+---
+
 ## Local development & demo mode
 
 Every feature in Limud works *without a database* via demo mode — useful
@@ -351,7 +512,7 @@ src/
 │   ├── middleware.ts    # role gates, auth guards
 │   └── constants.ts     # SUBJECTS, GRADE_LEVELS
 └── prisma/
-    └── schema.prisma    # 71 models (Material + PersonalizedMaterial new in 3.0)
+    └── schema.prisma    # 74 models (TwoFactorChallenge + PriceOverride + ProductSubscription new in 6.0)
 ```
 
 ---
