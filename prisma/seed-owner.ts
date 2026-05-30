@@ -63,41 +63,52 @@ async function main() {
   const email = rawEmail.toLowerCase();
   const passwordHash = await bcrypt.hash(password, 12);
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-
-  if (existing) {
-    // Update password + role; leave everything else (name, createdAt, etc.) intact.
-    const updated = await prisma.user.update({
+  // v17.2.2: switched to upsert (atomic + simpler) and stripped the
+  // non-existent `emailVerified` field that was failing the create in
+  // v17.2 / v17.2.1 (the User model has no such column). The build-step
+  // chain was swallowing the Prisma error, so the build "succeeded" but
+  // no OWNER user was written. Login then failed because the row didn't
+  // exist. Lesson: every field in the data block must exist on the
+  // schema; rely on Prisma defaults for everything else.
+  //
+  // Required fields per prisma/schema.prisma:User — email, name,
+  // password, role. Everything else has a default OR is optional.
+  // We set onboardingComplete=true so the OWNER doesn't get redirected
+  // through the onboarding wizard on first sign-in.
+  try {
+    const result = await prisma.user.upsert({
       where: { email },
-      data: {
+      update: {
         password: passwordHash,
         role: 'OWNER',
-        emailVerified: existing.emailVerified ?? new Date(),
       },
-      select: { id: true, email: true, role: true, name: true },
-    });
-    console.log('[seed-owner] OWNER user already existed — password and role updated.');
-    console.log('  id:    ', updated.id);
-    console.log('  email: ', updated.email);
-    console.log('  role:  ', updated.role);
-    console.log('  name:  ', updated.name);
-    console.warn('[seed-owner] WARNING: existing OWNER password has been REPLACED.');
-  } else {
-    const created = await prisma.user.create({
-      data: {
+      create: {
         email,
         password: passwordHash,
         name: 'Limud Owner',
         role: 'OWNER',
         accountType: 'INDIVIDUAL',
-        emailVerified: new Date(),
+        onboardingComplete: true,
       },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, role: true, name: true, createdAt: true },
     });
-    console.log('[seed-owner] OWNER user created.');
-    console.log('  id:    ', created.id);
-    console.log('  email: ', created.email);
-    console.log('  role:  ', created.role);
+    const isNew = Math.abs(Date.now() - result.createdAt.getTime()) < 5000;
+    if (isNew) {
+      console.log('[seed-owner] OWNER user created.');
+    } else {
+      console.log('[seed-owner] OWNER user already existed — password and role updated.');
+      console.warn('[seed-owner] WARNING: existing OWNER password has been REPLACED.');
+    }
+    console.log('  id:    ', result.id);
+    console.log('  email: ', result.email);
+    console.log('  role:  ', result.role);
+    console.log('  name:  ', result.name);
+  } catch (err) {
+    // Loudly fail so it shows up in the build log (the build chain
+    // swallows the exit code via `|| echo`, but the stderr WILL appear).
+    console.error('[seed-owner] Prisma upsert FAILED:');
+    console.error(err);
+    process.exit(1);
   }
 
   console.log('');
