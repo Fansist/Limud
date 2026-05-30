@@ -32,24 +32,30 @@ async function main() {
   const rawEmail = process.env.OWNER_EMAIL?.trim();
   const password = process.env.OWNER_INITIAL_PASSWORD;
 
+  // v17.2.1: this script also runs in the build step (see package.json
+  // "build"). When the env vars aren't set, we treat that as "skip
+  // seeding" — NOT as a build failure. Manual runs (`npm run
+  // db:seed-owner`) still report the missing vars clearly but with
+  // exit code 0, since the operator can re-run after fixing env.
   if (!rawEmail) {
-    console.error('[seed-owner] OWNER_EMAIL is not set. Aborting.');
-    console.error('  Example:');
-    console.error('    OWNER_EMAIL=Limud-Owner@Limud.co \\');
-    console.error('    OWNER_INITIAL_PASSWORD=YourStrongPasswordHere \\');
-    console.error('    npm run db:seed-owner');
-    process.exit(1);
+    console.log('[seed-owner] OWNER_EMAIL is not set — skipping OWNER seed.');
+    console.log('  To seed an OWNER user, set BOTH OWNER_EMAIL and OWNER_INITIAL_PASSWORD');
+    console.log('  in the environment, then re-run (or trigger a redeploy).');
+    process.exit(0);
   }
 
   if (!password) {
-    console.error('[seed-owner] OWNER_INITIAL_PASSWORD is not set. Aborting.');
-    console.error('  This is one-shot — set it just for the seed run, then');
-    console.error('  REMOVE it from your environment after the seed succeeds.');
-    process.exit(1);
+    console.log('[seed-owner] OWNER_INITIAL_PASSWORD is not set — skipping OWNER seed.');
+    console.log('  OWNER_EMAIL is set to: ' + rawEmail);
+    console.log('  To complete the seed: set OWNER_INITIAL_PASSWORD and redeploy.');
+    console.log('  After the seed succeeds, REMOVE OWNER_INITIAL_PASSWORD from env.');
+    process.exit(0);
   }
 
   if (password.length < 8) {
-    console.error('[seed-owner] OWNER_INITIAL_PASSWORD must be at least 8 characters.');
+    // Length check IS a fatal validation — never let a too-short
+    // password silently land in production.
+    console.error('[seed-owner] OWNER_INITIAL_PASSWORD must be at least 8 characters. Aborting.');
     process.exit(1);
   }
 

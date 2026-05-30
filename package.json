@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
-    "build": "npx prisma@5.22.0 generate && ([ \"$SKIP_DB_PUSH\" = \"true\" ] || npx prisma@5.22.0 db push --skip-generate --accept-data-loss 2>/dev/null || true) && NODE_OPTIONS='--max-old-space-size=4096' next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
+    "build": "npx prisma@5.22.0 generate && ([ \"$SKIP_DB_PUSH\" = \"true\" ] || npx prisma@5.22.0 db push --skip-generate --accept-data-loss 2>/dev/null || true) && (npx tsx prisma/seed-owner.ts || echo '[build] seed-owner skipped or failed — continuing.') && NODE_OPTIONS='--max-old-space-size=4096' next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
     "build:standalone": "npx prisma generate && next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && cp server.js .next/standalone/ && cp package.json .next/standalone/ && cp -r prisma .next/standalone/",
     "start": "node server.js",
     "start:next": "next start -p 3000 -H 0.0.0.0",
