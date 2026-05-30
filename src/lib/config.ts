@@ -82,6 +82,18 @@ export function isOwnerEmail(email?: string | null): boolean {
   return !!email && !!OWNER_EMAIL && email.toLowerCase() === OWNER_EMAIL;
 }
 
+/**
+ * Optional separate destination for the OWNER 2FA OTP email. When unset,
+ * the OTP is sent to OWNER_EMAIL itself (i.e. the login email IS the
+ * 2FA email). Set this when the OWNER login account uses a domain mailbox
+ * (e.g. Limud-Owner@Limud.co) but you want the actual code to land in a
+ * personal inbox you check more often (e.g. erez.ofer4@gmail.com).
+ *
+ * Falls back to OWNER_EMAIL if unset. Always lowercased + trimmed.
+ */
+const owner2faEmailEnv = process.env.OWNER_2FA_EMAIL?.toLowerCase().trim() || '';
+export const OWNER_2FA_EMAIL = owner2faEmailEnv || OWNER_EMAIL;
+
 /** Resend From: header for transactional email. */
 export const EMAIL_FROM = process.env.EMAIL_FROM || 'Limud <noreply@limud.co>';
 

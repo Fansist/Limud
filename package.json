@@ -16,6 +16,7 @@
     "deploy:cpanel": "bash deploy-cpanel.sh",
     "db:push": "npx prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:seed-owner": "npx tsx prisma/seed-owner.ts",
     "db:studio": "npx prisma studio",
     "db:reset": "npx prisma db push --force-reset && npx tsx prisma/seed.ts",
     "db:migrate": "npx prisma migrate deploy",

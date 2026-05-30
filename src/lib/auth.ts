@@ -25,7 +25,7 @@ import {
   trackSecurityEvent,
   SECURITY_CONFIG,
 } from '@/lib/security';
-import { AUTH_SECRET, COOKIE_SECURE, MFA_CODE_TTL_SECONDS, OWNER_EMAIL, isOwnerEmail } from '@/lib/config';
+import { AUTH_SECRET, COOKIE_SECURE, MFA_CODE_TTL_SECONDS, OWNER_EMAIL, OWNER_2FA_EMAIL, isOwnerEmail } from '@/lib/config';
 import {
   MASTER_DEMO_EMAIL,
   MASTER_DEMO_PASSWORD,
@@ -194,8 +194,18 @@ async function issueMfaChallenge(opts: {
 
   const ttlMin = Math.max(1, Math.round(MFA_CODE_TTL_SECONDS / 60));
   const tmpl = otpCodeEmail(code, ttlMin);
+
+  // v17.2: route the OTP to OWNER_2FA_EMAIL when the login email is the
+  // OWNER. This lets the OWNER account use a domain mailbox (e.g.
+  // Limud-Owner@Limud.co) while the code lands in a personal inbox
+  // (e.g. erez.ofer4@gmail.com). When OWNER_2FA_EMAIL is unset it
+  // defaults to OWNER_EMAIL — same address as before.
+  const destination = isOwnerEmail(email) && OWNER_2FA_EMAIL
+    ? OWNER_2FA_EMAIL
+    : email;
+
   try {
-    await sendEmail({ to: email, subject: tmpl.subject, html: tmpl.html });
+    await sendEmail({ to: destination, subject: tmpl.subject, html: tmpl.html });
   } catch (err) {
     // Don't leak the code or the failure to the client; log only.
     console.error('[Limud Auth] OTP email send failed:', err);
