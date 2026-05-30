@@ -2,6 +2,40 @@ import { NextResponse } from 'next/server';
 import { requireAuth, requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import { SubscriptionTier } from '@prisma/client';
+import { createAuditLog, getClientIP, getUserAgent } from '@/lib/security';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v17.1 — Canonical per-student tier prices for ADMIN self-service writes
+// to SchoolDistrict.pricePerYear. An ADMIN with canManageBilling may only
+// commit an `upgrade` / `renew` whose computed amount equals the canonical
+// price for the requested tier at the requested student count. Anything
+// else (custom promo, negotiated enterprise rate, discount) requires
+// OWNER. These numbers MUST track PRICING above; mismatches drift the
+// canonical-price gate and either lock admins out of legitimate pricing
+// or let them sneak custom rates through.
+// ─────────────────────────────────────────────────────────────────────────────
+const TIER_PRICES: Record<string, number> = {
+  STARTER: 3,
+  GROWTH: 5,
+  STANDARD: 8,
+  PREMIUM: 12,
+};
+
+/**
+ * Compute the canonical amount an ADMIN is allowed to commit for a given
+ * tier + student count. Returns null when the tier has no fixed published
+ * price (CUSTOM, ENTERPRISE) — those always require OWNER.
+ */
+function canonicalAmount(tierKey: string, studentCount: number): number | null {
+  if (tierKey === 'FAMILY') {
+    const family = PRICING.FAMILY;
+    const monthlyFlat = family.annualPricePerHousehold ?? family.pricePerHousehold ?? 9;
+    return Math.round(monthlyFlat * 12 * 100) / 100;
+  }
+  const perStudent = TIER_PRICES[tierKey];
+  if (perStudent == null) return null;
+  return perStudent * studentCount;
+}
 
 // Pricing tiers
 // Values reflect the canonical pricing page (src/app/(auth)/pricing/page.tsx).
@@ -340,20 +374,37 @@ export const POST = apiHandler(async (req: Request) => {
   // ACTION: upgrade / renew - Existing district admin upgrades or renews
   // ═══════════════════════════════════════════════════════════════════════
   if (action === 'upgrade' || action === 'renew') {
-    const user = await requireRole('ADMIN');
-    const { tier, studentCount } = body;
+    // v17.1 — OWNER may also upgrade/renew (for any district, with custom
+    // pricing). Everyone else must be an ADMIN with canManageBilling AND
+    // their commit amount must match the canonical TIER_PRICES entry.
+    const user = await requireRole('ADMIN', 'OWNER');
+    const { tier, studentCount, targetDistrictId } = body;
 
-    // v2.5 — H-2: billing actions require canManageBilling on the DistrictAdmin row.
-    // Previously any ADMIN could upgrade/renew, incurring charges outside their scope.
-    if (!user.districtId) {
-      return NextResponse.json({ error: 'Admin has no district assigned' }, { status: 403 });
-    }
-    const adminRecord = await prisma.districtAdmin.findUnique({
-      where: { userId_districtId: { userId: user.id, districtId: user.districtId } },
-      select: { canManageBilling: true },
-    });
-    if (!adminRecord || !adminRecord.canManageBilling) {
-      return NextResponse.json({ error: 'Billing permission required' }, { status: 403 });
+    // OWNER may target any district by passing `targetDistrictId`; falls
+    // back to their own districtId if present. ADMIN is locked to their
+    // own district.
+    let districtId: string | null;
+    if (user.role === 'OWNER') {
+      districtId = (typeof targetDistrictId === 'string' && targetDistrictId)
+        ? targetDistrictId
+        : (user.districtId || null);
+      if (!districtId) {
+        return NextResponse.json({ error: 'targetDistrictId required for OWNER upgrade' }, { status: 400 });
+      }
+    } else {
+      // v2.5 — H-2: billing actions require canManageBilling on the DistrictAdmin row.
+      // Previously any ADMIN could upgrade/renew, incurring charges outside their scope.
+      if (!user.districtId) {
+        return NextResponse.json({ error: 'Admin has no district assigned' }, { status: 403 });
+      }
+      const adminRecord = await prisma.districtAdmin.findUnique({
+        where: { userId_districtId: { userId: user.id, districtId: user.districtId } },
+        select: { canManageBilling: true },
+      });
+      if (!adminRecord || !adminRecord.canManageBilling) {
+        return NextResponse.json({ error: 'Billing permission required' }, { status: 403 });
+      }
+      districtId = user.districtId;
     }
 
     const tierKey = (tier || 'STANDARD').toUpperCase() as keyof typeof PRICING;
@@ -362,36 +413,94 @@ export const POST = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
     }
 
+    const effectiveStudentCount = studentCount || 100;
+
     // FAMILY tier is a flat household fee, not per-student math.
     const amount = tierKey === 'FAMILY'
       ? Math.round((tierInfo.annualPricePerHousehold ?? tierInfo.pricePerHousehold ?? 9) * 12 * 100) / 100
-      : tierInfo.pricePerStudent * (studentCount || 100);
+      : tierInfo.pricePerStudent * effectiveStudentCount;
+
+    // ── v17.1 pricePerYear lockdown ──
+    // OWNER may write any amount (negotiated rates, promos, custom plans).
+    // Non-OWNER may only commit the canonical price for the tier; anything
+    // else is treated as an attempted custom-pricing escalation and blocked
+    // with a 403. CUSTOM / ENTERPRISE always require OWNER because the
+    // canonical price isn't fixed (canonicalAmount returns null for them).
+    if (user.role !== 'OWNER') {
+      const canonical = canonicalAmount(tierKey, effectiveStudentCount);
+      if (canonical == null || Math.abs(amount - canonical) > 0.005) {
+        createAuditLog({
+          action: 'PRIVILEGE_ESCALATION',
+          userId: user.id, userEmail: user.email, userRole: user.role,
+          ip: getClientIP(req), userAgent: getUserAgent(req),
+          resource: '/api/payments',
+          details: {
+            action,
+            tier: tierKey,
+            requestedAmount: amount,
+            canonicalAmount: canonical,
+            districtId,
+            reason: 'Non-OWNER attempted custom pricing',
+          },
+          severity: 'critical', success: false, blocked: true,
+        });
+        return NextResponse.json(
+          { error: 'Only OWNER can set custom pricing.' },
+          { status: 403 },
+        );
+      }
+    }
+
+    // ── Audit: capture before/after pricePerYear for every privileged write ──
+    const districtBefore = await prisma.schoolDistrict.findUnique({
+      where: { id: districtId },
+      select: { id: true, pricePerYear: true, subscriptionTier: true },
+    });
+    if (!districtBefore) {
+      return NextResponse.json({ error: 'District not found' }, { status: 404 });
+    }
 
     const payment = await prisma.payment.create({
       data: {
-        districtId: user.districtId,
+        districtId,
         amount,
         status: 'COMPLETED',
         paymentMethod: 'card',
         description: `${action === 'upgrade' ? 'Upgrade' : 'Renewal'} - ${tierKey} plan`,
         tier: tierKey as SubscriptionTier,
-        studentCount: studentCount || 100,
+        studentCount: effectiveStudentCount,
         paidAt: new Date(),
       },
     });
 
     // Update district subscription
     await prisma.schoolDistrict.update({
-      where: { id: user.districtId },
+      where: { id: districtId },
       data: {
         subscriptionTier: tierKey as SubscriptionTier,
         subscriptionStatus: 'ACTIVE',
         subscriptionEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        maxStudents: Math.max(studentCount || 100, tierInfo.maxStudents),
+        maxStudents: Math.max(effectiveStudentCount, tierInfo.maxStudents),
         maxTeachers: tierInfo.maxTeachers,
         maxSchools: tierInfo.maxSchools,
         pricePerYear: amount,
       },
+    });
+
+    createAuditLog({
+      action: 'ADMIN_ACTION',
+      userId: user.id, userEmail: user.email, userRole: user.role,
+      ip: getClientIP(req), userAgent: getUserAgent(req),
+      resource: '/api/payments',
+      details: {
+        action,
+        tier: tierKey,
+        districtId,
+        before: { pricePerYear: districtBefore.pricePerYear, tier: districtBefore.subscriptionTier },
+        after: { pricePerYear: amount, tier: tierKey },
+        paymentId: payment.id,
+      },
+      severity: 'warning', success: true,
     });
 
     return NextResponse.json({ success: true, payment });

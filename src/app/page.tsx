@@ -13,6 +13,7 @@ export default async function HomePage() {
       case 'TEACHER': redirect('/teacher/dashboard');
       case 'ADMIN': redirect('/admin/dashboard');
       case 'PARENT': redirect('/parent/dashboard');
+      case 'OWNER': redirect('/owner');
     }
   }
 

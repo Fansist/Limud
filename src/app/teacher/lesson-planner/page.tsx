@@ -13,7 +13,7 @@
  */
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -112,8 +112,11 @@ function generateDemoLessonPlan(
   subject: string, grade: string, topic: string,
   duration: number, format: string, blooms: string, customNotes: string
 ): LessonPlan {
-  const subjectInfo = SUBJECTS.find(s => s.value === subject);
-  const subjectLabel = subjectInfo?.value || subject;
+  // v17.1: SUBJECTS entries have `id`/`label`/`emoji` — `s.value`/`s.icon`
+  // never existed and silently produced `undefined` everywhere they were
+  // read. Fixed to use the actual fields.
+  const subjectInfo = SUBJECTS.find(s => s.id === subject);
+  const subjectLabel = subjectInfo?.label || subject;
   const formatInfo = LESSON_FORMATS.find(f => f.id === format);
   const bloomsInfo = BLOOMS_LEVELS.find(b => b.id === blooms);
   const topicTitle = topic || `${subjectLabel} Fundamentals`;
@@ -321,6 +324,60 @@ export default function LessonPlannerPage() {
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [editingObjective, setEditingObjective] = useState<number | null>(null);
   const [showSaved, setShowSaved] = useState(false);
+  // v17.1: surface when the AI generator falls back to the local template
+  // instead of swallowing the failure. Cleared on every new generation.
+  const [aiFallback, setAiFallback] = useState(false);
+
+  // v17.1: Persist saved plans to localStorage so they survive a page
+  // refresh. We do NOT POST to a /api/teacher/lesson-planner endpoint
+  // because no LessonPlan model exists in the Prisma schema; adding one
+  // would balloon this task.
+  //
+  // v17.1 (REVIEWER fix): scope the storage key to the signed-in user id.
+  // localStorage is per-browser, not per-user, so a global key would let
+  // two teachers signing in/out on the same browser see each other's
+  // drafts. We bail out of read/write entirely until we know who the
+  // session user is. Demo mode falls back to a 'demo' suffix so the
+  // demo flow still works without a real session id.
+  const userKey = session?.user?.id ?? (isDemo ? 'demo' : null);
+  const STORAGE_KEY = userKey ? `limud:lesson-planner:saved-plans:${userKey}` : null;
+
+  // Hydrate from localStorage when the user-scoped key resolves. SSR-safe:
+  // window check happens inside useEffect so the initial render matches
+  // the server. Re-runs if the signed-in user changes.
+  useEffect(() => {
+    if (!STORAGE_KEY) return;
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setSavedPlans(parsed as LessonPlan[]);
+        } else {
+          setSavedPlans([]);
+        }
+      } else {
+        // No saved plans for this user yet — clear any plans hydrated from
+        // a previous user on the same browser.
+        setSavedPlans([]);
+      }
+    } catch {
+      // Corrupt JSON — ignore and start fresh.
+      setSavedPlans([]);
+    }
+  }, [STORAGE_KEY]);
+
+  // Persist savedPlans whenever they change (only once we know the user).
+  useEffect(() => {
+    if (!STORAGE_KEY) return;
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(savedPlans));
+      }
+    } catch {
+      // Storage full or unavailable — silently no-op, the in-memory list still works.
+    }
+  }, [savedPlans, STORAGE_KEY]);
 
   // Courses from demo state
   const demoCourses = isDemo ? getDemoCourses() : [];
@@ -333,10 +390,14 @@ export default function LessonPlannerPage() {
 
     setGenerating(true);
     setStep(2);
+    setAiFallback(false);
 
     let plan: LessonPlan | null = null;
+    let usedFallback = false;
 
-    // Try real AI API first (non-demo)
+    // Try real AI API first (non-demo). v17.1: when the API errors or 404s,
+    // surface a clear "AI generation unavailable — using template" notice
+    // instead of silently swallowing the failure.
     if (!isDemo) {
       try {
         const res = await fetch('/api/teacher/lesson-planner', {
@@ -350,17 +411,26 @@ export default function LessonPlannerPage() {
             plan = data.lessonPlan;
             toast.success(data.aiGenerated ? 'AI generated your lesson plan!' : 'Lesson plan generated (template mode)');
           }
+        } else {
+          // Non-2xx response — fall through to template fallback with a notice.
+          usedFallback = true;
         }
       } catch (err) {
-        console.warn('[LESSON-PLANNER] API call failed, falling back to demo:', err);
+        console.warn('[LESSON-PLANNER] API call failed, falling back to template:', err);
+        usedFallback = true;
       }
     }
 
-    // Fallback: demo generation
+    // Fallback: template generation
     if (!plan) {
       await new Promise(r => setTimeout(r, 2000));
       plan = generateDemoLessonPlan(subject, gradeLevel, topic, duration, format, bloomsLevel, customNotes);
-      toast.success('Lesson plan generated!');
+      if (usedFallback) {
+        setAiFallback(true);
+        toast('AI generation unavailable — using template', { icon: '⚠️' });
+      } else {
+        toast.success('Lesson plan generated!');
+      }
     }
 
     setLessonPlan(plan);
@@ -371,12 +441,14 @@ export default function LessonPlannerPage() {
 
   function handleSave() {
     if (!lessonPlan) return;
+    // v17.1: persisted to localStorage via the useEffect above. The UI banner
+    // in the Saved Plans drawer makes it clear these are saved locally.
     setSavedPlans(prev => {
       const exists = prev.find(p => p.id === lessonPlan.id);
       if (exists) return prev.map(p => p.id === lessonPlan.id ? lessonPlan : p);
       return [lessonPlan, ...prev];
     });
-    toast.success('Lesson plan saved!');
+    toast.success('Lesson plan saved locally');
   }
 
   function handleCopy() {
@@ -477,16 +549,19 @@ export default function LessonPlannerPage() {
           {showSaved && savedPlans.length > 0 && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden print:hidden">
               <div className="card border-2 border-teal-100">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-1">
                   <h3 className="font-bold text-gray-900 flex items-center gap-2"><Bookmark size={16} className="text-teal-600" /> Saved Lesson Plans</h3>
                   <button onClick={() => setShowSaved(false)} className="text-gray-400 hover:text-gray-600"><ChevronUp size={16} /></button>
                 </div>
+                <p className="text-[11px] text-gray-500 mb-3">
+                  Saved locally — these plans stay on this browser and clear when you sign out.
+                </p>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {savedPlans.map(plan => (
                     <div key={plan.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
                       <button onClick={() => loadSavedPlan(plan)} className="flex-1 text-left">
                         <p className="text-sm font-medium text-gray-900">{plan.title}</p>
-                        <p className="text-xs text-gray-500">{SUBJECTS.find(s => s.value === plan.subject)?.icon} {plan.gradeLevel} · {plan.duration} min · {new Date(plan.generatedAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-gray-500">{SUBJECTS.find(s => s.id === plan.subject)?.emoji} {plan.gradeLevel} · {plan.duration} min · {new Date(plan.generatedAt).toLocaleDateString()}</p>
                       </button>
                       <button onClick={() => deleteSavedPlan(plan.id)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14} /></button>
                     </div>
@@ -541,11 +616,11 @@ export default function LessonPlannerPage() {
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                   {SUBJECTS.map(s => (
-                    <button key={s.value} onClick={() => setSubject(s.value)}
+                    <button key={s.id} onClick={() => setSubject(s.id)}
                       className={cn('p-2.5 rounded-xl border-2 text-center transition-all text-xs',
-                        subject === s.value ? 'border-teal-400 bg-teal-50 ring-1 ring-teal-200 font-bold' : 'border-gray-100 hover:border-gray-200')}>
-                      <span className="text-lg block">{s.icon}</span>
-                      <span className="mt-0.5 block">{s.value}</span>
+                        subject === s.id ? 'border-teal-400 bg-teal-50 ring-1 ring-teal-200 font-bold' : 'border-gray-100 hover:border-gray-200')}>
+                      <span className="text-lg block">{s.emoji}</span>
+                      <span className="mt-0.5 block">{s.label}</span>
                     </button>
                   ))}
                 </div>
@@ -670,7 +745,7 @@ export default function LessonPlannerPage() {
                 </motion.div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">AI is building your lesson plan...</h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  {SUBJECTS.find(s => s.value === subject)?.icon} {topic} · {gradeLevel} · {duration} min · {LESSON_FORMATS.find(f => f.id === format)?.label}
+                  {SUBJECTS.find(s => s.id === subject)?.emoji} {topic} · {gradeLevel} · {duration} min · {LESSON_FORMATS.find(f => f.id === format)?.label}
                 </p>
                 <div className="mt-4 space-y-2 max-w-sm mx-auto">
                   {[
@@ -693,6 +768,24 @@ export default function LessonPlannerPage() {
           {/* ═══════ STEP 3: Results ═══════ */}
           {step === 3 && lessonPlan && (
             <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
+
+              {/* v17.1: AI-fallback notice — only shown when /api/teacher/lesson-planner
+                  errored and we used the local template instead. */}
+              {aiFallback && (
+                <div className="card bg-amber-50 border-amber-200 print:hidden">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-bold text-amber-900">AI generation unavailable</p>
+                      <p className="text-xs text-amber-700 mt-0.5">
+                        We couldn&apos;t reach the AI lesson planner just now, so this plan was
+                        built from a standards-aligned template. Try regenerating in a minute, or
+                        edit the plan below — saving still works.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Action Bar */}
               <div className="flex flex-wrap items-center gap-2 print:hidden">
@@ -717,7 +810,7 @@ export default function LessonPlannerPage() {
                     <h2 className="text-xl font-bold text-gray-900">{lessonPlan.title}</h2>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
                       <span className="text-xs px-2.5 py-1 rounded-full bg-teal-100 text-teal-700 font-medium">
-                        {SUBJECTS.find(s => s.value === lessonPlan.subject)?.icon} {SUBJECTS.find(s => s.value === lessonPlan.subject)?.value}
+                        {SUBJECTS.find(s => s.id === lessonPlan.subject)?.emoji} {SUBJECTS.find(s => s.id === lessonPlan.subject)?.label}
                       </span>
                       <span className="text-xs px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">
                         Grade {lessonPlan.gradeLevel}

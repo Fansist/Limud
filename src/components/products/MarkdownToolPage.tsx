@@ -155,6 +155,21 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
           option: option.trim() || undefined,
         }),
       });
+      // v17.1: graceful 402 handling. The entitlement gate on the generate
+      // endpoint returns 402 + { error, checkoutUrl } when the user lacks
+      // an active product or bundle subscription. Toast the error and
+      // bounce to checkout instead of throwing a generic failure.
+      if (res.status === 402) {
+        const data: { error?: string; checkoutUrl?: string } | null = await res
+          .json()
+          .catch(() => null);
+        toast.error(data?.error || 'Subscription required to use this tool');
+        if (data?.checkoutUrl) {
+          // Brief delay so the toast is readable before navigation.
+          setTimeout(() => router.push(data.checkoutUrl as string), 1200);
+        }
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `Request failed with ${res.status}`);

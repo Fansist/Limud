@@ -31,10 +31,12 @@ const FAQ_DATA: FAQCategory[] = [
     name: 'Admin & Billing',
     icon: <Shield size={20} />,
     items: [
-      { question: 'What subscription plans are available?', answer: 'We offer 6 tiers: Family (free for up to 5 children per parent account), Starter ($2/student/mo billed annually, up to 50 students), Growth ($4/student/mo, up to 200 students), Standard ($6/student/mo, up to 500 students, unlimited AI), Premium ($9/student/mo, up to 2,000 students, SSO & predictive AI), and Enterprise (custom pricing, unlimited). Every paid plan includes a 14-day free trial.' },
+      { question: 'What subscription plans are available?', answer: 'We offer 6 tiers: Family ($9/month — or $7/month billed yearly — for up to 5 children per parent account, with a 14-day free trial), Starter ($2/student/mo billed annually, up to 50 students), Growth ($4/student/mo, up to 200 students), Standard ($6/student/mo, up to 500 students, unlimited AI), Premium ($9/student/mo, up to 2,000 students, SSO & predictive AI), and Enterprise (custom pricing, unlimited). Every paid plan includes a 14-day free trial.' },
       { question: 'How do I add students?', answer: 'Admins can add students individually from the Students page (which auto-creates parent accounts) or use Bulk Import with CSV files. Teachers with proper permissions can also add students to their classes.' },
       { question: 'What are district access levels?', answer: 'Limud supports 7 access levels: Superintendent (full access), Assistant Superintendent, Curriculum Director, Principal, Vice Principal, District Employee (view-only), and IT Admin. Each level has configurable permissions.' },
       { question: 'How does billing work?', answer: 'Plans are billed monthly or annually (save 25% with annual billing). Upgrades are prorated. Payment methods include credit card, ACH bank transfer, and purchase orders (Enterprise). Invoices are available in the Billing section.' },
+      { question: 'What individual products does Limud offer?', answer: 'Limud has 13 standalone products that anyone can use without a district plan: Exam Study Helper, Practice Generator, Math Solver, Essay Coach, Notes Cleaner, Lab Report Builder, Citation Finder, Language Lab, Flashcard Forge, Presentation Prep, Code Companion, Reading Decoder, and Exam Postmortem. Each product is available as a one-time per-use purchase OR as a monthly unlimited subscription. See /products for the full catalog.' },
+      { question: 'Are there bundles to save money?', answer: 'Yes — Limud offers 4 bundles that group related tools at a discount: All-Access Pass (every product, up to 45% off vs. buying them individually), Study Bundle, Writing Bundle, and STEM Bundle. Bundles are billed monthly and can be combined with or replace single-product subscriptions.' },
     ],
   },
   {
@@ -77,10 +79,13 @@ export default function HelpFAQ() {
           className="input-field pl-11 text-lg" placeholder="Search for help..." />
       </div>
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Quick Links — v17.1: dropped /student/tutor link (bounced anon
+          visitors to /login) in favor of /products, the public tool catalog.
+          Grid changed from sm:grid-cols-4 to sm:grid-cols-3 to match the 3
+          remaining cells. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
-          { label: 'AI Tutor', href: '/student/tutor', icon: <MessageCircle size={20} />, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' },
+          { label: 'Try a tool', href: '/products', icon: <MessageCircle size={20} />, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' },
           { label: 'Pricing', href: '/pricing', icon: <Shield size={20} />, color: 'bg-green-50 text-green-600 dark:bg-green-900/20' },
           { label: 'Contact Us', href: '/contact', icon: <Mail size={20} />, color: 'bg-amber-50 text-amber-600 dark:bg-amber-900/20' },
         ].map(link => (

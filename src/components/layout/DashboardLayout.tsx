@@ -20,7 +20,7 @@ import {
   Lightbulb, Focus, Zap, Settings,
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
   Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList, Clipboard, Palette,
-  MessageSquare,
+  MessageSquare, DollarSign,
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?: React.ReactNode; };
@@ -126,6 +126,12 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/parent/settings', label: 'Settings', icon: <Settings size={18} /> },
     ]},
   ],
+  OWNER: [
+    { label: 'Owner', items: [
+      { href: '/owner/finances', label: 'Finances', icon: <BarChart3 size={20} /> },
+      { href: '/owner/prices', label: 'Prices', icon: <DollarSign size={20} /> },
+    ]},
+  ],
 };
 
 // Flat list for breadcrumbs and page title lookup
@@ -169,6 +175,10 @@ const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.Reac
     { href: '/parent/alerts', label: 'Alerts', icon: <Bell size={20} /> },
     { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
   ],
+  OWNER: [
+    { href: '/owner/finances', label: 'Finances', icon: <BarChart3 size={20} /> },
+    { href: '/owner/prices', label: 'Prices', icon: <DollarSign size={20} /> },
+  ],
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -177,10 +187,12 @@ const ROLE_COLORS: Record<string, string> = {
   ADMIN: 'from-purple-500 to-purple-600',
   PARENT: 'from-pink-500 to-pink-600',
   HOMESCHOOL_PARENT: 'from-rose-500 to-pink-600',
+  OWNER: 'from-amber-500 to-amber-600',
 };
 const ROLE_LABELS: Record<string, string> = {
   STUDENT: 'Student Portal', TEACHER: 'Teacher Portal', ADMIN: 'Admin Portal',
   PARENT: 'Parent Portal', HOMESCHOOL_PARENT: 'Family Portal',
+  OWNER: 'Owner Portal',
 };
 
 function getDemoUser(role: string) {
@@ -277,6 +289,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
        : pathname.startsWith('/teacher') ? 'TEACHER'
        : pathname.startsWith('/admin') ? 'ADMIN'
        : pathname.startsWith('/parent') ? 'PARENT'
+       : pathname.startsWith('/owner') ? 'OWNER'
        : sessionRole)
     : null;
   const role = isDemo ? demoRole : (masterRole || sessionRole);
@@ -389,11 +402,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-          <img src="/logo.svg" alt="Limud" className="w-10 h-10 rounded-xl shadow-sm object-cover" />
-          <div>
-            <span className="text-lg font-bold text-gray-900 dark:text-white">Limud</span>
-            <p className="text-[11px] text-gray-400 font-medium">{roleLabel}</p>
-          </div>
+          <Link href="/" className="flex items-center gap-3 flex-1 min-w-0" aria-label="Limud home">
+            <img src="/logo.svg" alt="Limud" className="w-10 h-10 rounded-xl shadow-sm object-cover" />
+            <div>
+              <span className="text-lg font-bold text-gray-900 dark:text-white">Limud</span>
+              <p className="text-[11px] text-gray-400 font-medium">{roleLabel}</p>
+            </div>
+          </Link>
           <button onClick={() => setSidebarOpen(false)} className="ml-auto lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="Close sidebar">
             <X size={20} />
           </button>
@@ -411,12 +426,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {isMasterDemo && !isDemo && (
           <div className="mx-4 mt-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
             <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mb-1.5 flex items-center gap-1"><Shield size={10} /> Master Demo — All Access</p>
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-5 gap-1">
               {[
                 { r: 'STUDENT', icon: <GraduationCap size={12} />, path: '/student/dashboard', color: 'bg-blue-100 text-blue-700' },
                 { r: 'TEACHER', icon: <BookOpen size={12} />, path: '/teacher/dashboard', color: 'bg-green-100 text-green-700' },
                 { r: 'ADMIN', icon: <Shield size={12} />, path: '/admin/dashboard', color: 'bg-purple-100 text-purple-700' },
                 { r: 'PARENT', icon: <Eye size={12} />, path: '/parent/dashboard', color: 'bg-pink-100 text-pink-700' },
+                { r: 'OWNER', icon: <DollarSign size={12} />, path: '/owner', color: 'bg-amber-100 text-amber-700' },
               ].map(r => (
                 <Link key={r.r} href={r.path}
                   className={cn('flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-[9px] font-medium transition',
@@ -617,6 +633,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   : pathname.startsWith('/pricing') ? 'Pricing'
                   : pathname.startsWith('/contact') ? 'Contact'
                   : pathname.startsWith('/roadmap') ? 'Roadmap'
+                  : pathname.startsWith('/notifications') ? 'Notifications'
+                  : pathname.startsWith('/account/subscriptions') ? 'Subscriptions'
+                  : pathname.startsWith('/account') ? 'Account'
+                  : pathname.startsWith('/owner/finances') ? 'Finances'
+                  : pathname.startsWith('/owner/prices') ? 'Prices'
+                  : pathname.startsWith('/owner') ? 'Owner'
                   : 'Dashboard')
               }
             </span>

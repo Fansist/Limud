@@ -32,6 +32,7 @@ import {
   type PracticeDifficulty,
   type PracticeQuestionType,
 } from '@/lib/ai';
+import { requireProductEntitlement } from '@/lib/entitlement';
 import { log } from '@/lib/log';
 
 export const dynamic = 'force-dynamic';
@@ -96,6 +97,13 @@ export const POST = secureApiHandler(async (req, user) => {
     'PRACTICE',
     `generate request user=${user.id} topic=${topic.slice(0, 60)} difficulty=${difficulty} count=${count} types=${(validatedTypes || ['mcq']).join(',')}`,
   );
+
+  // ── Entitlement gate (v17.1) ──
+  // Same gate as /api/study/generate and /api/products/generate. OWNER and
+  // master demo bypass; everyone else needs an active product or bundle
+  // subscription that includes 'practice-generator'.
+  const gate = await requireProductEntitlement(user, 'practice-generator');
+  if (!gate.allowed) return gate.response;
 
   try {
     const result = await generatePracticeQuiz({

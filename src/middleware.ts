@@ -71,6 +71,7 @@ const PUBLIC_API_PATHS = [
   '/api/district-link/seed',    // v9.7.0: Manual seed endpoint (creates districts + admin users)
   '/api/cron',                  // v10.0: Cron endpoints (protected by CRON_SECRET header)
   '/api/district/resolve',      // v15.0: Public subdomain → district resolver (called by edge middleware)
+  '/api/contact',               // v17.1: anonymous contact form submissions
 ];
 
 const ADMIN_PATHS = ['/admin'];
@@ -84,6 +85,8 @@ const STUDENT_API_PATHS = ['/api/student'];
 
 const PARENT_PATHS = ['/parent'];
 const PARENT_API_PATHS = ['/api/parent'];
+
+const OWNER_PATHS = ['/owner'];
 
 // ═══════════════════════════════════════════════════════════════════
 // THREAT DETECTION PATTERNS
@@ -399,6 +402,19 @@ export async function middleware(request: NextRequest) {
       if (pathname.startsWith('/api/')) {
         return new NextResponse(
           JSON.stringify({ error: 'Forbidden: Parent access required' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
+  // OWNER paths
+  if (matchesPath(pathname, OWNER_PATHS)) {
+    if (role !== 'OWNER') {
+      if (pathname.startsWith('/api/')) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Forbidden: Owner access required' }),
           { status: 403, headers: { 'Content-Type': 'application/json' } }
         );
       }

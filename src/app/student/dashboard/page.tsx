@@ -96,8 +96,11 @@ export default function StudentDashboard() {
       return;
     }
     if (status === 'authenticated') {
-      const user = session?.user as { role?: string };
-      if (user?.role !== 'STUDENT') {
+      // v17.1: master demo (any session role) keeps access to the student
+      // dashboard so SEC-3 doesn't eject them. Real users still require
+      // STUDENT role.
+      const user = session?.user as { role?: string; isMasterDemo?: boolean };
+      if (!user?.isMasterDemo && user?.role !== 'STUDENT') {
         router.push('/'); return;
       }
       fetchData();

@@ -97,6 +97,14 @@ export default function LandingPage() {
 
   return (
     <div className="bg-white overflow-x-hidden">
+      {/* v17.1: skip-to-content link for keyboard / screen-reader users so
+          they can bypass the fixed nav and jump straight to the hero. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-600 text-white px-4 py-2 rounded z-[100]"
+      >
+        Skip to content
+      </a>
 
       {/* Schema.org JSON-LD for SEO — Organization, WebApplication, Course, FAQ */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([
@@ -108,7 +116,7 @@ export default function LandingPage() {
           "logo": "https://limud.co/logo.svg",
           "sameAs": ["https://github.com/Fansist/Limud"],
           "description": "AI-powered adaptive learning platform for K-12 education",
-          "foundingDate": "2026",
+          "foundingDate": "2025",
           "contactPoint": { "@type": "ContactPoint", "contactType": "customer service", "url": "https://limud.co/contact" }
         },
         {
@@ -118,7 +126,7 @@ export default function LandingPage() {
           "applicationCategory": "EducationalApplication",
           "operatingSystem": "Web",
           "offers": [
-            { "@type": "Offer", "name": "Family", "price": "0", "priceCurrency": "USD", "description": "Up to 5 children per parent account — for families with K-12 kids at any school" },
+            { "@type": "Offer", "name": "Family", "price": "9", "priceCurrency": "USD", "description": "Up to 5 children per parent account — for families with K-12 kids at any school" },
             { "@type": "Offer", "name": "Standard", "price": "6", "priceCurrency": "USD", "description": "Per student/month — full features" },
             { "@type": "Offer", "name": "Enterprise", "description": "Custom pricing for districts with SSO/SLA" }
           ]
@@ -167,11 +175,12 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Link href="/products" className="hidden md:inline text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 px-3 py-2">Products</Link>
+              <Link href="/products" className="hidden md:inline text-sm font-semibold text-primary-600 hover:text-primary-700 px-3 py-2">Products</Link>
               {/* v16.4: AuthAwareCTA replaces the hardcoded Sign In / Start Free
                   pair so logged-in users see a Dashboard button instead of
-                  being bounced back through /login. */}
-              <AuthAwareCTA variant="topbar" />
+                  being bounced back through /login. v17.1: callbackUrl="/"
+                  routes logged-out Sign In clicks back to the landing page. */}
+              <AuthAwareCTA variant="topbar" callbackUrl="/" />
 
               <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2 rounded-lg hover:bg-gray-100" aria-label="Menu" aria-expanded={mobileMenu} aria-controls="mobile-nav">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,29 +198,26 @@ export default function LandingPage() {
                 onClick={e => scrollTo(e, item.toLowerCase().replace(/\s+/g, '-'))}
                 className="block px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">{item}</a>
             ))}
-            <div className="flex gap-2 pt-2">
-              {/* v16.4: mobile-menu auth row — collapse to a single Dashboard
-                  button when the visitor is already logged in. */}
-              {isAuthed && dashboardHref ? (
+            {/* v17.1: mobile-menu now only shows the Dashboard row for
+                logged-in visitors. The anon Sign In / Start Free pair was
+                removed because AuthAwareCTA already renders those buttons in
+                the topbar on mobile, so the pair was duplicating itself. */}
+            {isAuthed && dashboardHref && (
+              <div className="flex gap-2 pt-2">
                 <Link
                   href={dashboardHref}
                   className="flex-1 text-center text-sm font-semibold bg-primary-600 text-white rounded-lg py-2"
                 >
                   Dashboard
                 </Link>
-              ) : (
-                <>
-                  <Link href="/login" className="flex-1 text-center text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg py-2">Sign In</Link>
-                  <Link href="/register" className="flex-1 text-center text-sm font-semibold bg-primary-600 text-white rounded-lg py-2">Start Free</Link>
-                </>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </nav>
 
       {/* ═══ HERO ═════════════════════════════════════════════ */}
-      <section className="relative pt-28 pb-20 lg:pt-36 lg:pb-28">
+      <section id="main-content" className="relative pt-28 pb-20 lg:pt-36 lg:pb-28">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-blue-50/30" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -604,12 +610,14 @@ export default function LandingPage() {
               {/* v16.4: session-aware. Logged-in users go to their dashboard
                   instead of getting bounced to /register. White-on-blue
                   styling matches the surrounding gradient panel — different
-                  from the white-background hero CTA, so this stays inline. */}
+                  from the white-background hero CTA, so this stays inline.
+                  v17.1: anon copy unified to "Start free trial" → /onboard
+                  to match the topbar/pricing CTA copy across the site. */}
               <Link
-                href={dashboardHref ?? '/register'}
+                href={dashboardHref ?? '/onboard'}
                 className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-7 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg"
               >
-                {dashboardHref ? 'Open your dashboard' : 'Get started'}
+                {dashboardHref ? 'Open your dashboard' : 'Start free trial'}
                 <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-white/10 text-white px-7 py-3.5 rounded-xl font-bold border border-white/20 hover:bg-white/20 transition">
@@ -648,13 +656,15 @@ export default function LandingPage() {
                     DNA', 'Integrations') anchored to section IDs that do not
                     exist on this page — they were dead links. Replaced with
                     real destinations: #pillars + #pricing on this page,
-                    /pricing + /products + /demo for the dedicated pages. */}
+                    /pricing + /products + /demo for the dedicated pages.
+                    v17.1: Demo moved from Product → Company column. Demo is a
+                    role-switcher, not a product, so it doesn't belong in the
+                    product list. */}
                 {[
                   { label: 'How it works', href: '#how-it-works', external: false },
                   { label: 'Pillars', href: '#pillars', external: false },
                   { label: 'Pricing', href: '/pricing', external: true },
                   { label: 'Individual products', href: '/products', external: true },
-                  { label: 'Demo', href: '/demo', external: true },
                 ].map(l => l.external ? (
                   <li key={l.label}><Link href={l.href} className="text-xs hover:text-white transition">{l.label}</Link></li>
                 ) : (
@@ -665,7 +675,10 @@ export default function LandingPage() {
             <div>
               <h4 className="text-xs font-semibold text-white mb-3 uppercase tracking-wider">Company</h4>
               <ul className="space-y-2">
-                {[{ label: 'About', href: '/about' }, { label: 'Team', href: '/team' }, { label: 'Products', href: '/products' }, { label: 'Help', href: '/help' }, { label: 'Roadmap', href: '/roadmap' }, { label: 'Contact', href: '/contact' }].map(l => (
+                {/* v17.1: removed duplicate 'Products' entry (already in
+                    Product column) and added 'Demo' here since Demo is a
+                    role-switcher, not a product. */}
+                {[{ label: 'About', href: '/about' }, { label: 'Team', href: '/team' }, { label: 'Help', href: '/help' }, { label: 'Roadmap', href: '/roadmap' }, { label: 'Demo', href: '/demo' }, { label: 'Contact', href: '/contact' }].map(l => (
                   <li key={l.label}><Link href={l.href} className="text-xs hover:text-white transition">{l.label}</Link></li>
                 ))}
               </ul>

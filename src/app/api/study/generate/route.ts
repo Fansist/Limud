@@ -30,6 +30,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { secureApiHandler } from '@/lib/middleware';
 import { generateStudyMaterial, type StudyFormat } from '@/lib/ai';
+import { requireProductEntitlement } from '@/lib/entitlement';
 import { log } from '@/lib/log';
 
 export const dynamic = 'force-dynamic';
@@ -85,6 +86,12 @@ export const POST = secureApiHandler(async (req, user) => {
       { status: 400 },
     );
   }
+
+  // ── Entitlement gate (v17.1) ──
+  // Mirrors /api/products/generate so /study has the same paywall as the
+  // other AI tools. OWNER + master demo bypass. 402 + checkoutUrl on miss.
+  const gate = await requireProductEntitlement(user, 'exam-study-helper');
+  if (!gate.allowed) return gate.response;
 
   try {
     const result = await generateStudyMaterial({

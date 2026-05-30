@@ -32,6 +32,8 @@ export function dashboardHrefFor(user: {
   isHomeschoolParent?: boolean;
   isMasterDemo?: boolean;
 }): string {
+  // v17.1: an OWNER user (even the master demo) lands on /owner, not /demo.
+  if (user.role === 'OWNER') return '/owner';
   if (user.isMasterDemo) return '/demo';
   if (user.role === 'STUDENT') return '/student/dashboard';
   if (user.role === 'TEACHER') return '/teacher/dashboard';

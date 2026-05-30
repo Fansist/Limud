@@ -16,6 +16,8 @@ import {
   getClientIP,
   getUserAgent,
 } from '@/lib/security';
+import { sendEmail } from '@/lib/email';
+import { passwordResetEmail } from '@/lib/email-templates';
 
 export async function POST(req: Request) {
   const ip = getClientIP(req);
@@ -96,8 +98,27 @@ export async function POST(req: Request) {
     const baseUrl = origin; // Always use the actual request origin
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(cleanEmail)}`;
 
-    // In production, send email here
-    // await sendPasswordResetEmail(cleanEmail, resetUrl, user.name);
+    // v17.1 — actually send the reset email via Resend in production.
+    // sendEmail() is a graceful no-op when RESEND_API_KEY is unset (dev /
+    // local), so this is safe in every environment. We still surface
+    // resetUrl + token in the response body in development so the dev
+    // flow doesn't require a configured mailer.
+    const tmpl = passwordResetEmail(user.name || 'there', resetUrl, 60);
+    let emailSent = false;
+    let emailSkipped = false;
+    try {
+      const sendResult = await sendEmail({
+        to: cleanEmail,
+        subject: tmpl.subject,
+        html: tmpl.html,
+      });
+      emailSent = sendResult.success && !sendResult.skipped;
+      emailSkipped = !!sendResult.skipped;
+    } catch (e) {
+      // Never let an email failure leak to the user (anti-enumeration);
+      // log it for ops and continue returning the generic success message.
+      console.error('[forgot-password] email send failed:', e);
+    }
 
     // In-app notification
     try {
@@ -116,7 +137,11 @@ export async function POST(req: Request) {
       userId: user.id, userEmail: cleanEmail, userRole: user.role,
       ip, userAgent: ua,
       resource: '/api/auth/forgot-password',
-      details: { tokenExpiry: resetTokenExp.toISOString() },
+      details: {
+        tokenExpiry: resetTokenExp.toISOString(),
+        emailSent,
+        emailSkipped,
+      },
       severity: 'info', success: true,
     });
 

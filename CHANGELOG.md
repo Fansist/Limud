@@ -4,6 +4,284 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.1.0] - 2026-05-29 — Update 6.1: OWNER nav wiring, per-product subscriptions, entitlement gates, UX + security cleanup
+
+Update 6.1 is the UX/security cleanup pass on top of 6.0. The OWNER
+role gets fully wired into navigation (it shipped in 6.0 with the
+finance/price surfaces but never showed up in the sidebar, mobile
+nav, role-color map, master-demo role switcher, or middleware role
+gate). The per-product checkout flow from 6.0 gets its missing other
+half: an account-level management surface, per-product cancel, and a
+mixed bundle + product widget on every role dashboard. The three
+generate routes — `/api/study/generate`, `/api/practice/generate`,
+and `/api/products/generate` — now share an entitlement helper that
+gates AI calls behind a real purchase (the per-product paywall from
+6.0 was visible at checkout but bypassable at the generate route).
+
+Three security fixes ship in the same release. The CRITICAL fix:
+the forgot-password email send was commented out in the route
+handler, so the entire password-recovery flow returned a generic
+success message but never delivered the reset link. The two HIGH
+fixes: `/api/payments` upgrade action no longer lets ADMIN write
+custom `pricePerYear` values (constrained to a server-side
+`TIER_PRICES` constant), and `/api/study/generate` +
+`/api/practice/generate` now enforce per-product entitlement.
+
+The contact form is no longer a dead stub — it forwards to
+`contact@limud.co` via Resend with rate limiting and an audit log.
+The teacher lesson planner's subject chip / labels / icons render
+again (every `s.value` reference was undefined because `SUBJECTS`
+uses `id`/`label`/`emoji`). The Admin Send Message / Edit Profile
+buttons in `/admin/employees` now do something. The forgot-password
+recovery flow actually delivers an email.
+
+About 34 modified files + 5 new files. No schema changes — no
+`prisma db push` needed.
+
+> **No schema changes.** `npx prisma db push` is NOT required for
+> this release. The existing schema from 6.0 covers everything in
+> 6.1.
+
+> **New env var (optional):** `CONTACT_EMAIL_TO` — defaults to
+> `contact@limud.co`. The existing `RESEND_API_KEY` (added in 6.0
+> for OWNER 2FA) is now also used by the forgot-password flow.
+
+> **SEC-1 from 6.0 is still pending.** Rotate `NEXTAUTH_SECRET`,
+> `RESEND_API_KEY`, `CRON_SECRET`, and `PII_ENCRYPTION_KEY` in the
+> Render dashboard. Until that happens, the values committed to
+> `.env.render` must continue to be treated as compromised.
+
+> **Production redeploy required.** The OWNER nav wiring, the
+> per-product subscription surfaces, the entitlement gates, the
+> contact route, and the forgot-password fix all need a fresh
+> deploy to be reachable.
+
+### Added
+
+- OWNER role is now fully wired into navigation: sidebar nav
+  (Finances + Prices entries), mobile nav, role color/label map,
+  master-demo role switcher (5 buttons including OWNER), and the
+  path-sniffer that maps `/owner/**` paths to the OWNER role.
+  Edge middleware in `src/middleware.ts` gains a matching OWNER
+  bucket in the role-gate table — `/owner/**` was previously
+  gated only at the layout level, which is fine for the happy
+  path but not defense-in-depth.
+- Per-product subscription support in account UI:
+  `/account/subscriptions` now renders a separate
+  "Single-product subscriptions" section with per-product cancel
+  alongside the existing bundle section.
+  `MySubscriptionsCard` (the dashboard widget shipped in 5.8)
+  shows a mixed bundle + product count on every role dashboard.
+  New `POST /api/products/[productId]/cancel` endpoint mirrors
+  the bundle cancel shape — ownership-checked, master-demo
+  synthetic success.
+- Per-tool entitlement gate now covers ALL three generate routes:
+  `/api/study/generate`, `/api/practice/generate`, and
+  `/api/products/generate`. Shared helper at
+  `src/lib/entitlement.ts` resolves whether the caller owns the
+  product or any bundle containing it. Returns `402 Payment
+  Required` with a `checkoutUrl` payload for unentitled users.
+  Master demo is entitled to everything (preserves the
+  demo-mode contract).
+- Resend-OTP affordance + 5-minute countdown UX on the OWNER 2FA
+  login screen. The TTL was already 300s on the server side
+  (matches `MFA_CODE_TTL_SECONDS`); this surfaces it.
+- Contact form is no longer a dead stub: new
+  `POST /api/contact` route forwards via Resend to
+  `contact@limud.co` (overridable via `CONTACT_EMAIL_TO`).
+  Includes rate limit, audit log, and `reply-to` set to the
+  submitter's email.
+- New shared `AnonShell` chrome wrapper for unauthed non-landing
+  pages — applied to `/pricing`, `/onboard`, `/register`,
+  `/demo`. Consistent nav + footer across the marketing tier.
+- Skip-to-content link on the landing page (a11y).
+- Two new product-FAQ entries covering the 13 individual
+  products and the 4 bundles.
+- Footer cross-links added to `/pricing` and `/roadmap`
+  (about/team/help/etc.).
+- `PUT` and `DELETE` handlers on `/api/assignments/[id]` —
+  teachers can now actually save assignment edits. The page
+  surface for editing already existed; the handlers did not.
+
+### Changed
+
+- `/api/products/subscriptions` now returns BOTH
+  `bundleSubscriptions` AND `productSubscriptions`. The existing
+  `subscriptions` key is preserved as a deprecated alias so the
+  5.8 dashboard widget and the older account-subscriptions page
+  keep working through the transition.
+- `MarkdownToolPage` gracefully handles `402 Payment Required`
+  from the generate route: friendly toast + redirect to the
+  product's checkout, instead of throwing a generic error.
+- Landing-page CTAs unified toward "Start free trial" → `/onboard`.
+  Some labels still owned by `AuthAwareCTA` are flagged as a
+  v17.2 follow-up — the unification is partial in this release
+  by design.
+- Help FAQ updated to match real Family pricing
+  ($9/mo or $7/mo annual + 14-day trial). The old FAQ still
+  said "free for 5 children" from the pre-paid-Family era.
+- Accessibility page brand-domain consistency: `.edu` → `.co`
+  throughout. Placeholder phone number removed.
+- Landing-page JSON-LD: `foundingDate` corrected to `2025`,
+  Family Offer price corrected to `9`. Both were stale.
+- Sidebar logo on dashboards is now a clickable `<Link>` to `/`.
+  It was a non-clickable `<img>` since the dashboard layout
+  shipped — discovered during the OWNER nav wiring pass.
+- `dashboardHrefFor` in `AuthAwareCTA` now routes OWNER role to
+  `/owner` BEFORE the `isMasterDemo` branch — so a logged-in
+  OWNER (real or demo) lands on the OWNER dashboard, not the
+  generic master-demo `/demo` page.
+- Landing-page footer: Products link de-duplicated; Demo moved
+  to the Company column; the fuchsia Products link recolored to
+  primary so the footer reads in a single palette.
+
+### Security
+
+- **CRITICAL: forgot-password email is now actually sent in
+  production.** The Resend send was commented out in the route
+  handler, so the entire password-recovery flow was broken —
+  users got a generic success message but no email ever
+  arrived. Wired to Resend via a new `passwordResetEmail`
+  template in `src/lib/email-templates.ts`. The generic success
+  message (returned regardless of whether the email matches a
+  real account) is preserved — user enumeration is still
+  prevented at the response shape.
+- **HIGH: `/api/payments` upgrade action no longer lets ADMIN
+  write custom `pricePerYear` values.** Non-OWNER calls to the
+  upgrade action are constrained to a server-side `TIER_PRICES`
+  constant (Starter $2 / Growth $4 / Enterprise $8 per
+  student/year). Any custom price submitted by a non-OWNER
+  returns 403 with an audit-log entry. OWNER retains the ability
+  to override via the existing price-editor surface from 6.0
+  (which goes through the immutable `PriceOverride` store, not
+  through `/api/payments` directly).
+- **HIGH: `/api/study/generate` and `/api/practice/generate` now
+  enforce entitlement.** Previously any authenticated user could
+  call them freely, bypassing the per-product paywall that the
+  catalog and checkout pages advertise.
+- **MED: NextAuth redirect callback** added with a same-origin
+  guard to prevent open-redirect attacks via `callbackUrl`.
+  Off-origin `callbackUrl` values now fall back to the role's
+  dashboard.
+
+### Fixed
+
+- `/owner/**` was protected only at the layout level — added
+  matching edge-middleware role gate (defense in depth, matches
+  how STUDENT/TEACHER/PARENT/ADMIN are gated).
+- `/api/contact` added to `PUBLIC_API_PATHS` so anonymous form
+  submissions actually reach the route.
+- Authenticated OWNER landing on `/` no longer falls through to
+  the marketing page — now redirects to `/owner`, same pattern
+  as the other roles.
+- Login page default fallback was `/student/dashboard`, which
+  created a middleware redirect loop for any unknown role. Now
+  falls back to `/`.
+- `DEMO_EMAIL_ROLES` had the master demo hardcoded as `TEACHER`,
+  routing them to `/teacher/dashboard` instead of `/owner`. The
+  entry was removed; the master demo now flows through the
+  normal OWNER role assignment from 6.0.
+- `/demo` page now catches `MFA_REQUIRED` for OWNER-promoted
+  demo accounts and redirects to `/login` instead of erroring
+  silently. Without this, an OWNER-flavored demo login looked
+  like a generic failure.
+- Master demo can again visit `/student/dashboard` and
+  `/student/survey` — their hard STUDENT role gates were
+  kicking the master demo out post-SEC-3 (the 6.0 bypass
+  removal). The gates now check for master demo explicitly
+  rather than relying on the universal bypass.
+- Teacher lesson planner: every `s.value` reference (which was
+  always `undefined` because `SUBJECTS` uses `id`/`label`/`emoji`)
+  replaced with `s.id`. Subject chip now highlights; labels and
+  icons render correctly. This had been broken since the
+  planner shipped.
+- Admin "Send Message" / "Edit Profile" buttons in
+  `/admin/employees` no longer stub no-ops. Both now route to
+  real surfaces.
+- `/products` page's "Owned" bundle badges now render — was
+  reading `data.bundles` from an API that returns
+  `data.subscriptions`.
+- `/products#bundles` anchor now scrolls to the bundles section
+  (added `id="bundles"`).
+- Notifications page enumeration: same generic error message
+  for `/api/auth/verify-otp` wrong-code and missing-challenge
+  paths (so an attacker can't distinguish "no challenge issued"
+  from "wrong code").
+- Help quick-link "AI Tutor" → `/student/tutor` (which bounces
+  anonymous visitors to `/login`) changed to "Try a tool" →
+  `/products`.
+- Help quick-links grid had 4 columns rendering 3 cells —
+  collapsed to 3 columns so the grid lays out cleanly.
+- Sidebar logo on dashboards was a non-clickable `<img>` — now
+  wrapped in `<Link>`.
+
+### Files changed (summary)
+
+About 34 modified files + 5 new files. Highlights:
+
+- New shared helpers: `src/lib/entitlement.ts`,
+  `src/components/AnonShell.tsx`.
+- New API routes: `src/app/api/contact/route.ts`,
+  `src/app/api/products/[productId]/cancel/route.ts`,
+  `src/app/api/assignments/[id]/route.ts` (PUT + DELETE).
+- New email template: `src/lib/email-templates.ts`
+  (`passwordResetEmail`).
+- Modified: `src/middleware.ts` (OWNER role gate +
+  `/api/contact` in PUBLIC_API_PATHS), `src/lib/auth.ts`
+  (redirect callback + same-origin guard), `src/lib/payments.ts`
+  + `src/app/api/payments/route.ts` (TIER_PRICES constant),
+  `src/app/api/study/generate/route.ts` +
+  `src/app/api/practice/generate/route.ts` +
+  `src/app/api/products/generate/route.ts` (entitlement gate),
+  `src/app/api/auth/forgot-password/route.ts` (Resend send
+  uncommented + wired), `src/components/layout/DashboardLayout.tsx`
+  (OWNER sidebar/mobile/role-color + logo Link),
+  `src/components/AuthAwareCTA.tsx` (OWNER routing),
+  `src/components/dashboard/MySubscriptionsCard.tsx` (mixed
+  bundle + product counts), `src/components/products/MarkdownToolPage.tsx`
+  (402 handling), `src/app/account/subscriptions/page.tsx`
+  (single-product section), `src/app/api/products/subscriptions/route.ts`
+  (productSubscriptions added), `src/app/teacher/lesson-planner/page.tsx`
+  (s.value → s.id), `src/app/admin/employees/page.tsx`
+  (button wiring), `src/app/(legal)/contact/page.tsx`
+  (real submit), `src/app/(legal)/accessibility/page.tsx`
+  (.edu → .co), `src/app/help/page.tsx` (FAQ + quick-links
+  grid), `src/components/landing/LandingPage.tsx` (CTAs +
+  JSON-LD + footer + skip-to-content), `src/app/(auth)/{demo,login,onboard,pricing,register}/page.tsx`
+  (AnonShell + OWNER MFA + fallback), `src/app/products/page.tsx`
+  (Owned badges fix + #bundles anchor), `src/app/owner/page.tsx`
+  (OWNER landing), `src/lib/auth.ts` (DEMO_EMAIL_ROLES TEACHER
+  removed; master-demo gates on STUDENT pages),
+  `package.json` (16.9.0 → 17.1.0), `CHANGELOG.md`,
+  `CODE-REVIEW.md`.
+
+### Risk
+
+MEDIUM. Broad UX surface (~34 files), one CRITICAL recovery-flow
+fix (forgot-password was returning success but doing nothing),
+two HIGH security fixes (custom-price write + per-tool
+entitlement). Mitigated by: no schema changes, no new auth
+roles, no new payment provider — all the wiring extends or
+hardens patterns established in 6.0. The entitlement gate
+short-circuits to `entitled: true` for the master demo so the
+demo-mode contract holds.
+
+### Migration notes
+
+1. No `npx prisma db push` needed — schema is unchanged from 6.0.
+2. Set the optional `CONTACT_EMAIL_TO` env var if the contact
+   inbox should land somewhere other than `contact@limud.co`.
+3. Verify `RESEND_API_KEY` is set in production — it's now used
+   by both the OWNER 2FA flow (from 6.0) and the
+   forgot-password flow (new in 6.1).
+4. SEC-1 secret rotation from 6.0 is still pending — see the
+   callout at the top.
+5. Re-deploy. The OWNER nav wiring, the per-product
+   subscription surfaces, the entitlement gates, the contact
+   route, and the forgot-password fix all need a fresh deploy.
+
+---
+
 ## [17.0.0] - 2026-05-19 — Update 6.0: OWNER role, per-product checkout, security hardening
 
 Update 6.0 is the largest commercial-surface release since the

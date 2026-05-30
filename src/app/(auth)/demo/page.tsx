@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DEMO_CREDENTIALS } from '@/lib/demo-data';
+import AnonShell from '@/components/layout/AnonShell';
 
 const ROLE_CONFIG: Record<string, { icon: any; color: string; bg: string; desc: string }> = {
   Student: {
@@ -65,6 +66,9 @@ function getDashboardPath(role?: string): string {
     case 'TEACHER': return '/teacher/dashboard';
     case 'ADMIN': return '/admin/dashboard';
     case 'PARENT': return '/parent/dashboard';
+    // v17.1: OWNER elevation (when a demo button hits an OWNER account)
+    // routes to /owner instead of falling through to /student/dashboard.
+    case 'OWNER': return '/owner';
     default: return '/student/dashboard';
   }
 }
@@ -78,16 +82,28 @@ export default function DemoPage() {
   const handleLogin = async (email: string) => {
     setLoading(email);
     try {
-      // Set demo mode
-      localStorage.setItem('limud-demo-mode', 'true');
-
+      // v17.1: do NOT set demo-mode flag before signIn — if signIn fails
+      // (or the account requires 2FA and bounces us to /login), the stale
+      // flag would persist and contaminate the next real session.
       const result = await signIn('credentials', {
         email,
         password: 'password123',
         redirect: false,
       });
 
+      // v17.1: a demo account that happens to be OWNER (or any 2FA-gated
+      // role) will surface `MFA_REQUIRED:<id>`. The /demo page can't
+      // complete the OTP leg — send the user to /login with email
+      // prefilled and let them finish there.
+      if (result?.error && result.error.startsWith('MFA_REQUIRED:')) {
+        toast('This account requires 2FA — redirecting to login', { icon: '🔐' });
+        router.push('/login?email=' + encodeURIComponent(email));
+        return;
+      }
+
       if (result?.ok && !result?.error) {
+        // v17.1: only persist the demo-mode flag once signIn succeeded.
+        try { localStorage.setItem('limud-demo-mode', 'true'); } catch {}
         // Auth succeeded — use known role mapping for instant redirect
         const knownRole = DEMO_EMAIL_ROLES[email.toLowerCase()];
         if (knownRole) {
@@ -133,27 +149,8 @@ export default function DemoPage() {
   }, {} as Record<string, typeof DEMO_CREDENTIALS>);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header */}
-      <nav className="bg-white/90 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 text-gray-900">
-            <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
-              <BookOpen className="text-white" size={18} />
-            </div>
-            <span className="text-xl font-extrabold tracking-tight">Limud</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm text-gray-700 hover:text-gray-900 font-semibold transition px-4 py-2">
-              Sign In
-            </Link>
-            <Link href="/register" className="btn-primary text-sm">
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
-
+    <AnonShell>
+      <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Hero */}
       <div className="max-w-6xl mx-auto px-6 py-10">
         <motion.div
@@ -334,6 +331,7 @@ export default function DemoPage() {
           to save your data.
         </p>
       </div>
-    </div>
+      </div>
+    </AnonShell>
   );
 }

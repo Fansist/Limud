@@ -7,11 +7,12 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn, formatDate } from '@/lib/utils';
+import Link from 'next/link';
 import {
   UserCog, Search, Plus, X, Building2, Mail, Phone, Calendar,
   Shield, ChevronDown, ChevronUp, Edit3, Trash2, CheckCircle2,
   Filter, Download, GraduationCap, Briefcase, Clock, MoreVertical,
-  Eye, EyeOff, UserPlus, BadgeCheck, AlertTriangle,
+  Eye, EyeOff, UserPlus, BadgeCheck, AlertTriangle, Info,
 } from 'lucide-react';
 
 const DEMO_EMPLOYEES = [
@@ -134,6 +135,9 @@ export default function AdminEmployeesPage() {
     hireDate: '', certifications: '', password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  // v17.1: honest "coming soon" modal for Edit Profile until the per-employee
+  // profile editor lands in v17.2.
+  const [editProfileFor, setEditProfileFor] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => { fetchEmployees(); }, [isDemo]);
 
@@ -575,10 +579,24 @@ export default function AdminEmployeesPage() {
                               emp.isActive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100')}>
                             {emp.isActive ? <><EyeOff size={12} /> Deactivate</> : <><Eye size={12} /> Activate</>}
                           </button>
-                          <button className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 bg-gray-50 text-gray-600 hover:bg-gray-100 transition">
+                          {/* v17.1: Send Message — /admin/messages does not exist yet, so we link
+                              to /admin/dashboard with disabled styling. TODO: build /admin/messages
+                              (target href: `/admin/messages?to=${emp.id}`). */}
+                          <Link
+                            href="/admin/dashboard"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Messaging UI is coming in v17.2"
+                            className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 bg-gray-50 text-gray-400 hover:bg-gray-100 transition cursor-not-allowed"
+                            aria-disabled="true"
+                          >
                             <Mail size={12} /> Send Message
-                          </button>
-                          <button className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 bg-blue-50 text-blue-600 hover:bg-blue-100 transition">
+                          </Link>
+                          {/* v17.1: Edit Profile — opens an honest "coming in v17.2" modal so
+                              admins can at least reach out via Send Message in the meantime. */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditProfileFor({ id: emp.id, name: emp.name }); }}
+                            className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                          >
                             <Edit3 size={12} /> Edit Profile
                           </button>
                         </div>
@@ -597,6 +615,50 @@ export default function AdminEmployeesPage() {
             <p>{search || roleFilter !== 'All' || deptFilter !== 'All' ? 'No employees match your filters' : 'No employees found'}</p>
           </div>
         )}
+
+        {/* v17.1: Edit-profile coming-soon modal. Honest UX vs the previous
+            empty stub — admins were clicking a button that did literally
+            nothing. Routes them to Send Message to request changes today. */}
+        <AnimatePresence>
+          {editProfileFor && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+              onClick={() => setEditProfileFor(null)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                onClick={(e) => e.stopPropagation()}
+                className="card max-w-md w-full"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                      <Info size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 dark:text-white">Edit profile for {editProfileFor.name}</h3>
+                      <p className="text-xs text-gray-500">Coming in v17.2</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setEditProfileFor(null)}><X size={18} className="text-gray-400" /></button>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Profile editing for employees is coming in v17.2 — for now, contact them via
+                  Send Message to request changes.
+                </p>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    onClick={() => setEditProfileFor(null)}
+                    className="btn-secondary text-sm"
+                  >
+                    Close
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </DashboardLayout>
   );

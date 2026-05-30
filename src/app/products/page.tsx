@@ -70,6 +70,7 @@ export default function ProductsPage() {
   const [billing, setBilling] = useState<BillingMode>('oneTime');
   const { status } = useSession();
   const [ownedBundles, setOwnedBundles] = useState<Set<string>>(new Set());
+  const [ownedProducts, setOwnedProducts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -78,29 +79,55 @@ export default function ProductsPage() {
       try {
         const res = await fetch('/api/products/subscriptions', { cache: 'no-store' });
         if (!res.ok) {
-          if (!cancelled) setOwnedBundles(new Set());
+          if (!cancelled) {
+            setOwnedBundles(new Set());
+            setOwnedProducts(new Set());
+          }
           return;
         }
         const data: unknown = await res.json();
-        const ids: string[] = [];
+        const bundleIds: string[] = [];
+        const productIds: string[] = [];
+        // v17.1: the API now returns { bundleSubscriptions, productSubscriptions,
+        // subscriptions (legacy alias of bundleSubscriptions) }. Read the new
+        // keys first; fall back to `subscriptions` so we keep working against
+        // a stale v17.0.x cache.
         if (data && typeof data === 'object') {
-          const maybeBundles = (data as { bundles?: unknown }).bundles;
-          if (Array.isArray(maybeBundles)) {
-            for (const entry of maybeBundles) {
-              if (typeof entry === 'string') {
-                ids.push(entry);
-              } else if (entry && typeof entry === 'object') {
-                const bundleId = (entry as { bundleId?: unknown }).bundleId;
-                const id = (entry as { id?: unknown }).id;
-                if (typeof bundleId === 'string') ids.push(bundleId);
-                else if (typeof id === 'string') ids.push(id);
-              }
+          const obj = data as Record<string, unknown>;
+          const bundleArr = Array.isArray(obj.bundleSubscriptions)
+            ? obj.bundleSubscriptions
+            : Array.isArray(obj.subscriptions)
+              ? obj.subscriptions
+              : [];
+          for (const entry of bundleArr) {
+            if (entry && typeof entry === 'object' && entry !== null) {
+              const entryStatus = (entry as { status?: unknown }).status;
+              if (typeof entryStatus === 'string' && entryStatus !== 'active') continue;
+              const bundleId = (entry as { bundleId?: unknown }).bundleId;
+              if (typeof bundleId === 'string') bundleIds.push(bundleId);
+            }
+          }
+          const productArr = Array.isArray(obj.productSubscriptions)
+            ? obj.productSubscriptions
+            : [];
+          for (const entry of productArr) {
+            if (entry && typeof entry === 'object' && entry !== null) {
+              const entryStatus = (entry as { status?: unknown }).status;
+              if (typeof entryStatus === 'string' && entryStatus !== 'active') continue;
+              const pid = (entry as { productId?: unknown }).productId;
+              if (typeof pid === 'string') productIds.push(pid);
             }
           }
         }
-        if (!cancelled) setOwnedBundles(new Set(ids));
+        if (!cancelled) {
+          setOwnedBundles(new Set(bundleIds));
+          setOwnedProducts(new Set(productIds));
+        }
       } catch {
-        if (!cancelled) setOwnedBundles(new Set());
+        if (!cancelled) {
+          setOwnedBundles(new Set());
+          setOwnedProducts(new Set());
+        }
       }
     })();
     return () => {
@@ -216,7 +243,12 @@ export default function ProductsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="font-bold text-gray-900">{p.name}</h2>
-                      {ownedProductsViaBundle.has(p.id) && (
+                      {ownedProducts.has(p.id) && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold whitespace-nowrap">
+                          ✓ Subscribed
+                        </span>
+                      )}
+                      {!ownedProducts.has(p.id) && ownedProductsViaBundle.has(p.id) && (
                         <span className="px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold whitespace-nowrap">
                           Included in your bundle
                         </span>
@@ -277,7 +309,8 @@ export default function ProductsPage() {
         </section>
 
         {/* Bundles */}
-        <section className="mb-16">
+        {/* v17.1: id="bundles" so /products#bundles anchor scrolls here. */}
+        <section id="bundles" className="mb-16 scroll-mt-20">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium border border-primary-100 mb-3">
               <Package size={14} /> Bundles

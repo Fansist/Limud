@@ -28,7 +28,9 @@ function getDashboardPath(role?: string): string {
     case 'PARENT': return '/parent/dashboard';
     // v17: OWNER landing is at /owner (Finances + Prices cards).
     case 'OWNER': return '/owner';
-    default: return '/student/dashboard';
+    // v17.1: unknown roles fall to '/', not /student/dashboard — the latter
+    // creates a middleware redirect loop for any non-STUDENT session.
+    default: return '/';
   }
 }
 
@@ -47,7 +49,9 @@ const DEMO_EMAIL_ROLES: Record<string, string> = {
   'teacher@limud.edu': 'TEACHER',
   'admin@limud.edu': 'ADMIN',
   'parent@limud.edu': 'PARENT',
-  'erez.ofer4@gmail.com': 'TEACHER',
+  // v17.1: erez.ofer4@gmail.com removed — master demo's role is resolved by
+  // OWNER_EMAIL match in auth.ts (returns 'OWNER'). Hardcoding 'TEACHER'
+  // here routed the master demo to /teacher/dashboard instead of /owner.
 };
 
 // v17 OWNER 2FA mode. We never persist the password — only hold it in
@@ -55,6 +59,13 @@ const DEMO_EMAIL_ROLES: Record<string, string> = {
 type LoginMode =
   | { kind: 'password' }
   | { kind: 'mfa'; challengeId: string; email: string; password: string };
+
+// v17.1 OTP UX: 5-minute code TTL (mirrors MFA_CODE_TTL_SECONDS default in
+// src/lib/config.ts). Not imported because the config module is server-only.
+const OTP_TTL_SECONDS = 300;
+// v17.1 OTP UX: 30-second cooldown between Resend clicks to throttle the
+// upstream Resend API and avoid hammering the credentials endpoint.
+const OTP_RESEND_COOLDOWN_SECONDS = 30;
 
 function LoginPageInner() {
   const [email, setEmail] = useState('');
@@ -65,9 +76,41 @@ function LoginPageInner() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [mode, setMode] = useState<LoginMode>({ kind: 'password' });
   const [otpCode, setOtpCode] = useState('');
+  // v17.1 OTP UX: countdown until the code expires. Reset on (re)issue.
+  const [otpSecondsLeft, setOtpSecondsLeft] = useState<number>(OTP_TTL_SECONDS);
+  // v17.1 OTP UX: cooldown until the user can click Resend again. 0 = enabled.
+  const [resendCooldown, setResendCooldown] = useState<number>(0);
+  // v17.1 OTP UX: in-flight flag for the Resend network call.
+  const [resending, setResending] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
+
+  // v17.1 OTP UX: countdown tick — runs only while in mfa mode.
+  useEffect(() => {
+    if (mode.kind !== 'mfa') return;
+    if (otpSecondsLeft <= 0) return;
+    const id = setInterval(() => {
+      setOtpSecondsLeft(s => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [mode.kind, otpSecondsLeft]);
+
+  // v17.1 OTP UX: resend cooldown tick.
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = setInterval(() => {
+      setResendCooldown(s => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [resendCooldown]);
+
+  const otpExpired = mode.kind === 'mfa' && otpSecondsLeft <= 0;
+  const otpMmSs = (() => {
+    const m = Math.floor(otpSecondsLeft / 60);
+    const s = otpSecondsLeft % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  })();
 
   // v9.7: Remember Me — restore saved email on mount
   useEffect(() => {
@@ -118,6 +161,9 @@ function LoginPageInner() {
       setMode({ kind: 'mfa', challengeId, email: normalizedEmail, password: loginPassword });
       setOtpCode('');
       setServerError(null);
+      // v17.1 OTP UX: reset the expiry countdown every time a fresh
+      // challenge is minted (initial issue OR resend).
+      setOtpSecondsLeft(OTP_TTL_SECONDS);
       return 'mfa-required';
     }
 
@@ -205,8 +251,10 @@ function LoginPageInner() {
       // Session fetch failed — fall through
     }
 
-    // Strategy 3: Fallback redirect — real users go to student dashboard cleanly
-    router.push(safeCallbackUrl ?? '/student/dashboard');
+    // Strategy 3: Fallback redirect — unknown roles go to '/' (homepage),
+    // not /student/dashboard which would loop through middleware for any
+    // non-STUDENT session.
+    router.push(safeCallbackUrl ?? '/');
     router.refresh();
     return 'ok';
   };
@@ -286,6 +334,41 @@ function LoginPageInner() {
     setMode({ kind: 'password' });
     setOtpCode('');
     setServerError(null);
+    setOtpSecondsLeft(OTP_TTL_SECONDS);
+    setResendCooldown(0);
+  };
+
+  /**
+   * v17.1 OTP UX: re-trigger the credentials POST so authorize() mints a
+   * fresh MFA challenge (and Resend dispatches a new email). The existing
+   * doLogin() codepath returns 'mfa-required' and flips mode.challengeId
+   * for us, so we just call it again with the same email/password held in
+   * `mode`. A 30-second cooldown throttles the button.
+   */
+  const handleResendOtp = async () => {
+    if (mode.kind !== 'mfa') return;
+    if (resendCooldown > 0) return;
+    if (resending) return;
+    setResending(true);
+    setServerError(null);
+    try {
+      const outcome = await doLogin(mode.email, mode.password);
+      if (outcome === 'mfa-required') {
+        toast.success('New code sent.');
+        setResendCooldown(OTP_RESEND_COOLDOWN_SECONDS);
+      } else if (outcome === 'failed') {
+        setServerError('Could not send a new code. Please try again.');
+        toast.error('Could not send a new code.');
+      } else {
+        // 'ok' here would mean MFA somehow completed without a proof —
+        // unexpected on a resend. Surface a generic failure.
+        setServerError('Unexpected response. Please try again.');
+      }
+    } catch {
+      toast.error('Something went wrong');
+    } finally {
+      setResending(false);
+    }
   };
 
 
@@ -491,17 +574,43 @@ function LoginPageInner() {
                       aria-label="6-digit verification code"
                       autoComplete="one-time-code"
                       autoFocus
+                      disabled={otpExpired}
                     />
+                    {/* v17.1: live countdown + expiry message */}
+                    {!otpExpired ? (
+                      <p className="text-xs text-gray-500 mt-2" aria-live="polite">
+                        Code expires in <span className="font-mono font-semibold text-gray-700">{otpMmSs}</span>
+                      </p>
+                    ) : (
+                      <p className="text-xs text-amber-600 mt-2" role="status">
+                        Code expired — click Resend to get a new one.
+                      </p>
+                    )}
                     {serverError && <p role="alert" className="text-red-600 text-sm mt-1">{serverError}</p>}
                   </div>
 
                   <button
                     type="submit"
-                    disabled={loading || otpCode.length !== 6}
+                    disabled={loading || otpCode.length !== 6 || otpExpired}
                     className="btn-primary w-full py-3 text-base flex items-center justify-center gap-2"
                     aria-label="Verify code"
                   >
                     {loading ? 'Verifying...' : 'Verify & Sign In'}
+                  </button>
+
+                  {/* v17.1: Resend with 30s cooldown */}
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resending || resendCooldown > 0}
+                    className="w-full text-sm font-medium text-primary-600 hover:text-primary-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    aria-label="Resend verification code"
+                  >
+                    {resending
+                      ? 'Sending new code...'
+                      : resendCooldown > 0
+                        ? `Resend code (${resendCooldown}s)`
+                        : 'Resend code'}
                   </button>
 
                   <button

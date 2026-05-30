@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { CreditCard, DollarSign, Calendar, CheckCircle2, ArrowUpRight, Zap, Star, Crown, Shield, Users, Building2, TrendingUp } from 'lucide-react';
+import { CreditCard, DollarSign, Calendar, CheckCircle2, ArrowUpRight, Zap, Star, Crown, Shield, Users, Building2, TrendingUp, Info } from 'lucide-react';
 import { cn, formatDate } from '@/lib/utils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { DEMO_DISTRICT } from '@/lib/demo-data';
@@ -105,6 +105,21 @@ export default function AdminPaymentsPage() {
             <CreditCard size={28} /> Billing & Payments
           </h1>
           <p className="text-gray-500 mt-1">Manage your district subscription and payment history</p>
+        </motion.div>
+
+        {/* v17.1: Honest pricing scope banner. v17 locked custom pricePerYear
+            edits to OWNER, but this page still upgrades to canonical tier
+            prices. Be explicit so admins know what this UI can and can't do. */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+          className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3"
+        >
+          <Info size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-blue-900">
+            This page can upgrade your district to a canonical tier price
+            (Starter $2/student/yr, Growth $4, Enterprise $8). Custom pricing
+            is OWNER-only — contact us if you need a different rate.
+          </p>
         </motion.div>
 
         {/* Current Plan */}

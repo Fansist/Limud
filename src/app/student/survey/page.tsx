@@ -172,11 +172,15 @@ export default function StudentSurveyPage() {
   const STEP_LABELS = ['Discover', 'Interests', 'How You Learn', 'Your Needs', 'Fun Stuff'];
 
   useEffect(() => {
-    // v9.7.7: isDemo is true for master demo too, so isMasterDemo check is no longer needed
-    if (!isDemo && status === 'authenticated' && (session?.user as { role?: string })?.role !== 'STUDENT') {
+    // v17.1: master demo (any session role) is allowed through so SEC-3
+    // doesn't eject them from the student survey. Real users still need
+    // STUDENT role.
+    if (isDemo) return;
+    const user = session?.user as { role?: string; isMasterDemo?: boolean } | undefined;
+    if (status === 'authenticated' && !user?.isMasterDemo && user?.role !== 'STUDENT') {
       router.push('/');
     }
-  }, [status, isDemo]);
+  }, [status, isDemo, session?.user, router]);
 
   function toggleItem(arr: string[], setArr: (v: string[]) => void, item: string) {
     setArr(arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item]);

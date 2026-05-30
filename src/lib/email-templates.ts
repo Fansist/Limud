@@ -268,3 +268,23 @@ export function otpCodeEmail(code: string, ttlMin = 5): { subject: string; html:
       '</div>',
   };
 }
+
+/**
+ * v17.1 — Password reset email.
+ * Sent by /api/auth/forgot-password in production after a valid reset token
+ * is issued. `name` and `resetUrl` come from trusted server-side sources
+ * (DB lookup for name, server-constructed URL with hex token), so they are
+ * safe to interpolate without escaping. `expiresMin` is a server constant.
+ */
+export function passwordResetEmail(name: string, resetUrl: string, expiresMin = 60): { subject: string; html: string } {
+  return {
+    subject: 'Reset your Limud password',
+    html: `<div style="font:14px/1.5 system-ui;color:#111">
+      <p>Hi ${esc(name)},</p>
+      <p>Click the link below to reset your Limud password:</p>
+      <p><a href="${esc(resetUrl)}" style="display:inline-block;padding:10px 16px;background:#0ea5e9;color:#fff;border-radius:6px;text-decoration:none">Reset password</a></p>
+      <p>Or copy this URL: ${esc(resetUrl)}</p>
+      <p>This link expires in ${expiresMin} minutes. If you didn't request a reset, you can ignore this email.</p>
+    </div>`,
+  };
+}

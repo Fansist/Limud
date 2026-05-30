@@ -61,9 +61,8 @@ export default function AccessibilityStatement() {
       <h2>Feedback & Support</h2>
       <p>If you encounter any accessibility barriers on Limud, please let us know:</p>
       <ul>
-        <li>Email: accessibility@limud.edu</li>
-        <li>Phone: (555) 123-4567</li>
-        <li>In-app: Use the Accessibility button in your dashboard sidebar</li>
+        <li>Email: accessibility@limud.co</li>
+        <li>In-app: open the Accessibility panel from the bottom of your dashboard sidebar once logged in</li>
       </ul>
       <p>We aim to respond to accessibility feedback within 2 business days.</p>
     </article>

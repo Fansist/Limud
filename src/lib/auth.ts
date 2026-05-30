@@ -546,6 +546,30 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
+    /**
+     * v17.1 — explicit redirect allowlist.
+     * NextAuth's default redirect callback only blocks cross-origin URLs,
+     * but it can be tricked by malformed callbackUrl values into open-
+     * redirecting to a same-suffix attacker domain. We resolve everything
+     * against `baseUrl` and refuse anything that isn't either a
+     * same-origin absolute URL or a relative path on this app.
+     */
+    async redirect({ url, baseUrl }) {
+      // Relative paths: fine, resolve against baseUrl. We explicitly reject
+      // protocol-relative URLs ('//evil.com/...') because url.startsWith('/')
+      // alone would let them through; some downstream URL parsers treat the
+      // path component as authority and end up redirecting off-origin.
+      // This mirrors the guard used in src/app/(auth)/login/page.tsx for
+      // callbackUrl handling. (REVIEWER v17.1 HIGH-2.)
+      if (url.startsWith('/') && !url.startsWith('//')) return baseUrl + url;
+      // Absolute URLs: only accept if origin matches baseUrl.
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {
+        // Malformed URL — fall through to baseUrl.
+      }
+      return baseUrl;
+    },
   },
 
   // Embedded secret — works with zero env vars

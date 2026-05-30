@@ -23,7 +23,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 import { generateProductTool, type ProductTool } from '@/lib/ai';
-import prisma from '@/lib/prisma';
+import { requireProductEntitlement } from '@/lib/entitlement';
 import { log } from '@/lib/log';
 
 export const dynamic = 'force-dynamic';
@@ -89,35 +89,12 @@ export const POST = apiHandler(async (req: Request) => {
   // OWNER and master demo bypass. Everyone else needs an active product
   // subscription (direct) OR an active bundle that includes the mapped
   // product id. 402 Payment Required + checkoutUrl tells the client where
-  // to send the user.
+  // to send the user. Logic centralized in src/lib/entitlement.ts so the
+  // same gate is used by /api/study/generate and /api/practice/generate.
   const productId = TOOL_TO_PRODUCT_ID[tool];
-  if (productId && !user.isMasterDemo && user.role !== 'OWNER') {
-    const [productSub, bundleSubs] = await Promise.all([
-      prisma.productSubscription.findFirst({
-        where: { userId: user.id, productId, status: 'active' },
-      }),
-      prisma.bundleSubscription.findMany({
-        where: { userId: user.id, status: 'active' },
-      }),
-    ]);
-    let allowed = !!productSub;
-    if (!allowed && bundleSubs.length) {
-      const { BUNDLES } = await import('@/lib/bundles');
-      allowed = bundleSubs.some((s) => {
-        const bundle = BUNDLES.find((b) => b.id === s.bundleId);
-        return bundle?.productIds.includes(productId as never);
-      });
-    }
-    if (!allowed) {
-      return NextResponse.json(
-        {
-          error: 'Subscription required',
-          productId,
-          checkoutUrl: '/products/' + productId + '/checkout?billing=monthly',
-        },
-        { status: 402 },
-      );
-    }
+  if (productId) {
+    const gate = await requireProductEntitlement(user, productId);
+    if (!gate.allowed) return gate.response;
   }
 
   log.info('PRODUCT_TOOL', `${tool} request user=${user.id} input.length=${input.length}`);

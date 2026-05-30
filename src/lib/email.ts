@@ -14,9 +14,15 @@ interface SendEmailParams {
   to: string;
   subject: string;
   html: string;
+  /**
+   * Optional Reply-To header. Used by the /api/contact endpoint so the team
+   * can reply to the submitter directly from their mail client instead of
+   * the noreply@ default. Added in v17.1.
+   */
+  replyTo?: string;
 }
 
-export async function sendEmail({ to, subject, html }: SendEmailParams): Promise<{ success: boolean; skipped?: boolean; id?: string; error?: unknown }> {
+export async function sendEmail({ to, subject, html, replyTo }: SendEmailParams): Promise<{ success: boolean; skipped?: boolean; id?: string; error?: unknown }> {
   if (!resend) {
     console.log(`[Email Skipped] No RESEND_API_KEY — To: ${to}, Subject: ${subject}`);
     return { success: true, skipped: true };
@@ -30,6 +36,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
       to,
       subject,
       html,
+      ...(replyTo ? { replyTo } : {}),
     });
     return { success: true, id: data.data?.id };
   } catch (error) {

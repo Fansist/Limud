@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import AnonShell from '@/components/layout/AnonShell';
 
 type AccountType = 'homeschool' | 'admin' | 'self_education' | 'student_standalone';
 
@@ -284,7 +285,8 @@ export default function RegisterPage() {
   const canProceedStep3 = pwErrors.length === 0 && password === confirmPassword;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex">
+    <AnonShell>
+      <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex min-h-[calc(100vh-9rem)]">
       {/* Left side - branding */}
       <div className="hidden lg:flex lg:w-5/12 bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 p-12 flex-col justify-between relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
@@ -836,6 +838,7 @@ export default function RegisterPage() {
           </AnimatePresence>
         </div>
       </div>
-    </div>
+      </div>
+    </AnonShell>
   );
 }

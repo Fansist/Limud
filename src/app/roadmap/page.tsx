@@ -797,13 +797,30 @@ export default function RoadmapPage() {
         </motion.div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200/50 py-8 text-center mt-8">
-        <p className="text-sm text-gray-400">
-          &copy; {new Date().getFullYear()} Limud Education Inc. &middot;{' '}
-          <Link href="/privacy" className="hover:text-gray-600 transition">Privacy</Link> &middot;{' '}
-          <Link href="/terms" className="hover:text-gray-600 transition">Terms</Link> &middot;{' '}
-          <Link href="/contact" className="hover:text-gray-600 transition">Contact</Link>
+      {/* Footer — v17.1: cross-links added to match the landing footer's
+          shape so visitors don't dead-end on /roadmap. */}
+      <footer className="border-t border-gray-200/50 py-8 text-center mt-8 space-y-2">
+        <p className="text-sm text-gray-500 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <Link href="/about" className="hover:text-gray-700 transition">About</Link>
+          <span className="text-gray-300">&middot;</span>
+          <Link href="/team" className="hover:text-gray-700 transition">Team</Link>
+          <span className="text-gray-300">&middot;</span>
+          <Link href="/products" className="hover:text-gray-700 transition">Products</Link>
+          <span className="text-gray-300">&middot;</span>
+          <Link href="/pricing" className="hover:text-gray-700 transition">Pricing</Link>
+          <span className="text-gray-300">&middot;</span>
+          <Link href="/help" className="hover:text-gray-700 transition">Help</Link>
+          <span className="text-gray-300">&middot;</span>
+          <Link href="/contact" className="hover:text-gray-700 transition">Contact</Link>
+        </p>
+        <p className="text-xs text-gray-400 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <span>&copy; {new Date().getFullYear()} Limud Education Inc.</span>
+          <span className="text-gray-300">&middot;</span>
+          <Link href="/privacy" className="hover:text-gray-600 transition">Privacy</Link>
+          <span className="text-gray-300">&middot;</span>
+          <Link href="/terms" className="hover:text-gray-600 transition">Terms</Link>
+          <span className="text-gray-300">&middot;</span>
+          <Link href="/accessibility" className="hover:text-gray-600 transition">Accessibility</Link>
         </p>
       </footer>
     </div>

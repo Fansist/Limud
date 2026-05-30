@@ -1,16 +1,50 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, MessageCircle, BookOpen, Clock } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Mail, MessageCircle, BookOpen, Clock, Send } from 'lucide-react';
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: '', email: '', subject: '', role: '', message: '' });
+  const [form, setForm] = useState({
+    name: '', email: '', subject: '', role: '', message: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
-    // v17 (CODER E): /api/contact does not exist yet. Form submit is a no-op
-    // until that endpoint ships; the button is visually disabled and the
-    // helper copy points users at the email fallback.
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
+
+    if (!form.name.trim() || !form.email.trim() || form.message.trim().length < 10) {
+      toast.error('Please fill in your name, email, and a message of at least 10 characters.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          message: form.message.trim(),
+          organization: form.role || undefined,
+          topic: form.subject || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.success) {
+        toast.success('Thanks! We’ll get back to you shortly.');
+        setForm({ name: '', email: '', subject: '', role: '', message: '' });
+      } else {
+        toast.error(data?.error || 'Something went wrong. Please try again or email contact@limud.co.');
+      }
+    } catch {
+      toast.error('Network error. Please try again or email contact@limud.co.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -38,25 +72,27 @@ export default function ContactPage() {
             <MessageCircle size={20} className="text-primary-500" />
             Send us a message
           </h2>
-          <form onSubmit={handleSubmit} className="space-y-4" aria-disabled="true">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input
+                  id="contact-name"
                   type="text"
-                  disabled
-                  className="input-field opacity-60 cursor-not-allowed"
+                  required
+                  className="input-field"
                   placeholder="Your name"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input
+                  id="contact-email"
                   type="email"
-                  disabled
-                  className="input-field opacity-60 cursor-not-allowed"
+                  required
+                  className="input-field"
                   placeholder="you@example.com"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
@@ -65,10 +101,10 @@ export default function ContactPage() {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">I am a...</label>
+                <label htmlFor="contact-role" className="block text-sm font-medium text-gray-700 mb-1">I am a...</label>
                 <select
-                  disabled
-                  className="input-field opacity-60 cursor-not-allowed"
+                  id="contact-role"
+                  className="input-field"
                   value={form.role}
                   onChange={e => setForm({ ...form, role: e.target.value })}
                 >
@@ -81,11 +117,11 @@ export default function ContactPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <label htmlFor="contact-subject" className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
                 <input
+                  id="contact-subject"
                   type="text"
-                  disabled
-                  className="input-field opacity-60 cursor-not-allowed"
+                  className="input-field"
                   placeholder="How can we help?"
                   value={form.subject}
                   onChange={e => setForm({ ...form, subject: e.target.value })}
@@ -93,25 +129,36 @@ export default function ContactPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+              <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 mb-1">Message</label>
               <textarea
-                disabled
+                id="contact-message"
+                required
                 rows={5}
-                className="input-field resize-none opacity-60 cursor-not-allowed"
+                minLength={10}
+                maxLength={5000}
+                className="input-field resize-none"
                 placeholder="Tell us more..."
                 value={form.message}
                 onChange={e => setForm({ ...form, message: e.target.value })}
               />
+              <p className="text-xs text-gray-400 mt-1">{form.message.length}/5000 characters</p>
             </div>
             <button
-              type="button"
-              disabled
-              aria-disabled="true"
-              className="btn-primary opacity-60 cursor-not-allowed"
+              type="submit"
+              disabled={submitting}
+              className="btn-primary flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Form coming soon — please email contact@limud.co
+              {submitting ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send size={16} /> Send Message
+                </>
+              )}
             </button>
-            <p className="text-sm text-amber-600">This form isn&apos;t wired up yet. Until it ships, email <a href="mailto:contact@limud.co" className="underline">contact@limud.co</a> directly and we&apos;ll get back to you.</p>
           </form>
         </div>
 
@@ -121,7 +168,7 @@ export default function ContactPage() {
             <BookOpen size={18} className="text-primary-500" />
             <h3 className="font-bold text-gray-900">Sales Inquiries</h3>
           </div>
-          <p className="text-sm text-gray-500">For district pricing, enterprise plans, and demos contact <strong>sales@limud.edu</strong></p>
+          <p className="text-sm text-gray-500">For district pricing, enterprise plans, and demos contact <strong>sales@limud.co</strong></p>
         </div>
         <div className="p-5 rounded-2xl border border-gray-100">
           <div className="flex items-center gap-2 mb-2">

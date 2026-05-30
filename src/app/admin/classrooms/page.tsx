@@ -217,6 +217,12 @@ export default function AdminClassroomsPageEnhanced() {
       setClassrooms(prev => prev.map(c => c.id === id ? { ...c, allowAITutor: !current } : c));
       toast.success(!current ? 'AI Tutor enabled' : 'AI Tutor disabled'); return;
     }
+    // v17.1: real-mode persistence is not wired yet — the Classroom Prisma
+    // model does not currently include allowAITutor. Surface this as an
+    // honest toast instead of silently no-op'ing so admins don't think the
+    // toggle saved. Tracked for v17.2 (schema migration + classrooms PUT
+    // action).
+    toast('This setting will be persisted in a future release', { icon: 'ℹ️' });
   }
 
   async function toggleDailyChallenge(id: string, current: boolean) {
@@ -224,6 +230,9 @@ export default function AdminClassroomsPageEnhanced() {
       setClassrooms(prev => prev.map(c => c.id === id ? { ...c, requireDailyChallenge: !current } : c));
       toast.success(!current ? 'Daily Challenge required' : 'Daily Challenge optional'); return;
     }
+    // v17.1: same as toggleAITutor — Classroom model lacks
+    // requireDailyChallenge. Honest UX over silent no-op.
+    toast('This setting will be persisted in a future release', { icon: 'ℹ️' });
   }
 
   // v12.4: Fetch teachers for assignment dropdown
