@@ -342,17 +342,17 @@ export default function AIBuilderPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {SUBJECTS.map(s => (
                     <button
-                      key={s.value}
-                      onClick={() => setSelectedSubject(s.value)}
+                      key={s.id}
+                      onClick={() => setSelectedSubject(s.id)}
                       className={cn(
                         'p-2.5 rounded-xl border-2 text-center transition-all text-xs',
-                        selectedSubject === s.value
+                        selectedSubject === s.id
                           ? 'border-violet-400 bg-violet-50 ring-1 ring-violet-200 font-bold'
                           : 'border-gray-100 hover:border-gray-200'
                       )}
                     >
-                      <span className="text-lg block">{s.icon}</span>
-                      <span className="mt-0.5 block">{s.value}</span>
+                      <span className="text-lg block">{s.emoji}</span>
+                      <span className="mt-0.5 block">{s.label}</span>
                     </button>
                   ))}
                 </div>
@@ -548,8 +548,8 @@ export default function AIBuilderPage() {
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-medium px-2 py-1 rounded-full bg-violet-100 text-violet-700">
-                            {SUBJECTS.find(s => s.value === generatedAssignments[activeTab].subject)?.icon}{' '}
-                            {SUBJECTS.find(s => s.value === generatedAssignments[activeTab].subject)?.value}
+                            {SUBJECTS.find(s => s.id === generatedAssignments[activeTab].subject)?.emoji}{' '}
+                            {SUBJECTS.find(s => s.id === generatedAssignments[activeTab].subject)?.label}
                           </span>
                           <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-600">
                             Grade {generatedAssignments[activeTab].gradeLevel}

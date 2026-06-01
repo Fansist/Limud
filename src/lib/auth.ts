@@ -219,6 +219,10 @@ async function issueMfaChallenge(opts: {
  * Returns `true` only when the proof is well-formed, signed by AUTH_SECRET,
  * has `purpose === 'mfa'`, and its `challengeId` points to a consumed row
  * whose userId matches the expected user.
+ *
+ * v17.3: every failure branch logs a one-line reason via console.error so
+ * that production (Render) logs surface why a post-MFA login was rejected.
+ * The return type is unchanged — these are diagnostic logs only.
  */
 async function verifyMfaProof(opts: {
   mfaProof: string;
@@ -234,23 +238,69 @@ async function verifyMfaProof(opts: {
       typeof decoded.userId !== 'string' ||
       decoded.purpose !== 'mfa'
     ) {
+      console.error('[Limud Auth][MFA] proof rejected: wrong purpose or malformed payload', {
+        expectedUserId,
+        hasDecoded: !!decoded,
+        purpose: decoded?.purpose,
+      });
       return false;
     }
     payload = decoded as MfaProofPayload;
-  } catch {
+  } catch (err) {
+    console.error('[Limud Auth][MFA] proof rejected: bad signature', {
+      expectedUserId,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return false;
   }
 
-  if (payload.userId !== expectedUserId) return false;
+  if (payload.userId !== expectedUserId) {
+    console.error('[Limud Auth][MFA] proof rejected: userId mismatch', {
+      expectedUserId,
+      proofUserId: payload.userId,
+      challengeId: payload.challengeId,
+    });
+    return false;
+  }
 
   const { default: prisma } = await import('@/lib/prisma');
   const challenge = await prisma.twoFactorChallenge.findUnique({
     where: { id: payload.challengeId },
-    select: { userId: true, consumedAt: true },
+    select: { userId: true, consumedAt: true, expiresAt: true },
   });
-  if (!challenge) return false;
-  if (!challenge.consumedAt) return false;
-  if (challenge.userId !== expectedUserId) return false;
+  if (!challenge) {
+    console.error('[Limud Auth][MFA] proof rejected: challenge not found', {
+      expectedUserId,
+      challengeId: payload.challengeId,
+    });
+    return false;
+  }
+  if (!challenge.consumedAt) {
+    console.error('[Limud Auth][MFA] proof rejected: challenge not consumed', {
+      expectedUserId,
+      challengeId: payload.challengeId,
+    });
+    return false;
+  }
+  // Defensive expiry check — the verify-otp route should already reject
+  // expired codes before minting a proof, but log it loudly if a stale
+  // challenge somehow slips through.
+  if (challenge.expiresAt && challenge.expiresAt.getTime() < Date.now()) {
+    console.error('[Limud Auth][MFA] proof rejected: challenge expired', {
+      expectedUserId,
+      challengeId: payload.challengeId,
+      expiresAt: challenge.expiresAt.toISOString(),
+    });
+    return false;
+  }
+  if (challenge.userId !== expectedUserId) {
+    console.error('[Limud Auth][MFA] proof rejected: challenge userId mismatch', {
+      expectedUserId,
+      challengeUserId: challenge.userId,
+      challengeId: payload.challengeId,
+    });
+    return false;
+  }
   return true;
 }
 

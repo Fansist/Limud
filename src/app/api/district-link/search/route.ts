@@ -14,6 +14,8 @@
 import { NextResponse } from 'next/server';
 import { log as logger } from '@/lib/log';
 
+export const dynamic = 'force-dynamic';
+
 // The searchable filter — excludes demo, homeschool, self-education
 const SEARCHABLE_FILTER = {
   isHomeschool: false,

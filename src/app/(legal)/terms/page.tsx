@@ -2,7 +2,7 @@ export default function TermsOfService() {
   return (
     <article className="prose prose-gray max-w-none">
       <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Terms of Service</h1>
-      <p className="text-sm text-gray-400 mb-8">Last updated: February 25, 2026</p>
+      <p className="text-sm text-gray-400 mb-8">Last updated: May 30, 2026</p>
 
       <p>These Terms of Service (&quot;Terms&quot;) govern your use of the Limud educational platform provided by Limud Education Inc. (&quot;Limud&quot;, &quot;we&quot;, &quot;us&quot;). By creating an account or using Limud, you agree to these Terms.</p>
 
@@ -60,7 +60,7 @@ export default function TermsOfService() {
       <p>We may update these Terms from time to time. We will notify you of material changes via email or in-platform notification at least 30 days before they take effect.</p>
 
       <h2>14. Contact</h2>
-      <p>Questions about these Terms? Contact us at legal@limud.edu.</p>
+      <p>Questions about these Terms? Contact us at legal@limud.co.</p>
     </article>
   );
 }

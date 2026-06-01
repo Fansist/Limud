@@ -182,7 +182,7 @@ export default function TutorPage() {
       if (!data) {
         data = {
           sessionId: `local-${Date.now()}`,
-          message: getClientFallbackResponse(text),
+          reply: getClientFallbackResponse(text),
           tokensUsed: 0,
         };
       }
@@ -198,7 +198,11 @@ export default function TutorPage() {
       }
 
       setSessionId(data.sessionId || sessionId);
-      setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+      // v17.3 CODER 2: the API contract (and the route's own header) declares
+      // the response field as `reply`. The previous `data.message` read was
+      // rendering `undefined` for every real student. The demo endpoint and
+      // the local fallback above both also use `reply` now.
+      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
     } catch {
       toast.error('Connection error');
     } finally {

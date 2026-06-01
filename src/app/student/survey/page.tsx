@@ -381,17 +381,17 @@ export default function StudentSurveyPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {SUBJECTS.map(s => (
                     <button
-                      key={s.value}
-                      onClick={() => toggleItem(favoriteSubjects, setFavoriteSubjects, s.value)}
+                      key={s.id}
+                      onClick={() => toggleItem(favoriteSubjects, setFavoriteSubjects, s.id)}
                       className={cn(
                         'p-3 rounded-xl border-2 text-center transition-all',
-                        favoriteSubjects.includes(s.value)
+                        favoriteSubjects.includes(s.id)
                           ? `${s.color} border-current ring-2 ring-offset-1 shadow-md scale-105`
                           : 'border-gray-100 hover:border-gray-200 bg-gray-50'
                       )}
                     >
-                      <span className="text-2xl block">{s.icon}</span>
-                      <span className="text-xs font-medium mt-1 block">{s.value}</span>
+                      <span className="text-2xl block">{s.emoji}</span>
+                      <span className="text-xs font-medium mt-1 block">{s.label}</span>
                     </button>
                   ))}
                 </div>
@@ -405,16 +405,16 @@ export default function StudentSurveyPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {SUBJECTS.map(s => (
                     <button
-                      key={s.value}
-                      onClick={() => toggleItem(challenges, setChallenges, s.value)}
+                      key={s.id}
+                      onClick={() => toggleItem(challenges, setChallenges, s.id)}
                       className={cn(
                         'p-2 rounded-xl border text-center text-xs transition-all',
-                        challenges.includes(s.value)
+                        challenges.includes(s.id)
                           ? 'border-red-300 bg-red-50 text-red-700 ring-1 ring-red-200'
                           : 'border-gray-100 hover:border-gray-200 bg-gray-50 text-gray-600'
                       )}
                     >
-                      {s.icon} {s.value}
+                      {s.emoji} {s.label}
                     </button>
                   ))}
                 </div>

@@ -193,7 +193,7 @@ ${gradedSubs.slice(0, 8).map(s => `• "${s.assignment.title}" (${s.assignment.c
       strugglingSkills,
     },
   });
-});
+}, { rateLimit: 'ai' });
 
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('PARENT');

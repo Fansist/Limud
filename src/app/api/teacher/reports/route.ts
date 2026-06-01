@@ -233,4 +233,4 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
-});
+}, { rateLimit: 'ai' });

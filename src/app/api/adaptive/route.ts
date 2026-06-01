@@ -247,7 +247,7 @@ Return JSON:
     adaptedCount: results.length,
     results,
   });
-});
+}, { rateLimit: 'ai' });
 
 // GET: Retrieve adapted version for a specific student
 export const GET = apiHandler(async (req: Request) => {

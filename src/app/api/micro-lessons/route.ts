@@ -52,7 +52,7 @@ export const POST = apiHandler(async (req: Request) => {
   });
 
   return NextResponse.json({ lesson, content });
-});
+}, { rateLimit: 'ai' });
 
 function generateMicroLesson(subject: string, topic: string, difficulty: string) {
   const diffEmoji = { BEGINNER: '🌱', EASY: '📗', MEDIUM: '📘', HARD: '📕', ADVANCED: '🔥' };

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth, requireRole, apiHandler } from '@/lib/middleware';
+import { requireAuth, requireRole, apiHandler, getSession } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import { SubscriptionTier } from '@prisma/client';
 import { createAuditLog, getClientIP, getUserAgent } from '@/lib/security';
@@ -149,6 +149,32 @@ export const POST = apiHandler(async (req: Request) => {
   // ACTION: onboard - Create new district + admin + payment in one flow
   // ═══════════════════════════════════════════════════════════════════════
   if (action === 'onboard') {
+    // v17.3 — onboard requires authentication. Previously this action was
+    // anonymous, which made it a mass-account-creation + revenue-fraud vector:
+    // any client could POST { action: 'onboard', tier: 'PREMIUM', ... } and
+    // get a fully-provisioned SchoolDistrict with a COMPLETED Payment row.
+    // Now: caller must be signed in, AND must not already belong to a
+    // district (you can't stamp a new district from inside one).
+    const sessionUser = await getSession();
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (sessionUser.districtId) {
+      createAuditLog({
+        action: 'PRIVILEGE_ESCALATION',
+        userId: sessionUser.id, userEmail: sessionUser.email, userRole: sessionUser.role,
+        ip: getClientIP(req), userAgent: getUserAgent(req),
+        resource: '/api/payments',
+        details: {
+          action: 'onboard',
+          reason: 'User already belongs to a district',
+          existingDistrictId: sessionUser.districtId,
+        },
+        severity: 'warning', success: false, blocked: true,
+      });
+      return NextResponse.json({ error: 'Account already belongs to a district. Use upgrade/renew instead.' }, { status: 403 });
+    }
+
     const {
       districtName, contactEmail, contactPhone, address, city, state, zipCode,
       tier, studentCount, billingName, billingEmail, paymentMethod,
@@ -329,10 +355,44 @@ export const POST = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'User or district not found' }, { status: 404 });
     }
 
+    const effectiveStudentCount = count || 5;
+
     // FAMILY uses a flat household fee, not per-student math.
     const amount = tierKey === 'FAMILY'
       ? Math.round((tierInfo.annualPricePerHousehold ?? tierInfo.pricePerHousehold ?? 9) * 12 * 100) / 100
-      : tierInfo.pricePerStudent * (count || 5);
+      : tierInfo.pricePerStudent * effectiveStudentCount;
+
+    // ── v17.3 pricePerYear lockdown for homeschool-upgrade ──
+    // The v17.1 canonical price gate only protected `upgrade` and `renew`.
+    // Without this gate, a homeschool parent could pass any `tier` and the
+    // route wrote pricePerYear: amount based purely on the request. OWNER
+    // may set any price (negotiated rates, promos); everyone else must hit
+    // the canonical price for the tier. CUSTOM / ENTERPRISE always require
+    // OWNER because canonicalAmount returns null for them.
+    if (authUser.role !== 'OWNER') {
+      const canonical = canonicalAmount(tierKey, effectiveStudentCount);
+      if (canonical == null || Math.abs(amount - canonical) > 0.005) {
+        createAuditLog({
+          action: 'PRIVILEGE_ESCALATION',
+          userId: authUser.id, userEmail: authUser.email, userRole: authUser.role,
+          ip: getClientIP(req), userAgent: getUserAgent(req),
+          resource: '/api/payments',
+          details: {
+            action: 'homeschool-upgrade',
+            tier: tierKey,
+            requestedAmount: amount,
+            canonicalAmount: canonical,
+            districtId: user.districtId,
+            reason: 'Non-OWNER attempted custom pricing',
+          },
+          severity: 'critical', success: false, blocked: true,
+        });
+        return NextResponse.json(
+          { error: 'Only OWNER can set custom pricing.' },
+          { status: 403 },
+        );
+      }
+    }
 
     // Update district subscription
     await prisma.schoolDistrict.update({
@@ -343,7 +403,7 @@ export const POST = apiHandler(async (req: Request) => {
         subscriptionStart: new Date(),
         subscriptionEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         pricePerYear: amount,
-        maxStudents: Math.max(count || 5, tierInfo.maxStudents),
+        maxStudents: Math.max(effectiveStudentCount, tierInfo.maxStudents),
         maxTeachers: tierInfo.maxTeachers,
         maxSchools: tierInfo.maxSchools,
       },
@@ -358,7 +418,7 @@ export const POST = apiHandler(async (req: Request) => {
         paymentMethod: paymentMethod || 'card',
         description: `Homeschool ${tierKey} plan upgrade`,
         tier: tierKey as SubscriptionTier,
-        studentCount: count || 5,
+        studentCount: effectiveStudentCount,
         paidAt: new Date(),
       },
     });

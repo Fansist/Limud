@@ -33,7 +33,7 @@ export const POST = apiHandler(async (req: Request) => {
   });
 
   return NextResponse.json({ submission, analysis });
-});
+}, { rateLimit: 'ai' });
 
 // GET /api/writing-coach - Get past submissions
 export const GET = apiHandler(async () => {

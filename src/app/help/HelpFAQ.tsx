@@ -13,7 +13,7 @@ const FAQ_DATA: FAQCategory[] = [
     icon: <BookOpen size={20} />,
     items: [
       { question: 'How do I create an account?', answer: 'Visit /register and pick your account type — family, school, or district. Set up your details and admin credentials. Once created, you can add teachers, students, or children through the dashboard.' },
-      { question: 'What are the different user roles?', answer: 'Limud has 4 roles: Students (learners), Teachers (educators who create assignments and grade work), Admins (district administrators who manage schools, users, and billing), and Parents (who monitor their children\'s progress). Family / homeschool parents can flip on Family Teaching Mode for combined parent + teacher access.' },
+      { question: 'What are the different user roles?', answer: 'Limud has 5 roles: Students (learners), Teachers (educators who create assignments and grade work), Admins (district administrators who manage schools, users, and billing), Parents (who monitor their children\'s progress), and the Owner (for Limud staff with billing and pricing controls). Family / homeschool parents can flip on Family Teaching Mode for combined parent + teacher access.' },
       { question: 'Can I use Limud on my phone?', answer: 'Yes! Limud is fully responsive and works on any device. On mobile, you\'ll see a bottom navigation bar for quick access. You can even install it as a PWA (Progressive Web App) from your browser for an app-like experience.' },
     ],
   },
@@ -37,6 +37,7 @@ const FAQ_DATA: FAQCategory[] = [
       { question: 'How does billing work?', answer: 'Plans are billed monthly or annually (save 25% with annual billing). Upgrades are prorated. Payment methods include credit card, ACH bank transfer, and purchase orders (Enterprise). Invoices are available in the Billing section.' },
       { question: 'What individual products does Limud offer?', answer: 'Limud has 13 standalone products that anyone can use without a district plan: Exam Study Helper, Practice Generator, Math Solver, Essay Coach, Notes Cleaner, Lab Report Builder, Citation Finder, Language Lab, Flashcard Forge, Presentation Prep, Code Companion, Reading Decoder, and Exam Postmortem. Each product is available as a one-time per-use purchase OR as a monthly unlimited subscription. See /products for the full catalog.' },
       { question: 'Are there bundles to save money?', answer: 'Yes — Limud offers 4 bundles that group related tools at a discount: All-Access Pass (every product, up to 45% off vs. buying them individually), Study Bundle, Writing Bundle, and STEM Bundle. Bundles are billed monthly and can be combined with or replace single-product subscriptions.' },
+      { question: 'What is the Owner role?', answer: 'Owner is the highest privilege level for Limud staff who manage finances and platform pricing. Owner accounts require 2-step verification (email code) on every sign-in. Owner functionality is not available to regular customers.' },
     ],
   },
   {

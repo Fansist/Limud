@@ -32,7 +32,7 @@ export const POST = apiHandler(async (req: Request) => {
   });
 
   return NextResponse.json({ attempt, validation });
-});
+}, { rateLimit: 'ai' });
 
 // GET /api/math-solver - Get past attempts
 export const GET = apiHandler(async () => {

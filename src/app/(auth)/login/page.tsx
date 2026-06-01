@@ -192,6 +192,14 @@ function LoginPageInner() {
         localStorage.removeItem('limud-demo-mode');
         localStorage.removeItem('limud-demo-role');
       } catch {}
+      // v17.3: wait for the session cookie to be fully readable server-side
+      // before navigating, so the /owner layout's getServerSession sees the
+      // OWNER role on the first RSC fetch. Without this, the layout can
+      // observe a null session, redirect to /, and the user lands on the
+      // marketing page or a 404 in the middle of a redirect chain.
+      try {
+        await fetch('/api/auth/session', { cache: 'no-store' });
+      } catch {}
       router.push(safeCallbackUrl ?? getDashboardPath('OWNER'));
       router.refresh();
       return 'ok';

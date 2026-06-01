@@ -96,6 +96,11 @@ export async function loadOwnerFinances(): Promise<OwnerFinancesPayload> {
     prisma.payment.findMany({
       where: { status: 'COMPLETED' },
       select: { amount: true, paidAt: true },
+      // v17.3: cap the result set. A populated DB could otherwise stream
+      // every completed payment into memory just to compute the sum. 10k
+      // is far above the realistic short-term volume and still bounded.
+      orderBy: { createdAt: 'desc' },
+      take: 10_000,
     }),
     prisma.schoolDistrict.findMany({
       where: { subscriptionStatus: 'ACTIVE' },

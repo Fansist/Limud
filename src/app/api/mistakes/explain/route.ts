@@ -55,7 +55,7 @@ export const POST = apiHandler(async (req: Request) => {
     skillName: mistake?.skillName,
     tip: 'Try explaining this concept to yourself in your own words — it helps lock it in!',
   });
-});
+}, { rateLimit: 'ai' });
 
 // GET /api/mistakes/explain - Get all past mistakes with explanation status
 export const GET = apiHandler(async (req: Request) => {

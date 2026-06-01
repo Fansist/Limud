@@ -98,7 +98,7 @@ export default function TeacherOnboardingPage() {
       const savedClassrooms = getDemoClassrooms().filter(c => c.id?.startsWith('onboard-'));
       if (savedClassrooms.length > 0) {
         setClasses(savedClassrooms.map(c => {
-          const subjectId = SUBJECTS.find(s => s.value === c.subject)?.value || '';
+          const subjectId = SUBJECTS.find(s => s.id === c.subject)?.id || '';
           return { name: c.name?.split(' \u2014 ')[0] || c.name, period: c.period || '', subject: subjectId };
         }));
       }
@@ -136,23 +136,23 @@ export default function TeacherOnboardingPage() {
       const validClasses = classes.filter(c => c.name.trim());
 
       const customCourses: DemoCourse[] = validClasses.map((cls, i) => {
-        const subjectInfo = SUBJECTS.find(s => s.value === cls.subject);
+        const subjectInfo = SUBJECTS.find(s => s.id === cls.subject);
         return {
           id: `onboard-c${i + 1}-${Date.now()}`,
           name: cls.name,
-          subject: subjectInfo?.value || cls.subject || 'General',
+          subject: subjectInfo?.id || cls.subject || 'General',
           gradeLevel: gradeRange === 'elementary' ? 'K-5' : gradeRange === 'middle' ? '6-8' : '9-12',
           teacherId: session?.user?.id || 'demo-teacher',
         };
       });
 
       const customClassrooms: DemoClassroom[] = validClasses.map((cls, i) => {
-        const subjectInfo = SUBJECTS.find(s => s.value === cls.subject);
+        const subjectInfo = SUBJECTS.find(s => s.id === cls.subject);
         const courseId = customCourses[i]?.id || `onboard-c${i + 1}`;
         return {
           id: `onboard-cl${i + 1}-${Date.now()}`,
           name: `${cls.name} \u2014 ${cls.period}`,
-          subject: subjectInfo?.value || cls.subject || 'General',
+          subject: subjectInfo?.id || cls.subject || 'General',
           gradeLevel: gradeRange === 'elementary' ? 'K-5' : gradeRange === 'middle' ? '6-8' : '9-12',
           teacherId: session?.user?.id || 'demo-teacher',
           teacherName: session?.user?.name || 'Gregory Strachen',
@@ -243,17 +243,17 @@ export default function TeacherOnboardingPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {SUBJECTS.map(s => (
                 <button
-                  key={s.value}
-                  onClick={() => toggleSubject(s.value)}
+                  key={s.id}
+                  onClick={() => toggleSubject(s.id)}
                   className={cn(
                     'p-3 rounded-xl border-2 text-center transition-all',
-                    selectedSubjects.includes(s.value)
+                    selectedSubjects.includes(s.id)
                       ? `${s.color} border-current ring-2 ring-offset-1 shadow-md scale-105`
                       : 'border-gray-100 hover:border-gray-200 bg-gray-50'
                   )}
                 >
-                  <span className="text-2xl block">{s.icon}</span>
-                  <span className="text-xs font-medium mt-1 block">{s.value}</span>
+                  <span className="text-2xl block">{s.emoji}</span>
+                  <span className="text-xs font-medium mt-1 block">{s.label}</span>
                 </button>
               ))}
             </div>
@@ -315,8 +315,8 @@ export default function TeacherOnboardingPage() {
                     >
                       <option value="">Subject</option>
                       {selectedSubjects.map(id => {
-                        const s = SUBJECTS.find(x => x.value === id);
-                        return s ? <option key={id} value={id}>{s.icon} {s.value}</option> : null;
+                        const s = SUBJECTS.find(x => x.id === id);
+                        return s ? <option key={id} value={id}>{s.emoji} {s.label}</option> : null;
                       })}
                     </select>
                     <input
@@ -433,17 +433,17 @@ export default function TeacherOnboardingPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {SUBJECTS.map(s => (
                     <button
-                      key={s.value}
-                      onClick={() => toggleSubject(s.value)}
+                      key={s.id}
+                      onClick={() => toggleSubject(s.id)}
                       className={cn(
                         'p-3 rounded-xl border-2 text-center transition-all',
-                        selectedSubjects.includes(s.value)
+                        selectedSubjects.includes(s.id)
                           ? `${s.color} border-current ring-2 ring-offset-1 shadow-md scale-105`
                           : 'border-gray-100 hover:border-gray-200 bg-gray-50'
                       )}
                     >
-                      <span className="text-2xl block">{s.icon}</span>
-                      <span className="text-xs font-medium mt-1 block">{s.value}</span>
+                      <span className="text-2xl block">{s.emoji}</span>
+                      <span className="text-xs font-medium mt-1 block">{s.label}</span>
                     </button>
                   ))}
                 </div>
@@ -514,8 +514,8 @@ export default function TeacherOnboardingPage() {
                         >
                           <option value="">Subject</option>
                           {selectedSubjects.map(id => {
-                            const s = SUBJECTS.find(x => x.value === id);
-                            return s ? <option key={id} value={id}>{s.icon} {s.value}</option> : null;
+                            const s = SUBJECTS.find(x => x.id === id);
+                            return s ? <option key={id} value={id}>{s.emoji} {s.label}</option> : null;
                           })}
                         </select>
                         <input

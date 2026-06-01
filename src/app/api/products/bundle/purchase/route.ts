@@ -82,6 +82,15 @@ export const POST = apiHandler(async (req: Request) => {
     });
   }
 
+  // v17.3: prevent duplicate active subscriptions. A double-click or replay
+  // would otherwise create N active rows that all count toward MRR.
+  const existing = await prisma.bundleSubscription.findFirst({
+    where: { userId: user.id, bundleId, status: 'active' },
+  });
+  if (existing) {
+    return NextResponse.json({ success: true, subscription: existing, alreadyActive: true });
+  }
+
   const subscription = await prisma.bundleSubscription.create({
     data: {
       userId: user.id,

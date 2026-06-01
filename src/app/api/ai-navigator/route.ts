@@ -280,4 +280,4 @@ export const POST = apiHandler(async (req: Request) => {
     aiGenerated: false,
     ...(aiError ? { aiError } : {}),
   });
-});
+}, { rateLimit: 'ai' });

@@ -26,8 +26,12 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   const now = new Date();
+  // v17.3: only cancel active subscriptions. Without the status filter, a
+  // repeat cancel re-stamps cancelledAt/expiresAt and returns success,
+  // hiding the fact that the row was already cancelled. Now: re-cancel
+  // hits 0 rows and returns 404, matching the product cancel route.
   const result = await prisma.bundleSubscription.updateMany({
-    where: { id: subscriptionId, userId: user.id },
+    where: { id: subscriptionId, userId: user.id, status: 'active' },
     data: {
       status: 'cancelled',
       cancelledAt: now,
@@ -36,7 +40,7 @@ export const POST = apiHandler(async (req: Request) => {
   });
 
   if (result.count === 0) {
-    return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Subscription not active' }, { status: 404 });
   }
 
   return NextResponse.json({ success: true });

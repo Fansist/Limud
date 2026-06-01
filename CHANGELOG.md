@@ -4,6 +4,49 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.3.0] - 2026-05-30 — Update 6.3: post-MFA fix, AI tutor fix, financial integrity
+
+### Fixed
+- CRITICAL: AI tutor was broken for real students (response key mismatch).
+- CRITICAL: /api/payments action=onboard was unauthenticated (now requires auth).
+- CRITICAL: /api/payments homeschool-upgrade ignored canonical-price gate.
+- CRITICAL: post-MFA 404 — added session re-fetch before navigation, force-dynamic on /owner layout, loud verifyMfaProof logging.
+- Systemic s.value→s.id bug class in teacher/onboarding, student/survey, teacher/ai-builder, teacher/content-library.
+- 5 orphaned student routes added to sidebar + mobile nav.
+- Duplicate-purchase guards added to product + bundle purchase routes.
+- Bundle cancel idempotency (now rejects re-cancel).
+
+### Changed
+- Privacy + Terms: .edu→.co brand-domain consistency, SOC 2 claim plan-gated, placeholder address replaced with honest TBD.
+- HelpFAQ adds OWNER role + 2FA explanation.
+- Roadmap "Recently Shipped" updated with v17.0–17.3.
+- /api/health reads version from package.json instead of hardcoded "11.0.0".
+
+### Added
+- Entitlement gates on /api/tutor, /api/exam-sim, /api/practice/grade-short-answers.
+- rateLimit: 'ai' on ~16 Gemini-calling routes.
+- Per-OWNER /owner/error.tsx + /owner/finances/loading.tsx.
+- Owner home back-link in OWNER sidebar.
+
+### Security
+- /api/payments onboard now blocks anonymous district creation.
+- /api/payments homeschool-upgrade enforces TIER_PRICES canonical check.
+- verifyMfaProof now logs each failure branch for forensic visibility.
+
+### Deploy
+- Build script stops silencing prisma db push failures.
+- Build script copies server.js + prisma/ into .next/standalone (was build:standalone only).
+- New env vars required: none. (OWNER_INITIAL_PASSWORD should still be removed after seeding.)
+
+## [17.2.2] - 2026-05-29
+- Fix OWNER seed: remove non-existent emailVerified field, switch to upsert, add loud try/catch.
+
+## [17.2.1] - 2026-05-29
+- Auto-run OWNER seed on every Render deploy via build script.
+
+## [17.2.0] - 2026-05-29
+- OWNER seed script (prisma/seed-owner.ts) + OWNER_2FA_EMAIL config split so the 2FA OTP can route to a different mailbox than the login email.
+
 ## [17.1.0] - 2026-05-29 — Update 6.1: OWNER nav wiring, per-product subscriptions, entitlement gates, UX + security cleanup
 
 Update 6.1 is the UX/security cleanup pass on top of 6.0. The OWNER

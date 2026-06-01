@@ -139,4 +139,4 @@ export const POST = apiHandler(async (req: Request) => {
     styles,
     aiStatus: getAIStatus(),
   });
-});
+}, { rateLimit: 'ai' });

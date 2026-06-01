@@ -213,7 +213,7 @@ export const POST = apiHandler(async (req: Request) => {
     });
     throw error;
   }
-});
+}, { rateLimit: 'ai' });
 
 // Batch grade endpoint
 export const PUT = apiHandler(async (req: Request) => {
@@ -307,4 +307,4 @@ export const PUT = apiHandler(async (req: Request) => {
   }
 
   return NextResponse.json({ results });
-});
+}, { rateLimit: 'ai' });

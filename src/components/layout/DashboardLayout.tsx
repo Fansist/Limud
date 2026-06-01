@@ -21,6 +21,7 @@ import {
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
   Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList, Clipboard, Palette,
   MessageSquare, DollarSign,
+  Award, RefreshCw, UsersRound,
 } from 'lucide-react';
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; mobileIcon?: React.ReactNode; };
@@ -37,14 +38,24 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
     ]},
     { label: 'Learning', items: [
       { href: '/student/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
+      { href: '/student/assignments', label: 'Assignments', icon: <ClipboardList size={20} /> },
+      { href: '/student/materials', label: 'Materials', icon: <FileText size={20} /> },
+      { href: '/student/review', label: 'Review', icon: <RefreshCw size={20} /> },
       { href: '/student/focus', label: 'Focus Mode', icon: <Focus size={20} /> },
-      { href: '/student/forums', label: 'Discussions', icon: <MessageSquare size={20} /> },
       { href: '/student/study-planner', label: 'Study Planner', icon: <Calendar size={20} /> },
-      { href: '/student/exam-sim', label: 'Exam Simulator', icon: <FileText size={20} /> },
+      { href: '/student/exam-sim', label: 'Exam Simulator', icon: <Lightbulb size={20} /> },
+    ]},
+    { label: 'Progress', items: [
+      { href: '/student/grades', label: 'Grades', icon: <Award size={20} /> },
+      { href: '/student/growth', label: 'Growth', icon: <TrendingUp size={20} /> },
       { href: '/student/knowledge', label: 'Analytics', icon: <BarChart3 size={20} /> },
     ]},
-    { label: 'Account', items: [
+    { label: 'Community', items: [
+      { href: '/student/forums', label: 'Discussions', icon: <MessageSquare size={20} /> },
+      { href: '/student/study-groups', label: 'Study Groups', icon: <UsersRound size={20} /> },
       { href: '/student/messages', label: 'Messages', icon: <Mail size={20} /> },
+    ]},
+    { label: 'Account', items: [
       { href: '/student/platforms', label: 'My Platforms', icon: <Link2 size={20} /> },
       { href: '/student/link-district', label: 'Join District', icon: <Building2 size={20} /> },
     ]},
@@ -128,6 +139,10 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
   ],
   OWNER: [
     { label: 'Owner', items: [
+      // v17.3: Overview lands on /owner (the two-card landing page). Without
+      // this, an OWNER who clicks "Finances" or "Prices" has no link back to
+      // the owner home from the sidebar.
+      { href: '/owner', label: 'Overview', icon: <LayoutDashboard size={18} /> },
       { href: '/owner/finances', label: 'Finances', icon: <BarChart3 size={20} /> },
       { href: '/owner/prices', label: 'Prices', icon: <DollarSign size={20} /> },
     ]},
@@ -143,10 +158,13 @@ function flatNavItems(sections: NavSection[]): NavItem[] {
 const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.ReactNode }[]> = {
   STUDENT: [
     { href: '/student/dashboard', label: 'Home', icon: <LayoutDashboard size={20} /> },
-    { href: '/student/knowledge', label: 'Analytics', icon: <BarChart3 size={20} /> },
-    { href: '/student/focus', label: 'Focus', icon: <Focus size={20} /> },
-    { href: '/student/tutor', label: 'Tutor', icon: <MessageCircle size={20} /> },
     { href: '/student/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
+    { href: '/student/assignments', label: 'Work', icon: <ClipboardList size={20} /> },
+    { href: '/student/tutor', label: 'Tutor', icon: <MessageCircle size={20} /> },
+    { href: '/student/grades', label: 'Grades', icon: <Award size={20} /> },
+    { href: '/student/materials', label: 'Materials', icon: <FileText size={20} /> },
+    { href: '/student/study-groups', label: 'Groups', icon: <UsersRound size={20} /> },
+    { href: '/student/messages', label: 'Messages', icon: <Mail size={20} /> },
   ],
   TEACHER: [
     { href: '/teacher/dashboard', label: 'Home', icon: <LayoutDashboard size={20} /> },

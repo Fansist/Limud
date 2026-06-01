@@ -51,7 +51,7 @@ export const POST = apiHandler(async (req: Request) => {
   });
 
   return NextResponse.json({ map, ...generated });
-});
+}, { rateLimit: 'ai' });
 
 function generateConceptMap(subject: string, topic: string) {
   // Pre-built concept maps for common topics

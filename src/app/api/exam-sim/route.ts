@@ -9,6 +9,7 @@ import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import { callGemini, hasApiKey, extractJSON } from '@/lib/ai';
 import { updateSkillRecord } from '@/lib/cognitive-engine';
+import { requireProductEntitlement } from '@/lib/entitlement';
 import { log } from '@/lib/log';
 
 // v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
@@ -99,6 +100,22 @@ export const POST = apiHandler(async (req: Request) => {
 
   if (!subject) return NextResponse.json({ error: 'Subject is required' }, { status: 400 });
 
+  // ── Entitlement gate (v17.3) ──
+  // Exam simulation is part of the paid Exam Study Helper product. OWNER +
+  // master demo bypass inside requireProductEntitlement; everyone else needs
+  // an active product or bundle subscription that includes
+  // 'exam-study-helper'. 402 + checkoutUrl on miss.
+  try {
+    const gate = await requireProductEntitlement(user, 'exam-study-helper');
+    if (!gate.allowed) return gate.response;
+  } catch (e) {
+    console.warn('[EXAM-SIM] entitlement check failed:', (e as Error).message);
+    return NextResponse.json(
+      { error: 'Entitlement check failed' },
+      { status: 500 },
+    );
+  }
+
   const level = gradeLevel || user.gradeLevel || '8th';
   let questions;
 
@@ -181,7 +198,7 @@ Return ONLY a JSON array, no markdown fences, no extra text:
       ...(aiError ? { aiError } : {}),
     });
   }
-});
+}, { rateLimit: 'ai' });
 
 export const PUT = apiHandler(async (req: Request) => {
   const user = await requireRole('STUDENT');

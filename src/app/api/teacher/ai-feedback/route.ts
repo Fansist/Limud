@@ -173,7 +173,7 @@ export const POST = apiHandler(async (req: Request) => {
     aiStatus: getAIStatus(),
     ...(aiError ? { aiError } : {}),
   });
-});
+}, { rateLimit: 'ai' });
 
 // ── Bulk feedback for multiple submissions ──
 export const PUT = apiHandler(async (req: Request) => {
@@ -266,4 +266,4 @@ export const PUT = apiHandler(async (req: Request) => {
     results,
     ...(bulkAiError ? { aiError: bulkAiError } : {}),
   });
-});
+}, { rateLimit: 'ai' });

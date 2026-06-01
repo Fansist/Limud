@@ -25,6 +25,7 @@ import {
   gradePracticeShortAnswers,
   type PracticeGradeRequest,
 } from '@/lib/ai';
+import { requireProductEntitlement } from '@/lib/entitlement';
 import { log } from '@/lib/log';
 
 export const dynamic = 'force-dynamic';
@@ -41,6 +42,21 @@ function looksLikeGradeItem(v: unknown): v is Partial<PracticeGradeRequest> {
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireAuth();
+
+  // ── Entitlement gate (v17.3) ──
+  // Grading short answers is part of the paid Practice Generator product.
+  // OWNER + master demo bypass; everyone else needs an active product or
+  // bundle subscription that includes 'practice-generator'.
+  try {
+    const gate = await requireProductEntitlement(user, 'practice-generator');
+    if (!gate.allowed) return gate.response;
+  } catch (e) {
+    console.warn('[PRACTICE_GRADE] entitlement check failed:', (e as Error).message);
+    return NextResponse.json(
+      { error: 'Entitlement check failed' },
+      { status: 500 },
+    );
+  }
 
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== 'object') {
@@ -103,4 +119,4 @@ export const POST = apiHandler(async (req: Request) => {
       { status: 500 },
     );
   }
-}, { skipBodyScanning: true });
+}, { skipBodyScanning: true, rateLimit: 'ai' });

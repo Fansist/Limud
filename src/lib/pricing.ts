@@ -20,6 +20,7 @@
  */
 import prisma from '@/lib/prisma';
 import { BUNDLES } from '@/lib/bundles';
+import { PRODUCTS } from '@/lib/products-catalog';
 
 export type PriceKind = 'product' | 'bundle' | 'district';
 
@@ -102,49 +103,9 @@ export async function getEffectivePrice(
   };
 }
 
-/**
- * Static product shape we read out of the catalog. We accept a slim
- * subset so this helper does not have to follow every catalog field
- * (icons, blurbs, etc.).
- */
-interface StaticProduct {
-  id: string;
-  name: string;
-  oneTimePrice: number | null;
-  monthlyPrice: number | null;
-}
-
-/**
- * Load the products catalog. Prefers `@/lib/products-catalog` (created
- * by CODER A in Wave 3). If that module is not yet present, falls back
- * to an empty array so the OWNER editor still renders without crashing.
- * Once CODER A lands, this fallback path becomes dead.
- *
- * The specifier is built as a `string` rather than a literal so the
- * TypeScript module resolver doesn't fail the build when the file
- * doesn't yet exist on disk. The runtime resolution still happens at
- * call time, which is what we want.
- */
-async function loadProductsCatalog(): Promise<StaticProduct[]> {
-  try {
-    // Specifier built as a string variable so the TypeScript resolver
-    // doesn't fail the build before CODER A lands the file. Webpack
-    // resolves the request at runtime from the same `@/lib` namespace.
-    const specifier: string = '@/lib/products-catalog';
-    const mod = (await import(specifier).catch(() => null)) as
-      | { PRODUCTS?: StaticProduct[] }
-      | null;
-    if (mod && Array.isArray(mod.PRODUCTS)) return mod.PRODUCTS;
-  } catch {
-    // swallow — fallback below
-  }
-  return [];
-}
-
 export async function getAllEffectiveProductPrices(): Promise<ProductEffectivePrice[]> {
-  const products = await loadProductsCatalog();
   return Promise.all(
-    products.map(async (p) => {
+    PRODUCTS.map(async (p) => {
       const eff = await getEffectivePrice('product', p.id, {
         oneTimePrice: p.oneTimePrice,
         monthlyPrice: p.monthlyPrice,

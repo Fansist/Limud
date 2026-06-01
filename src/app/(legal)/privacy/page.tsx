@@ -2,7 +2,7 @@ export default function PrivacyPolicy() {
   return (
     <article className="prose prose-gray max-w-none">
       <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Privacy Policy</h1>
-      <p className="text-sm text-gray-400 mb-8">Last updated: February 25, 2026</p>
+      <p className="text-sm text-gray-400 mb-8">Last updated: May 30, 2026</p>
 
       <p>Limud Education Inc. (&quot;Limud&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is committed to protecting the privacy of students, educators, parents, and all users of our platform. This Privacy Policy explains how we collect, use, disclose, and safeguard your information.</p>
 
@@ -38,7 +38,7 @@ export default function PrivacyPolicy() {
         <li>TLS 1.3 encryption for data in transit</li>
         <li>Role-based access controls (RBAC)</li>
         <li>Regular third-party security audits</li>
-        <li>SOC 2 Type II compliance</li>
+        <li>SOC 2 Type II compliance is available on Premium and Enterprise plans; all plans use the same encrypted infrastructure</li>
         <li>Automatic session expiration and secure authentication</li>
       </ul>
 
@@ -67,8 +67,8 @@ export default function PrivacyPolicy() {
       <p>If you have questions about this Privacy Policy or wish to exercise your data rights, contact us at:</p>
       <p>
         <strong>Limud Education Inc.</strong><br />
-        Email: privacy@limud.edu<br />
-        Address: 123 Education Way, Suite 400, San Francisco, CA 94102
+        Email: privacy@limud.co<br />
+        Address: [registered address pending — contact privacy@limud.co for our registered office]
       </p>
     </article>
   );

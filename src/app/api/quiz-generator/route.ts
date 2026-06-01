@@ -330,7 +330,7 @@ export const POST = apiHandler(async (req: Request) => {
     aiStatus: getAIStatus(),
     aiError,
   });
-});
+}, { rateLimit: 'ai' });
 
 export const DELETE = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER', 'ADMIN');
