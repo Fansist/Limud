@@ -182,6 +182,65 @@ export default function StudentSurveyPage() {
     }
   }, [status, isDemo, session?.user, router]);
 
+  // v17.4: hydrate from saved survey so return visits don't start blank
+  // (and don't wipe saved learning DNA on submit). Demo skips fetch.
+  useEffect(() => {
+    if (isDemo) return;
+    if (status !== 'authenticated') return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/survey');
+        if (!res.ok) return;
+        const data: {
+          survey: {
+            favoriteSubjects: string[];
+            hobbies: string[];
+            favoriteBooks: string | null;
+            favoriteMovies: string | null;
+            favoriteGames: string | null;
+            dreamJob: string | null;
+            learningStyle: string;
+            learningNeeds: string[];
+            preferredFormats: string[];
+            motivators: string[];
+            challenges: string[];
+            funFacts: string | null;
+            ageGroup: string | null;
+          } | null;
+        } = await res.json();
+        if (cancelled || !data.survey) return;
+        const s = data.survey;
+        setFavoriteSubjects(Array.isArray(s.favoriteSubjects) ? s.favoriteSubjects : []);
+        setHobbies(Array.isArray(s.hobbies) ? s.hobbies : []);
+        setFavoriteBooks(s.favoriteBooks ?? '');
+        setFavoriteMovies(s.favoriteMovies ?? '');
+        setFavoriteGames(s.favoriteGames ?? '');
+        if (s.dreamJob) {
+          if (DREAM_JOBS.includes(s.dreamJob)) {
+            setDreamJob(s.dreamJob);
+            setCustomDreamJob('');
+          } else {
+            setDreamJob('Other');
+            setCustomDreamJob(s.dreamJob);
+          }
+        }
+        if (s.learningStyle) setLearningStyle(s.learningStyle);
+        setLearningNeeds(Array.isArray(s.learningNeeds) ? s.learningNeeds : []);
+        setPreferredFormats(Array.isArray(s.preferredFormats) ? s.preferredFormats : []);
+        setMotivators(Array.isArray(s.motivators) ? s.motivators : []);
+        setChallenges(Array.isArray(s.challenges) ? s.challenges : []);
+        setFunFacts(s.funFacts ?? '');
+      } catch {
+        // silent: blank form is still usable
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isDemo, status]);
+
   function toggleItem(arr: string[], setArr: (v: string[]) => void, item: string) {
     setArr(arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item]);
   }
@@ -354,7 +413,9 @@ export default function StudentSurveyPage() {
                 <button
                   onClick={() => {
                     // v9.7: Auto-set learning style from discovery answers
-                    if (Object.keys(discoveryAnswers).length >= 2) {
+                    // v17.4: align auto-apply threshold with preview (>=3) so users
+                    // always see the discovered style before it's applied.
+                    if (Object.keys(discoveryAnswers).length >= 3) {
                       const counts: Record<string, number> = {};
                       Object.values(discoveryAnswers).forEach(s => { counts[s] = (counts[s] || 0) + 1; });
                       const topStyle = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];

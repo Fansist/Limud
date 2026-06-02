@@ -1,7 +1,7 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -85,6 +85,10 @@ function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
+  // v17.4: hold the most recent friendly sign-in error so handleLogin's
+  // toast can mirror it without relying on the stale `serverError` state
+  // snapshot from the previous render.
+  const lastSignInErrorRef = useRef<string | null>(null);
 
   // v17.1 OTP UX: countdown tick — runs only while in mfa mode.
   useEffect(() => {
@@ -138,6 +142,29 @@ function LoginPageInner() {
    */
   type LoginOutcome = 'ok' | 'failed' | 'mfa-required';
 
+  // v17.4: NextAuth surfaces specific error messages from authorize() —
+  // lockout windows, district subdomain lockdowns, MFA proof issues, etc.
+  // Previously every non-OK outcome was collapsed to "Invalid email or
+  // password" which silently dropped real diagnostics. Keep credential
+  // errors generic to avoid email enumeration, but pass through anything
+  // that's an explicit lockout/policy/MFA message.
+  const KNOWN_ERROR_PATTERNS = [
+    'lock',          // "Account temporarily locked..."
+    'subdomain',     // "This subdomain does not match a Limud district."
+    'district',      // "This account is not a member of <district>."
+    'too many',      // "Too many failed attempts..."
+    'mfa',           // "Invalid MFA proof"
+  ];
+
+  const interpretSignInError = (raw: string | undefined | null): string => {
+    if (!raw) return 'Invalid email or password.';
+    const lower = raw.toLowerCase();
+    if (KNOWN_ERROR_PATTERNS.some(p => lower.includes(p))) {
+      return raw;
+    }
+    return 'Invalid email or password.';
+  };
+
   const doLogin = async (
     loginEmail: string,
     loginPassword: string,
@@ -168,6 +195,12 @@ function LoginPageInner() {
     }
 
     if (result?.error) {
+      // v17.4: pass through lockout/district/policy errors verbatim so
+      // the user knows why they're blocked (and for how long). Generic
+      // credential errors stay generic to avoid enumeration.
+      const friendly = interpretSignInError(result.error);
+      setServerError(friendly);
+      lastSignInErrorRef.current = friendly;
       return 'failed';
     }
 
@@ -280,8 +313,11 @@ function LoginPageInner() {
         // doLogin already flipped the page into MFA mode. Hold the
         // welcome toast for the second leg (handleMfaSubmit).
       } else {
-        setServerError('Invalid email or password.');
-        toast.error('Invalid email or password');
+        // v17.4: serverError is set inside doLogin via interpretSignInError
+        // so lockout/district messages survive. Toast mirrors it (read from
+        // the ref because serverError state in this closure is the prior
+        // render's snapshot).
+        toast.error(lastSignInErrorRef.current ?? 'Invalid email or password');
       }
     } catch {
       toast.error('Something went wrong');
@@ -485,7 +521,14 @@ function LoginPageInner() {
                       <label className="block text-sm font-medium text-gray-700" htmlFor="password">
                         Password
                       </label>
-                      <Link href="/forgot-password" className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                      <Link
+                        href="/forgot-password"
+                        // v17.4: take this link out of the tab order so
+                        // keyboard users can move Email → Password → Submit
+                        // without an interrupting hop to Forgot.
+                        tabIndex={-1}
+                        className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                      >
                         Forgot password?
                       </Link>
                     </div>

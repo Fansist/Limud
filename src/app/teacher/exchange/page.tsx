@@ -47,6 +47,89 @@ type Request = {
   tags: string[];
 };
 
+// v17.4 — the API returns Prisma rows; map them into the UI's display shape
+// so we don't restructure the rest of the page.
+type ApiItem = {
+  id: string;
+  uploader?: { id?: string; name?: string; district?: { name?: string } | null } | null;
+  uploaderId?: string;
+  title: string;
+  description: string;
+  subject: string;
+  gradeLevel: string | null;
+  itemType: string;
+  tags: string[];
+  downloads: number;
+  likes: number;
+  saves: number;
+  createdAt: string;
+};
+type ApiRequest = {
+  id: string;
+  requester?: { id?: string; name?: string; district?: { name?: string } | null } | null;
+  requesterId?: string;
+  title: string;
+  description: string;
+  subject: string;
+  gradeLevel: string | null;
+  itemType: string;
+  responseCount: number;
+  status: string;
+  createdAt: string;
+};
+
+function mapApiItems(rows: ApiItem[] | undefined): ExchangeItem[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(mapApiItem);
+}
+function mapApiItem(row: ApiItem): ExchangeItem {
+  return {
+    id: row.id,
+    type: row.itemType || 'Other',
+    title: row.title,
+    description: row.description,
+    subject: row.subject,
+    gradeLevel: row.gradeLevel || '',
+    author: {
+      name: row.uploader?.name || 'Unknown teacher',
+      district: row.uploader?.district?.name || '',
+      avatar: '👩‍🏫',
+    },
+    rating: 0,
+    ratingCount: 0,
+    downloads: row.downloads || 0,
+    likes: row.likes || 0,
+    comments: 0,
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    createdAt: (row.createdAt || '').split('T')[0],
+    isLiked: false,
+    isSaved: false,
+    previewAvailable: false,
+  };
+}
+function mapApiRequests(rows: ApiRequest[] | undefined): Request[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(mapApiRequest);
+}
+function mapApiRequest(row: ApiRequest): Request {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    subject: row.subject,
+    gradeLevel: row.gradeLevel || '',
+    author: {
+      name: row.requester?.name || 'Unknown teacher',
+      district: row.requester?.district?.name || '',
+      avatar: '👨‍🏫',
+    },
+    responses: row.responseCount || 0,
+    createdAt: (row.createdAt || '').split('T')[0],
+    status: row.status === 'fulfilled' ? 'fulfilled' : 'open',
+    tags: [],
+  };
+}
+
 const DEMO_ITEMS: ExchangeItem[] = [
   {
     id: 'ex-1', type: 'Worksheet', title: 'Algebraic Expressions Word Problems',
@@ -178,28 +261,77 @@ export default function TeacherExchangePage() {
       return;
     }
     Promise.all([
-      fetch('/api/exchange?type=items').then(r => r.json()).then(d => setItems(d.items || [])).catch((err) => { console.error('[teacher/exchange]', err); toast.error('Failed to load exchange'); }),
-      fetch('/api/exchange?type=requests').then(r => r.json()).then(d => setRequests(d.requests || [])).catch(() => {}),
+      fetch('/api/exchange?type=items')
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`Items request failed (${r.status})`);
+          const d = await r.json();
+          setItems(mapApiItems(d.items));
+        })
+        .catch((err) => { console.error('[teacher/exchange]', err); toast.error('Failed to load exchange'); }),
+      fetch('/api/exchange?type=requests')
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`Requests request failed (${r.status})`);
+          const d = await r.json();
+          setRequests(mapApiRequests(d.requests));
+        })
+        .catch((err) => { console.error('[teacher/exchange]', err); toast.error('Failed to load requests'); }),
     ]).finally(() => setLoading(false));
   }, [isDemo]);
 
-  function toggleLike(id: string) {
+  async function toggleLike(id: string) {
+    const wasLiked = items.find(i => i.id === id)?.isLiked ?? false;
     setItems(prev => prev.map(item =>
       item.id === id ? { ...item, isLiked: !item.isLiked, likes: item.isLiked ? item.likes - 1 : item.likes + 1 } : item
     ));
-    if (isDemo) toast.success('Updated! (Demo)');
+    if (isDemo) { toast.success('Updated! (Demo)'); return; }
+    // Only POST when liking (not unliking) — the API is increment-only.
+    if (wasLiked) return;
+    try {
+      const res = await fetch('/api/exchange', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'like', id }),
+      });
+      if (!res.ok) throw new Error(`Like failed (${res.status})`);
+    } catch (err) {
+      console.error('[teacher/exchange]', err);
+      toast.error('Could not save your like');
+    }
   }
 
-  function toggleSave(id: string) {
+  async function toggleSave(id: string) {
+    const wasSaved = items.find(i => i.id === id)?.isSaved ?? false;
     setItems(prev => prev.map(item =>
       item.id === id ? { ...item, isSaved: !item.isSaved } : item
     ));
-    if (isDemo) toast.success(items.find(i => i.id === id)?.isSaved ? 'Removed from saved' : 'Saved! (Demo)');
+    if (isDemo) { toast.success(wasSaved ? 'Removed from saved' : 'Saved! (Demo)'); return; }
+    if (wasSaved) return;
+    try {
+      const res = await fetch('/api/exchange', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save', id }),
+      });
+      if (!res.ok) throw new Error(`Save failed (${res.status})`);
+    } catch (err) {
+      console.error('[teacher/exchange]', err);
+      toast.error('Could not save this item');
+    }
   }
 
-  function handleDownload(item: ExchangeItem) {
+  async function handleDownload(item: ExchangeItem) {
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, downloads: i.downloads + 1 } : i));
     toast.success(`Downloading "${item.title}"...`);
+    if (isDemo) return;
+    // TODO(v17.5): when real file storage lands, redirect to fileUrl here.
+    // For now we just record the click so the popularity counter persists.
+    try {
+      const res = await fetch('/api/exchange', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'download', id: item.id }),
+      });
+      if (!res.ok) throw new Error(`Download record failed (${res.status})`);
+    } catch (err) {
+      console.error('[teacher/exchange]', err);
+    }
   }
 
   async function handleUpload() {
@@ -228,16 +360,22 @@ export default function TeacherExchangePage() {
       try {
         const res = await fetch('/api/exchange', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'upload', title: uploadTitle, description: uploadDesc, subject: uploadSubject, gradeLevel: uploadGrade, type: uploadType, tags: uploadTags.split(',').map(t => t.trim()).filter(Boolean) }),
+          body: JSON.stringify({ action: 'upload', title: uploadTitle, description: uploadDesc, subject: uploadSubject, gradeLevel: uploadGrade, itemType: uploadType, tags: uploadTags.split(',').map(t => t.trim()).filter(Boolean) }),
         });
         if (res.ok) {
           const d = await res.json();
-          setItems(prev => [d.item, ...prev]);
+          setItems(prev => [mapApiItem(d.item), ...prev]);
           toast.success('Resource shared!');
           setShowUpload(false);
           resetUploadForm();
-        } else { toast.error('Upload failed'); }
-      } catch { toast.error('Upload failed'); }
+        } else {
+          const err = await res.json().catch(() => ({}));
+          toast.error(err?.error || `Upload failed (${res.status})`);
+        }
+      } catch (err) {
+        console.error('[teacher/exchange]', err);
+        toast.error('Upload failed — please try again');
+      }
     }
     setUploading(false);
   }
@@ -265,15 +403,22 @@ export default function TeacherExchangePage() {
       try {
         const res = await fetch('/api/exchange', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'request', title: reqTitle, description: reqDesc, subject: reqSubject, gradeLevel: reqGrade, tags: reqTags.split(',').map(t => t.trim()).filter(Boolean) }),
+          body: JSON.stringify({ action: 'request', title: reqTitle, description: reqDesc, subject: reqSubject, gradeLevel: reqGrade, itemType: 'other' }),
         });
         if (res.ok) {
           const d = await res.json();
-          setRequests(prev => [d.request, ...prev]);
+          setRequests(prev => [mapApiRequest(d.request), ...prev]);
           toast.success('Request posted!');
           setShowRequest(false);
-        } else { toast.error('Failed to post request'); }
-      } catch { toast.error('Failed to post request'); }
+          setReqTitle(''); setReqDesc(''); setReqSubject(''); setReqGrade(''); setReqTags('');
+        } else {
+          const err = await res.json().catch(() => ({}));
+          toast.error(err?.error || `Failed to post request (${res.status})`);
+        }
+      } catch (err) {
+        console.error('[teacher/exchange]', err);
+        toast.error('Failed to post request — please try again');
+      }
     }
     setSubmittingReq(false);
   }

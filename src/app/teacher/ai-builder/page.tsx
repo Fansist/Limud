@@ -1,17 +1,23 @@
 'use client';
 /**
  * AI Assignment Builder — v9.7
- * 
+ *
  * Addresses teacher UX pain points from user journey research:
  * - "Creating differentiated lessons is exhausting"
  * - "How do I create lessons that work for every student?"
  * - "Uploading content and adapting it is tedious"
- * 
+ *
  * Solution: Upload or paste content → AI adapts it into differentiated
  * assignments for visual, auditory, kinesthetic, and reading/writing learners.
+ *
+ * v17.4: Wired the previously-dead Step-3 action buttons:
+ *   "Assign to Class" → classroom-selector modal → POST /api/assignments
+ *   "Edit"            → inline edit modal (title, description, dueDate)
+ *   "Export"          → copies plain-text render to clipboard
  */
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useState, useRef } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -52,12 +58,39 @@ const DIFFICULTY_LEVELS = [
   { id: 'advanced', label: 'Advanced', desc: 'For gifted students', color: 'text-purple-600 bg-purple-50 border-purple-200', icon: '🚀' },
 ];
 
+// v17.4: Proper interfaces replace `any` for generated assignment objects.
+interface GeneratedAssignment {
+  title: string;
+  subject: string;
+  gradeLevel: string;
+  learningStyle: string;
+  styleName: string;
+  instructions: string;
+  estimatedTime: string;
+  materials: string[];
+  generatedAt: string;
+}
+
+interface TeacherClassroom {
+  id: string;
+  name: string;
+  courseId: string | null;
+  subject: string | null;
+  gradeLevel: string | null;
+}
+
+interface AssignmentVariation {
+  instructions: string;
+  estimatedTime: string;
+  materials: string[];
+}
+
 // Simulated AI output for demo mode
-function generateDemoAssignment(content: string, subject: string, grade: string, style: string): any {
+function generateDemoAssignment(content: string, subject: string, grade: string, style: string): GeneratedAssignment {
   const styleInfo = LEARNING_STYLES.find(s => s.id === style);
   const title = content.split('\n')[0]?.substring(0, 60) || 'Untitled Lesson';
 
-  const variations: Record<string, any> = {
+  const variations: Record<string, AssignmentVariation> = {
     visual: {
       instructions: `## ${title} - Visual Learning Path\n\n### Objective\nStudents will demonstrate understanding through visual analysis and creation.\n\n### Activities\n1. **Concept Map** — Create a detailed concept map showing the relationships between key ideas\n2. **Infographic** — Design a one-page infographic summarizing the main concepts\n3. **Video Analysis** — Watch the provided video and annotate key moments with timestamps\n4. **Diagram Labeling** — Complete the interactive diagram with proper labels and descriptions\n\n### Assessment\n- Concept map completeness: 25 points\n- Infographic accuracy: 25 points\n- Video annotations: 25 points\n- Diagram accuracy: 25 points\n\n**Total: 100 points**`,
       estimatedTime: '45 min',
@@ -80,19 +113,21 @@ function generateDemoAssignment(content: string, subject: string, grade: string,
     },
   };
 
+  const variation = variations[style] || variations.reading;
   return {
     title,
     subject,
     gradeLevel: grade,
     learningStyle: style,
     styleName: styleInfo?.label || style,
-    ...variations[style] || variations.reading,
+    ...variation,
     generatedAt: new Date().toISOString(),
   };
 }
 
 export default function AIBuilderPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   // v13.4.1 (Update 2.9.1): master demo gets real AI-built assignments.
   const isDemo = useIsDemo({ excludeMasterDemo: true });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,8 +149,19 @@ export default function AIBuilderPage() {
 
   // Step 3: Results
   const [generating, setGenerating] = useState(false);
-  const [generatedAssignments, setGeneratedAssignments] = useState<any[]>([]);
+  const [generatedAssignments, setGeneratedAssignments] = useState<GeneratedAssignment[]>([]);
   const [activeTab, setActiveTab] = useState(0);
+
+  // v17.4: Action-modal state for Assign/Edit/Export buttons.
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [classrooms, setClassrooms] = useState<TeacherClassroom[]>([]);
+  const [loadingClassrooms, setLoadingClassrooms] = useState(false);
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string>('');
+  const [assigning, setAssigning] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -150,7 +196,7 @@ export default function AIBuilderPage() {
     setGenerating(true);
     setStep(3);
 
-    let assignments: any[] = [];
+    let assignments: GeneratedAssignment[] = [];
 
     // v9.7.2: Try real AI API first, fall back to local demo generator
     if (!isDemo) {
@@ -202,6 +248,155 @@ export default function AIBuilderPage() {
   function handleCopy(text: string) {
     navigator.clipboard?.writeText(text);
     toast.success('Copied to clipboard!');
+  }
+
+  // v17.4: Render a generated assignment to a plain-text export blob.
+  function plainTextRender(a: GeneratedAssignment): string {
+    const lines = [
+      a.title,
+      '',
+      `Subject: ${SUBJECTS.find(s => s.id === a.subject)?.label || a.subject}`,
+      `Grade: ${a.gradeLevel}`,
+      `Learning Style: ${a.styleName}`,
+      `Estimated Time: ${a.estimatedTime}`,
+      '',
+      a.instructions,
+    ];
+    if (a.materials?.length) {
+      lines.push('', 'Materials Needed:');
+      for (const m of a.materials) lines.push(`- ${m}`);
+    }
+    return lines.join('\n');
+  }
+
+  // v17.4: Action buttons on a generated assignment.
+  function handleExport() {
+    const a = generatedAssignments[activeTab];
+    if (!a) return;
+    const text = plainTextRender(a);
+    if (!navigator.clipboard) {
+      toast.error('Clipboard unavailable in this browser');
+      return;
+    }
+    navigator.clipboard.writeText(text)
+      .then(() => toast.success('Copied to clipboard'))
+      .catch(() => toast.error('Copy failed'));
+    // NOTE: PDF export deferred to v17.5.
+  }
+
+  function openEditModal() {
+    const a = generatedAssignments[activeTab];
+    if (!a) return;
+    setEditTitle(a.title);
+    setEditDescription(a.instructions);
+    // Default due date: 7 days from today, formatted YYYY-MM-DD for <input type="date">.
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    setEditDueDate(d.toISOString().slice(0, 10));
+    setEditModalOpen(true);
+  }
+
+  function saveEdit() {
+    setGeneratedAssignments(prev => prev.map((a, i) =>
+      i === activeTab ? { ...a, title: editTitle, instructions: editDescription } : a
+    ));
+    setEditModalOpen(false);
+    toast.success('Assignment updated');
+  }
+
+  async function loadClassrooms() {
+    setLoadingClassrooms(true);
+    try {
+      const res = await fetch('/api/teacher/classrooms');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const list: TeacherClassroom[] = Array.isArray(data?.classrooms)
+        ? data.classrooms.map((c: { id: string; name: string; courseId: string | null; subject: string | null; gradeLevel: string | null }) => ({
+            id: c.id,
+            name: c.name,
+            courseId: c.courseId,
+            subject: c.subject,
+            gradeLevel: c.gradeLevel,
+          }))
+        : [];
+      setClassrooms(list);
+      // Auto-select the first classroom that has a linked course.
+      const firstWithCourse = list.find(c => c.courseId);
+      if (firstWithCourse) setSelectedClassroomId(firstWithCourse.id);
+    } catch (err) {
+      console.warn('[AI-BUILDER] Failed to load classrooms:', err);
+      toast.error('Could not load your classrooms');
+      setClassrooms([]);
+    } finally {
+      setLoadingClassrooms(false);
+    }
+  }
+
+  function openAssignModal() {
+    if (isDemo) {
+      // Demo accounts can't persist — short-circuit with an honest toast.
+      toast.success('Demo mode: assignment would be sent to the selected class.');
+      return;
+    }
+    setAssignModalOpen(true);
+    if (classrooms.length === 0) {
+      void loadClassrooms();
+    }
+  }
+
+  async function handleAssignToClass() {
+    const a = generatedAssignments[activeTab];
+    if (!a) return;
+    const classroom = classrooms.find(c => c.id === selectedClassroomId);
+    if (!classroom) {
+      toast.error('Please select a classroom');
+      return;
+    }
+    if (!classroom.courseId) {
+      toast.error('That classroom is not linked to a course. Link a course first.');
+      return;
+    }
+    setAssigning(true);
+    try {
+      // Use the edit-modal's date when set; otherwise default to 7 days out.
+      let due: Date;
+      if (editDueDate) {
+        due = new Date(editDueDate);
+        if (Number.isNaN(due.getTime())) {
+          due = new Date();
+          due.setDate(due.getDate() + 7);
+        }
+      } else {
+        due = new Date();
+        due.setDate(due.getDate() + 7);
+      }
+
+      const res = await fetch('/api/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: a.title,
+          description: a.instructions,
+          type: 'ESSAY',
+          courseId: classroom.courseId,
+          dueDate: due.toISOString(),
+          totalPoints: 100,
+          isPublished: true,
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody?.error || `HTTP ${res.status}`);
+      }
+      toast.success(`Assigned to ${classroom.name}`);
+      setAssignModalOpen(false);
+      router.push('/teacher/assignments');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to assign';
+      toast.error(msg);
+    } finally {
+      setAssigning(false);
+    }
   }
 
   function handleReset() {
@@ -595,15 +790,25 @@ export default function AIBuilderPage() {
                         </div>
                       )}
 
-                      {/* Action Buttons */}
+                      {/* Action Buttons — wired in v17.4 */}
                       <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-100">
-                        <button className="btn-primary flex items-center gap-2 text-sm">
+                        <button
+                          onClick={openAssignModal}
+                          className="btn-primary flex items-center gap-2 text-sm"
+                        >
                           <CheckCircle2 size={16} /> Assign to Class
                         </button>
-                        <button className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-gray-100">
+                        <button
+                          onClick={openEditModal}
+                          className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-gray-100"
+                        >
                           <PenTool size={14} /> Edit
                         </button>
-                        <button className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-gray-100">
+                        <button
+                          onClick={handleExport}
+                          className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-gray-100"
+                          title="Copy plain-text assignment to clipboard (PDF export coming in v17.5)"
+                        >
                           <Download size={14} /> Export
                         </button>
                       </div>
@@ -611,6 +816,159 @@ export default function AIBuilderPage() {
                   )}
                 </>
               )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ═══════ v17.4: Assign-to-Class Modal ═══════ */}
+        <AnimatePresence>
+          {assignModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => !assigning && setAssignModalOpen(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                onClick={e => e.stopPropagation()}
+                className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Assign to Class</h3>
+                  <button
+                    onClick={() => setAssignModalOpen(false)}
+                    disabled={assigning}
+                    className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                {loadingClassrooms ? (
+                  <p className="text-sm text-gray-500 py-4">Loading your classrooms…</p>
+                ) : classrooms.length === 0 ? (
+                  <div className="py-4">
+                    <p className="text-sm text-gray-600">You don&apos;t have any classrooms yet.</p>
+                    <button
+                      onClick={() => router.push('/teacher/classrooms')}
+                      className="btn-secondary mt-3 text-sm"
+                    >
+                      Set up a classroom
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <label className="block text-xs font-bold text-gray-600 mb-1.5">Classroom</label>
+                    <select
+                      value={selectedClassroomId}
+                      onChange={e => setSelectedClassroomId(e.target.value)}
+                      className="input-field text-sm w-full"
+                    >
+                      <option value="">— Select a classroom —</option>
+                      {classrooms.map(c => (
+                        <option key={c.id} value={c.id} disabled={!c.courseId}>
+                          {c.name}{c.subject ? ` · ${c.subject}` : ''}{c.gradeLevel ? ` · Grade ${c.gradeLevel}` : ''}
+                          {!c.courseId ? ' (no course linked)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-gray-400 mt-2">
+                      The assignment will be created with a 7-day due date and published immediately.
+                    </p>
+                    <div className="flex items-center justify-end gap-2 mt-5">
+                      <button
+                        onClick={() => setAssignModalOpen(false)}
+                        disabled={assigning}
+                        className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleAssignToClass}
+                        disabled={assigning || !selectedClassroomId}
+                        className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {assigning ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                        {assigning ? 'Assigning…' : 'Assign'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ═══════ v17.4: Edit Modal ═══════ */}
+        <AnimatePresence>
+          {editModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setEditModalOpen(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                onClick={e => e.stopPropagation()}
+                className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Edit Assignment</h3>
+                  <button onClick={() => setEditModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1.5">Title</label>
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      className="input-field text-sm w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1.5">Description / Instructions</label>
+                    <textarea
+                      value={editDescription}
+                      onChange={e => setEditDescription(e.target.value)}
+                      className="input-field text-sm w-full min-h-[180px] font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1.5">Default Due Date (used when assigning)</label>
+                    <input
+                      type="date"
+                      value={editDueDate}
+                      onChange={e => setEditDueDate(e.target.value)}
+                      className="input-field text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2 mt-5">
+                  <button
+                    onClick={() => setEditModalOpen(false)}
+                    className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveEdit}
+                    disabled={!editTitle.trim() || !editDescription.trim()}
+                    className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <CheckCircle2 size={14} /> Save
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>

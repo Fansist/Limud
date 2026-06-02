@@ -4,6 +4,56 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.4.0] - 2026-06-02 — Update 6.4: 15-CODER parallel cleanup pass
+
+Update 6.4 is the broad-front cleanup wave coming out of the 25-researcher
+audit at the end of 6.3. Fifteen CODERs ran in parallel against
+non-overlapping file sets, each closing one R-numbered finding (forums
+FERPA scope, knowledge/survey wiring, onboard 401, reset-password token
+validation, OWNER prices + finances, version-string drift, contact-form
+confirmation, district-link URL bug, and the rest). No schema changes.
+
+### Added
+- Contact-form submitters now get a confirmation email
+  (`contactConfirmationEmail` template + second `sendEmail` call from
+  `/api/contact`) so they see their message landed and know when to
+  expect a reply. Internal notification to `contact@limud.co` is
+  unchanged.
+- `/api/health` `version` field is now read from `package.json` at
+  build time (with `process.env.npm_package_version` taking precedence
+  at runtime), so the endpoint can never drift from the shipped
+  version again. Closes R20.
+
+### Changed
+- `package.json` version 17.3.0 → 17.4.0.
+- `X-Limud-Version` response header in `src/middleware.ts` bumped from
+  the stale `'11.0.0'` literal (left over since v11) to `'17.4.0'`.
+  Kept as a string literal because middleware runs on the edge runtime
+  and cannot import JSON modules.
+
+### Fixed
+- `/student/link-district` was calling the literal `/api/district-link/route`
+  path on both the GET (myRequests) and POST (submit) call sites,
+  silently returning 404 for every non-demo student. Both fetches now
+  hit the canonical `/api/district-link`. Closes R20.
+- Forum API now scopes posts by district + auth, fixes reply fetch,
+  and pulls real teacher courses instead of placeholders.
+- Knowledge + Survey routes wired to the correct state-shape after the
+  v17.3 `s.value → s.id` sweep missed two call sites.
+- `/onboard` no longer returns 401 mid-flow when the district lookup
+  races the session establishment.
+- `/reset-password` now validates the token server-side before
+  rendering the form (previously it would render and then 401 on
+  submit).
+- OWNER price editor + financial dashboard rendering bugs from R15.
+
+### Security
+- Confirmation emails route `Reply-To` to `CONTACT_EMAIL_TO` so replies
+  to the auto-confirm land in support, not in a noreply bounce loop.
+- Reset-password token validation closes a confused-deputy edge where
+  a stale link rendered the new-password form before the token was
+  proven valid.
+
 ## [17.3.0] - 2026-05-30 — Update 6.3: post-MFA fix, AI tutor fix, financial integrity
 
 ### Fixed

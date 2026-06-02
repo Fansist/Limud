@@ -4,11 +4,11 @@
  * Unified Student Analytics — v9.5.0
  *
  * Consolidates two formerly separate pages into one tabbed view:
- *   1. Knowledge  — radar chart, skill mastery, heatmap, study goals (was /student/knowledge)
+ *   1. Knowledge  — radar chart, skill mastery, study goals (was /student/knowledge)
  *   2. Growth     — mastery overview, predictions, skill map by category (was /student/growth)
  */
 import { useIsDemo } from '@/lib/hooks';
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -16,8 +16,8 @@ import { SkeletonDashboard } from '@/lib/performance';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Link from 'next/link';
 import {
-  Brain, Target, Trophy, ArrowRight, Calendar, Radar,
-  Sparkles, TrendingUp, AlertTriangle, ChevronDown, BookOpen, MessageCircle,
+  Brain, Target, Trophy, ArrowRight, Radar,
+  Sparkles, TrendingUp, AlertTriangle, ChevronDown, MessageCircle,
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -34,12 +34,6 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 // ═══════════════════════════════════════════════════════════════
 // CHART COMPONENTS
 // ═══════════════════════════════════════════════════════════════
-
-function deterministicHash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h) + s.charCodeAt(i);
-  return Math.abs(h);
-}
 
 function RadarChart({ data }: { data: { label: string; value: number }[] }) {
   const cx = 150, cy = 150, r = 110;
@@ -77,47 +71,6 @@ function RadarChart({ data }: { data: { label: string; value: number }[] }) {
         </g>
       ))}
     </svg>
-  );
-}
-
-function HeatCalendar({ data }: { data: Record<string, number> }) {
-  const weeks = useMemo(() => {
-    const today = new Date();
-    const result: { date: string; value: number }[][] = [];
-    for (let w = 0; w < 12; w++) {
-      const week: { date: string; value: number }[] = [];
-      for (let d = 0; d < 7; d++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - (11 - w) * 7 - (6 - d));
-        const y = date.getFullYear();
-        const m = date.getMonth();
-        const dd = date.getDate();
-        const key = `${y}-${String(m + 1).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
-        week.push({ date: key, value: data[key] || 0 });
-      }
-      result.push(week);
-    }
-    return result;
-  }, [data]);
-
-  const getColor = (v: number) => {
-    if (v === 0) return 'bg-gray-100 dark:bg-gray-700';
-    if (v <= 15) return 'bg-emerald-200';
-    if (v <= 30) return 'bg-emerald-400';
-    if (v <= 60) return 'bg-emerald-500';
-    return 'bg-emerald-600';
-  };
-
-  return (
-    <div className="flex gap-[3px]">
-      {weeks.map((week, wi) => (
-        <div key={wi} className="flex flex-col gap-[3px]">
-          {week.map((day, di) => (
-            <div key={di} className={cn('w-[14px] h-[14px] rounded-[3px] transition-colors', getColor(day.value))} title={`${day.date}: ${day.value} min`} />
-          ))}
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -254,19 +207,6 @@ function KnowledgeTab({ data }: { data: any }) {
     label, value: Math.round(vals.reduce((a: number, b: number) => a + b, 0) / vals.length),
   }));
 
-  const heatData = useMemo(() => {
-    const data: Record<string, number> = {};
-    const today = new Date();
-    for (let i = 0; i < 84; i++) {
-      const d = new Date(today); d.setDate(d.getDate() - i);
-      const key = d.toISOString().split('T')[0];
-      const seed = (i * 2654435761) >>> 0;
-      const val = seed % 100;
-      data[key] = val > 30 ? (seed % 80) : 0;
-    }
-    return data;
-  }, []);
-
   return (
     <div className="space-y-6">
       {/* Study Next CTA */}
@@ -327,96 +267,94 @@ function KnowledgeTab({ data }: { data: any }) {
         </motion.div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Radar */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="card">
-          <div className="flex items-center gap-2 mb-4"><Radar size={18} className="text-indigo-500" /><h2 className="text-base font-bold text-gray-900 dark:text-white">Knowledge Gap Radar</h2></div>
-          {radarData.length >= 3 ? <RadarChart data={radarData} /> : <div className="text-center py-8 text-gray-400 text-sm">Complete more activities to unlock</div>}
-        </motion.div>
-
-        {/* Heatmap */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="card">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2"><Calendar size={18} className="text-emerald-500" /><h2 className="text-base font-bold text-gray-900 dark:text-white">Study Consistency</h2></div>
-            <div className="flex items-center gap-1 text-[10px] text-gray-400">
-              <span>Less</span>
-              {['bg-gray-100 dark:bg-gray-700','bg-emerald-200','bg-emerald-400','bg-emerald-600'].map(c => (<div key={c} className={cn('w-2.5 h-2.5 rounded-sm', c)} />))}
-              <span>More</span>
-            </div>
-          </div>
-          <div className="flex justify-center overflow-x-auto pb-2"><HeatCalendar data={heatData} /></div>
-          <p className="text-xs text-gray-400 text-center mt-3">Last 12 weeks</p>
-        </motion.div>
-      </div>
+      {/* Radar */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="card">
+        <div className="flex items-center gap-2 mb-4"><Radar size={18} className="text-indigo-500" /><h2 className="text-base font-bold text-gray-900 dark:text-white">Knowledge Gap Radar</h2></div>
+        {radarData.length >= 3 ? <RadarChart data={radarData} /> : <div className="text-center py-8 text-gray-400 text-sm">Complete more activities to unlock</div>}
+      </motion.div>
 
       {/* Skill Mastery List — v11.0: expandable with study tips and practice links */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="card">
         <div className="flex items-center gap-2 mb-4"><Trophy size={18} className="text-amber-500" /><h2 className="text-base font-bold text-gray-900 dark:text-white">Skill Mastery</h2>
           <span className="text-xs text-gray-400 ml-auto">Click a skill to see details</span>
         </div>
-        <div className="grid sm:grid-cols-2 gap-2">
-          {(skills.length > 0 ? skills : getDemoData().skills).slice(0, 8).map((skill: { skillName: string; skillCategory: string; masteryLevel: number }, i: number) => {
-            const isExpanded = expandedSkill === skill.skillName;
-            const studyTip = skill.masteryLevel >= 80
-              ? 'Great mastery! Try teaching this to a classmate or attempt challenge problems.'
-              : skill.masteryLevel >= 60
-              ? 'You\'re progressing well. Focus on practice problems and use the AI tutor for tricky parts.'
-              : 'This needs attention. Start with the fundamentals and use short, focused study sessions.';
-            const practiceCount = (deterministicHash(skill.skillName) % 15) + 3;
-            const lastPracticed = `${((deterministicHash(skill.skillName) >> 4) % 7) + 1}d ago`;
+        {skills.length === 0 ? (
+          <div className="text-center py-10 text-gray-400 text-sm">
+            Complete a quiz or practice session to start tracking skills.
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-2">
+            {skills.slice(0, 8).map((skill: { skillName: string; skillCategory: string; masteryLevel: number; totalAttempts?: number; lastPracticed?: string }, i: number) => {
+              const isExpanded = expandedSkill === skill.skillName;
+              const studyTip = skill.masteryLevel >= 80
+                ? 'Great mastery! Try teaching this to a classmate or attempt challenge problems.'
+                : skill.masteryLevel >= 60
+                ? 'You\'re progressing well. Focus on practice problems and use the AI tutor for tricky parts.'
+                : 'This needs attention. Start with the fundamentals and use short, focused study sessions.';
+              const practiceCount = typeof skill.totalAttempts === 'number' ? skill.totalAttempts : null;
+              const lastPracticedLabel = (() => {
+                if (!skill.lastPracticed) return null;
+                const then = new Date(skill.lastPracticed).getTime();
+                if (Number.isNaN(then)) return null;
+                const days = Math.max(0, Math.floor((Date.now() - then) / 86400000));
+                if (days === 0) return 'today';
+                if (days === 1) return '1d ago';
+                return `${days}d ago`;
+              })();
 
-            return (
-              <div key={i} className="rounded-xl bg-gray-50 dark:bg-gray-800 overflow-hidden">
-                <button onClick={() => setExpandedSkill(isExpanded ? null : skill.skillName)}
-                  className="flex items-center gap-3 p-3 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0',
-                    skill.masteryLevel >= 80 ? 'bg-emerald-100 text-emerald-600' : skill.masteryLevel >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600')}>
-                    {Math.round(skill.masteryLevel)}%
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{skill.skillName}</p>
-                    <p className="text-[10px] text-gray-400">{skill.skillCategory}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <motion.div className={cn('h-full rounded-full', skill.masteryLevel >= 80 ? 'bg-emerald-500' : skill.masteryLevel >= 60 ? 'bg-amber-500' : 'bg-red-500')}
-                        initial={{ width: 0 }} animate={{ width: `${skill.masteryLevel}%` }} transition={{ duration: 0.8, delay: i * 0.05 }} />
+              return (
+                <div key={i} className="rounded-xl bg-gray-50 dark:bg-gray-800 overflow-hidden">
+                  <button onClick={() => setExpandedSkill(isExpanded ? null : skill.skillName)}
+                    className="flex items-center gap-3 p-3 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0',
+                      skill.masteryLevel >= 80 ? 'bg-emerald-100 text-emerald-600' : skill.masteryLevel >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600')}>
+                      {Math.round(skill.masteryLevel)}%
                     </div>
-                    <ChevronDown size={14} className={cn('text-gray-400 transition-transform', isExpanded && 'rotate-180')} />
-                  </div>
-                </button>
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                      <div className="px-3 pb-3 space-y-2">
-                        <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                          <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
-                            <span>{practiceCount} practice sessions</span>
-                            <span>Last: {lastPracticed}</span>
-                          </div>
-                          <div className="flex items-start gap-2 mb-2">
-                            <Sparkles size={12} className="text-indigo-500 mt-0.5 flex-shrink-0" />
-                            <p className="text-xs text-gray-600 dark:text-gray-400">{studyTip}</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Link href={`/student/tutor${demoSuffix ? demoSuffix + '&' : '?'}topic=${encodeURIComponent(skill.skillName)}`}
-                            className="flex-1 text-center py-2 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-medium hover:bg-indigo-100 transition flex items-center justify-center gap-1">
-                            <MessageCircle size={12} /> Practice with AI Tutor
-                          </Link>
-                          <Link href={`/student/focus${demoSuffix ? demoSuffix + '&' : '?'}skill=${encodeURIComponent(skill.skillName)}`}
-                            className="flex-1 text-center py-2 rounded-lg bg-cyan-50 text-cyan-600 text-xs font-medium hover:bg-cyan-100 transition flex items-center justify-center gap-1">
-                            <Target size={12} /> Focus Session
-                          </Link>
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{skill.skillName}</p>
+                      <p className="text-[10px] text-gray-400">{skill.skillCategory}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <motion.div className={cn('h-full rounded-full', skill.masteryLevel >= 80 ? 'bg-emerald-500' : skill.masteryLevel >= 60 ? 'bg-amber-500' : 'bg-red-500')}
+                          initial={{ width: 0 }} animate={{ width: `${skill.masteryLevel}%` }} transition={{ duration: 0.8, delay: i * 0.05 }} />
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
-        </div>
+                      <ChevronDown size={14} className={cn('text-gray-400 transition-transform', isExpanded && 'rotate-180')} />
+                    </div>
+                  </button>
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                        <div className="px-3 pb-3 space-y-2">
+                          <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                              <span>{practiceCount !== null ? `${practiceCount} practice ${practiceCount === 1 ? 'session' : 'sessions'}` : '— practice sessions'}</span>
+                              <span>Last: {lastPracticedLabel ?? '—'}</span>
+                            </div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <Sparkles size={12} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+                              <p className="text-xs text-gray-600 dark:text-gray-400">{studyTip}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Link href={`/student/tutor${demoSuffix ? demoSuffix + '&' : '?'}topic=${encodeURIComponent(skill.skillName)}`}
+                              className="flex-1 text-center py-2 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-medium hover:bg-indigo-100 transition flex items-center justify-center gap-1">
+                              <MessageCircle size={12} /> Practice with AI Tutor
+                            </Link>
+                            <Link href={`/student/focus${demoSuffix ? demoSuffix + '&' : '?'}skill=${encodeURIComponent(skill.skillName)}`}
+                              className="flex-1 text-center py-2 rounded-lg bg-cyan-50 text-cyan-600 text-xs font-medium hover:bg-cyan-100 transition flex items-center justify-center gap-1">
+                              <Target size={12} /> Focus Session
+                            </Link>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </motion.div>
 
     </div>

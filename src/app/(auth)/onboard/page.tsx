@@ -37,12 +37,36 @@ const GRADE_LEVELS = [
 type CustomerType = 'district' | 'homeschool';
 type Child = { name: string; grade: string };
 
+// v17.4: prevent iOS Safari from zooming the viewport when a small-font
+// input gains focus. `text-sm` (~14px) triggers the zoom; 16px+ does not.
+// Apply this inline to every <input>/<select>/<textarea> in the wizard.
+const NO_IOS_ZOOM: React.CSSProperties = { fontSize: '16px' };
+
+// Conservative email format check used before allowing the user to leave
+// the details step. Server still applies the canonical RFC-style check in
+// sanitizeEmail(); this exists only to fail fast in the UI.
+function isPlausibleEmail(value: string): boolean {
+  const v = value.trim();
+  if (!v || v.length > 254) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+
+// v17.4: sanitize ?callbackUrl= against open-redirect. Mirrors the guard
+// used by /login (relative path, not protocol-relative).
+function sanitizeCallback(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith('/')) return null;
+  if (raw.startsWith('//')) return null;
+  return raw;
+}
+
 export default function OnboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedPlan = searchParams.get('plan') || 'STANDARD';
   const preselectedType = searchParams.get('type') as CustomerType | null;
-  
+  const callbackUrl = sanitizeCallback(searchParams.get('callbackUrl'));
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -129,6 +153,10 @@ export default function OnboardPage() {
       toast.error('Password must be at least 10 characters');
       return;
     }
+    if (!isPlausibleEmail(form.adminEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -148,6 +176,19 @@ export default function OnboardPage() {
         });
         const data = await res.json();
         if (res.ok && data.success) {
+          // Sign in BEFORE the paid upgrade so /api/payments has a session.
+          // (homeschool-upgrade requires authentication.)
+          const signInResult = await signIn('credentials', {
+            email: form.adminEmail,
+            password: form.adminPassword,
+            redirect: false,
+          });
+          if (!signInResult?.ok) {
+            toast.success('Account created. Please sign in to finish.');
+            router.push('/login');
+            return;
+          }
+
           // If paid plan, also process the payment
           if (!isFree) {
             const paymentRes = await fetch('/api/payments', {
@@ -167,60 +208,74 @@ export default function OnboardPage() {
               return;
             }
           }
-          toast.success('Account created! Signing you in...');
-          const signInResult = await signIn('credentials', {
-            email: form.adminEmail,
-            password: form.adminPassword,
-            redirect: false,
-          });
-          if (signInResult?.ok) {
-            router.push('/parent/dashboard');
-          } else {
-            router.push('/login');
-          }
+          toast.success('Account created!');
+          router.push(callbackUrl ?? '/parent/dashboard');
         } else {
           toast.error(data.error || 'Failed to create account');
         }
       } else {
-        // District flow: onboard API
-        const res = await fetch('/api/payments', {
+        // District flow (v17.4 — replaces the legacy single-shot anonymous
+        // POST /api/payments?action=onboard). v17.3 locked that action down
+        // to authenticated callers, which left the anonymous wizard with a
+        // 401. We now chain: register the admin (which also creates a TRIAL
+        // FREE-tier district) → sign in → POST upgrade for paid tiers.
+        //
+        // Constraint: /api/auth/register/route.ts is out of scope. The
+        // wizard's contactPhone/address/city/state/zipCode are NOT carried
+        // through register; the admin can fill those on the district
+        // profile after first login.
+        const registerRes = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'onboard',
-            districtName: form.districtName,
-            contactEmail: form.contactEmail,
-            contactPhone: form.contactPhone,
-            address: form.address,
-            city: form.city,
-            state: form.state,
-            zipCode: form.zipCode,
-            tier: selectedPlan,
-            studentCount,
-            adminName: form.adminName,
-            adminEmail: form.adminEmail,
-            adminPassword: form.adminPassword,
-            billingName: form.billingName || form.districtName,
-            billingEmail: form.billingEmail || form.contactEmail,
-            paymentMethod: form.paymentMethod,
-          }),
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          toast.success('District created! Signing you in...');
-          const signInResult = await signIn('credentials', {
+            name: form.adminName,
             email: form.adminEmail,
             password: form.adminPassword,
-            redirect: false,
-          });
-          if (signInResult?.ok) {
-            router.push('/admin/dashboard');
-          } else {
-            router.push('/login');
-          }
-        } else {
-          toast.error(data.error || 'Failed to create district');
+            role: 'ADMIN',
+            accountType: 'DISTRICT',
+            districtName: form.districtName,
+          }),
+        });
+        const registerData = await registerRes.json();
+        if (!registerRes.ok || !registerData.success) {
+          toast.error(registerData.error || 'Failed to create admin account');
+          return;
         }
+
+        const signInResult = await signIn('credentials', {
+          email: form.adminEmail,
+          password: form.adminPassword,
+          redirect: false,
+        });
+        if (!signInResult?.ok) {
+          // Admin account exists; user can finish at /login.
+          toast.success('Admin account created. Please sign in to finish.');
+          router.push('/login');
+          return;
+        }
+
+        // Paid tiers: run the canonical-priced upgrade. FREE tier needs no
+        // payment call — the TRIAL FREE district created by register is
+        // already usable.
+        if (!isFree && !isEnterprise) {
+          const upgradeRes = await fetch('/api/payments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'upgrade',
+              tier: selectedPlan,
+              studentCount,
+            }),
+          });
+          const upgradeData = await upgradeRes.json().catch(() => ({}));
+          if (!upgradeRes.ok) {
+            toast.error(upgradeData?.error || 'Payment processing failed');
+            return;
+          }
+        }
+
+        toast.success('District created!');
+        router.push(callbackUrl ?? '/admin/dashboard');
       }
     } catch {
       toast.error('Something went wrong. Please try again.');
@@ -242,6 +297,10 @@ export default function OnboardPage() {
           toast.error('Name and email are required');
           return;
         }
+        if (!isPlausibleEmail(form.adminEmail)) {
+          toast.error('Please enter a valid email address');
+          return;
+        }
         if (children.filter(c => c.name.trim()).length === 0) {
           toast.error('Add at least one child');
           return;
@@ -251,8 +310,16 @@ export default function OnboardPage() {
           toast.error('District name and email are required');
           return;
         }
+        if (!isPlausibleEmail(form.contactEmail)) {
+          toast.error('Please enter a valid district contact email');
+          return;
+        }
         if (!form.adminName || !form.adminEmail) {
           toast.error('Admin name and email are required');
+          return;
+        }
+        if (!isPlausibleEmail(form.adminEmail)) {
+          toast.error('Please enter a valid admin email address');
           return;
         }
       }
@@ -411,7 +478,7 @@ export default function OnboardPage() {
                 <div className="card max-w-md mx-auto p-5">
                   <label className="block text-sm font-medium text-gray-700 mb-2">How many students?</label>
                   <input type="number" value={studentCount} onChange={e => setStudentCount(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="input-field text-center text-2xl font-bold" min={1} max={plan.students} />
+                    className="input-field text-center text-2xl font-bold" min={1} max={plan.students} style={NO_IOS_ZOOM} />
                   <p className="text-xs text-gray-400 text-center mt-1">Max {plan.students.toLocaleString()} students on {plan.tier} plan</p>
                   <p className="text-center text-lg font-bold text-primary-600 mt-2">
                     Total: ${totalCost.toLocaleString()}/year
@@ -448,34 +515,34 @@ export default function OnboardPage() {
                   <h3 className="font-bold text-gray-900 flex items-center gap-2"><Building2 size={18} /> District Information</h3>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">District Name *</label>
-                    <input value={form.districtName} onChange={e => updateForm('districtName', e.target.value)} className="input-field" placeholder="e.g., Springfield School District" />
+                    <input value={form.districtName} onChange={e => updateForm('districtName', e.target.value)} className="input-field" placeholder="e.g., Springfield School District" style={NO_IOS_ZOOM} />
                   </div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email *</label>
-                      <input type="email" value={form.contactEmail} onChange={e => updateForm('contactEmail', e.target.value)} className="input-field" />
+                      <input type="email" value={form.contactEmail} onChange={e => updateForm('contactEmail', e.target.value)} className="input-field" style={NO_IOS_ZOOM} autoComplete="email" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                      <input value={form.contactPhone} onChange={e => updateForm('contactPhone', e.target.value)} className="input-field" />
+                      <input type="tel" value={form.contactPhone} onChange={e => updateForm('contactPhone', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                    <input value={form.address} onChange={e => updateForm('address', e.target.value)} className="input-field" />
+                    <input value={form.address} onChange={e => updateForm('address', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
                   </div>
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                      <input value={form.city} onChange={e => updateForm('city', e.target.value)} className="input-field" />
+                      <input value={form.city} onChange={e => updateForm('city', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                      <input value={form.state} onChange={e => updateForm('state', e.target.value)} className="input-field" />
+                      <input value={form.state} onChange={e => updateForm('state', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
-                      <input value={form.zipCode} onChange={e => updateForm('zipCode', e.target.value)} className="input-field" />
+                      <input value={form.zipCode} onChange={e => updateForm('zipCode', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
                     </div>
                   </div>
                 </div>
@@ -493,17 +560,17 @@ export default function OnboardPage() {
                 )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                  <input value={form.adminName} onChange={e => updateForm('adminName', e.target.value)} className="input-field" placeholder="Your full name" />
+                  <input value={form.adminName} onChange={e => updateForm('adminName', e.target.value)} className="input-field" placeholder="Your full name" style={NO_IOS_ZOOM} autoComplete="name" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input type="email" value={form.adminEmail} onChange={e => updateForm('adminEmail', e.target.value)} className="input-field" placeholder="you@example.com" />
+                  <input type="email" value={form.adminEmail} onChange={e => updateForm('adminEmail', e.target.value)} className="input-field" placeholder="you@example.com" style={NO_IOS_ZOOM} autoComplete="email" inputMode="email" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
                   <div className="relative">
                     <input type={showPassword ? 'text' : 'password'} value={form.adminPassword}
-                      onChange={e => updateForm('adminPassword', e.target.value)} className="input-field pr-10" placeholder="Min 10 characters" />
+                      onChange={e => updateForm('adminPassword', e.target.value)} className="input-field pr-10" placeholder="Min 10 characters" style={NO_IOS_ZOOM} autoComplete="new-password" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -514,7 +581,7 @@ export default function OnboardPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
-                  <input type="password" value={form.confirmPassword} onChange={e => updateForm('confirmPassword', e.target.value)} className="input-field" placeholder="Re-enter password" />
+                  <input type="password" value={form.confirmPassword} onChange={e => updateForm('confirmPassword', e.target.value)} className="input-field" placeholder="Re-enter password" style={NO_IOS_ZOOM} autoComplete="new-password" />
                   {form.confirmPassword && form.adminPassword !== form.confirmPassword && (
                     <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
                   )}
@@ -546,11 +613,11 @@ export default function OnboardPage() {
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
                           <input value={child.name} onChange={e => updateChild(idx, 'name', e.target.value)}
-                            className="input-field" placeholder="Child's name" />
+                            className="input-field" placeholder="Child's name" style={NO_IOS_ZOOM} />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Grade Level</label>
-                          <select value={child.grade} onChange={e => updateChild(idx, 'grade', e.target.value)} className="input-field">
+                          <select value={child.grade} onChange={e => updateChild(idx, 'grade', e.target.value)} className="input-field" style={NO_IOS_ZOOM}>
                             <option value="">Select grade</option>
                             {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
                           </select>
@@ -646,16 +713,16 @@ export default function OnboardPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
                       <input value={form.cardNumber} onChange={e => updateForm('cardNumber', e.target.value)}
-                        className="input-field" placeholder="4242 4242 4242 4242" />
+                        className="input-field" placeholder="4242 4242 4242 4242" style={NO_IOS_ZOOM} inputMode="numeric" autoComplete="cc-number" />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Expiry</label>
-                        <input value={form.cardExpiry} onChange={e => updateForm('cardExpiry', e.target.value)} className="input-field" placeholder="MM/YY" />
+                        <input value={form.cardExpiry} onChange={e => updateForm('cardExpiry', e.target.value)} className="input-field" placeholder="MM/YY" style={NO_IOS_ZOOM} inputMode="numeric" autoComplete="cc-exp" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">CVC</label>
-                        <input value={form.cardCvc} onChange={e => updateForm('cardCvc', e.target.value)} className="input-field" placeholder="123" />
+                        <input value={form.cardCvc} onChange={e => updateForm('cardCvc', e.target.value)} className="input-field" placeholder="123" style={NO_IOS_ZOOM} inputMode="numeric" autoComplete="cc-csc" />
                       </div>
                     </div>
                   </div>

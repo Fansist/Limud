@@ -12,16 +12,17 @@
  * to /api/products/[productId]/purchase to activate the subscription.
  *
  * Pricing: the API resolves the effective price (PriceOverride from the
- * OWNER price editor, if any, otherwise the static catalog value). The page
- * shows the static value to start. If CODER C's pricing module has shipped
- * we may extend this to fetch the effective price client-side; for now the
- * server route is the source of truth at purchase time.
+ * OWNER price editor, if any, otherwise the static catalog value). v17.4
+ * (R15) closes the financial-trust hazard where the page showed the static
+ * catalog price while the server billed the override — the page now also
+ * calls /api/products/effective-price and renders that value, calling out
+ * any difference so the user is never surprised at activation.
  *
  * Anonymous users see a "log in to purchase" wall with a callbackUrl that
  * preserves the product and billing selection.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -37,6 +38,19 @@ function isBillingMode(value: string | null): value is BillingMode {
   return value === 'oneTime' || value === 'monthly';
 }
 
+// v17.4 (R15): the server applies any OWNER PriceOverride at purchase
+// time, so the static catalog price could be stale on this page. Fetch
+// the effective price so the user sees the number they will be charged.
+type EffectivePriceResponse = {
+  kind: 'product' | 'bundle';
+  id: string;
+  oneTimePrice: number | null;
+  monthlyPrice: number | null;
+  source: 'static' | 'override';
+  staticOneTimePrice: number | null;
+  staticMonthlyPrice: number | null;
+};
+
 export default function ProductCheckoutPage() {
   const params = useParams<{ productId: string }>();
   const searchParams = useSearchParams();
@@ -50,6 +64,35 @@ export default function ProductCheckoutPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [effective, setEffective] = useState<EffectivePriceResponse | null>(null);
+
+  // Fetch the override-aware price once we know the product id and the
+  // user is authenticated. The endpoint requires auth — anon users see
+  // the login wall and never reach the price card, so there's nothing
+  // to fetch in that state.
+  useEffect(() => {
+    if (!product || status !== 'authenticated') {
+      setEffective(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/products/effective-price?kind=product&id=${encodeURIComponent(product.id)}`,
+          { cache: 'no-store' },
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as EffectivePriceResponse;
+        if (!cancelled) setEffective(data);
+      } catch {
+        // Network error — leave effective null and fall back to static.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [product, status]);
 
   async function handleConfirm(p: Product) {
     setSubmitting(true);
@@ -93,6 +136,19 @@ export default function ProductCheckoutPage() {
   }
 
   const staticPrice = billingMode === 'oneTime' ? product.oneTimePrice : product.monthlyPrice;
+  // Effective price wins when present; we still keep the static value
+  // around so we can call out the change to the user.
+  const effectiveForMode = effective
+    ? billingMode === 'oneTime'
+      ? effective.oneTimePrice
+      : effective.monthlyPrice
+    : null;
+  const displayPrice = effectiveForMode ?? staticPrice;
+  const priceIsOverride =
+    effective?.source === 'override' &&
+    effectiveForMode !== null &&
+    staticPrice !== null &&
+    effectiveForMode !== staticPrice;
   const cadenceLabel = billingMode === 'monthly' ? '/month' : ' one-time';
   const altLabel = billingMode === 'monthly'
     ? (product.oneTimePrice == null ? '—' : '$' + product.oneTimePrice + ' ' + product.oneTimeUnit)
@@ -218,9 +274,14 @@ export default function ProductCheckoutPage() {
                 {billingMode === 'monthly' ? 'Monthly subscription' : 'One-time purchase'}
               </p>
               <p className="text-3xl font-extrabold text-gray-900 mt-1">
-                ${staticPrice}
+                ${displayPrice}
                 <span className="text-sm text-gray-400 font-normal">{cadenceLabel}</span>
               </p>
+              {priceIsOverride && (
+                <p className="text-[11px] font-medium text-amber-700 mt-1">
+                  Updated pricing — was ${staticPrice}, now ${displayPrice}.
+                </p>
+              )}
               <p className="text-[11px] text-gray-400 mt-0.5">or {altLabel}</p>
             </div>
           </div>

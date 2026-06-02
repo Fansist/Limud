@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import {
-  Users, Plus, MessageCircle, Send, Crown, UserPlus, Search, BookOpen, Clock, Globe, Lock, Star, X,
+  Users, Plus, MessageCircle, Send, Crown, UserPlus, Search, BookOpen, Clock, Globe, Lock, Star, X, LogOut,
 } from 'lucide-react';
 
 const DEMO_GROUPS = [
@@ -107,8 +107,26 @@ export default function StudyGroupsPage() {
       setForm({ name: '', description: '', subject: 'Math', maxMembers: 10, isPublic: true });
     } else {
       try {
-        const res = await fetch('/api/study-groups', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-        if (res.ok) { toast.success('Study group created!'); fetchGroups(); setShowCreate(false); }
+        const res = await fetch('/api/study-groups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create',
+            name: form.name,
+            description: form.description,
+            subject: form.subject,
+            maxMembers: form.maxMembers,
+            isPublic: form.isPublic,
+          }),
+        });
+        if (res.ok) {
+          toast.success('Study group created!');
+          fetchGroups();
+          setShowCreate(false);
+          setForm({ name: '', description: '', subject: 'Math', maxMembers: 10, isPublic: true });
+        } else {
+          toast.error('Failed to create group');
+        }
       } catch { toast.error('Failed to create group'); }
     }
   }
@@ -119,19 +137,66 @@ export default function StudyGroupsPage() {
       toast.success('Joined group!');
     } else {
       try {
-        const res = await fetch('/api/study-groups', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groupId, action: 'join' }) });
+        const res = await fetch('/api/study-groups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'join', groupId }),
+        });
         if (res.ok) { toast.success('Joined group!'); fetchGroups(); }
+        else { toast.error('Failed to join group'); }
       } catch { toast.error('Failed to join group'); }
     }
   }
 
-  function sendMessage() {
+  async function leaveGroup(groupId: string) {
+    if (isDemo) {
+      setGroups(prev => prev.map(g => g.id === groupId ? { ...g, isMember: false, memberCount: Math.max(0, g.memberCount - 1) } : g));
+      toast.success('Left group');
+    } else {
+      try {
+        const res = await fetch('/api/study-groups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'leave', groupId }),
+        });
+        if (res.ok) { toast.success('Left group'); fetchGroups(); }
+        else { toast.error('Failed to leave group'); }
+      } catch { toast.error('Failed to leave group'); }
+    }
+  }
+
+  async function sendMessage() {
     if (!newMessage.trim() || !selectedGroup) return;
     const userName = session?.user?.name || 'You';
-    const msg = { id: `m${Date.now()}`, userId: 'demo-student', userName, text: newMessage, time: 'Just now' };
-    setSelectedGroup((prev: any) => ({ ...prev, messages: [...prev.messages, msg] }));
-    setGroups(prev => prev.map(g => g.id === selectedGroup.id ? { ...g, messages: [...g.messages, msg] } : g));
+    const text = newMessage;
     setNewMessage('');
+
+    if (isDemo) {
+      const msg = { id: `m${Date.now()}`, userId: 'demo-student', userName, text, time: 'Just now' };
+      setSelectedGroup((prev: any) => ({ ...prev, messages: [...(prev?.messages || []), msg] }));
+      setGroups(prev => prev.map(g => g.id === selectedGroup.id ? { ...g, messages: [...(g.messages || []), msg] } : g));
+      return;
+    }
+
+    // Optimistically append while POST is in-flight.
+    const tempId = `temp-${Date.now()}`;
+    const optimistic = { id: tempId, userId: session?.user?.id || 'me', userName, text, time: 'Just now' };
+    setSelectedGroup((prev: any) => ({ ...prev, messages: [...(prev?.messages || []), optimistic] }));
+
+    try {
+      const res = await fetch('/api/study-groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'message', groupId: selectedGroup.id, content: text }),
+      });
+      if (!res.ok) {
+        toast.error('Failed to send message');
+        setSelectedGroup((prev: any) => ({ ...prev, messages: (prev?.messages || []).filter((m: any) => m.id !== tempId) }));
+      }
+    } catch {
+      toast.error('Failed to send message');
+      setSelectedGroup((prev: any) => ({ ...prev, messages: (prev?.messages || []).filter((m: any) => m.id !== tempId) }));
+    }
   }
 
   const filteredGroups = groups.filter(g => {
@@ -279,9 +344,14 @@ export default function StudyGroupsPage() {
               </div>
               <div className="flex gap-2">
                 {group.isMember ? (
-                  <button onClick={() => setSelectedGroup(group)} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium">
-                    <MessageCircle className="w-4 h-4" /> Open Chat
-                  </button>
+                  <>
+                    <button onClick={() => setSelectedGroup(group)} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                      <MessageCircle className="w-4 h-4" /> Open Chat
+                    </button>
+                    <button onClick={() => leaveGroup(group.id)} aria-label="Leave group" title="Leave group" className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 py-2 px-3 rounded-lg hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/40 dark:hover:text-red-300 transition text-sm font-medium">
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </>
                 ) : (
                   <button onClick={() => joinGroup(group.id)} className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
                     <UserPlus className="w-4 h-4" /> Join Group

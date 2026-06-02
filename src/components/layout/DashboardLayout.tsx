@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { cn, AVATAR_OPTIONS } from '@/lib/utils';
 import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
@@ -155,16 +155,16 @@ function flatNavItems(sections: NavSection[]): NavItem[] {
 }
 
 // Mobile bottom nav: up to 5 items
+// v17.4: STUDENT bottom-nav trimmed from 8 → 5 to fit 320px (iPhone SE) without
+// horizontal scroll. Dropped items (Coursework, Materials, Study Groups,
+// Messages) remain in the sidebar / hamburger menu.
 const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.ReactNode }[]> = {
   STUDENT: [
     { href: '/student/dashboard', label: 'Home', icon: <LayoutDashboard size={20} /> },
-    { href: '/student/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
-    { href: '/student/assignments', label: 'Work', icon: <ClipboardList size={20} /> },
     { href: '/student/tutor', label: 'Tutor', icon: <MessageCircle size={20} /> },
-    { href: '/student/grades', label: 'Grades', icon: <Award size={20} /> },
+    { href: '/student/assignments', label: 'Work', icon: <ClipboardList size={20} /> },
     { href: '/student/materials', label: 'Materials', icon: <FileText size={20} /> },
-    { href: '/student/study-groups', label: 'Groups', icon: <UsersRound size={20} /> },
-    { href: '/student/messages', label: 'Messages', icon: <Mail size={20} /> },
+    { href: '/student/grades', label: 'Grades', icon: <Award size={20} /> },
   ],
   TEACHER: [
     { href: '/teacher/dashboard', label: 'Home', icon: <LayoutDashboard size={20} /> },
@@ -194,10 +194,18 @@ const MOBILE_NAV: Record<string, { href: string; label: string; icon: React.Reac
     { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
   ],
   OWNER: [
+    // v17.4: Overview added so OWNER on mobile can always return to /owner.
+    { href: '/owner', label: 'Overview', icon: <LayoutDashboard size={20} /> },
     { href: '/owner/finances', label: 'Finances', icon: <BarChart3 size={20} /> },
     { href: '/owner/prices', label: 'Prices', icon: <DollarSign size={20} /> },
   ],
 };
+
+// v17.4: Shared focus-visible ring for keyboard accessibility. Tailwind's reset
+// strips default outlines on links/buttons, so we add an explicit ring on every
+// interactive nav element. Use `focus-visible:` so mouse clicks don't trigger.
+const FOCUS_RING =
+  'focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900';
 
 const ROLE_COLORS: Record<string, string> = {
   STUDENT: 'from-blue-500 to-blue-600',
@@ -239,6 +247,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { liteMode, toggleLiteMode, enableAnimations, enableBlur } = usePerf();
+  // v17.4: Honor user's OS-level reduced-motion preference. When true, framer
+  // animations collapse to a zero-duration transition so the sidebar slide,
+  // notifications dropdown, and active-tab indicator don't move.
+  const prefersReducedMotion = useReducedMotion();
+  const motionEnabled = enableAnimations && !prefersReducedMotion;
+  const zeroTransition = { duration: 0 };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
@@ -389,11 +403,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-amber-500 to-orange-500 text-white text-center py-1.5 px-4 text-xs font-medium flex items-center justify-center gap-3">
           <Play size={12} />
           <span>You&apos;re viewing the <strong>{role.charAt(0) + role.slice(1).toLowerCase()}</strong> demo. Data is simulated.</span>
-          <button onClick={exitDemo} className="underline hover:no-underline ml-2 flex items-center gap-1">
+          <button
+            onClick={exitDemo}
+            className={cn('underline hover:no-underline ml-2 flex items-center gap-1 rounded', FOCUS_RING)}
+          >
             <ArrowLeft size={10} /> Switch Role
           </button>
           <span className="mx-1">|</span>
-          <Link href="/register" className="underline hover:no-underline font-semibold">
+          <Link
+            href="/register"
+            className={cn('underline hover:no-underline font-semibold rounded', FOCUS_RING)}
+          >
             Create Real Account
           </Link>
         </div>
@@ -404,6 +424,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {sidebarOpen && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={prefersReducedMotion ? zeroTransition : undefined}
             className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
@@ -413,21 +434,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar (hidden on mobile, replaced by bottom nav) */}
       <aside
         className={cn(
-          'fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col transition-transform duration-300 lg:translate-x-0',
+          'fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col lg:translate-x-0',
+          // v17.4: collapse slide-out transition for reduced-motion users.
+          prefersReducedMotion ? 'transition-none' : 'transition-transform duration-300',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           isDemo && 'pt-8'
         )}
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-          <Link href="/" className="flex items-center gap-3 flex-1 min-w-0" aria-label="Limud home">
-            <img src="/logo.svg" alt="Limud" className="w-10 h-10 rounded-xl shadow-sm object-cover" />
+          <Link href="/" className={cn('flex items-center gap-3 flex-1 min-w-0 rounded-lg', FOCUS_RING)} aria-label="Limud home">
+            {/* v17.4: width/height attrs prevent CLS while preserving the
+                existing <img> tag (rest of codebase doesn't use next/image). */}
+            <img src="/logo.svg" alt="Limud" width={40} height={40} className="w-10 h-10 rounded-xl shadow-sm object-cover" />
             <div>
               <span className="text-lg font-bold text-gray-900 dark:text-white">Limud</span>
               <p className="text-[11px] text-gray-400 font-medium">{roleLabel}</p>
             </div>
           </Link>
-          <button onClick={() => setSidebarOpen(false)} className="ml-auto lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="Close sidebar">
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className={cn(
+              'ml-auto lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 min-h-[44px] min-w-[44px] flex items-center justify-center',
+              FOCUS_RING
+            )}
+            aria-label="Close sidebar"
+          >
             <X size={20} />
           </button>
         </div>
@@ -454,7 +486,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               ].map(r => (
                 <Link key={r.r} href={r.path}
                   className={cn('flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-[9px] font-medium transition',
-                    role === r.r ? r.color + ' ring-1 ring-amber-300' : 'hover:bg-gray-100 text-gray-500')}
+                    role === r.r ? r.color + ' ring-1 ring-amber-300' : 'hover:bg-gray-100 text-gray-500',
+                    FOCUS_RING)}
                   onClick={() => setSidebarOpen(false)}>
                   {r.icon}
                   <span>{r.r.charAt(0) + r.r.slice(1).toLowerCase()}</span>
@@ -463,7 +496,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             {/* v9.4.0: Master demo quick access to student learning survey */}
             <Link href="/student/survey"
-              className="mt-1.5 flex items-center gap-1.5 text-[10px] text-amber-700 dark:text-amber-300 font-medium hover:underline py-1"
+              className={cn('mt-1.5 flex items-center gap-1.5 text-[10px] text-amber-700 dark:text-amber-300 font-medium hover:underline py-1 rounded', FOCUS_RING)}
               onClick={() => setSidebarOpen(false)}>
               <Clipboard size={10} /> Open Student Learning Survey
             </Link>
@@ -482,21 +515,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 return (
                   <Link key={item.href} href={href}
+                    aria-current={isActive ? 'page' : undefined}
                     className={cn(
                       'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative',
                       isActive
                         ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white',
+                      FOCUS_RING
                     )}
                     onClick={() => setSidebarOpen(false)}
                   >
-                    {isActive && enableAnimations && (
+                    {isActive && motionEnabled && (
                       <motion.div layoutId="activeTab"
                         className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 bg-primary-600 rounded-r-full"
                         transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                       />
                     )}
-                    {isActive && !enableAnimations && (
+                    {isActive && !motionEnabled && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 bg-primary-600 rounded-r-full" />
                     )}
                     <span className={cn(isActive ? 'text-primary-600' : 'text-gray-400')}>{item.icon}</span>
@@ -515,9 +550,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center justify-around">
             <button
               onClick={toggleLiteMode}
+              aria-pressed={liteMode}
               className={cn(
                 'flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium transition-all',
-                liteMode ? 'bg-amber-50 text-amber-700' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+                liteMode ? 'bg-amber-50 text-amber-700' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600',
+                FOCUS_RING
               )}
               title={`Lite Mode ${liteMode ? 'ON' : 'OFF'}`}
             >
@@ -531,7 +568,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 html.classList.toggle('dark');
                 localStorage.setItem('limud-dark-mode', html.classList.contains('dark') ? 'true' : 'false');
               }}
-              className="flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 transition-all"
+              className={cn(
+                'flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 transition-all',
+                FOCUS_RING
+              )}
               title="Dark Mode"
             >
               <Sun size={16} className="dark:hidden" />
@@ -542,9 +582,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* v9.4.0: Color Theme toggle (blue/green) */}
             <button
               onClick={toggleColorTheme}
+              aria-pressed={colorTheme === 'green'}
               className={cn(
                 'flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium transition-all',
-                colorTheme === 'green' ? 'bg-green-50 text-green-700' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600'
+                colorTheme === 'green' ? 'bg-green-50 text-green-700' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600',
+                FOCUS_RING
               )}
               title={`Color Theme: ${colorTheme === 'blue' ? 'Blue' : 'Green'}`}
             >
@@ -554,9 +596,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <button
               onClick={() => setShowAccessibility(!showAccessibility)}
+              aria-pressed={showAccessibility}
+              aria-expanded={showAccessibility}
               className={cn(
                 'flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium transition-all',
-                showAccessibility ? 'bg-primary-50 text-primary-700' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600'
+                showAccessibility ? 'bg-primary-50 text-primary-700' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600',
+                FOCUS_RING
               )}
               title="Accessibility"
             >
@@ -565,7 +610,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
 
             <Link href={buildHref('/help')}
-              className="flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 transition-all"
+              className={cn(
+                'flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] font-medium text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 transition-all',
+                FOCUS_RING
+              )}
               title="Help & FAQ"
             >
               <HelpCircle size={16} />
@@ -575,7 +623,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <AnimatePresence>
             {showAccessibility && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={prefersReducedMotion ? zeroTransition : undefined}
+                className="overflow-hidden"
+              >
                 <AccessibilityPanel />
               </motion.div>
             )}
@@ -594,14 +648,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p className="text-[10px] text-gray-500 truncate">{userEmail}</p>
             </div>
             {isDemo ? (
-              <Link href="/register" className="text-primary-600 hover:bg-primary-50 p-1.5 rounded-lg transition flex-shrink-0" title="Create Real Account">
+              <Link
+                href="/register"
+                className={cn('text-primary-600 hover:bg-primary-50 p-1.5 rounded-lg transition flex-shrink-0', FOCUS_RING)}
+                title="Create Real Account"
+                aria-label="Create real account"
+              >
                 <Sparkles size={14} />
               </Link>
             ) : (
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg transition flex-shrink-0"
+                className={cn('text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg transition flex-shrink-0', FOCUS_RING)}
                 title="Sign Out"
+                aria-label="Sign out"
               >
                 <LogOut size={14} />
               </button>
@@ -618,7 +678,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           enableBlur && 'backdrop-blur-xl',
           isDemo ? 'top-8' : 'top-0'
         )}>
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition" aria-label="Open menu">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className={cn(
+              // v17.4: bumped to min 44×44 tap target per WCAG 2.5.5 / iOS HIG.
+              'lg:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition min-h-[44px] min-w-[44px] flex items-center justify-center',
+              FOCUS_RING
+            )}
+            aria-label="Open menu"
+            aria-expanded={sidebarOpen}
+          >
             <Menu size={20} />
           </button>
 
@@ -667,8 +736,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Notifications */}
           <div className="relative">
             <button onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              className={cn(
+                'relative p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition min-h-[44px] min-w-[44px] flex items-center justify-center',
+                FOCUS_RING
+              )}
               aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+              aria-expanded={showNotifications}
+              aria-haspopup="menu"
             >
               <Bell size={20} className="text-gray-500" />
               {unreadCount > 0 && (
@@ -686,12 +760,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={prefersReducedMotion ? zeroTransition : undefined}
                     className="absolute right-0 top-12 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50"
                   >
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                       <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Notifications</h3>
                       {unreadCount > 0 && (
-                        <button onClick={markAllRead} className="text-xs text-primary-600 font-medium hover:underline">Mark all read</button>
+                        <button
+                          onClick={markAllRead}
+                          className={cn('text-xs text-primary-600 font-medium hover:underline rounded', FOCUS_RING)}
+                        >
+                          Mark all read
+                        </button>
                       )}
                     </div>
                     <div className="max-h-80 overflow-y-auto custom-scrollbar">
@@ -706,7 +786,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           const timeAgo = (() => { const d = Date.now() - new Date(notif.createdAt).getTime(); if (d < 60000) return 'Just now'; if (d < 3600000) return `${Math.floor(d / 60000)}m ago`; if (d < 86400000) return `${Math.floor(d / 3600000)}h ago`; return `${Math.floor(d / 86400000)}d ago`; })();
                           const itemClass = cn(
                             'flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer no-underline w-full text-left',
-                            !notif.isRead && 'bg-primary-50/50 dark:bg-primary-900/20'
+                            !notif.isRead && 'bg-primary-50/50 dark:bg-primary-900/20',
+                            FOCUS_RING
                           );
                           const body = (
                             <>
@@ -740,7 +821,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <Link
                       href="/notifications"
                       onClick={() => setShowNotifications(false)}
-                      className="block w-full text-center px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 text-xs font-medium text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                      className={cn(
+                        'block w-full text-center px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 text-xs font-medium text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition',
+                        FOCUS_RING
+                      )}
                     >
                       View all notifications →
                     </Link>

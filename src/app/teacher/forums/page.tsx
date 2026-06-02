@@ -15,6 +15,8 @@ import { cn, formatDate } from '@/lib/utils';
 
 // v12.0.0 — Teacher Discussion Forums (Phase 2.3)
 // Enhanced with moderation tools, analytics, and thread management
+// v17.4 — Live (non-demo) paths now persist through /api/forums. Replies fetch
+// lazily when a thread is opened. Courses come from /api/teacher/courses.
 
 interface ForumPost {
   id: string;
@@ -42,7 +44,27 @@ interface ForumReply {
   upvotes: number;
 }
 
-const DEMO_COURSES = [
+interface TeacherCourse {
+  id: string;
+  name: string;
+  subject?: string | null;
+}
+
+// API row shape returned by /api/forums (subset we read)
+interface ApiForumPost {
+  id: string;
+  courseId: string | null;
+  subject: string | null;
+  title: string | null;
+  content: string;
+  isPinned: boolean;
+  isResolved: boolean;
+  createdAt: string;
+  upvotes: number;
+  author: { id: string; name: string; role: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'PARENT' | 'OWNER' } | null;
+}
+
+const DEMO_COURSES: TeacherCourse[] = [
   { id: 'bio101', name: 'Biology 101' },
   { id: 'alg2', name: 'Algebra II' },
   { id: 'eng-lit', name: 'English Literature' },
@@ -101,29 +123,128 @@ const DEMO_POSTS: ForumPost[] = [
   },
 ];
 
+function mapApiPost(
+  api: ApiForumPost,
+  courseNameLookup: Record<string, string>,
+): ForumPost {
+  const courseId = api.courseId ?? '';
+  return {
+    id: api.id,
+    courseId,
+    courseName: courseNameLookup[courseId] ?? api.subject ?? 'Course',
+    authorId: api.author?.id ?? '',
+    authorName: api.author?.name ?? 'Unknown',
+    authorRole: api.author?.role === 'TEACHER' ? 'TEACHER' : 'STUDENT',
+    title: api.title ?? '',
+    content: api.content,
+    isPinned: !!api.isPinned,
+    isResolved: !!api.isResolved,
+    createdAt: api.createdAt,
+    replies: [],
+    upvotes: api.upvotes ?? 0,
+  };
+}
+
+function mapApiReply(api: ApiForumPost): ForumReply {
+  return {
+    id: api.id,
+    authorId: api.author?.id ?? '',
+    authorName: api.author?.name ?? 'Unknown',
+    authorRole: api.author?.role === 'TEACHER' ? 'TEACHER' : 'STUDENT',
+    content: api.content,
+    createdAt: api.createdAt,
+    upvotes: api.upvotes ?? 0,
+  };
+}
+
 export default function TeacherForumsPage() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState('all');
-  const [courses, setCourses] = useState(DEMO_COURSES);
+  const [courses, setCourses] = useState<TeacherCourse[]>(DEMO_COURSES);
   const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'unresolved' | 'pinned' | 'my-posts' | 'no-replies'>('all');
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null);
+  const [repliesLoading, setRepliesLoading] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [newPost, setNewPost] = useState({ title: '', content: '', courseId: '' });
 
-  useEffect(() => { fetchPosts(); }, [isDemo]);
+  // v17.4 — Live: pull the teacher's actual courses instead of DEMO_COURSES.
+  useEffect(() => {
+    if (isDemo) {
+      setCourses(DEMO_COURSES);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/teacher/courses');
+        if (!res.ok) return;
+        const data: { courses?: Array<{ id: string; name: string; subject?: string | null }> } = await res.json();
+        if (cancelled) return;
+        if (data.courses && data.courses.length > 0) {
+          setCourses(data.courses.map(c => ({ id: c.id, name: c.name, subject: c.subject })));
+        } else {
+          setCourses([]);
+        }
+      } catch {
+        // silent — leave whatever was already in state
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isDemo]);
+
+  // Build courseId → name lookup for hydrating API rows.
+  const courseNameLookup: Record<string, string> = courses.reduce((acc, c) => {
+    acc[c.id] = c.name;
+    return acc;
+  }, {} as Record<string, string>);
+
+  useEffect(() => { fetchPosts(); }, [isDemo, selectedCourse]);
 
   async function fetchPosts() {
     if (isDemo) { setPosts(DEMO_POSTS); setLoading(false); return; }
+    setLoading(true);
     try {
-      const res = await fetch('/api/forums');
-      if (res.ok) { const data = await res.json(); setPosts(data.posts || []); }
-    } catch { toast.error('Failed to load forums'); }
-    finally { setLoading(false); }
+      // v17.4 — FERPA scope. If a specific course is picked, query by it.
+      // Otherwise scope to all courses this teacher owns via my-courses=true.
+      const qs = selectedCourse !== 'all'
+        ? `?courseId=${encodeURIComponent(selectedCourse)}`
+        : '?my-courses=true';
+      const res = await fetch(`/api/forums${qs}`);
+      if (res.ok) {
+        const data: { posts?: ApiForumPost[] } = await res.json();
+        const list = (data.posts || []).map(p => mapApiPost(p, courseNameLookup));
+        setPosts(list);
+      }
+    } catch {
+      toast.error('Failed to load forums');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // v17.4 — Lazy-load replies when a thread is opened.
+  async function openPost(post: ForumPost) {
+    setSelectedPost(post);
+    if (isDemo) return;
+    setRepliesLoading(true);
+    try {
+      const res = await fetch(`/api/forums?parentId=${encodeURIComponent(post.id)}`);
+      if (!res.ok) return;
+      const data: { posts?: ApiForumPost[] } = await res.json();
+      const replies: ForumReply[] = (data.posts || []).map(mapApiReply);
+      // Update both the list view's copy and the selected detail view.
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, replies } : p));
+      setSelectedPost(prev => prev && prev.id === post.id ? { ...prev, replies } : prev);
+    } catch {
+      // silent
+    } finally {
+      setRepliesLoading(false);
+    }
   }
 
   const filtered = posts.filter(p => {
@@ -145,95 +266,175 @@ export default function TeacherForumsPage() {
   const noReplyCount = posts.filter(p => p.replies.length === 0).length;
   const avgReplies = totalPosts > 0 ? (posts.reduce((sum, p) => sum + p.replies.length, 0) / totalPosts).toFixed(1) : '0';
 
-  function handleReply() {
+  async function handleReply() {
     if (!replyText.trim() || !selectedPost) return;
-    const newReply: ForumReply = {
-      id: 'r-' + Date.now(),
-      authorId: session?.user?.email || 'teacher',
-      authorName: session?.user?.name || 'Teacher',
-      authorRole: 'TEACHER',
-      content: replyText.trim(),
-      createdAt: new Date().toISOString(),
-      upvotes: 0,
-    };
-    setPosts(prev => prev.map(p =>
-      p.id === selectedPost.id ? { ...p, replies: [...p.replies, newReply] } : p
-    ));
-    setSelectedPost(prev => prev ? { ...prev, replies: [...prev.replies, newReply] } : null);
-    setReplyText('');
-    toast.success('Reply posted');
-    if (!isDemo) {
-      fetch('/api/forums', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parentId: selectedPost.id, content: replyText.trim() }),
-      }).catch(() => {});
+    const trimmed = replyText.trim();
+    const parentId = selectedPost.id;
+
+    if (isDemo) {
+      const newReply: ForumReply = {
+        id: 'r-' + Date.now(),
+        authorId: session?.user?.email || 'teacher',
+        authorName: session?.user?.name || 'Teacher',
+        authorRole: 'TEACHER',
+        content: trimmed,
+        createdAt: new Date().toISOString(),
+        upvotes: 0,
+      };
+      setPosts(prev => prev.map(p => p.id === parentId ? { ...p, replies: [...p.replies, newReply] } : p));
+      setSelectedPost(prev => prev ? { ...prev, replies: [...prev.replies, newReply] } : null);
+      setReplyText('');
+      toast.success('Reply posted');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/forums', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId, content: trimmed }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error || 'Failed to post reply');
+        return;
+      }
+      const data: { post?: ApiForumPost } = await res.json();
+      if (data.post) {
+        const reply = mapApiReply(data.post);
+        setPosts(prev => prev.map(p => p.id === parentId ? { ...p, replies: [...p.replies, reply] } : p));
+        setSelectedPost(prev => prev ? { ...prev, replies: [...prev.replies, reply] } : null);
+      }
+      setReplyText('');
+      toast.success('Reply posted');
+    } catch {
+      toast.error('Failed to post reply');
     }
   }
 
-  function togglePin(postId: string) {
+  async function togglePin(postId: string) {
     const post = posts.find(p => p.id === postId);
     const newValue = !post?.isPinned;
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, isPinned: newValue } : p));
     if (selectedPost?.id === postId) setSelectedPost(prev => prev ? { ...prev, isPinned: newValue } : null);
     toast.success(newValue ? 'Post pinned' : 'Post unpinned');
-    if (!isDemo) {
-      fetch('/api/forums', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    if (isDemo) return;
+    try {
+      const res = await fetch('/api/forums', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: postId, isPinned: newValue }),
-      }).catch(() => {});
+      });
+      if (!res.ok) {
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, isPinned: !newValue } : p));
+        if (selectedPost?.id === postId) setSelectedPost(prev => prev ? { ...prev, isPinned: !newValue } : null);
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error || 'Failed to update pin');
+      }
+    } catch {
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, isPinned: !newValue } : p));
+      if (selectedPost?.id === postId) setSelectedPost(prev => prev ? { ...prev, isPinned: !newValue } : null);
+      toast.error('Failed to update pin');
     }
   }
 
-  function toggleResolved(postId: string) {
+  async function toggleResolved(postId: string) {
     const post = posts.find(p => p.id === postId);
     const newValue = !post?.isResolved;
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, isResolved: newValue } : p));
     if (selectedPost?.id === postId) setSelectedPost(prev => prev ? { ...prev, isResolved: newValue } : null);
     toast.success(newValue ? 'Marked as resolved' : 'Marked as unresolved');
-    if (!isDemo) {
-      fetch('/api/forums', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    if (isDemo) return;
+    try {
+      const res = await fetch('/api/forums', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: postId, isResolved: newValue }),
-      }).catch(() => {});
+      });
+      if (!res.ok) {
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, isResolved: !newValue } : p));
+        if (selectedPost?.id === postId) setSelectedPost(prev => prev ? { ...prev, isResolved: !newValue } : null);
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error || 'Failed to update');
+      }
+    } catch {
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, isResolved: !newValue } : p));
+      if (selectedPost?.id === postId) setSelectedPost(prev => prev ? { ...prev, isResolved: !newValue } : null);
+      toast.error('Failed to update');
     }
   }
 
-  function deletePost(postId: string) {
+  async function deletePost(postId: string) {
+    const snapshot = posts;
     setPosts(prev => prev.filter(p => p.id !== postId));
     if (selectedPost?.id === postId) setSelectedPost(null);
     toast.success('Post deleted');
-    if (!isDemo) {
-      fetch(`/api/forums?id=${postId}`, { method: 'DELETE' }).catch(() => {});
+    if (isDemo) return;
+    try {
+      const res = await fetch(`/api/forums?id=${encodeURIComponent(postId)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        setPosts(snapshot);
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error || 'Failed to delete');
+      }
+    } catch {
+      setPosts(snapshot);
+      toast.error('Failed to delete');
     }
   }
 
-  function handleCreatePost() {
+  async function handleCreatePost() {
     if (!newPost.title.trim() || !newPost.content.trim() || !newPost.courseId) {
       toast.error('Fill in all fields'); return;
     }
     const course = courses.find(c => c.id === newPost.courseId);
-    const post: ForumPost = {
-      id: 'fp-' + Date.now(),
-      courseId: newPost.courseId,
-      courseName: course?.name || 'Unknown',
-      authorId: session?.user?.email || 'teacher',
-      authorName: session?.user?.name || 'Teacher',
-      authorRole: 'TEACHER',
-      title: newPost.title.trim(),
-      content: newPost.content.trim(),
-      isPinned: false, isResolved: false,
-      createdAt: new Date().toISOString(),
-      replies: [], upvotes: 0,
-    };
-    setPosts(prev => [post, ...prev]);
-    setShowCreate(false);
-    setNewPost({ title: '', content: '', courseId: '' });
-    toast.success('Post created');
-    if (!isDemo) {
-      fetch('/api/forums', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPost),
-      }).catch(() => {});
+
+    if (isDemo) {
+      const post: ForumPost = {
+        id: 'fp-' + Date.now(),
+        courseId: newPost.courseId,
+        courseName: course?.name || 'Unknown',
+        authorId: session?.user?.email || 'teacher',
+        authorName: session?.user?.name || 'Teacher',
+        authorRole: 'TEACHER',
+        title: newPost.title.trim(),
+        content: newPost.content.trim(),
+        isPinned: false, isResolved: false,
+        createdAt: new Date().toISOString(),
+        replies: [], upvotes: 0,
+      };
+      setPosts(prev => [post, ...prev]);
+      setShowCreate(false);
+      setNewPost({ title: '', content: '', courseId: '' });
+      toast.success('Post created');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/forums', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newPost.title.trim(),
+          content: newPost.content.trim(),
+          courseId: newPost.courseId,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error || 'Failed to create post');
+        return;
+      }
+      const data: { post?: ApiForumPost } = await res.json();
+      if (data.post) {
+        const ui = mapApiPost(data.post, courseNameLookup);
+        setPosts(prev => [ui, ...prev]);
+      }
+      setShowCreate(false);
+      setNewPost({ title: '', content: '', courseId: '' });
+      toast.success('Post created');
+    } catch {
+      toast.error('Failed to create post');
     }
   }
 
@@ -359,7 +560,9 @@ export default function TeacherForumsPage() {
                 {/* Replies */}
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-gray-700">{selectedPost.replies.length} Replies</h3>
-                  {selectedPost.replies.map(reply => (
+                  {repliesLoading ? (
+                    <div className="text-xs text-gray-400 pl-4">Loading replies…</div>
+                  ) : selectedPost.replies.map(reply => (
                     <div key={reply.id} className="flex gap-3 pl-4 border-l-2 border-gray-200">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 text-xs">
@@ -409,7 +612,7 @@ export default function TeacherForumsPage() {
                   {filtered.map((post, i) => (
                     <motion.div key={post.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.03 }}
-                      onClick={() => setSelectedPost(post)}
+                      onClick={() => openPost(post)}
                       className={cn('card cursor-pointer hover:shadow-md transition group',
                         post.isPinned && 'border-l-4 border-l-amber-400',
                         post.replies.length === 0 && !post.isPinned && 'border-l-4 border-l-red-300')}>

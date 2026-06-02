@@ -12,6 +12,10 @@ import { cn } from '@/lib/utils';
 import AnonShell from '@/components/layout/AnonShell';
 
 // ─── PRICING DATA ───────────────────────────────────────────────────────
+// v17.4: Removed "Start 14-Day Free Trial" CTA copy across all paid tiers —
+// /api/payments action=onboard activates the subscription immediately with a
+// COMPLETED Payment, so the trial language was aspirational, not real. The
+// 30-day money-back guarantee on all paid plans is the actual escape hatch.
 const PLANS = [
   {
     // v16.1: Family is now a paid tier. Flat-fee per household (up to 5 kids)
@@ -20,32 +24,32 @@ const PLANS = [
     tier: 'FAMILY', price: 9, label: '/month', annualPrice: 7, annualLabel: '/month (billed yearly, save 22%)',
     headline: 'For parents with K–12 kids — at any school',
     icon: <Home size={20} />, color: 'from-rose-400 to-pink-500',
-    cta: 'Start 14-Day Free Trial', href: '/onboard?plan=FAMILY', ctaStyle: 'bg-rose-500 text-white hover:bg-rose-600',
+    cta: 'Get Started', href: '/onboard?plan=FAMILY', ctaStyle: 'bg-rose-500 text-white hover:bg-rose-600',
   },
   {
     tier: 'STARTER', price: 3, label: '/student/mo', annualPrice: 2, annualLabel: '/student/mo (billed yearly)',
     headline: 'Small schools & co-ops',
     icon: <Zap size={20} />, color: 'from-blue-500 to-cyan-500',
-    cta: 'Start 14-Day Free Trial', href: '/onboard?plan=STARTER', ctaStyle: 'bg-blue-600 text-white hover:bg-blue-700',
+    cta: 'Get Started', href: '/onboard?plan=STARTER', ctaStyle: 'bg-blue-600 text-white hover:bg-blue-700',
   },
   {
     tier: 'GROWTH', price: 5, label: '/student/mo', annualPrice: 4, annualLabel: '/student/mo (billed yearly)',
     headline: 'Growing schools',
     icon: <Star size={20} />, color: 'from-teal-500 to-emerald-500',
-    cta: 'Start 14-Day Free Trial', href: '/onboard?plan=GROWTH', ctaStyle: 'bg-teal-600 text-white hover:bg-teal-700',
+    cta: 'Get Started', href: '/onboard?plan=GROWTH', ctaStyle: 'bg-teal-600 text-white hover:bg-teal-700',
   },
   {
     tier: 'STANDARD', price: 8, label: '/student/mo', annualPrice: 6, annualLabel: '/student/mo (billed yearly)',
     headline: 'Mid-size districts', popular: true,
     icon: <Crown size={20} />, color: 'from-primary-500 to-primary-700',
-    cta: 'Start 14-Day Free Trial', href: '/onboard?plan=STANDARD', ctaStyle: 'bg-white text-primary-700 hover:bg-gray-100',
+    cta: 'Get Started', href: '/onboard?plan=STANDARD', ctaStyle: 'bg-white text-primary-700 hover:bg-gray-100',
     highlighted: true,
   },
   {
     tier: 'PREMIUM', price: 12, label: '/student/mo', annualPrice: 9, annualLabel: '/student/mo (billed yearly)',
     headline: 'Large districts',
     icon: <Shield size={20} />, color: 'from-purple-500 to-pink-500',
-    cta: 'Start 14-Day Free Trial', href: '/onboard?plan=PREMIUM', ctaStyle: 'bg-purple-600 text-white hover:bg-purple-700',
+    cta: 'Get Started', href: '/onboard?plan=PREMIUM', ctaStyle: 'bg-purple-600 text-white hover:bg-purple-700',
   },
   {
     tier: 'ENTERPRISE', price: null, label: 'Custom', headline: 'States & mega-districts',
@@ -798,7 +802,11 @@ export default function PricingPage() {
               className={cn('px-5 py-2.5 rounded-xl text-sm font-semibold transition-all relative',
                 billing === 'annual' ? 'bg-primary-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700')}>
               Annual
-              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">Save 25%</span>
+              {/* v17.4: badge was "Save 25%" but actual savings vary by tier
+                  (Family 22%, Starter 33%, Growth 20%, Standard/Premium 25%).
+                  Show "up to 33%" instead — per-tier savings render below each
+                  card via the Math.round((1 - annual/monthly) * 100) line. */}
+              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">Save up to 33%</span>
             </button>
           </div>
         </div>
@@ -817,11 +825,12 @@ export default function PricingPage() {
             return (
               <motion.div
                 key={plan.tier}
+                id={plan.tier.toLowerCase()}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}
                 className={cn(
-                  'rounded-3xl p-5 flex flex-col relative',
+                  'rounded-3xl p-5 flex flex-col relative scroll-mt-24',
                   plan.highlighted
                     ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white ring-4 ring-primary-300 ring-offset-2'
                     : 'bg-white border-2 border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all'
@@ -978,7 +987,7 @@ export default function PricingPage() {
         </div>
 
         {/* Custom Builder Toggle */}
-        <div className="text-center mb-12">
+        <div id="custom-builder" className="text-center mb-12 scroll-mt-24">
           <button onClick={() => setShowCustomBuilder(!showCustomBuilder)}
             className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-2xl font-bold text-sm hover:from-indigo-700 hover:to-purple-700 transition shadow-lg shadow-indigo-500/25">
             <Calculator size={16} />
@@ -999,10 +1008,11 @@ export default function PricingPage() {
 
         {/* Feature Comparison Table */}
         <motion.div
+          id="compare"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-3xl border-2 border-gray-100 shadow-lg overflow-hidden mb-12"
+          className="bg-white rounded-3xl border-2 border-gray-100 shadow-lg overflow-hidden mb-12 scroll-mt-24"
         >
           <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -1079,7 +1089,7 @@ export default function PricingPage() {
             </div>
             <div>
               <h3 className="font-bold text-green-900">30-Day Money-Back Guarantee</h3>
-              <p className="text-sm text-green-700 mt-1">Every paid plan comes with a 14-day free trial and a 30-day money-back guarantee. Not satisfied? Full refund, no questions asked.</p>
+              <p className="text-sm text-green-700 mt-1">Every paid plan comes with a 30-day money-back guarantee. Not satisfied within 30 days of activation? Full refund, no questions asked.</p>
             </div>
           </motion.div>
 
@@ -1119,22 +1129,22 @@ export default function PricingPage() {
               <h3 className="font-bold text-gray-900">For families</h3>
             </div>
             <p className="text-sm text-gray-600">
-              Up to 5 kids in one parent account for $9/month (or $7/month billed yearly). Personalized material rewrites, AI tutor, parent dashboard, weekly check-ins, and optional Family Teaching Mode &mdash; for any family with K&ndash;12 kids. 14-day free trial.
+              Up to 5 kids in one parent account for $9/month (or $7/month billed yearly). Personalized material rewrites, AI tutor, parent dashboard, weekly check-ins, and optional Family Teaching Mode &mdash; for any family with K&ndash;12 kids. 30-day money-back guarantee.
             </p>
             <Link href="/onboard?plan=FAMILY" className="bg-primary-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-700 transition whitespace-nowrap inline-flex items-center gap-2 self-start">
-              Start 14-day trial <ArrowRight size={14} />
+              Get Started <ArrowRight size={14} />
             </Link>
           </div>
         </motion.div>
 
         {/* FAQ */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
-          className="mt-12 max-w-3xl mx-auto">
+        <motion.div id="faq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
+          className="mt-12 max-w-3xl mx-auto scroll-mt-24">
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">Pricing FAQ</h2>
           <div className="space-y-4">
             {[
               { q: 'Who is Limud built for?', a: 'Districts and families, equally. Districts run multi-school deployments with SSO/SAML, district-wide analytics, custom AI training, and dedicated support. Families run a parent account with up to 5 kids — wherever those kids go to school. Same engine, same AI, same outcomes; the difference is capacity, controls, and integrations.' },
-              { q: 'How much is the Family plan?', a: 'The Family plan is $9/month (or $7/month billed yearly — saving 22%) for up to 5 children in one parent account. It includes 50 AI Tutor sessions/month, 3 quiz generations/month, adaptive material rewrites, the parent dashboard, weekly check-ins, and Family Teaching Mode. Every paid tier (including Family) comes with a 14-day free trial — no credit card required to start.' },
+              { q: 'How much is the Family plan?', a: 'The Family plan is $9/month (or $7/month billed yearly — saving 22%) for up to 5 children in one parent account. It includes 50 AI Tutor sessions/month, 3 quiz generations/month, adaptive material rewrites, the parent dashboard, weekly check-ins, and Family Teaching Mode. Every paid tier (including Family) ships with a 30-day money-back guarantee — try it risk-free for a month.' },
               { q: 'What happens when I hit a limit?', a: 'You will see a friendly notification and can either upgrade or wait for your monthly limit to reset. We never cut off access to existing work — students can always view their past assignments, grades, and progress.' },
               { q: 'Can I switch plans at any time?', a: 'Absolutely. Upgrade instantly and we will prorate the difference. Downgrade at the end of your billing cycle. Your data is always preserved regardless of plan changes.' },
               { q: 'How does the Custom Plan Builder work?', a: 'Our Custom Plan Builder lets you mix and match exactly what you need. Adjust student/teacher capacity, AI usage limits (tutor sessions, grading, quizzes, writing coach), analytics modules, and add-on features like SSO, custom branding, and priority support. The builder calculates your monthly and annual cost in real time, and shows which standard plan most closely matches your selection.' },

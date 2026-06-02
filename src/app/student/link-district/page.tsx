@@ -122,9 +122,13 @@ export default function LinkDistrictPage() {
   }, []);
 
   // Load requests (requires auth)
+  // v17.4: was hitting `/api/district-link/route` — a literal "route" path
+  // segment that doesn't match the canonical endpoint `/api/district-link`.
+  // That silently returned 404 for every non-demo student, so myRequests
+  // was always empty in production.
   const fetchMyRequests = useCallback(async () => {
     try {
-      const res = await fetch('/api/district-link/route');
+      const res = await fetch('/api/district-link');
       if (res.ok) {
         const data = await res.json();
         setMyRequests(data.requests || []);
@@ -176,7 +180,9 @@ export default function LinkDistrictPage() {
     if (!selectedDistrict) return;
     setSubmitting(true);
     try {
-      const res = await fetch('/api/district-link/route', {
+      // v17.4: was hitting `/api/district-link/route` — see fetchMyRequests
+      // for the full explanation. POST silently failed the same way.
+      const res = await fetch('/api/district-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

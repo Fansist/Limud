@@ -97,6 +97,21 @@ export default function StudentMessagesPage() {
 
   useEffect(() => { fetchData(); }, [isDemo]);
 
+  // v17.4: deep-link support — `?to=<userId>` prefills the compose modal and
+  // opens it once contacts have loaded so the recipient resolves to a label.
+  // We track the last handled `to` value so re-renders don't keep re-opening
+  // compose after the user closes it.
+  const lastHandledToRef = useRef<string | null>(null);
+  useEffect(() => {
+    const to = searchParams.get('to');
+    if (!to || loading) return;
+    if (lastHandledToRef.current === to) return;
+    lastHandledToRef.current = to;
+    setComposeForm(f => ({ ...f, recipientId: to }));
+    setShowCompose(true);
+    setSelectedConvo(null);
+  }, [searchParams, loading]);
+
   async function fetchData() {
     if (isDemo) {
       setConversations(DEMO_CONVERSATIONS);
@@ -114,8 +129,9 @@ export default function StudentMessagesPage() {
         setConversations(data.conversations || []);
       }
       if (contactRes.ok) {
+        // v14.7.0 contract: { items, total, page, pageSize }.
         const data = await contactRes.json();
-        setContacts(data.contacts || []);
+        setContacts(data.items || []);
       }
     } catch { toast.error('Failed to load messages'); }
     finally { setLoading(false); }
@@ -138,6 +154,15 @@ export default function StudentMessagesPage() {
         // Clear unread in local state
         setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, unread: 0 } : c));
       }
+      // v17.4: notify the OTHER party that we've read their messages so their
+      // single/double tick updates. The thread GET already marks-as-read, but
+      // this PATCH is the explicit, idempotent endpoint the read-receipt UX
+      // contract expects; failure here is non-blocking.
+      void fetch('/api/messages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convo.otherUser.id, markRead: true }),
+      }).catch(() => { /* read-receipt is best-effort */ });
     } catch { toast.error('Failed to load conversation'); }
   }
 

@@ -1,7 +1,13 @@
 /**
- * District Link Request API — v9.6
- * POST /api/district-link/route — Student requests to link to a district
- * GET /api/district-link/route — Get current user's link requests
+ * District Link Request API — v9.6 (v17.4: relocated)
+ * POST /api/district-link — Student requests to link to a district
+ * GET /api/district-link — Get current user's link requests
+ *
+ * v17.4: file was previously at .../route/route.ts, which Next.js App
+ * Router serves at /api/district-link/route. The /student/link-district
+ * page was already calling /api/district-link (without the /route
+ * segment) so the GET was silently 404'ing for real users. File
+ * relocated to its correct path; URL is now /api/district-link.
  */
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';

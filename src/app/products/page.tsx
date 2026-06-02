@@ -40,9 +40,17 @@ import {
 } from 'lucide-react';
 import AuthAwareCTA from '@/components/AuthAwareCTA';
 import { PRODUCTS } from '@/lib/products-catalog';
-import { BUNDLES } from '@/lib/bundles';
+import { BUNDLES, bundleSavingsPct, formatSavingsPct } from '@/lib/bundles';
 
 type BillingMode = 'oneTime' | 'monthly';
+
+// v17.4 (R15): persist the billing toggle across refreshes / return visits.
+// Keyed under a Limud-scoped namespace so we don't collide with anything else.
+const BILLING_MODE_STORAGE_KEY = 'limud:billing-mode';
+
+function isBillingMode(value: unknown): value is BillingMode {
+  return value === 'oneTime' || value === 'monthly';
+}
 
 // Icons live on the client only — the catalog itself is pure data so it can
 // be imported from server contexts. Keys must match PRODUCTS[].id.
@@ -67,10 +75,33 @@ function formatPrice(p: number | null): string {
 }
 
 export default function ProductsPage() {
+  // Initial render is 'oneTime' so SSR/CSR match. The persisted value (if
+  // any) is hydrated in the effect below — that avoids hydration mismatch
+  // warnings while still restoring the user's last choice.
   const [billing, setBilling] = useState<BillingMode>('oneTime');
   const { status } = useSession();
   const [ownedBundles, setOwnedBundles] = useState<Set<string>>(new Set());
   const [ownedProducts, setOwnedProducts] = useState<Set<string>>(new Set());
+
+  // Restore the persisted billing mode on mount.
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(BILLING_MODE_STORAGE_KEY);
+      if (isBillingMode(stored)) setBilling(stored);
+    } catch {
+      // localStorage disabled (private mode, quota, etc.) — keep the default.
+    }
+  }, []);
+
+  // Persist whenever the user toggles. Wrapped in try/catch because
+  // localStorage can throw on quota issues or in some embedded contexts.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(BILLING_MODE_STORAGE_KEY, billing);
+    } catch {
+      // Silently ignore — the toggle still works for this session.
+    }
+  }, [billing]);
 
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -328,6 +359,11 @@ export default function ProductsPage() {
               const includes = b.productIds.map((id) => PRODUCTS.find((p) => p.id === id)?.name).filter(Boolean) as string[];
               const price = billing === 'oneTime' ? b.oneTimePrice : b.monthlyPrice;
               const unit = billing === 'oneTime' ? 'one-time' : 'per month';
+              // v17.4 (R15): savings % differs sharply between billing modes
+              // (e.g. All-Access is 3.7% on one-time but 72% on monthly).
+              // Show the value that matches the current toggle so the badge
+              // never overstates the discount.
+              const savingsLabel = formatSavingsPct(bundleSavingsPct(b, billing));
               return (
                 <article
                   key={b.id}
@@ -348,9 +384,11 @@ export default function ProductsPage() {
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-900">{b.name}</h3>
-                        <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
-                          Save ~{b.savingsPct}%
-                        </p>
+                        {savingsLabel ? (
+                          <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
+                            Save {savingsLabel} {billing === 'oneTime' ? 'one-time' : 'monthly'}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap justify-end">

@@ -31,6 +31,7 @@ import {
   getUserAgent,
 } from '@/lib/security';
 import { sendEmail } from '@/lib/email';
+import { contactConfirmationEmail } from '@/lib/email-templates';
 import { isMasterDemoEmail } from '@/lib/demo-accounts';
 
 const Schema = z.object({
@@ -178,6 +179,29 @@ export async function POST(req: Request) {
     console.error('[contact] send failed:', e);
   }
 
+  // ── v17.4: confirmation email back to the submitter ──
+  // Sent in addition to the internal notification so the user immediately
+  // sees their message was received. Failures here are non-fatal — the
+  // internal notification (above) is the system of record and we never
+  // want a hiccup in the confirmation hop to make the form look broken.
+  let confirmationSent = false;
+  let confirmationSkipped = false;
+  try {
+    const confirmation = contactConfirmationEmail(parsed.name);
+    const confirmResult = await sendEmail({
+      to: parsed.email,
+      subject: confirmation.subject,
+      html: confirmation.html,
+      // Replies to the auto-confirmation should land in the support inbox,
+      // not bounce back to a noreply@ address.
+      replyTo: process.env.CONTACT_EMAIL_TO || 'contact@limud.co',
+    });
+    confirmationSent = confirmResult.success && !confirmResult.skipped;
+    confirmationSkipped = !!confirmResult.skipped;
+  } catch (e) {
+    console.error('[contact] confirmation send failed:', e);
+  }
+
   createAuditLog({
     action: 'API_ACCESS', ip, userAgent: ua,
     userEmail: parsed.email,
@@ -190,6 +214,8 @@ export async function POST(req: Request) {
       messageLength: parsed.message.length,
       emailSent,
       emailSkipped,
+      confirmationSent,
+      confirmationSkipped,
     },
     severity: 'info', success: true,
   });

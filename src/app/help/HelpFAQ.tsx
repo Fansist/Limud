@@ -7,6 +7,13 @@ import { HelpCircle, ChevronDown, Search, BookOpen, MessageCircle, Shield, Brain
 type FAQItem = { question: string; answer: string; };
 type FAQCategory = { name: string; icon: React.ReactNode; items: FAQItem[]; };
 
+// v17.4: slugify FAQ questions so each item gets a stable per-FAQ anchor
+// (`faq-<slug>`). Deep-linking from search results / external pages requires
+// per-item ids, not just per-category.
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 const FAQ_DATA: FAQCategory[] = [
   {
     name: 'Getting Started',
@@ -35,7 +42,7 @@ const FAQ_DATA: FAQCategory[] = [
       { question: 'How do I add students?', answer: 'Admins can add students individually from the Students page (which auto-creates parent accounts) or use Bulk Import with CSV files. Teachers with proper permissions can also add students to their classes.' },
       { question: 'What are district access levels?', answer: 'Limud supports 7 access levels: Superintendent (full access), Assistant Superintendent, Curriculum Director, Principal, Vice Principal, District Employee (view-only), and IT Admin. Each level has configurable permissions.' },
       { question: 'How does billing work?', answer: 'Plans are billed monthly or annually (save 25% with annual billing). Upgrades are prorated. Payment methods include credit card, ACH bank transfer, and purchase orders (Enterprise). Invoices are available in the Billing section.' },
-      { question: 'What individual products does Limud offer?', answer: 'Limud has 13 standalone products that anyone can use without a district plan: Exam Study Helper, Practice Generator, Math Solver, Essay Coach, Notes Cleaner, Lab Report Builder, Citation Finder, Language Lab, Flashcard Forge, Presentation Prep, Code Companion, Reading Decoder, and Exam Postmortem. Each product is available as a one-time per-use purchase OR as a monthly unlimited subscription. See /products for the full catalog.' },
+      { question: 'What individual products does Limud offer?', answer: 'Limud has 13 standalone products that anyone can use without a district plan: Exam Study Helper, Practice Generator, Math Tutor, Essay Coach, Notes Cleaner, Lab Report Builder, Citation Finder, Language Lab, Flashcard Forge, Presentation Prep, Code Companion, Reading Decoder, and Exam Postmortem. Each product is available as a one-time per-use purchase OR as a monthly unlimited subscription. See /products for the full catalog.' },
       { question: 'Are there bundles to save money?', answer: 'Yes — Limud offers 4 bundles that group related tools at a discount: All-Access Pass (every product, up to 45% off vs. buying them individually), Study Bundle, Writing Bundle, and STEM Bundle. Bundles are billed monthly and can be combined with or replace single-product subscriptions.' },
       { question: 'What is the Owner role?', answer: 'Owner is the highest privilege level for Limud staff who manage finances and platform pricing. Owner accounts require 2-step verification (email code) on every sign-in. Owner functionality is not available to regular customers.' },
     ],
@@ -118,8 +125,9 @@ export default function HelpFAQ() {
                   <div className="border-t border-gray-100 dark:border-gray-700">
                     {category.items.map((item, ii) => {
                       const itemKey = `${category.name}-${ii}`;
+                      const itemAnchor = `faq-${slugify(item.question)}`;
                       return (
-                        <div key={ii} className="border-b border-gray-50 dark:border-gray-800 last:border-0">
+                        <section id={itemAnchor} key={ii} className="border-b border-gray-50 dark:border-gray-800 last:border-0 scroll-mt-24">
                           <button onClick={() => setOpenItem(openItem === itemKey ? null : itemKey)}
                             className="w-full text-left px-6 py-3 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition flex items-start gap-3">
                             <ChevronDown size={16} className={cn('mt-0.5 text-gray-400 transition-transform flex-shrink-0', openItem === itemKey && 'rotate-180')} />
@@ -133,7 +141,7 @@ export default function HelpFAQ() {
                               </motion.div>
                             )}
                           </AnimatePresence>
-                        </div>
+                        </section>
                       );
                     })}
                   </div>
@@ -148,6 +156,12 @@ export default function HelpFAQ() {
         <div className="text-center py-12 text-gray-400">
           <HelpCircle size={48} className="mx-auto mb-3 opacity-50" />
           <p>No results found for &quot;{searchQuery}&quot;</p>
+          <p className="mt-3 text-sm">
+            Can&apos;t find what you need?{' '}
+            <a href="/contact" className="text-primary-600 hover:text-primary-700 font-medium underline">
+              Contact us
+            </a>
+          </p>
         </div>
       )}
     </div>

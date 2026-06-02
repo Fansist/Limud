@@ -6,9 +6,15 @@
  * surface) can share the exact same definitions without re-importing the full
  * PRODUCTS array.
  *
+ * v17.4 (R15): savings percentages are now split into one-time and monthly
+ * variants — the All-Access Pass had a single "~45%" claim that was off by an
+ * order of magnitude (3.7% on one-time vs 72% on monthly). Computed live from
+ * the PRODUCTS catalog so they cannot drift if either side of the math moves.
+ *
  * Keep this file in sync with the BUNDLES constant in
  * `src/app/products/page.tsx` until that file is updated to import from here.
  */
+import { PRODUCTS } from '@/lib/products-catalog';
 
 export type BundleId = 'all-access' | 'study-bundle' | 'writing-bundle' | 'stem-bundle';
 
@@ -36,12 +42,17 @@ export type BundleDef = {
   productIds: BundleProductId[];
   oneTimePrice: number;
   monthlyPrice: number;
-  savingsPct: number;
+  /** Savings vs. the sum of the bundled products' one-time prices. */
+  savingsPctOneTime: number;
+  /** Savings vs. the sum of the bundled products' monthly prices. */
+  savingsPctMonthly: number;
   badge?: string;
   ring: string;
 };
 
-export const BUNDLES: BundleDef[] = [
+type BundleSeed = Omit<BundleDef, 'savingsPctOneTime' | 'savingsPctMonthly'>;
+
+const BUNDLE_SEEDS: BundleSeed[] = [
   {
     id: 'all-access',
     name: 'All-Access Pass',
@@ -49,7 +60,6 @@ export const BUNDLES: BundleDef[] = [
     productIds: ['exam-study-helper','practice-generator','math-solver','essay-coach','notes-cleaner','lab-report-builder','citation-finder','language-lab','flashcard-forge','presentation-prep','code-companion','reading-decoder','exam-postmortem'],
     oneTimePrice: 79,
     monthlyPrice: 15,
-    savingsPct: 45,
     badge: 'Best value',
     ring: 'from-fuchsia-500 via-purple-500 to-blue-500',
   },
@@ -60,7 +70,6 @@ export const BUNDLES: BundleDef[] = [
     productIds: ['exam-study-helper','practice-generator','notes-cleaner'],
     oneTimePrice: 15,
     monthlyPrice: 9,
-    savingsPct: 22,
     ring: 'from-fuchsia-500 to-blue-500',
   },
   {
@@ -70,7 +79,6 @@ export const BUNDLES: BundleDef[] = [
     productIds: ['essay-coach','citation-finder','notes-cleaner'],
     oneTimePrice: 12,
     monthlyPrice: 8,
-    savingsPct: 20,
     ring: 'from-emerald-500 to-teal-500',
   },
   {
@@ -80,10 +88,41 @@ export const BUNDLES: BundleDef[] = [
     productIds: ['math-solver','lab-report-builder','practice-generator'],
     oneTimePrice: 14,
     monthlyPrice: 9,
-    savingsPct: 25,
     ring: 'from-orange-500 to-blue-500',
   },
 ];
+
+function sumProductPrices(
+  productIds: readonly BundleProductId[],
+  field: 'oneTimePrice' | 'monthlyPrice',
+): number {
+  let total = 0;
+  for (const id of productIds) {
+    const p = PRODUCTS.find((row) => row.id === id);
+    const value = p ? p[field] : null;
+    if (typeof value === 'number') total += value;
+  }
+  return total;
+}
+
+function computeSavingsPct(listTotal: number, bundlePrice: number): number {
+  if (listTotal <= 0) return 0;
+  const raw = ((listTotal - bundlePrice) / listTotal) * 100;
+  if (!Number.isFinite(raw) || raw <= 0) return 0;
+  // Round to one decimal so "3.7%" doesn't show as "4%" and "72.2%" doesn't
+  // get rendered with five trailing nines.
+  return Math.round(raw * 10) / 10;
+}
+
+export const BUNDLES: BundleDef[] = BUNDLE_SEEDS.map((seed) => {
+  const oneTimeListTotal = sumProductPrices(seed.productIds, 'oneTimePrice');
+  const monthlyListTotal = sumProductPrices(seed.productIds, 'monthlyPrice');
+  return {
+    ...seed,
+    savingsPctOneTime: computeSavingsPct(oneTimeListTotal, seed.oneTimePrice),
+    savingsPctMonthly: computeSavingsPct(monthlyListTotal, seed.monthlyPrice),
+  };
+});
 
 // Lightweight product-name lookup so consumers don't need to import the full PRODUCTS array.
 export const BUNDLE_PRODUCT_NAMES: Record<BundleProductId, string> = {
@@ -124,4 +163,20 @@ export function findBundle(id: string): BundleDef | undefined {
 
 export function bundlePrice(bundle: BundleDef, mode: BillingMode): number {
   return mode === 'oneTime' ? bundle.oneTimePrice : bundle.monthlyPrice;
+}
+
+export function bundleSavingsPct(bundle: BundleDef, mode: BillingMode): number {
+  return mode === 'oneTime' ? bundle.savingsPctOneTime : bundle.savingsPctMonthly;
+}
+
+/**
+ * Format a savings percentage for display.
+ *
+ * - 0 → empty string (caller should hide the badge entirely)
+ * - 3.7 → "3.7%"
+ * - 25 → "25%" (no trailing ".0")
+ */
+export function formatSavingsPct(pct: number): string {
+  if (pct <= 0) return '';
+  return Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`;
 }

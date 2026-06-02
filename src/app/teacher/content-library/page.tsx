@@ -1,15 +1,24 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useIsDemo } from '@/lib/hooks';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Search, Filter, Play, FileText, Puzzle, Star, Clock,
   Download, Eye, ChevronDown, ChevronRight, Sparkles, GraduationCap,
-  Video, Layers, Tag, ExternalLink, Plus, Copy, Check,
+  Video, Layers, Tag, ExternalLink, Plus, Copy, Check, RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+
+// v17.4: Shape returned by /api/teacher/classrooms — only the fields we read.
+interface TeacherClassroom {
+  id: string;
+  name: string;
+  courseId: string | null;
+}
 
 // v12.0.0 — Content Library (Phase 2.6)
 // Curated lesson templates, video lessons, and interactive exercises
@@ -122,12 +131,16 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 export default function ContentLibraryPage() {
+  const router = useRouter();
+  const isDemo = useIsDemo();
   const [search, setSearch] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [selectedGrade, setSelectedGrade] = useState('All');
   const [selectedType, setSelectedType] = useState('All');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  // v17.4: Track which item is being added so we can disable its button.
+  const [addingId, setAddingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return CONTENT_LIBRARY.filter(item => {
@@ -145,10 +158,67 @@ export default function ContentLibraryPage() {
     });
   }, [search, selectedSubject, selectedGrade, selectedType]);
 
-  function handleUse(item: ContentItem) {
-    setCopiedId(item.id);
-    toast.success(`"${item.title}" added to your assignments`);
-    setTimeout(() => setCopiedId(null), 2000);
+  // v17.4: "Use" now creates a real draft assignment in the teacher's first
+  // available course. Previously this only toasted without writing anything.
+  // Falls back to demo-style toast for demo accounts (no DB writes).
+  async function handleUse(item: ContentItem) {
+    if (isDemo) {
+      setCopiedId(item.id);
+      toast.success(`Demo: "${item.title}" would be added as a draft`);
+      setTimeout(() => setCopiedId(null), 2000);
+      return;
+    }
+
+    setAddingId(item.id);
+    try {
+      // Pick the first classroom with a linked course as the draft's home.
+      const cRes = await fetch('/api/teacher/classrooms');
+      if (!cRes.ok) throw new Error('Could not load your classrooms');
+      const cData = await cRes.json();
+      const classrooms: TeacherClassroom[] = Array.isArray(cData?.classrooms)
+        ? cData.classrooms.map((c: { id: string; name: string; courseId: string | null }) => ({
+            id: c.id, name: c.name, courseId: c.courseId,
+          }))
+        : [];
+      const withCourse = classrooms.find(c => c.courseId);
+      if (!withCourse || !withCourse.courseId) {
+        toast.error('No course found. Set up a classroom with a course first.');
+        return;
+      }
+
+      const due = new Date();
+      due.setDate(due.getDate() + 14);
+
+      // Prefer the richer previewContent when available; fall back to description.
+      const body = {
+        title: item.title,
+        description: item.previewContent || item.description,
+        type: 'ESSAY' as const,
+        courseId: withCourse.courseId,
+        dueDate: due.toISOString(),
+        totalPoints: 100,
+        isPublished: false,
+      };
+      const aRes = await fetch('/api/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!aRes.ok) {
+        const errBody = await aRes.json().catch(() => ({}));
+        throw new Error(errBody?.error || `HTTP ${aRes.status}`);
+      }
+
+      setCopiedId(item.id);
+      toast.success('Added as draft assignment');
+      setTimeout(() => setCopiedId(null), 2000);
+      router.push('/teacher/assignments');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to add';
+      toast.error(msg);
+    } finally {
+      setAddingId(null);
+    }
   }
 
   return (
@@ -245,10 +315,13 @@ export default function ContentLibraryPage() {
                   {/* Actions */}
                   <div className="flex flex-col gap-2 flex-shrink-0">
                     <button onClick={() => handleUse(item)}
-                      className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition',
+                      disabled={addingId === item.id}
+                      className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-60',
                         copiedId === item.id ? 'bg-green-100 text-green-700' : 'bg-primary-50 text-primary-700 hover:bg-primary-100')}>
-                      {copiedId === item.id ? <Check size={12} /> : <Copy size={12} />}
-                      {copiedId === item.id ? 'Added!' : 'Use'}
+                      {addingId === item.id
+                        ? <RefreshCw size={12} className="animate-spin" />
+                        : copiedId === item.id ? <Check size={12} /> : <Copy size={12} />}
+                      {addingId === item.id ? 'Adding…' : copiedId === item.id ? 'Added!' : 'Use'}
                     </button>
                     {(item.previewContent || item.videoUrl) && (
                       <button onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}

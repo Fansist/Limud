@@ -18,7 +18,7 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ChevronDown, ChevronUp, History, Save } from 'lucide-react';
+import { ChevronDown, ChevronUp, History, RotateCcw, Save } from 'lucide-react';
 
 type PriceKind = 'product' | 'bundle' | 'district';
 
@@ -197,6 +197,16 @@ export default function OwnerPricesPage(): JSX.Element {
       return;
     }
 
+    // v17.4: confirm before applying. Pricing changes affect every checkout
+    // immediately (cache invalidates on write), so a single misclick is
+    // costly. The dialog summarizes whichever lanes are being set.
+    const summaryParts: string[] = [];
+    if (oneTime !== undefined) summaryParts.push(`$${oneTime} one-time`);
+    if (monthly !== undefined) summaryParts.push(`$${monthly} monthly`);
+    if (pricePerYear !== undefined) summaryParts.push(`$${pricePerYear} per year`);
+    const summary = summaryParts.join(' / ');
+    if (!window.confirm(`Apply new price: ${summary}?`)) return;
+
     const payload: Record<string, unknown> = { kind, productId };
     if (oneTime !== undefined) payload.oneTimePrice = oneTime;
     if (monthly !== undefined) payload.monthlyPrice = monthly;
@@ -229,6 +239,42 @@ export default function OwnerPricesPage(): JSX.Element {
       await fetchData();
     } catch {
       toast.error('Network error saving override');
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  // v17.4: "Reset to catalog" sends a `clear` action that deletes the
+  // most recent override for this (kind, productId). The effective price
+  // then falls back to the static catalog value and the row re-renders
+  // with the "catalog" badge. The discriminated union on the server
+  // accepts the smaller payload shape.
+  async function handleResetToCatalog(
+    kind: PriceKind,
+    productId: string,
+  ): Promise<void> {
+    if (!window.confirm('Reset this price to catalog value?')) return;
+    const key = kind + ':' + productId;
+    setSavingKey(key);
+    try {
+      const res = await fetch('/api/owner/prices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clear', kind, productId }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        const msg =
+          typeof body?.error === 'string'
+            ? body.error
+            : 'Failed to reset price';
+        toast.error(msg);
+        return;
+      }
+      toast.success('Price reset to catalog value');
+      await fetchData();
+    } catch {
+      toast.error('Network error resetting price');
     } finally {
       setSavingKey(null);
     }
@@ -277,6 +323,7 @@ export default function OwnerPricesPage(): JSX.Element {
             allowPricePerYear: false,
           })
         }
+        onReset={(id) => handleResetToCatalog('product', id)}
         savingKey={savingKey}
         historyByKey={historyByKey}
       />
@@ -294,6 +341,7 @@ export default function OwnerPricesPage(): JSX.Element {
             allowPricePerYear: false,
           })
         }
+        onReset={(id) => handleResetToCatalog('bundle', id)}
         savingKey={savingKey}
         historyByKey={historyByKey}
       />
@@ -309,6 +357,7 @@ export default function OwnerPricesPage(): JSX.Element {
             allowPricePerYear: true,
           })
         }
+        onReset={(id) => handleResetToCatalog('district', id)}
         savingKey={savingKey}
         historyByKey={historyByKey}
       />
@@ -323,6 +372,7 @@ interface PricesTableProps {
   getEdit: (key: string) => EditState;
   updateEdit: (key: string, patch: Partial<EditState>) => void;
   onSave: (id: string) => void;
+  onReset: (id: string) => void;
   savingKey: string | null;
   historyByKey: Map<string, OverrideRow[]>;
 }
@@ -334,6 +384,7 @@ function PricesTable({
   getEdit,
   updateEdit,
   onSave,
+  onReset,
   savingKey,
   historyByKey,
 }: PricesTableProps): JSX.Element {
@@ -446,6 +497,17 @@ function PricesTable({
                           <Save size={12} />
                           {isSaving ? 'Saving…' : 'Save changes'}
                         </button>
+                        {row.source === 'override' ? (
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() => onReset(row.id)}
+                            className="inline-flex items-center gap-1 text-xs text-amber-700 hover:text-amber-900 disabled:opacity-50"
+                          >
+                            <RotateCcw size={12} />
+                            Reset to catalog
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() =>
@@ -491,6 +553,7 @@ interface DistrictsTableProps {
   getEdit: (key: string) => EditState;
   updateEdit: (key: string, patch: Partial<EditState>) => void;
   onSave: (id: string) => void;
+  onReset: (id: string) => void;
   savingKey: string | null;
   historyByKey: Map<string, OverrideRow[]>;
 }
@@ -500,6 +563,7 @@ function DistrictsTable({
   getEdit,
   updateEdit,
   onSave,
+  onReset,
   savingKey,
   historyByKey,
 }: DistrictsTableProps): JSX.Element {
@@ -593,6 +657,17 @@ function DistrictsTable({
                             <Save size={12} />
                             {isSaving ? 'Saving…' : 'Save changes'}
                           </button>
+                          {history.length > 0 ? (
+                            <button
+                              type="button"
+                              disabled={isSaving}
+                              onClick={() => onReset(row.id)}
+                              className="inline-flex items-center gap-1 text-xs text-amber-700 hover:text-amber-900 disabled:opacity-50"
+                            >
+                              <RotateCcw size={12} />
+                              Reset to catalog
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             onClick={() =>

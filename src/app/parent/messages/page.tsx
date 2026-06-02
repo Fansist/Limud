@@ -83,7 +83,8 @@ export default function ParentMessagesPage() {
     try {
       const [convRes, contactRes] = await Promise.all([fetch('/api/messages'), fetch('/api/messages/contacts')]);
       if (convRes.ok) { const d = await convRes.json(); setConversations(d.conversations || []); }
-      if (contactRes.ok) { const d = await contactRes.json(); setContacts(d.contacts || []); }
+      // v14.7.0 contract: { items, total, page, pageSize }.
+      if (contactRes.ok) { const d = await contactRes.json(); setContacts(d.items || []); }
     } catch (err) { console.error('[parent/messages]', err); toast.error('Failed to load messages'); }
     finally { setLoading(false); }
   }
@@ -94,6 +95,12 @@ export default function ParentMessagesPage() {
     try {
       const res = await fetch(`/api/messages/thread?userId=${convo.otherUser.id}`);
       if (res.ok) { const d = await res.json(); setThreadMessages(d.messages || []); setConversations(p => p.map(c => c.id === convo.id ? { ...c, unread: 0 } : c)); }
+      // v17.4: explicit read-receipt PATCH so the OTHER party's tick updates.
+      void fetch('/api/messages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convo.otherUser.id, markRead: true }),
+      }).catch(() => { /* non-blocking */ });
     } catch (err) { console.error('[parent/messages]', err); toast.error('Failed to load conversation'); }
   }
 

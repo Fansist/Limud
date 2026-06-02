@@ -2,7 +2,7 @@ export default function TermsOfService() {
   return (
     <article className="prose prose-gray max-w-none">
       <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Terms of Service</h1>
-      <p className="text-sm text-gray-400 mb-8">Last updated: May 30, 2026</p>
+      <p className="text-sm text-gray-400 mb-8">Last updated: June 2, 2026</p>
 
       <p>These Terms of Service (&quot;Terms&quot;) govern your use of the Limud educational platform provided by Limud Education Inc. (&quot;Limud&quot;, &quot;we&quot;, &quot;us&quot;). By creating an account or using Limud, you agree to these Terms.</p>
 
@@ -33,7 +33,10 @@ export default function TermsOfService() {
       </ul>
 
       <h2>5. Subscriptions & Billing</h2>
-      <p>Limud offers Family, Starter, Growth, Standard, Premium, and Enterprise plans. Paid subscriptions are billed monthly or annually (annual saves up to 25%). You may cancel at any time; access continues until the end of the billing period. Refunds are available within 30 days of purchase for annual plans.</p>
+      <p>Limud offers Family, Starter, Growth, Standard, Premium, and Enterprise plans. Paid subscriptions are billed monthly or annually (annual saves up to 25%).</p>
+      <p><strong>Auto-renewal:</strong> Monthly and annual subscriptions automatically renew unless cancelled before the renewal date. You can cancel anytime from your Account → Subscriptions page; cancellation takes effect at the end of the current billing period.</p>
+      <p><strong>Cancellation behavior:</strong> Cancellation cancels the subscription immediately and grants a pro-rated refund for any unused days in the current billing period.</p>
+      <p><strong>Refunds:</strong> Refunds are available within 30 days of purchase for any paid plan (monthly, annual, or one-time). Pro-rated refunds for partial-month cancellations are issued as described above; otherwise access continues through the end of the billing period.</p>
 
       <h2>6. Content Ownership</h2>
       <p>You retain ownership of all content you create on Limud (assignments, submissions, etc.). By uploading content, you grant Limud a limited license to store, process, and display your content as necessary to provide the service.</p>
@@ -52,6 +55,9 @@ export default function TermsOfService() {
 
       <h2>11. Limitation of Liability</h2>
       <p>Limud is provided &quot;as is&quot; without warranties of any kind. We are not liable for indirect, incidental, or consequential damages. Our total liability is limited to the amount paid for your subscription in the preceding 12 months.</p>
+
+      <h2>11a. AI Output and Academic Responsibility</h2>
+      <p>Limud is not responsible for academic decisions made based on AI-generated content. Limud&apos;s AI tools (Math Tutor, Essay Coach, etc.) are study aids; they may contain inaccuracies and are not a substitute for human teachers or graded assessments. Users should review AI output before relying on it for any academic, medical, legal, or financial purpose.</p>
 
       <h2>12. Governing Law</h2>
       <p>These Terms are governed by the laws of the State of California, USA. Any disputes will be resolved through binding arbitration in San Francisco, California.</p>

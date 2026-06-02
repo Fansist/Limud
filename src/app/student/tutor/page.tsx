@@ -1,13 +1,24 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import toast from 'react-hot-toast';
-import { Send, Bot, User, Sparkles, BookOpen, FlaskConical, Calculator, Pen } from 'lucide-react';
+import {
+  Send,
+  Bot,
+  User,
+  Sparkles,
+  BookOpen,
+  FlaskConical,
+  Calculator,
+  Pen,
+  Copy,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -21,6 +32,68 @@ type Message = {
   role: 'user' | 'assistant';
   content: string;
 };
+
+// v17.4 CODER: persisted shape for localStorage rehydration. Bumping `v` lets
+// us invalidate stale clients if we ever change the schema again.
+type PersistedTutorState = {
+  v: 1;
+  messages: Message[];
+  sessionId: string | null;
+  subject: string;
+};
+
+const HISTORY_STORAGE_PREFIX = 'limud:tutor:history:';
+const HISTORY_MESSAGE_CAP = 100;
+
+function historyStorageKey(userKey: string): string {
+  return `${HISTORY_STORAGE_PREFIX}${userKey}`;
+}
+
+function isMessage(value: unknown): value is Message {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return (
+    (v.role === 'user' || v.role === 'assistant') && typeof v.content === 'string'
+  );
+}
+
+function readPersistedState(userKey: string): PersistedTutorState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(historyStorageKey(userKey));
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const obj = parsed as Record<string, unknown>;
+    if (obj.v !== 1) return null;
+    const messagesRaw = Array.isArray(obj.messages) ? obj.messages : [];
+    const messages = messagesRaw.filter(isMessage).slice(-HISTORY_MESSAGE_CAP);
+    const sessionId =
+      typeof obj.sessionId === 'string' || obj.sessionId === null
+        ? (obj.sessionId as string | null)
+        : null;
+    const subject = typeof obj.subject === 'string' ? obj.subject : '';
+    return { v: 1, messages, sessionId, subject };
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedState(userKey: string, state: PersistedTutorState): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const trimmed: PersistedTutorState = {
+      ...state,
+      messages: state.messages.slice(-HISTORY_MESSAGE_CAP),
+    };
+    window.localStorage.setItem(
+      historyStorageKey(userKey),
+      JSON.stringify(trimmed),
+    );
+  } catch {
+    // Quota or serialization failure — silent. Persistence is best-effort.
+  }
+}
 
 const SUBJECT_PRESETS = [
   { id: 'math', label: 'Math', icon: <Calculator size={16} />, color: 'bg-blue-100 text-blue-700' },
@@ -92,20 +165,80 @@ type AIStatusBadge = {
   lastError?: { message: string; at: number } | null;
 };
 
-export default function TutorPage() {
+// v17.4 CODER: shape we read from a 402 entitlement-gate response. The route
+// uses `requireProductEntitlement` which always returns `{ error, productId,
+// checkoutUrl }` on miss. We treat all three as optional to stay defensive.
+type EntitlementGateResponse = {
+  error?: string;
+  productId?: string;
+  checkoutUrl?: string;
+};
+
+type TutorApiResponse = {
+  sessionId?: string;
+  reply?: string;
+  tokensUsed?: number;
+  aiError?: string;
+};
+
+function TutorPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   // v13.4.1 (Update 2.9.1): master demo gets real AI, not client-side fallback.
   const isDemo = useIsDemo({ excludeMasterDemo: true });
+
+  // v17.4 CODER: storage key is per-user so two students on the same browser
+  // never see each other's tutor history. Demo or anon sessions share 'demo'.
+  const userKey: string =
+    isDemo || !session?.user?.id ? 'demo' : session.user.id;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [subject, setSubject] = useState<string>('');
+  const [topicHint, setTopicHint] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const [aiStatus, setAiStatus] = useState<AIStatusBadge | null>(null);
   // v13.3.0 (Update 2.8): dedupe aiError toasts so retries don't spam.
   // useRef (not useState) because we don't need a re-render when it changes.
   const shownErrorsRef = useRef<Set<string>>(new Set());
+  // v17.4 CODER: track which deep-link topics we've already seeded so a route
+  // change back to the same URL doesn't re-inject the synthetic message.
+  const seededTopicsRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // v17.4 CODER: hydrate persisted state once per user key. We split this from
+  // the render so SSR markup matches the empty initial state; React then
+  // upgrades it on the client. `hydrated` gates the persistence effect so we
+  // don't overwrite saved state with the empty default on first mount.
+  useEffect(() => {
+    setHydrated(false);
+    const persisted = readPersistedState(userKey);
+    if (persisted) {
+      setMessages(persisted.messages);
+      setSessionId(persisted.sessionId);
+      setSubject(persisted.subject);
+    } else {
+      setMessages([]);
+      setSessionId(null);
+      setSubject('');
+    }
+    setHydrated(true);
+  }, [userKey]);
+
+  // v17.4 CODER: persist on every change after hydration. Cap is enforced
+  // inside writePersistedState so we never blow the ~5MB localStorage quota.
+  useEffect(() => {
+    if (!hydrated) return;
+    writePersistedState(userKey, {
+      v: 1,
+      messages,
+      sessionId,
+      subject,
+    });
+  }, [hydrated, userKey, messages, sessionId, subject]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -138,77 +271,135 @@ export default function TutorPage() {
     };
   }, [isDemo]);
 
-  async function sendMessage(messageText?: string) {
-    const text = messageText || input.trim();
-    if (!text || loading) return;
+  // v17.4 CODER: deep-link from /student/knowledge — read `?topic=` and seed a
+  // synthetic user message so the chat opens already focused on the skill the
+  // student tapped. We stash the raw value in `topicHint` so subsequent POSTs
+  // include it as `topic` for /api/tutor (alongside `subject`).
+  const topicParam = searchParams?.get('topic') ?? null;
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!topicParam) return;
+    if (seededTopicsRef.current.has(topicParam)) return;
+    seededTopicsRef.current.add(topicParam);
+    setTopicHint(topicParam);
+    const seedContent = `I want to work on: ${topicParam}`;
+    setMessages(prev => {
+      // Avoid duplicate seeding if the same message already exists at the end
+      // (e.g. restored from localStorage on a previous visit to the same URL).
+      const last = prev[prev.length - 1];
+      if (last && last.role === 'user' && last.content === seedContent) {
+        return prev;
+      }
+      return [...prev, { role: 'user', content: seedContent }];
+    });
+  }, [hydrated, topicParam]);
 
-    const newMessage: Message = { role: 'user', content: text };
-    setMessages(prev => [...prev, newMessage]);
-    setInput('');
-    setLoading(true);
+  const sendMessage = useCallback(
+    async (messageText?: string) => {
+      const text = messageText || input.trim();
+      if (!text || loading) return;
 
-    try {
-      // Try the real API first, fall back to demo endpoint, then client-side fallback
-      let data: any = null;
+      const newMessage: Message = { role: 'user', content: text };
+      setMessages(prev => [...prev, newMessage]);
+      setInput('');
+      setLoading(true);
 
-      if (!isDemo) {
-        try {
-          const res = await fetch('/api/tutor', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text, sessionId, subject }),
-          });
-          if (res.ok) data = await res.json();
-        } catch {
-          // API unreachable — fall through
+      try {
+        let data: TutorApiResponse | null = null;
+        let entitlementBlock = false;
+
+        // v17.4 CODER: real API first. On 402 (entitlement miss) we MUST stop
+        // here — falling through to /api/demo would mask the paywall.
+        if (!isDemo) {
+          try {
+            const res = await fetch('/api/tutor', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: text,
+                sessionId,
+                subject,
+                topic: topicHint,
+              }),
+            });
+            if (res.status === 402) {
+              entitlementBlock = true;
+              let gate: EntitlementGateResponse = {};
+              try {
+                gate = (await res.json()) as EntitlementGateResponse;
+              } catch {
+                // Body wasn't JSON — fall back to the default checkout path.
+              }
+              const checkoutUrl =
+                gate.checkoutUrl ||
+                (gate.productId
+                  ? `/products/${gate.productId}/checkout?billing=monthly`
+                  : '/pricing');
+              toast.error(
+                'Subscribe to Exam Study Helper to keep chatting',
+              );
+              window.setTimeout(() => {
+                router.push(checkoutUrl);
+              }, 1200);
+              return;
+            }
+            if (res.ok) data = (await res.json()) as TutorApiResponse;
+          } catch {
+            // Network or unreachable — fall through to demo fallback below.
+          }
         }
-      }
 
-      // If real API didn't work (or isDemo), try demo endpoint
-      if (!data) {
-        try {
-          const res = await fetch('/api/demo', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'tutor-chat', message: text }),
-          });
-          if (res.ok) data = await res.json();
-        } catch {
-          // Demo API also failed — fall through
+        // If real API didn't work (or isDemo), try the demo endpoint. Skipped
+        // entirely on a 402 entitlement block so we don't mask the paywall.
+        if (!data && !entitlementBlock) {
+          try {
+            const res = await fetch('/api/demo', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'tutor-chat', message: text }),
+            });
+            if (res.ok) data = (await res.json()) as TutorApiResponse;
+          } catch {
+            // Demo API also failed — fall through
+          }
         }
-      }
 
-      // Last resort: fully client-side fallback response
-      if (!data) {
-        data = {
-          sessionId: `local-${Date.now()}`,
-          reply: getClientFallbackResponse(text),
-          tokensUsed: 0,
-        };
-      }
-
-      // v13.3.0 (Update 2.8): if the tutor route reported a real AI error,
-      // surface it once per error message so the user knows why the reply
-      // looks generic. Dedupe so spammy retries don't produce 20 toasts.
-      if (typeof data.aiError === 'string' && data.aiError.length > 0) {
-        if (!shownErrorsRef.current.has(data.aiError)) {
-          shownErrorsRef.current.add(data.aiError);
-          toast.error(`AI unavailable: ${data.aiError.substring(0, 120)}`);
+        // Last resort: fully client-side fallback response
+        if (!data && !entitlementBlock) {
+          data = {
+            sessionId: `local-${Date.now()}`,
+            reply: getClientFallbackResponse(text),
+            tokensUsed: 0,
+          };
         }
-      }
 
-      setSessionId(data.sessionId || sessionId);
-      // v17.3 CODER 2: the API contract (and the route's own header) declares
-      // the response field as `reply`. The previous `data.message` read was
-      // rendering `undefined` for every real student. The demo endpoint and
-      // the local fallback above both also use `reply` now.
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-    } catch {
-      toast.error('Connection error');
-    } finally {
-      setLoading(false);
-    }
-  }
+        if (!data) return;
+
+        // v13.3.0 (Update 2.8): if the tutor route reported a real AI error,
+        // surface it once per error message so the user knows why the reply
+        // looks generic. Dedupe so spammy retries don't produce 20 toasts.
+        if (typeof data.aiError === 'string' && data.aiError.length > 0) {
+          if (!shownErrorsRef.current.has(data.aiError)) {
+            shownErrorsRef.current.add(data.aiError);
+            toast.error(`AI unavailable: ${data.aiError.substring(0, 120)}`);
+          }
+        }
+
+        if (data.sessionId) setSessionId(data.sessionId);
+        // v17.3 CODER 2: the API contract (and the route's own header) declares
+        // the response field as `reply`. The previous `data.message` read was
+        // rendering `undefined` for every real student. The demo endpoint and
+        // the local fallback above both also use `reply` now.
+        const reply = typeof data.reply === 'string' ? data.reply : '';
+        setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+      } catch {
+        toast.error('Connection error');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [input, loading, isDemo, sessionId, subject, topicHint, router],
+  );
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -218,9 +409,34 @@ export default function TutorPage() {
   }
 
   function startNewChat() {
+    // v17.4 CODER: only confirm if there's something to lose. An empty chat
+    // shouldn't pop a modal — that would just train students to dismiss it.
+    if (messages.length > 0) {
+      const ok = window.confirm(
+        'Start a new chat? Your current conversation will be lost.',
+      );
+      if (!ok) return;
+    }
     setMessages([]);
     setSessionId(null);
     setSubject('');
+    setTopicHint(null);
+    seededTopicsRef.current.clear();
+  }
+
+  async function copyMessage(content: string) {
+    // v17.4 CODER: clipboard API is gated on secure context + permissions.
+    // Fall back gracefully so a copy click never throws in an iframe or http.
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(content);
+        toast.success('Copied');
+        return;
+      }
+      throw new Error('Clipboard API unavailable');
+    } catch {
+      toast.error('Could not copy');
+    }
   }
 
   return (
@@ -327,7 +543,7 @@ export default function TutorPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={cn(
-                      'flex gap-3',
+                      'group flex gap-3',
                       msg.role === 'user' ? 'flex-row-reverse' : ''
                     )}
                   >
@@ -345,20 +561,36 @@ export default function TutorPage() {
                         <Sparkles size={16} className="text-purple-600" />
                       )}
                     </div>
-                    <div
-                      className={cn(
-                        'max-w-[80%] rounded-2xl px-4 py-3',
-                        msg.role === 'user'
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-50 text-gray-800'
-                      )}
-                    >
-                      <div className={cn(
-                        'text-sm prose prose-sm max-w-none',
-                        msg.role === 'user' && 'prose-invert'
-                      )}>
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <div className="relative max-w-[80%]">
+                      <div
+                        className={cn(
+                          'rounded-2xl px-4 py-3',
+                          msg.role === 'user'
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-gray-50 text-gray-800'
+                        )}
+                      >
+                        <div className={cn(
+                          'text-sm prose prose-sm max-w-none',
+                          msg.role === 'user' && 'prose-invert'
+                        )}>
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
                       </div>
+                      {/* v17.4 CODER: per-message copy affordance. Only shown
+                          for assistant replies — copying your own prompt back
+                          isn't useful, and we don't want to clutter the bubble. */}
+                      {msg.role === 'assistant' && msg.content.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => copyMessage(msg.content)}
+                          aria-label="Copy message"
+                          title="Copy message"
+                          className="absolute -bottom-2 -right-2 p-1.5 rounded-full bg-white border border-gray-200 text-gray-500 shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition hover:text-gray-800 hover:border-gray-300"
+                        >
+                          <Copy size={12} />
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 ))}
@@ -414,5 +646,16 @@ export default function TutorPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+// v17.4 CODER: useSearchParams requires a Suspense boundary in the App Router
+// for client components; without it `next build` fails the route with a
+// CSR-bailout error. Mirrors the pattern used by /student/knowledge.
+export default function TutorPage() {
+  return (
+    <Suspense fallback={<DashboardLayout><div /></DashboardLayout>}>
+      <TutorPageInner />
+    </Suspense>
   );
 }

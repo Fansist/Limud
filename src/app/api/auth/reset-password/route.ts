@@ -5,6 +5,11 @@
  * - Timing-safe token comparison (via SHA-256 hash)
  * - Invalidates token immediately after use
  * - Audit logging
+ *
+ * v17.4 — Adds a non-consuming GET probe so the /reset-password page can
+ * tell the user up-front whether their link is valid before they fill in
+ * the new-password form. The GET handler MUST NOT touch resetToken or
+ * resetTokenExp; only POST consumes the token.
  */
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
@@ -17,6 +22,94 @@ import {
   getClientIP,
   getUserAgent,
 } from '@/lib/security';
+
+/**
+ * GET /api/auth/reset-password?token=…&email=…
+ *
+ * Pre-validates a password-reset token without consuming it. Returns
+ * { valid: true } when the token matches an unexpired record for the
+ * given email, { valid: false, reason } otherwise. Same rate-limit
+ * bucket as POST so a token-fishing attacker can't bypass the limit by
+ * switching methods.
+ */
+export async function GET(req: Request) {
+  const ip = getClientIP(req);
+  const ua = getUserAgent(req);
+
+  const rateCheck = checkRateLimit(`reset:${ip}`, 'auth');
+  if (!rateCheck.allowed) {
+    trackSecurityEvent('rate_limit', ip);
+    createAuditLog({
+      action: 'RATE_LIMITED', ip, userAgent: ua,
+      resource: '/api/auth/reset-password',
+      details: { method: 'GET', retryAfterMs: rateCheck.retryAfterMs },
+      severity: 'warning', success: false,
+    });
+    return NextResponse.json(
+      { valid: false, reason: 'rate_limited', error: 'Too many requests.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rateCheck.retryAfterMs / 1000)) } }
+    );
+  }
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const token = searchParams.get('token');
+    const emailParam = searchParams.get('email');
+
+    if (!token || !emailParam) {
+      return NextResponse.json(
+        { valid: false, reason: 'missing_params' },
+        { status: 400 }
+      );
+    }
+
+    const cleanEmail = sanitizeEmail(String(emailParam));
+    if (!cleanEmail) {
+      return NextResponse.json(
+        { valid: false, reason: 'invalid_email' },
+        { status: 400 }
+      );
+    }
+
+    // Hash the incoming token to compare with the stored hash. Same scheme
+    // as POST so a probe-then-submit round-trip uses identical lookup.
+    const hashedToken = crypto.createHash('sha256').update(String(token)).digest('hex');
+
+    const { default: prisma } = await import('@/lib/prisma');
+    const user = await prisma.user.findFirst({
+      where: {
+        email: cleanEmail,
+        resetToken: hashedToken,
+        resetTokenExp: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+
+    if (!user) {
+      // Don't audit-log every miss — would flood on bot scans. POST still
+      // logs invalid-token submissions for real attempted resets.
+      return NextResponse.json(
+        { valid: false, reason: 'invalid_or_expired' },
+        { status: 200 }
+      );
+    }
+
+    return NextResponse.json({ valid: true }, { status: 200 });
+  } catch (error: unknown) {
+    const errMessage = error instanceof Error ? error.message : undefined;
+    console.error('[Security] Reset password probe error:', errMessage);
+    if (errMessage?.includes('connect') || errMessage?.includes('ECONNREFUSED')) {
+      return NextResponse.json(
+        { valid: false, reason: 'service_unavailable', error: 'Service temporarily unavailable.' },
+        { status: 503 }
+      );
+    }
+    return NextResponse.json(
+      { valid: false, reason: 'server_error', error: 'An error occurred.' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: Request) {
   const ip = getClientIP(req);

@@ -16,7 +16,7 @@
  * middleware change is required.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -27,6 +27,8 @@ import {
 import {
   findBundle,
   bundlePrice,
+  bundleSavingsPct,
+  formatSavingsPct,
   BUNDLE_PRODUCT_NAMES,
   type BillingMode,
   type BundleDef,
@@ -35,6 +37,21 @@ import {
 function isBillingMode(value: string | null): value is BillingMode {
   return value === 'oneTime' || value === 'monthly';
 }
+
+// v17.4 (R15): the price the server will actually charge can differ from
+// the static catalog value when an OWNER price override is in effect.
+// Fetch the effective price client-side so the confirmation card shows
+// the real number, not whatever was hardcoded in the catalog at deploy
+// time.
+type EffectivePriceResponse = {
+  kind: 'product' | 'bundle';
+  id: string;
+  oneTimePrice: number | null;
+  monthlyPrice: number | null;
+  source: 'static' | 'override';
+  staticOneTimePrice: number | null;
+  staticMonthlyPrice: number | null;
+};
 
 export default function BundleCheckoutPage() {
   const params = useParams<{ bundleId: string }>();
@@ -49,6 +66,35 @@ export default function BundleCheckoutPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [effective, setEffective] = useState<EffectivePriceResponse | null>(null);
+
+  // Fetch the effective (override-aware) price as soon as we know the
+  // bundle id AND the user is authenticated. The endpoint requires auth
+  // and anon callers see the "log in to purchase" wall before we reach
+  // the confirmation card, so there's nothing to fetch in that state.
+  useEffect(() => {
+    if (!bundle || status !== 'authenticated') {
+      setEffective(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/products/effective-price?kind=bundle&id=${encodeURIComponent(bundle.id)}`,
+          { cache: 'no-store' },
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as EffectivePriceResponse;
+        if (!cancelled) setEffective(data);
+      } catch {
+        // Network error — leave effective null and fall back to static.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bundle, status]);
 
   async function handleConfirm(b: BundleDef) {
     setSubmitting(true);
@@ -94,9 +140,23 @@ export default function BundleCheckoutPage() {
     );
   }
 
-  const price = bundlePrice(bundle, billingMode);
+  const staticPrice = bundlePrice(bundle, billingMode);
+  // Prefer the override-aware price if we managed to fetch it; otherwise
+  // fall back to the static catalog price so the page still works if the
+  // endpoint is slow or down.
+  const effectiveForMode = effective
+    ? billingMode === 'oneTime'
+      ? effective.oneTimePrice
+      : effective.monthlyPrice
+    : null;
+  const price = effectiveForMode ?? staticPrice;
+  const priceIsOverride =
+    effective?.source === 'override' &&
+    effectiveForMode !== null &&
+    effectiveForMode !== staticPrice;
   const cadenceLabel = billingMode === 'monthly' ? '/month' : ' one-time';
   const productNames = bundle.productIds.map((id) => BUNDLE_PRODUCT_NAMES[id]);
+  const savingsLabel = formatSavingsPct(bundleSavingsPct(bundle, billingMode));
 
   // ---- Loading session ----
   if (status === 'loading') {
@@ -222,12 +282,19 @@ export default function BundleCheckoutPage() {
                 ${price}
                 <span className="text-sm text-gray-400 font-normal">{cadenceLabel}</span>
               </p>
+              {priceIsOverride && (
+                <p className="text-[11px] font-medium text-amber-700 mt-1">
+                  Updated pricing — was ${staticPrice}, now ${price}.
+                </p>
+              )}
             </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-400">Save</p>
-              <p className="text-lg font-bold text-green-600">{bundle.savingsPct}%</p>
-              <p className="text-[10px] text-gray-400">vs. separate</p>
-            </div>
+            {savingsLabel ? (
+              <div className="text-right">
+                <p className="text-xs text-gray-400">Save</p>
+                <p className="text-lg font-bold text-green-600">{savingsLabel}</p>
+                <p className="text-[10px] text-gray-400">vs. separate</p>
+              </div>
+            ) : null}
           </div>
 
           {/* Included tools */}

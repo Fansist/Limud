@@ -1,17 +1,31 @@
+'use client';
 /**
- * OWNER finances dashboard. Server component — gated by `/owner/layout.tsx`.
+ * OWNER finances dashboard — v17.4.
  *
- * We call the aggregation function directly (`loadOwnerFinances`) rather
- * than fetching `/api/owner/finances` over HTTP. The OWNER gate already
- * ran in the layout, so we don't need to re-authenticate; the read is the
- * same one the API exposes, just in-process. The API route remains as the
- * public contract for any external/scripting use.
+ * Client component. The OWNER gate already ran in `/owner/layout.tsx`,
+ * so this page is reachable only by an authenticated OWNER session;
+ * the GET to `/api/owner/finances` re-checks the role server-side.
+ *
+ * v17.4 adds a timeframe selector (7d / 30d / 90d / all) that refetches
+ * the payload with `?period=...`, plus a "Download CSV" button that
+ * builds a CSV from the per-product + per-bundle tables and triggers a
+ * Blob download. The dashboard otherwise renders the same data the
+ * server-rendered v17.3 page did.
  */
-import { AlertTriangle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Download } from 'lucide-react';
 import { BUNDLE_PRODUCT_NAMES, type BundleProductId } from '@/lib/bundles';
-import { loadOwnerFinances } from '@/app/api/owner/finances/route';
+import type {
+  FinancesPeriod,
+  OwnerFinancesPayload,
+} from '@/app/api/owner/finances/route';
 
-export const dynamic = 'force-dynamic';
+const PERIOD_OPTIONS: { value: FinancesPeriod; label: string }[] = [
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: '90d', label: 'Last 90 days' },
+  { value: 'all', label: 'All time' },
+];
 
 function formatUsd(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -38,27 +52,164 @@ function productDisplayName(productId: string): string {
   return BUNDLE_PRODUCT_NAMES[productId as BundleProductId] ?? productId;
 }
 
-export default async function OwnerFinancesPage() {
-  const data = await loadOwnerFinances();
+// CSV escape: wrap in quotes and double up any embedded quotes. Newlines
+// and commas inside fields are fine once quoted.
+function csvCell(value: string | number): string {
+  const s = String(value);
+  if (/[",\n\r]/.test(s)) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
 
-  // Bar widths normalize to the max within each table — cheap visualization
-  // without pulling in a charting library.
-  const maxProductRevenue = data.perProductRevenue.reduce(
-    (m, r) => Math.max(m, r.revenueUsd),
-    0,
+function buildFinancesCsv(data: OwnerFinancesPayload): string {
+  const lines: string[] = [];
+  lines.push(['section', 'id', 'name', 'active_subs', 'revenue_usd'].map(csvCell).join(','));
+  for (const r of data.perProductRevenue) {
+    lines.push(
+      [
+        'product',
+        r.productId,
+        productDisplayName(r.productId),
+        r.activeSubs,
+        r.revenueUsd,
+      ]
+        .map(csvCell)
+        .join(','),
+    );
+  }
+  for (const r of data.perBundleRevenue) {
+    lines.push(
+      ['bundle', r.bundleId, r.name, r.activeSubs, r.revenueUsd]
+        .map(csvCell)
+        .join(','),
+    );
+  }
+  return lines.join('\n') + '\n';
+}
+
+function triggerCsvDownload(csv: string, filename: string): void {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Revoke on the next tick — Safari needs the URL to outlive the click.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+export default function OwnerFinancesPage(): JSX.Element {
+  const [period, setPeriod] = useState<FinancesPeriod>('all');
+  const [data, setData] = useState<OwnerFinancesPayload | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async (p: FinancesPeriod) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/owner/finances?period=${p}`, { cache: 'no-store' });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+        const msg =
+          typeof body?.error === 'string'
+            ? body.error
+            : `Failed to load finances (${res.status})`;
+        setError(msg);
+        setData(null);
+        return;
+      }
+      const payload = (await res.json()) as OwnerFinancesPayload;
+      setData(payload);
+    } catch {
+      setError('Network error loading finances');
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchData(period);
+  }, [fetchData, period]);
+
+  const maxProductRevenue = useMemo(
+    () =>
+      data?.perProductRevenue.reduce((m, r) => Math.max(m, r.revenueUsd), 0) ?? 0,
+    [data?.perProductRevenue],
   );
-  const maxBundleRevenue = data.perBundleRevenue.reduce(
-    (m, r) => Math.max(m, r.revenueUsd),
-    0,
+  const maxBundleRevenue = useMemo(
+    () =>
+      data?.perBundleRevenue.reduce((m, r) => Math.max(m, r.revenueUsd), 0) ?? 0,
+    [data?.perBundleRevenue],
   );
+
+  function handleDownloadCsv(): void {
+    if (!data) return;
+    const csv = buildFinancesCsv(data);
+    const stamp = new Date().toISOString().slice(0, 10);
+    triggerCsvDownload(csv, `limud-finances-${data.period}-${stamp}.csv`);
+  }
+
+  if (loading && !data) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-3xl p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return <div className="p-6">No data.</div>;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-3xl font-bold text-gray-900">Finances</h1>
-        <p className="text-sm text-gray-500">
-          Last refreshed {formatDateTime(data.generatedAt)}
-        </p>
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Finances</h1>
+            <p className="text-sm text-gray-500">
+              Last refreshed {formatDateTime(data.generatedAt)}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <span className="font-medium">Timeframe</span>
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value as FinancesPeriod)}
+                disabled={loading}
+                className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:outline-none disabled:opacity-50"
+              >
+                {PERIOD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={handleDownloadCsv}
+              className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+            >
+              <Download size={14} />
+              Download CSV
+            </button>
+          </div>
+        </div>
       </header>
 
       {/* ── Disclaimer banner ─────────────────────────────────────── */}
@@ -101,7 +252,7 @@ export default async function OwnerFinancesPage() {
         <KpiCard
           label="Subscription revenue"
           value={formatUsd(data.subscriptionRevenueUsd)}
-          sublabel="Bundle + product, all-time"
+          sublabel="Bundle + product"
           tone="purple"
         />
         <KpiCard

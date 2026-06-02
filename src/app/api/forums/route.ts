@@ -67,6 +67,10 @@ export const GET = apiHandler(async (req: Request) => {
   const { searchParams } = new URL(req.url);
   const courseId = searchParams.get('courseId');
   const parentId = searchParams.get('parentId');
+  // v17.4 — FERPA: students can ask for posts scoped to all courses they're
+  // enrolled in, instead of the whole table. Same intent as supplying a single
+  // courseId, but lets the client avoid an extra round trip.
+  const myCourses = searchParams.get('my-courses') === 'true';
   const page = parseInt(searchParams.get('page') || '1');
   const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
 
@@ -128,7 +132,42 @@ export const GET = apiHandler(async (req: Request) => {
       where.parentId = parentId;
     } else {
       where.parentId = null; // Top-level posts only
-      if (courseId) where.courseId = courseId;
+      if (courseId) {
+        where.courseId = courseId;
+      } else if (myCourses) {
+        // v17.4 — FERPA scope: limit to the caller's own courses so students
+        // can't see top-level posts from unrelated courses.
+        let scopedCourseIds: string[] = [];
+        if (user.role === 'STUDENT') {
+          const enrollments = await prisma.enrollment.findMany({
+            where: { studentId: user.id },
+            select: { courseId: true },
+          });
+          scopedCourseIds = enrollments.map(e => e.courseId);
+        } else if (user.role === 'TEACHER') {
+          const courseTeachers = await prisma.courseTeacher.findMany({
+            where: { teacherId: user.id },
+            select: { courseId: true },
+          });
+          scopedCourseIds = courseTeachers.map(ct => ct.courseId);
+        } else if (user.role === 'PARENT') {
+          const childEnrollments = await prisma.enrollment.findMany({
+            where: { student: { parentId: user.id } },
+            select: { courseId: true },
+          });
+          scopedCourseIds = Array.from(new Set(childEnrollments.map(e => e.courseId)));
+        } else if (user.role === 'ADMIN') {
+          const districtCourses = await prisma.course.findMany({
+            where: { districtId: user.districtId },
+            select: { id: true },
+          });
+          scopedCourseIds = districtCourses.map(c => c.id);
+        }
+        if (scopedCourseIds.length === 0) {
+          return NextResponse.json({ posts: [], total: 0, page, hasMore: false });
+        }
+        where.courseId = { in: scopedCourseIds };
+      }
     }
 
     const [posts, total] = await Promise.all([

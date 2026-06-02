@@ -50,7 +50,9 @@ const CATEGORIES = [
 const ROADMAP_ITEMS: RoadmapItem[] = [
   // ═══ IN PROGRESS ═══
   {
-    id: 'ip-1', title: 'AI Tutor Voice Mode', status: 'in-progress', quarter: 'Q1 2026',
+    // v17.4: slipped from Q1 → Q2 2026. "In Progress" but the original Q1
+    // window already passed. Honesty over optics.
+    id: 'ip-1', title: 'AI Tutor Voice Mode', status: 'in-progress', quarter: 'Q2 2026',
     category: 'AI & Intelligence', icon: <Mic size={18} />, impact: 'high',
     description: 'Talk to the AI Tutor using voice. Real-time speech-to-text and text-to-speech for hands-free learning sessions.',
     details: [
@@ -63,7 +65,8 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     tags: ['AI', 'Accessibility', 'Mobile'],
   },
   {
-    id: 'ip-2', title: 'Student Portfolio System', status: 'in-progress', quarter: 'Q1 2026',
+    // v17.4: slipped from Q1 → Q2 2026 (see ip-1).
+    id: 'ip-2', title: 'Student Portfolio System', status: 'in-progress', quarter: 'Q2 2026',
     category: 'Student Experience', icon: <Layers size={18} />, impact: 'high',
     description: 'Digital portfolio where students curate their best work, reflections, and growth artifacts across subjects.',
     details: [
@@ -249,9 +252,11 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
   },
   // ═══ FUTURE VISION ═══
   {
-    id: 'fv-1', title: 'AI Teaching Assistant (Autonomous Agent)', status: 'exploring', quarter: '2027+',
+    // v17.4: title hedged with "Preview" tag — this is exploring/research, not
+    // committed. The original phrasing read like a near-term ship.
+    id: 'fv-1', title: 'AI Teaching Assistant (Autonomous Agent) — Preview', status: 'exploring', quarter: '2027+',
     category: 'AI & Intelligence', icon: <Bot size={18} />, impact: 'high',
-    description: 'A full AI teaching assistant that can autonomously plan lessons for the week, generate homework, grade submissions, send parent updates, and flag struggling students — all with teacher approval.',
+    description: 'Research preview: a full AI teaching assistant that could autonomously plan lessons for the week, generate homework, grade submissions, send parent updates, and flag struggling students — all with teacher approval. Capabilities and scope are still being scoped.',
     details: [
       'Weekly assignment generation based on pacing guide and student data',
       'Automatic homework assignment creation after each lesson',
@@ -289,17 +294,21 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     tags: ['AI', 'Video', 'Personalization'],
   },
   {
-    id: 'fv-4', title: 'Blockchain-Verified Credentials & Transcripts', status: 'exploring', quarter: '2027+',
+    // v17.4: dropped the blockchain framing — over-promised on a hard problem
+    // we have not architected. Reframed as portable, signed credentials with
+    // the Open Badges / Verifiable Credentials standards as the realistic
+    // primitive. Blockchain stays as one possible backing store, not the lead.
+    id: 'fv-4', title: 'Portable, Verifiable Credentials & Transcripts', status: 'exploring', quarter: '2027+',
     category: 'Administration', icon: <Shield size={18} />, impact: 'medium',
-    description: 'Tamper-proof digital transcripts and skill credentials verified on blockchain. Students own their learning record forever.',
+    description: 'Research direction: cryptographically signed digital transcripts and skill credentials that students can carry across schools, districts, and employers.',
     details: [
       'Verifiable credentials for completed courses, skills, and achievements',
       'Digital transcript portable across schools and districts',
       'Employer/college verification without contacting the school',
       'Student-owned data: export and take your records anywhere',
-      'Integration with Open Badges standard',
+      'Targeting Open Badges + W3C Verifiable Credentials standards',
     ],
-    tags: ['Blockchain', 'Credentials', 'Portable'],
+    tags: ['Credentials', 'Portable', 'Open Standards'],
   },
   {
     id: 'fv-5', title: 'AI Emotional Intelligence Tutor', status: 'exploring', quarter: '2027+',
@@ -528,15 +537,44 @@ function RoadmapCard({ item }: { item: RoadmapItem }) {
 }
 
 // Timeline visualization
+// v17.4: compute the current quarter from `new Date()` instead of hardcoding
+// Q1 2026 — the page was already past Q1 2026 by the time R7 caught it.
+function getCurrentQuarter(): string {
+  const now = new Date();
+  const month = now.getMonth(); // 0–11
+  const year = now.getFullYear();
+  const q = Math.floor(month / 3) + 1; // 1–4
+  return `Q${q} ${year}`;
+}
+
 function TimelineBar() {
-  const quarters = [
-    { label: 'Q1 2026', status: 'current' as const },
-    { label: 'Q2 2026', status: 'upcoming' as const },
-    { label: 'Q3 2026', status: 'upcoming' as const },
-    { label: 'Q4 2026', status: 'upcoming' as const },
-    { label: '2027', status: 'future' as const },
-    { label: '2028+', status: 'future' as const },
+  const currentQuarter = getCurrentQuarter();
+  const baseQuarters: { label: string; bucket: 'quarter' | 'year' | 'future' }[] = [
+    { label: 'Q1 2026', bucket: 'quarter' },
+    { label: 'Q2 2026', bucket: 'quarter' },
+    { label: 'Q3 2026', bucket: 'quarter' },
+    { label: 'Q4 2026', bucket: 'quarter' },
+    { label: '2027', bucket: 'year' },
+    { label: '2028+', bucket: 'future' },
   ];
+  // A quarter is "past" if its year is earlier, OR its year matches and its
+  // quarter number is lower than the current one. Otherwise it's current or
+  // upcoming.
+  function quarterIndex(label: string): number {
+    const m = label.match(/^Q(\d)\s+(\d{4})$/);
+    if (!m) return Number.POSITIVE_INFINITY;
+    return Number(m[2]) * 4 + Number(m[1]);
+  }
+  const currentIdx = quarterIndex(currentQuarter);
+  const quarters = baseQuarters.map(q => {
+    let status: 'current' | 'upcoming' | 'past' | 'future';
+    if (q.bucket === 'future') status = 'future';
+    else if (q.bucket === 'year') status = 'future';
+    else if (q.label === currentQuarter) status = 'current';
+    else if (quarterIndex(q.label) < currentIdx) status = 'past';
+    else status = 'upcoming';
+    return { label: q.label, status };
+  });
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-8">
@@ -553,12 +591,15 @@ function TimelineBar() {
                 <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold z-10',
                   q.status === 'current' ? 'bg-primary-600 text-white ring-4 ring-primary-100' :
                   q.status === 'upcoming' ? 'bg-blue-100 text-blue-600' :
+                  q.status === 'past' ? 'bg-green-50 text-green-600 ring-1 ring-green-100' :
                   'bg-gray-100 text-gray-400'
                 )}>
                   {count}
                 </div>
                 <span className={cn('text-[10px] font-medium',
-                  q.status === 'current' ? 'text-primary-600' : 'text-gray-400'
+                  q.status === 'current' ? 'text-primary-600' :
+                  q.status === 'past' ? 'text-green-600' :
+                  'text-gray-400'
                 )}>
                   {q.label}
                 </span>

@@ -288,3 +288,43 @@ export function passwordResetEmail(name: string, resetUrl: string, expiresMin = 
     </div>`,
   };
 }
+
+/**
+ * v17.4 — Confirmation email returned to a contact-form submitter.
+ * Sent by /api/contact in addition to the internal notification to
+ * contact@limud.co so the submitter immediately sees their request was
+ * received and knows when to expect a reply. `name` is the value the
+ * submitter typed into the form, so it is escaped before interpolation.
+ * `replyHours` is the human-readable SLA we surface on the form.
+ */
+export function contactConfirmationEmail(name: string, replyHours = 24): { subject: string; html: string; text: string } {
+  const safeName = esc(name);
+  const html = wrap(`
+    <h2 style="color:${BRAND_COLOR};font-size:18px;margin:0 0 8px;">Thanks for reaching out, ${safeName}!</h2>
+    <p style="margin:0 0 12px;">We received your message and someone from the Limud team will get back to you within <strong>${replyHours} hours</strong>.</p>
+    <p style="margin:0 0 12px;">If your question is urgent — for example a login problem blocking a class — feel free to reply directly to this email and add the word <em>urgent</em> to the subject line so we route it to the on-call engineer.</p>
+    <div style="background:#f3f4f6;padding:14px 16px;border-radius:8px;margin:16px 0;font-size:13px;color:#4b5563;">
+      <p style="margin:0 0 4px;font-weight:600;color:#1f2937;">While you wait</p>
+      <p style="margin:0;">Browse our <a href="https://limud.co/help" style="color:${BRAND_COLOR};">help center</a> or check the <a href="https://limud.co/roadmap" style="color:${BRAND_COLOR};">product roadmap</a> for what's shipping next.</p>
+    </div>
+    <p style="margin:20px 0 0;">— The Limud team</p>
+  `);
+
+  const text = [
+    `Hi ${name},`,
+    '',
+    `Thanks for reaching out! We received your message and someone from the Limud team will get back to you within ${replyHours} hours.`,
+    '',
+    'If your question is urgent (for example a login problem blocking a class), reply directly to this email with "urgent" in the subject line.',
+    '',
+    'While you wait you can browse our help center: https://limud.co/help',
+    '',
+    '— The Limud team',
+  ].join('\n');
+
+  return {
+    subject: 'We got your message — thanks for reaching out to Limud',
+    html,
+    text,
+  };
+}

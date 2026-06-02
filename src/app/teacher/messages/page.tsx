@@ -3,6 +3,7 @@
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -73,6 +74,7 @@ const ROLE_AVATAR_COLOR: Record<string, string> = {
 export default function TeacherMessagesPage() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
+  const searchParams = useSearchParams();
   const [conversations, setConversations] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [selectedConvo, setSelectedConvo] = useState<any>(null);
@@ -92,12 +94,25 @@ export default function TeacherMessagesPage() {
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [threadMessages]);
   useEffect(() => { fetchData(); }, [isDemo]);
 
+  // v17.4: deep-link support — `?to=<userId>` opens compose prefilled.
+  const lastHandledToRef = useRef<string | null>(null);
+  useEffect(() => {
+    const to = searchParams.get('to');
+    if (!to || loading) return;
+    if (lastHandledToRef.current === to) return;
+    lastHandledToRef.current = to;
+    setComposeForm(f => ({ ...f, recipientId: to }));
+    setShowCompose(true);
+    setSelectedConvo(null);
+  }, [searchParams, loading]);
+
   async function fetchData() {
     if (isDemo) { setConversations(DEMO_CONVERSATIONS); setContacts(DEMO_CONTACTS); setLoading(false); return; }
     try {
       const [convRes, contactRes] = await Promise.all([fetch('/api/messages'), fetch('/api/messages/contacts')]);
       if (convRes.ok) { const d = await convRes.json(); setConversations(d.conversations || []); }
-      if (contactRes.ok) { const d = await contactRes.json(); setContacts(d.contacts || []); }
+      // v14.7.0 contract: { items, total, page, pageSize }.
+      if (contactRes.ok) { const d = await contactRes.json(); setContacts(d.items || []); }
     } catch { toast.error('Failed to load messages'); }
     finally { setLoading(false); }
   }
@@ -108,6 +123,13 @@ export default function TeacherMessagesPage() {
     try {
       const res = await fetch(`/api/messages/thread?userId=${convo.otherUser.id}`);
       if (res.ok) { const d = await res.json(); setThreadMessages(d.messages || []); setConversations(p => p.map(c => c.id === convo.id ? { ...c, unread: 0 } : c)); }
+      // v17.4: explicit read-receipt PATCH so the OTHER party's tick updates.
+      // Best-effort; thread GET already marks-as-read server-side.
+      void fetch('/api/messages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convo.otherUser.id, markRead: true }),
+      }).catch(() => { /* non-blocking */ });
     } catch { toast.error('Failed to load conversation'); }
   }
 

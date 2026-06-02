@@ -256,3 +256,41 @@ export const PUT = apiHandler(async (req: Request) => {
 
   return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
 });
+
+/**
+ * PATCH /api/messages
+ * Mark all unread messages in a conversation (from the other user to the current
+ * user) as read so the OTHER party's "delivered/read" indicators update.
+ *
+ * Body: { conversationId: string; markRead: true }
+ * `conversationId` is the OTHER user's id — the page-side convention is to key
+ * conversations by the counter-party (see /api/messages GET grouping).
+ */
+export const PATCH = apiHandler(async (req: Request) => {
+  const user = await requireAuth();
+  const body = (await req.json()) as { conversationId?: string; markRead?: boolean };
+  const { conversationId, markRead } = body;
+
+  if (!markRead || !conversationId || typeof conversationId !== 'string') {
+    return NextResponse.json(
+      { error: 'conversationId (string) and markRead (true) are required' },
+      { status: 400 },
+    );
+  }
+
+  // Master demo: no DB write. Keep behavior idempotent and silent.
+  if (user.isMasterDemo) {
+    return NextResponse.json({ success: true, updated: 0, demo: true });
+  }
+
+  const result = await prisma.message.updateMany({
+    where: {
+      senderId: conversationId,
+      receiverId: user.id,
+      isRead: false,
+    },
+    data: { isRead: true },
+  });
+
+  return NextResponse.json({ success: true, updated: result.count });
+});

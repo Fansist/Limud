@@ -7,6 +7,12 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { BookOpen, Lock, Eye, EyeOff, CheckCircle, Loader2, ShieldCheck, AlertTriangle } from 'lucide-react';
 
+// v17.4: prevent iOS Safari from zooming the viewport when a 14px input
+// gains focus. Apply this to every <input> inside the reset form.
+const NO_IOS_ZOOM: React.CSSProperties = { fontSize: '16px' };
+
+type TokenStatus = 'checking' | 'valid' | 'invalid';
+
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -25,6 +31,37 @@ function ResetPasswordForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  // v17.4: pre-validate the reset link on mount so we can show an explicit
+  // "link expired" state instead of letting the user fill out the form
+  // and learn it's invalid only after submitting.
+  const [tokenStatus, setTokenStatus] = useState<TokenStatus>(
+    token && email ? 'checking' : 'invalid'
+  );
+
+  useEffect(() => {
+    if (!token || !email) return; // already 'invalid'
+    let cancelled = false;
+    (async () => {
+      try {
+        const url = `/api/auth/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+        const res = await fetch(url, { method: 'GET' });
+        const data = await res.json().catch(() => null);
+        if (cancelled) return;
+        if (res.ok && data?.valid === true) {
+          setTokenStatus('valid');
+        } else {
+          setTokenStatus('invalid');
+        }
+      } catch {
+        if (cancelled) return;
+        // Treat network errors as "invalid" — the POST will surface a more
+        // specific error if the user retries. Better than blocking on a
+        // hanging spinner.
+        setTokenStatus('invalid');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [token, email]);
 
   const passwordChecks = [
     { label: 'At least 10 characters', met: password.length >= 10 },
@@ -36,15 +73,24 @@ function ResetPasswordForm() {
 
   const allChecksMet = passwordChecks.every(c => c.met);
 
-  if (!token || !email) {
+  if (tokenStatus === 'checking') {
+    return (
+      <div className="text-center py-4">
+        <Loader2 size={32} className="animate-spin text-primary-500 mx-auto" />
+        <p className="text-sm text-gray-500 mt-3">Verifying your reset link...</p>
+      </div>
+    );
+  }
+
+  if (tokenStatus === 'invalid') {
     return (
       <div className="text-center">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <AlertTriangle size={28} className="text-red-600" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900 mb-2">Invalid Reset Link</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">Reset link expired</h1>
         <p className="text-sm text-gray-500 mb-6">
-          This password reset link is invalid or has expired. Please request a new one.
+          This password reset link has expired or already been used. Request a new one and we'll email you a fresh link.
         </p>
         <Link href="/forgot-password" className="btn-primary inline-flex items-center gap-2 px-6 py-2.5">
           Request New Reset Link
@@ -128,6 +174,7 @@ function ResetPasswordForm() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="input-field pl-10 pr-10"
+              style={NO_IOS_ZOOM}
               placeholder="Enter new password"
               required
               autoComplete="new-password"
@@ -155,6 +202,7 @@ function ResetPasswordForm() {
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
               className="input-field pl-10"
+              style={NO_IOS_ZOOM}
               placeholder="Confirm new password"
               required
               autoComplete="new-password"

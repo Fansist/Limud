@@ -464,6 +464,10 @@ model User {
   // Adapted assignments (student-scoped)
   adaptedAssignments AdaptedAssignment[]  @relation("AdaptedAssignmentStudent")
 
+  // v17.4 Teacher Resource Exchange
+  uploadedExchangeItems ExchangeItem[]    @relation("UploadedExchangeItems")
+  exchangeRequests      ExchangeRequest[] @relation("CreatedExchangeRequests")
+
   @@index([email])
   @@index([role])
   @@index([districtId])
@@ -1974,4 +1978,52 @@ model ProductSubscription {
   @@index([userId, status])
   @@index([productId])
   @@map("product_subscriptions")
+}
+
+// ─── v17.4 TEACHER RESOURCE EXCHANGE ─────────────────────────────────────
+// Cross-district sharing of worksheets/lesson plans/assessments/etc.
+// File storage is deferred to v17.5 — `fileUrl` / `fileName` / `fileSizeKb`
+// are persisted as metadata only and not yet backed by real uploads.
+
+model ExchangeItem {
+  id           String   @id @default(cuid())
+  uploaderId   String
+  uploader     User     @relation("UploadedExchangeItems", fields: [uploaderId], references: [id], onDelete: Cascade)
+  title        String
+  description  String   @db.Text
+  subject      String
+  gradeLevel   String?
+  itemType     String   // 'worksheet' | 'lesson_plan' | 'rubric' | 'assessment' | 'activity' | 'other'
+  fileUrl      String?
+  fileName     String?
+  fileSizeKb   Int?
+  tags         String[]
+  downloads    Int      @default(0)
+  likes        Int      @default(0)
+  saves        Int      @default(0)
+  flagged      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([subject])
+  @@index([itemType])
+  @@index([uploaderId])
+}
+
+model ExchangeRequest {
+  id            String   @id @default(cuid())
+  requesterId   String
+  requester     User     @relation("CreatedExchangeRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  title         String
+  description   String   @db.Text
+  subject       String
+  gradeLevel    String?
+  itemType      String
+  responseCount Int      @default(0)
+  status        String   @default("open") // 'open' | 'fulfilled' | 'closed'
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([subject])
+  @@index([status])
 }

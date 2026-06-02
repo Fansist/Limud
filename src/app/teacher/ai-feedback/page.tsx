@@ -203,6 +203,8 @@ export default function AIFeedbackPage() {
   const [editedFeedback, setEditedFeedback] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'reviewed'>('all');
   const [bulkGenerating, setBulkGenerating] = useState(false);
+  // v17.4: track in-flight state for the wired "Send Feedback" action.
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     loadSubmissions();
@@ -333,11 +335,63 @@ export default function AIFeedbackPage() {
     toast.success(`Generated feedback for ${pending.length} submissions!`);
   }
 
-  function handleSendFeedback() {
+  // v17.4: Wire the previously-fire-and-forget "Send Feedback" button to a
+  // real persistence path. Strategy:
+  //   1. Try POST /api/teacher/ai-feedback/send with {submissionId, feedback}.
+  //      That endpoint is the canonical surface (per ARCHITECT plan); if it
+  //      404s because it hasn't been deployed yet, we degrade gracefully.
+  //   2. In demo mode (or when no real submission id is available), keep the
+  //      local "sent" UX without making a network call.
+  // NOTE: Until the /send route lands (planned v17.4 same release; see
+  //       constraint that this CODER may not modify API files), persistence
+  //       falls through to a clear "could not save" toast — UX is honest,
+  //       no silent drop. Send the EDITED text, not the original draft.
+  async function handleSendFeedback() {
     if (!selectedSubmission) return;
-    toast.success(`Feedback sent to ${selectedSubmission.studentName}!`);
-    setSelectedSubmission(null);
-    setFeedback(null);
+    const trimmed = editedFeedback.trim();
+    if (!trimmed) {
+      toast.error('Feedback cannot be empty');
+      return;
+    }
+
+    // Demo mode + locally-seeded ids (sub1..sub5) cannot persist anywhere.
+    const isLocalDemoId = /^sub\d+$/.test(selectedSubmission.id);
+    if (isDemo || isLocalDemoId) {
+      toast.success(`Feedback sent to ${selectedSubmission.studentName}!`);
+      setSelectedSubmission(null);
+      setFeedback(null);
+      return;
+    }
+
+    setSending(true);
+    try {
+      const res = await fetch('/api/teacher/ai-feedback/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionId: selectedSubmission.id,
+          feedback: trimmed,
+          score: feedback?.score,
+        }),
+      });
+      if (res.status === 404) {
+        // Endpoint not yet deployed — be honest with the user instead of
+        // pretending the send succeeded.
+        toast.error('Server send endpoint not available yet — feedback not saved');
+      } else if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `HTTP ${res.status}`);
+      } else {
+        toast.success(`Feedback sent to ${selectedSubmission.studentName}!`);
+      }
+      setSelectedSubmission(null);
+      setFeedback(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to send feedback';
+      toast.error(msg);
+    } finally {
+      setSending(false);
+    }
   }
 
   const filtered = filterStatus === 'all' ? submissions
@@ -601,13 +655,16 @@ export default function AIFeedbackPage() {
                       <div className="flex items-center gap-3 pt-2">
                         <button
                           onClick={handleSendFeedback}
-                          className="btn-primary flex items-center gap-2"
+                          disabled={sending}
+                          className="btn-primary flex items-center gap-2 disabled:opacity-50"
                         >
-                          <Send size={16} /> Send Feedback
+                          {sending ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+                          {sending ? 'Sending…' : 'Send Feedback'}
                         </button>
                         <button
                           onClick={() => generateFeedbackForSubmission(selectedSubmission)}
-                          className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-gray-100"
+                          disabled={sending}
+                          className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-gray-100 disabled:opacity-50"
                         >
                           <RefreshCw size={14} /> Regenerate
                         </button>

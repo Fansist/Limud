@@ -147,7 +147,7 @@ export default function LandingPage() {
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": [
-            { "@type": "Question", "name": "How much does Limud cost?", "acceptedAnswer": { "@type": "Answer", "text": "The Family tier is $7-9/month for up to 5 students per parent account (annual saves 22%). Districts and schools run on per-seat pricing that scales with capacity, AI usage, and admin controls. Both tiers are the same underlying product — the engine, the personalization, the AI tutor, the materials rewriting are identical." }},
+            { "@type": "Question", "name": "How much does Limud cost?", "acceptedAnswer": { "@type": "Answer", "text": "The Family tier is $7-9/month for up to 5 students per parent account (annual saves 22%). Districts and schools run on per-seat pricing that scales with capacity, AI usage, and admin controls — six tiers in all, from Starter to Enterprise. Every paid plan ships with a 30-day money-back guarantee." }},
             { "@type": "Question", "name": "What subjects does Limud cover?", "acceptedAnswer": { "@type": "Answer", "text": "Limud supports Math (Algebra, Geometry, Fractions), Science, English Language Arts, History, and more. Teachers can create custom content for any subject." }},
             { "@type": "Question", "name": "How does the AI tutor work?", "acceptedAnswer": { "@type": "Answer", "text": "Limud's AI tutor uses Socratic questioning — it guides students to discover answers rather than giving them directly. It adapts to each student's learning style and interests." }},
             { "@type": "Question", "name": "Is Limud FERPA and COPPA compliant?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Limud is built for compliance from the ground up with AES-256-GCM encryption, 7-year audit log retention, parental consent tracking, and role-based access control." }},
@@ -400,7 +400,7 @@ export default function LandingPage() {
             </div>
             <div className="grid sm:grid-cols-3 gap-4">
               {[
-                { icon: <LayoutDashboard size={20} />, title: 'The Command Center', desc: 'See district health at a glance: 247 active students, 18 teachers, $12,000 annual cost. One dashboard, zero confusion.', color: 'bg-slate-100 text-slate-600' },
+                { icon: <LayoutDashboard size={20} />, title: 'The Command Center', desc: 'See district health at a glance — example district: 247 active students, 18 teachers, $12,000 annual cost. One dashboard, zero confusion.', color: 'bg-slate-100 text-slate-600' },
                 { icon: <Users size={20} />, title: 'Frictionless Management', desc: 'Bulk-import users via CSV and broadcast cross-role announcements that instantly ping teacher, student, and parent portals.', color: 'bg-blue-100 text-blue-600' },
                 { icon: <Shield size={20} />, title: 'Compliance at a Glance', desc: 'A dedicated widget confirms all systems are operational and actively maintaining FERPA, COPPA, and WCAG AA compliance.', color: 'bg-green-100 text-green-600' },
               ].map(f => (
@@ -513,36 +513,43 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Simple, transparent pricing</h2>
-            <p className="mt-3 text-gray-500">Districts and families. Same product. Pricing scales to your size.</p>
+            <p className="mt-3 text-gray-500">Districts, families, and individuals &mdash; same product, pricing scales with size. Or grab a single tool from $5.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {[
               {
                 // v16.4.1: Enterprise → /contact is correct (custom pricing).
+                // v17.4: mobile order forces Enterprise last so the visible
+                // teaser doesn't lead with the most-expensive tier on phones.
                 name: 'Enterprise', price: 'Custom', period: '', desc: 'Districts and statewide deployments',
                 features: ['Unlimited students & schools', 'SSO / SAML', 'Custom AI training', 'Data residency', '99.9% SLA', 'Dedicated account manager'],
                 cta: 'Contact sales', link: '/contact', highlight: false,
+                mobileOrder: 'order-3',
               },
               {
                 // v16.4.1: Standard CTA changed from "Talk to us" / /contact —
-                // wrong for a self-serve $6 plan — to "Start 14-day free trial"
-                // / /onboard?plan=STANDARD so logged-out visitors go to the
-                // onboarding flow and the button does what it advertises.
+                // wrong for a self-serve $6 plan — to /onboard?plan=STANDARD.
+                // v17.4: trial copy removed — /api/payments onboard activates
+                // the subscription immediately. The 30-day money-back guarantee
+                // is the real escape hatch.
                 name: 'Standard', price: '$6', period: '/student/mo, billed annually', desc: 'Classrooms and small schools',
-                features: ['Up to 500 students', 'Unlimited AI features', 'All 16+ integrations', 'Intelligence dashboard', 'AI Safety Monitor', 'Priority support'],
-                cta: 'Start 14-day free trial', link: '/onboard?plan=STANDARD', highlight: true,
+                features: ['Up to 500 students', 'Unlimited AI features', 'All 16+ integrations', 'Intelligence dashboard', 'Priority support'],
+                cta: 'Get started', link: '/onboard?plan=STANDARD', highlight: true,
+                mobileOrder: 'order-2',
               },
               {
                 // v16.4.1: Family price updated from stale $0 (v16.1 made the
-                // Family tier paid: $9/mo or $7/mo annual). CTA reflects the
-                // 14-day trial that every paid tier comes with.
-                name: 'Family', price: '$9', period: '/month, 14-day free trial', desc: 'For parents and their kids',
+                // Family tier paid: $9/mo or $7/mo annual).
+                // v17.4: trial copy removed (see Standard above) and mobile
+                // order set so Family leads on phones.
+                name: 'Family', price: '$9', period: '/month', desc: 'For parents and their kids',
                 features: ['Up to 5 children per parent', 'AI Tutor (50/mo)', 'Personalized material rewrites', 'Parent dashboard + AI check-in', 'Family Teaching Mode (optional)', 'Weekly digest emails'],
-                cta: 'Start 14-day free trial', link: '/onboard?plan=FAMILY', highlight: false,
+                cta: 'Get started', link: '/onboard?plan=FAMILY', highlight: false,
+                mobileOrder: 'order-1',
               },
             ].map(plan => (
-              <div key={plan.name} className={cn('rounded-2xl p-6 flex flex-col',
+              <div key={plan.name} className={cn('rounded-2xl p-6 flex flex-col md:order-none', plan.mobileOrder,
                 plan.highlight
                   ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white ring-2 ring-primary-300 ring-offset-2'
                   : 'bg-white border border-gray-200')}>
@@ -568,7 +575,14 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div className="mt-8 text-center">
+          {/* v17.4: pricing teaser shows 3 of 6 real tiers; surface the rest. */}
+          <div className="mt-6 text-center">
+            <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-600 hover:text-primary-700 transition">
+              See all 6 plans <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          <div className="mt-6 text-center">
             <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5">
               <Shield size={16} className="text-green-600" />
               <span className="text-sm text-green-800"><strong>30-day money-back guarantee</strong> on all paid plans</span>
@@ -588,11 +602,11 @@ export default function LandingPage() {
             {[
               { q: 'What is "Learning DNA"?', a: 'Learning DNA is Limud\'s proprietary cognitive profiler. Through a quick onboarding survey and ongoing analysis of how a student interacts with content, it builds a profile that captures their learning modality (visual, auditory, kinesthetic, reading), cognitive speed, retention rate, and peak study hours. Every piece of content is then adapted to match.' },
               { q: 'Who is Limud built for?', a: 'Districts and families, equally. Districts run multi-school deployments with SSO, district-wide analytics, and dedicated support. Families run a parent account with up to 5 kids — wherever those kids go to school. Same engine, same AI, same outcomes; the difference is capacity, controls, and integrations.' },
-              { q: 'How much is the Family plan?', a: 'The Family plan is $9/month (or $7/month billed yearly — saves 22%) for up to 5 kids in one parent account, with a 14-day free trial. Parents who teach at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload — included.' },
+              { q: 'How much is the Family plan?', a: 'The Family plan is $9/month (or $7/month billed yearly — saves 22%) for up to 5 kids in one parent account. Every paid plan ships with a 30-day money-back guarantee. Parents who teach at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload — included.' },
               { q: 'How does the Socratic AI tutor work?', a: 'Unlike ChatGPT which gives direct answers, Limud\'s AI tutor uses Socratic questioning to guide students to discover answers themselves. It uses analogies based on the student\'s interests (from their Learning DNA profile) to make concepts relatable. All conversations are logged for parent/teacher review.' },
               { q: 'How does a teacher upload one assignment for all students?', a: 'Teachers upload a single baseline assignment. Limud\'s AI Assignment Adapter automatically generates individualized versions for different learning styles — visual learners get diagrams, auditory learners get discussion prompts, kinesthetic learners get hands-on activities. Teachers review and approve the adaptations.' },
               { q: 'What is the AI parent check-in?', a: 'Parents click one button and receive a plain-English, conversational summary of their child\'s recent academic performance, emotional engagement, study habits, and areas needing attention. No more deciphering complex grade books.' },
-              { q: 'Do I need to leave Google Classroom or Khan Academy?', a: 'Not at all! Limud integrates with both and 14+ other platforms. Keep everything you love — Limud adds the AI grading, adaptive Learning DNA, and intelligence dashboards that those platforms don\'t offer.' },
+              { q: 'Do I need to leave Google Classroom or Khan Academy?', a: 'Not at all! Limud integrates with both and 16+ other platforms in total. Keep everything you love — Limud adds the AI grading, adaptive Learning DNA, and intelligence dashboards that those platforms don\'t offer.' },
               { q: 'Is it FERPA and COPPA compliant?', a: 'Yes, fully. All data is encrypted with AES-256-GCM. We never sell student data. Compliance is built into every layer — from field-level PII encryption to brute-force lockout, audit logging, and 7-year data retention per FERPA.' },
               { q: 'How long does setup take?', a: 'Most families are ready in under 5 minutes with the Learning DNA onboarding survey. Districts can provision teachers and students via CSV upload in under 30 minutes. The 3-step Quick Setup wizard for teachers takes about 2 minutes.' },
             ].map((faq, i) => <FAQItem key={faq.q} q={faq.q} a={faq.a} index={i} />)}
@@ -611,13 +625,14 @@ export default function LandingPage() {
                   instead of getting bounced to /register. White-on-blue
                   styling matches the surrounding gradient panel — different
                   from the white-background hero CTA, so this stays inline.
-                  v17.1: anon copy unified to "Start free trial" → /onboard
-                  to match the topbar/pricing CTA copy across the site. */}
+                  v17.4: trial copy dropped. /api/payments onboard creates an
+                  active subscription immediately — the 30-day money-back
+                  guarantee is the real escape hatch. */}
               <Link
                 href={dashboardHref ?? '/onboard'}
                 className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-7 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg"
               >
-                {dashboardHref ? 'Open your dashboard' : 'Start free trial'}
+                {dashboardHref ? 'Open your dashboard' : 'Get started'}
                 <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
               <Link href="/contact" className="inline-flex items-center justify-center gap-2 bg-white/10 text-white px-7 py-3.5 rounded-xl font-bold border border-white/20 hover:bg-white/20 transition">
@@ -626,7 +641,7 @@ export default function LandingPage() {
             </div>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-sm text-white/50">
               <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> Districts, families & individuals</span>
-              <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> 14-day free trial on paid tiers</span>
+              <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> 30-day money-back guarantee</span>
               <span className="flex items-center gap-1"><Check size={12} className="text-green-300" /> FERPA compliant</span>
             </div>
           </div>

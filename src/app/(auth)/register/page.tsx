@@ -32,8 +32,11 @@ const ACCOUNT_OPTIONS = [
     icon: Building2,
     color: 'from-indigo-500 to-purple-600',
     desc: 'I run or manage a school or district',
-    detail: 'Create an admin account to manage schools, teachers, and students. SSO/SAML, district-wide analytics, custom AI training, and dedicated support available on paid tiers.',
-    tags: ['Multi-school', 'Bulk provisioning', 'SSO/SAML', 'Plans from $2/student/mo'],
+    // v17.4: drop the "SSO/SAML available on paid tiers" claim — it is not
+    // implemented yet. Replaced with a roadmap pointer so prospects know
+    // the answer rather than discovering the gap mid-onboarding.
+    detail: 'Create an admin account to manage schools, teachers, and students. District-wide analytics, custom AI training, and dedicated support available on paid tiers. Single sign-on coming in v18.',
+    tags: ['Multi-school', 'Bulk provisioning', 'SSO coming in v18', 'Plans from $2/student/mo'],
   },
   {
     value: 'homeschool' as const,
@@ -95,8 +98,24 @@ export default function RegisterPage() {
   // Inline email validation error for step 2
   const [emailError, setEmailError] = useState<string | null>(null);
 
+  // v17.4: mirror the server breach list (src/lib/security.ts) so users
+  // don't see a green strength meter and then a submission error. Keep
+  // this in sync with BREACHED_PASSWORDS on the server.
+  const CLIENT_BREACHED_PASSWORDS = new Set<string>([
+    'password', 'password1', 'password123', '123456', '123456789', '12345678',
+    'qwerty', 'abc123', 'monkey', 'master', 'dragon', 'login', 'princess',
+    'football', 'shadow', 'sunshine', 'trustno1', 'iloveyou', 'batman',
+    'access', 'hello', 'charlie', 'donald', '1234567', '123123', 'welcome',
+    'letmein', 'password1!', 'qwerty123', 'admin123', 'root', 'toor',
+    'pass@123', 'test123', 'guest', 'changeme', 'administrator', 'p@ssw0rd',
+    'p@ssword', 'passw0rd', 'student', 'teacher', 'school', 'education',
+    'classroom', 'homework', 'learning', 'limud123', 'limud', 'demo123',
+  ]);
+
   // Password validation matching NIST SP 800-63B backend rules
-  const passwordErrors = (pw: string): string[] => {
+  // v17.4: also mirror server checks for breached / name-in / email-in
+  // password so the client UI matches what /api/auth/register will accept.
+  const passwordErrors = (pw: string, userEmail?: string, userName?: string): string[] => {
     const errs: string[] = [];
     if (pw.length < 10) errs.push('At least 10 characters');
     if (!/[A-Z]/.test(pw)) errs.push('One uppercase letter');
@@ -104,6 +123,18 @@ export default function RegisterPage() {
     if (!/[0-9]/.test(pw)) errs.push('One number');
     if (/(.)\1{3,}/.test(pw)) errs.push('No 4+ repeated characters');
     if (/(?:abcd|bcde|cdef|defg|1234|2345|3456|4567|5678|6789|0123)/i.test(pw)) errs.push('No sequential characters');
+    if (pw && CLIENT_BREACHED_PASSWORDS.has(pw.toLowerCase())) {
+      errs.push('Password appears in known data breaches — choose another');
+    }
+    if (userEmail) {
+      const local = userEmail.split('@')[0]?.toLowerCase() ?? '';
+      if (local.length > 2 && pw.toLowerCase().includes(local)) {
+        errs.push('Must not contain your email address');
+      }
+    }
+    if (userName && userName.trim().length > 2 && pw.toLowerCase().includes(userName.trim().toLowerCase())) {
+      errs.push('Must not contain your name');
+    }
     return errs;
   };
 
@@ -117,7 +148,7 @@ export default function RegisterPage() {
     return score;
   };
 
-  const pwErrors = passwordErrors(password);
+  const pwErrors = passwordErrors(password, email, name);
   const strength = passwordStrength(password);
   const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Excellent'][strength];
   const strengthColor = ['', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-emerald-500'][strength];
@@ -167,7 +198,13 @@ export default function RegisterPage() {
             router.push('/login');
           }
         } else {
-          if (data.passwordErrors && data.passwordErrors.length > 0) {
+          // v17.4: on 409 (duplicate email) bounce back to step 2, mark
+          // the email field invalid, and let the inline error offer a
+          // "Sign in instead" link. Keeps the user one click from
+          // recovering instead of dead-ending on step 3.
+          if (res.status === 409) {
+            handleDuplicateEmail();
+          } else if (data.passwordErrors && data.passwordErrors.length > 0) {
             toast.error('Password: ' + data.passwordErrors.join('. '));
           } else {
             toast.error(data.error || 'Registration failed');
@@ -200,7 +237,13 @@ export default function RegisterPage() {
             router.push('/login');
           }
         } else {
-          if (data.passwordErrors && data.passwordErrors.length > 0) {
+          // v17.4: on 409 (duplicate email) bounce back to step 2, mark
+          // the email field invalid, and let the inline error offer a
+          // "Sign in instead" link. Keeps the user one click from
+          // recovering instead of dead-ending on step 3.
+          if (res.status === 409) {
+            handleDuplicateEmail();
+          } else if (data.passwordErrors && data.passwordErrors.length > 0) {
             toast.error('Password: ' + data.passwordErrors.join('. '));
           } else {
             toast.error(data.error || 'Registration failed');
@@ -232,7 +275,13 @@ export default function RegisterPage() {
             router.push('/login');
           }
         } else {
-          if (data.passwordErrors && data.passwordErrors.length > 0) {
+          // v17.4: on 409 (duplicate email) bounce back to step 2, mark
+          // the email field invalid, and let the inline error offer a
+          // "Sign in instead" link. Keeps the user one click from
+          // recovering instead of dead-ending on step 3.
+          if (res.status === 409) {
+            handleDuplicateEmail();
+          } else if (data.passwordErrors && data.passwordErrors.length > 0) {
             toast.error('Password: ' + data.passwordErrors.join('. '));
           } else {
             toast.error(data.error || 'Registration failed');
@@ -264,7 +313,13 @@ export default function RegisterPage() {
             router.push('/login');
           }
         } else {
-          if (data.passwordErrors && data.passwordErrors.length > 0) {
+          // v17.4: on 409 (duplicate email) bounce back to step 2, mark
+          // the email field invalid, and let the inline error offer a
+          // "Sign in instead" link. Keeps the user one click from
+          // recovering instead of dead-ending on step 3.
+          if (res.status === 409) {
+            handleDuplicateEmail();
+          } else if (data.passwordErrors && data.passwordErrors.length > 0) {
             toast.error('Password: ' + data.passwordErrors.join('. '));
           } else {
             toast.error(data.error || 'Registration failed');
@@ -283,6 +338,36 @@ export default function RegisterPage() {
     (accountType === 'homeschool' ? childrenList.filter(c => c.name.trim()).length > 0 : true) &&
     ((accountType === 'self_education' || accountType === 'student_standalone') ? gradeLevel !== '' : true);
   const canProceedStep3 = pwErrors.length === 0 && password === confirmPassword;
+
+  // v17.4: shared "advance from step 2" logic so both the Continue button
+  // onClick and the <form onSubmit> can reuse it without duplication.
+  function tryAdvanceFromStep2() {
+    if (!canProceedStep2) return;
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setEmailError('Enter a valid email');
+      return;
+    }
+    setEmailError(null);
+    setStep(3);
+  }
+
+  // v17.4: when the server returns 409 (duplicate email) on step 3 submit,
+  // bounce back to step 2, highlight the email field, and let the inline
+  // error point the user at /login. Without this the user would see only
+  // a toast and have no obvious path forward.
+  function handleDuplicateEmail() {
+    setEmailError('An account with this email already exists.');
+    setStep(2);
+    toast.error('That email is already registered.');
+    // Defer the focus/scroll until step 2's DOM is mounted again.
+    setTimeout(() => {
+      const el = document.getElementById('register-email');
+      if (el instanceof HTMLInputElement) {
+        el.focus();
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+  }
 
   return (
     <AnonShell>
@@ -363,6 +448,15 @@ export default function RegisterPage() {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-6"
               >
+                {/* v17.4: wrap step 1 in a form so Enter advances to step 2
+                    once an account type is selected. */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (canProceedStep1) setStep(2);
+                  }}
+                  className="space-y-6"
+                >
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">Create your account</h1>
                   <p className="text-gray-500 mt-2">Choose your account type to get started</p>
@@ -413,7 +507,7 @@ export default function RegisterPage() {
                     <ArrowLeft size={14} /> Already have an account?
                   </Link>
                   <button
-                    onClick={() => setStep(2)}
+                    type="submit"
                     disabled={!canProceedStep1}
                     className={cn(
                       'btn-primary flex items-center gap-2',
@@ -423,6 +517,7 @@ export default function RegisterPage() {
                     Continue <ArrowRight size={16} />
                   </button>
                 </div>
+                </form>
               </motion.div>
             )}
 
@@ -435,6 +530,16 @@ export default function RegisterPage() {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-5"
               >
+                {/* v17.4: wrap step 2 in a form so Enter advances. The
+                    Continue button shares its onClick logic with the form's
+                    onSubmit via tryAdvanceFromStep2(). */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    tryAdvanceFromStep2();
+                  }}
+                  className="space-y-5"
+                >
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">
                     {accountType === 'student_standalone' ? 'Your Student Account' : accountType === 'self_education' ? 'Your Learning Account' : accountType === 'homeschool' ? 'Your Family Account' : 'School / District Admin Account'}
@@ -459,6 +564,9 @@ export default function RegisterPage() {
                     onChange={e => setName(e.target.value)}
                     className="input-field"
                     placeholder="Enter your full name"
+                    // v17.4: browser-level validation + autofill hints
+                    required
+                    autoComplete="name"
                     autoFocus
                   />
                 </div>
@@ -470,10 +578,26 @@ export default function RegisterPage() {
                     type="email"
                     value={email}
                     onChange={e => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
-                    className="input-field"
+                    className={cn(
+                      'input-field',
+                      // v17.4: highlight the email field if we bounced back
+                      // from step 3 due to a duplicate-email server error.
+                      emailError && 'border-red-300 focus:border-red-500 focus:ring-red-200'
+                    )}
                     placeholder="you@example.com"
+                    required
+                    autoComplete="email"
+                    aria-invalid={emailError ? true : undefined}
+                    aria-describedby={emailError ? 'register-email-error' : undefined}
                   />
-                  {emailError && <p role="alert" className="text-red-600 text-xs mt-1">{emailError}</p>}
+                  {emailError && (
+                    <p id="register-email-error" role="alert" className="text-red-600 text-xs mt-1">
+                      {emailError}{' '}
+                      <Link href="/login" className="underline font-medium hover:text-red-700">
+                        Sign in instead
+                      </Link>
+                    </p>
+                  )}
                 </div>
 
                 {/* District Name for admins */}
@@ -667,20 +791,14 @@ export default function RegisterPage() {
 
                 <div className="flex justify-between items-center pt-2">
                   <button
+                    type="button"
                     onClick={() => setStep(1)}
                     className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
                   >
                     <ArrowLeft size={14} /> Back
                   </button>
                   <button
-                    onClick={() => {
-                      if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-                        setEmailError('Enter a valid email');
-                        return;
-                      }
-                      setEmailError(null);
-                      setStep(3);
-                    }}
+                    type="submit"
                     disabled={!canProceedStep2}
                     className={cn(
                       'btn-primary flex items-center gap-2',
@@ -690,6 +808,7 @@ export default function RegisterPage() {
                     Continue <ArrowRight size={16} />
                   </button>
                 </div>
+                </form>
               </motion.div>
             )}
 
@@ -718,6 +837,12 @@ export default function RegisterPage() {
                       onChange={e => setPassword(e.target.value)}
                       className="input-field pr-10"
                       placeholder="Min. 10 characters"
+                      // v17.4: browser-level validation + correct autofill
+                      // affordance ("new-password" tells password managers
+                      // this is account creation, not a login).
+                      required
+                      autoComplete="new-password"
+                      minLength={10}
                       autoFocus
                     />
                     <button
@@ -774,6 +899,10 @@ export default function RegisterPage() {
                       confirmPassword && password !== confirmPassword && 'border-red-300 focus:border-red-500 focus:ring-red-200'
                     )}
                     placeholder="Re-enter your password"
+                    // v17.4: required + correct autoComplete affordance.
+                    required
+                    autoComplete="new-password"
+                    minLength={10}
                   />
                   {confirmPassword && password !== confirmPassword && (
                     <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
