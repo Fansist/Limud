@@ -7,10 +7,10 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  Shield, ShieldAlert, ShieldCheck, ShieldX, Lock, Unlock,
-  AlertTriangle, Activity, Eye, FileText, BarChart3, RefreshCw,
-  Clock, Globe, UserX, CheckCircle, XCircle, Zap, TrendingUp,
-  Filter, Download, Search, ChevronRight, ArrowRight,
+  Shield, ShieldAlert, ShieldCheck, ShieldX, Lock,
+  AlertTriangle, Activity, FileText, BarChart3, RefreshCw,
+  Clock, Globe, UserX, CheckCircle, XCircle, Zap,
+  Filter, Download, Search, ChevronRight, X,
   Server, Key, Fingerprint, Database, FileWarning,
 } from 'lucide-react';
 
@@ -129,6 +129,10 @@ export default function SecurityDashboard() {
   const [compliance, setCompliance] = useState<ComplianceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState<string>('ALL');
+  const [dateRangeFilter, setDateRangeFilter] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
+  const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedEvent, setSelectedEvent] = useState<SecurityEvent | null>(null);
 
   const fetchData = useCallback(async () => {
     if (isDemo) {
@@ -220,7 +224,64 @@ export default function SecurityDashboard() {
   }
 
   const m = metrics || DEMO_METRICS;
-  const filteredEvents = severityFilter === 'ALL' ? events : events.filter(e => e.severity === severityFilter);
+
+  // Date-range cutoff in ms (Infinity = "all time")
+  const rangeCutoffMs = (() => {
+    switch (dateRangeFilter) {
+      case '24h': return 24 * 60 * 60 * 1000;
+      case '7d': return 7 * 24 * 60 * 60 * 1000;
+      case '30d': return 30 * 24 * 60 * 60 * 1000;
+      case 'all': return Number.POSITIVE_INFINITY;
+    }
+  })();
+  const nowMs = Date.now();
+
+  // Distinct event types observed in the dataset (for the type filter chips)
+  const observedTypes = Array.from(new Set(events.map(e => e.type))).sort();
+
+  const searchLower = searchQuery.trim().toLowerCase();
+  const filteredEvents = events.filter(e => {
+    if (severityFilter !== 'ALL' && e.severity !== severityFilter) return false;
+    if (typeFilter !== 'ALL' && e.type !== typeFilter) return false;
+    if (rangeCutoffMs !== Number.POSITIVE_INFINITY) {
+      const ts = new Date(e.timestamp).getTime();
+      if (Number.isFinite(ts) && nowMs - ts > rangeCutoffMs) return false;
+    }
+    if (searchLower) {
+      const email = (e.email || '').toLowerCase();
+      const userId = (e.userId || '').toLowerCase();
+      if (!email.includes(searchLower) && !userId.includes(searchLower)) return false;
+    }
+    return true;
+  });
+
+  // CSV export of currently-filtered events.
+  const exportCsv = () => {
+    const rows = filteredEvents;
+    const header = ['timestamp', 'type', 'severity', 'ip', 'userId', 'email', 'path', 'method', 'blocked', 'details', 'userAgent'];
+    const escape = (v: string | boolean | undefined): string => {
+      const s = v === undefined || v === null ? '' : String(v);
+      // Wrap and escape any field that contains comma, quote, or newline
+      if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const lines = [
+      header.join(','),
+      ...rows.map(r => [
+        r.timestamp, r.type, r.severity, r.ip, r.userId, r.email,
+        r.path, r.method, r.blocked, r.details, r.userAgent,
+      ].map(escape).join(',')),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `security-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <BarChart3 size={16} /> },
@@ -354,19 +415,25 @@ export default function SecurityDashboard() {
                 </button>
               </div>
               <div className="space-y-2">
-                {(events.length > 0 ? events : DEMO_EVENTS).slice(0, 5).map((event) => (
-                  <div key={event.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition">
-                    <div className={cn('w-2 h-2 rounded-full flex-shrink-0', SEVERITY_DOT[event.severity] || 'bg-gray-400')} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{event.details}</p>
-                      <p className="text-xs text-gray-400">{event.type} · {event.ip} · {timeAgo(event.timestamp)}</p>
-                    </div>
-                    <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-medium', SEVERITY_COLORS[event.severity])}>
-                      {event.severity}
-                    </span>
-                    {event.blocked && <XCircle size={14} className="text-red-400 flex-shrink-0" title="Blocked" />}
+                {events.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-gray-400">
+                    No security events recorded yet — your district is quiet.
                   </div>
-                ))}
+                ) : (
+                  events.slice(0, 5).map((event) => (
+                    <div key={event.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition">
+                      <div className={cn('w-2 h-2 rounded-full flex-shrink-0', SEVERITY_DOT[event.severity] || 'bg-gray-400')} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{event.details}</p>
+                        <p className="text-xs text-gray-400">{event.type} · {event.ip} · {timeAgo(event.timestamp)}</p>
+                      </div>
+                      <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-medium', SEVERITY_COLORS[event.severity])}>
+                        {event.severity}
+                      </span>
+                      {event.blocked && <XCircle size={14} className="text-red-400 flex-shrink-0" title="Blocked" />}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </motion.div>
@@ -381,15 +448,26 @@ export default function SecurityDashboard() {
                 Active Threats &amp; Blocked Attacks
               </h2>
               <div className="space-y-3">
-                {(events.length > 0 ? events : DEMO_EVENTS)
-                  .filter(e => e.severity === 'HIGH' || e.severity === 'CRITICAL' || e.blocked)
-                  .map((event) => (
-                    <div key={event.id} className={cn(
-                      'p-4 rounded-xl border transition',
-                      event.severity === 'CRITICAL' ? 'border-red-200 bg-red-50' :
-                      event.severity === 'HIGH' ? 'border-orange-200 bg-orange-50' :
-                      'border-gray-200 bg-gray-50'
-                    )}>
+                {(() => {
+                  const threats = events.filter(e => e.severity === 'HIGH' || e.severity === 'CRITICAL' || e.blocked);
+                  if (threats.length === 0) {
+                    return (
+                      <div className="p-6 text-center text-sm text-gray-400">
+                        No active threats or blocked attacks recorded.
+                      </div>
+                    );
+                  }
+                  return threats.map((event) => (
+                    <div
+                      key={event.id}
+                      onClick={() => setSelectedEvent(event)}
+                      className={cn(
+                        'p-4 rounded-xl border transition cursor-pointer hover:shadow-sm',
+                        event.severity === 'CRITICAL' ? 'border-red-200 bg-red-50' :
+                        event.severity === 'HIGH' ? 'border-orange-200 bg-orange-50' :
+                        'border-gray-200 bg-gray-50'
+                      )}
+                    >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', SEVERITY_COLORS[event.severity])}>
@@ -409,7 +487,8 @@ export default function SecurityDashboard() {
                         {event.email && <span>Target: {event.email}</span>}
                       </div>
                     </div>
-                  ))}
+                  ));
+                })()}
               </div>
             </div>
           </motion.div>
@@ -419,65 +498,279 @@ export default function SecurityDashboard() {
         {activeTab === 'audit' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             {/* Filters */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1 bg-white rounded-lg border border-gray-200 p-1">
-                {['ALL', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(sev => (
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Date range */}
+                <div className="flex items-center gap-1 bg-gray-50 rounded-lg border border-gray-200 p-1">
+                  <Clock size={14} className="text-gray-400 ml-2" />
+                  {([
+                    { id: '24h', label: 'Last 24h' },
+                    { id: '7d', label: 'Last 7d' },
+                    { id: '30d', label: 'Last 30d' },
+                    { id: 'all', label: 'All time' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setDateRangeFilter(opt.id)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-md text-xs font-medium transition',
+                        dateRangeFilter === opt.id ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Severity */}
+                <div className="flex items-center gap-1 bg-gray-50 rounded-lg border border-gray-200 p-1">
+                  <Filter size={14} className="text-gray-400 ml-2" />
+                  {['ALL', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(sev => (
+                    <button
+                      key={sev}
+                      onClick={() => setSeverityFilter(sev)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-md text-xs font-medium transition',
+                        severityFilter === sev ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'
+                      )}
+                    >
+                      {sev}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Export */}
+                <button
+                  onClick={exportCsv}
+                  disabled={filteredEvents.length === 0}
+                  className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  title="Export filtered events to CSV"
+                >
+                  <Download size={14} />
+                  Export CSV
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Event type — built from observed types */}
+                <div className="flex items-center gap-1 bg-gray-50 rounded-lg border border-gray-200 p-1 flex-wrap">
                   <button
-                    key={sev}
-                    onClick={() => setSeverityFilter(sev)}
+                    onClick={() => setTypeFilter('ALL')}
                     className={cn(
                       'px-3 py-1.5 rounded-md text-xs font-medium transition',
-                      severityFilter === sev ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'
+                      typeFilter === 'ALL' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'
                     )}
                   >
-                    {sev}
+                    ALL TYPES
                   </button>
-                ))}
+                  {observedTypes.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setTypeFilter(t)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-md text-xs font-medium transition',
+                        typeFilter === t ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Search by user email */}
+                <div className="flex items-center gap-2 bg-gray-50 rounded-lg border border-gray-200 px-3 py-1.5 flex-1 min-w-[220px]">
+                  <Search size={14} className="text-gray-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by user email or ID"
+                    className="bg-transparent text-xs text-gray-700 placeholder-gray-400 outline-none flex-1"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="text-gray-400 hover:text-gray-600"
+                      title="Clear search"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
+
+              <p className="text-xs text-gray-400">
+                Showing {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'}
+              </p>
             </div>
 
             {/* Event List */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/80">
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Time</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Severity</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Event</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3 hidden md:table-cell">IP</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3 hidden lg:table-cell">User</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(filteredEvents.length > 0 ? filteredEvents : DEMO_EVENTS.filter(e => severityFilter === 'ALL' || e.severity === severityFilter)).map((event) => (
-                    <tr key={event.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition">
-                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{timeAgo(event.timestamp)}</td>
-                      <td className="px-4 py-3">
-                        <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-medium', SEVERITY_COLORS[event.severity])}>
-                          {event.severity}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-medium text-gray-900 truncate max-w-[200px] lg:max-w-[400px]">{event.details}</p>
-                        <p className="text-[10px] text-gray-400">{event.type}</p>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell font-mono">{event.ip}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">{event.email || '-'}</td>
-                      <td className="px-4 py-3">
-                        {event.blocked ? (
-                          <span className="flex items-center gap-1 text-xs font-medium text-red-600"><XCircle size={12} /> Blocked</span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-xs font-medium text-green-600"><CheckCircle size={12} /> Allowed</span>
-                        )}
-                      </td>
+              {filteredEvents.length === 0 ? (
+                <div className="p-12 flex flex-col items-center text-center gap-2">
+                  <ShieldCheck size={32} className="text-green-500" />
+                  <p className="text-sm font-medium text-gray-700">No security events match the current filters.</p>
+                  <p className="text-xs text-gray-400">
+                    {events.length === 0
+                      ? 'Your district has no recorded security incidents — that’s a good thing.'
+                      : 'Try widening the date range or clearing filters.'}
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/80">
+                      <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Time</th>
+                      <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Severity</th>
+                      <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Event</th>
+                      <th className="text-left text-xs font-medium text-gray-500 px-4 py-3 hidden md:table-cell">IP</th>
+                      <th className="text-left text-xs font-medium text-gray-500 px-4 py-3 hidden lg:table-cell">User</th>
+                      <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredEvents.map((event) => (
+                      <tr
+                        key={event.id}
+                        onClick={() => setSelectedEvent(event)}
+                        className="border-b border-gray-50 hover:bg-gray-50/50 transition cursor-pointer"
+                      >
+                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{timeAgo(event.timestamp)}</td>
+                        <td className="px-4 py-3">
+                          <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-medium', SEVERITY_COLORS[event.severity])}>
+                            {event.severity}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-medium text-gray-900 truncate max-w-[200px] lg:max-w-[400px]">{event.details}</p>
+                          <p className="text-[10px] text-gray-400">{event.type}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell font-mono">{event.ip}</td>
+                        <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">{event.email || '-'}</td>
+                        <td className="px-4 py-3">
+                          {event.blocked ? (
+                            <span className="flex items-center gap-1 text-xs font-medium text-red-600"><XCircle size={12} /> Blocked</span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-xs font-medium text-green-600"><CheckCircle size={12} /> Allowed</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </motion.div>
         )}
+
+        {/* ═══ EVENT DRILL-DOWN MODAL ═══ */}
+        <AnimatePresence>
+          {selectedEvent && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-end"
+              onClick={() => setSelectedEvent(null)}
+            >
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 280 }}
+                className="bg-white h-full w-full max-w-md overflow-y-auto shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={cn('w-2 h-2 rounded-full flex-shrink-0', SEVERITY_DOT[selectedEvent.severity] || 'bg-gray-400')} />
+                    <h3 className="text-base font-bold text-gray-900 truncate">{selectedEvent.type.replace(/_/g, ' ')}</h3>
+                  </div>
+                  <button
+                    onClick={() => setSelectedEvent(null)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                    title="Close"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', SEVERITY_COLORS[selectedEvent.severity])}>
+                      {selectedEvent.severity}
+                    </span>
+                    {selectedEvent.blocked ? (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">BLOCKED</span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">ALLOWED</span>
+                    )}
+                    <span className="text-xs text-gray-400">{timeAgo(selectedEvent.timestamp)}</span>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-gray-700">{selectedEvent.details}</p>
+                  </div>
+
+                  <dl className="space-y-3 text-xs">
+                    <div className="grid grid-cols-3 gap-2">
+                      <dt className="text-gray-400">Event ID</dt>
+                      <dd className="col-span-2 font-mono text-gray-700 break-all">{selectedEvent.id}</dd>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <dt className="text-gray-400">Timestamp</dt>
+                      <dd className="col-span-2 text-gray-700">{new Date(selectedEvent.timestamp).toLocaleString()}</dd>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <dt className="text-gray-400">Type</dt>
+                      <dd className="col-span-2 font-mono text-gray-700">{selectedEvent.type}</dd>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <dt className="text-gray-400">IP</dt>
+                      <dd className="col-span-2 font-mono text-gray-700 break-all">{selectedEvent.ip}</dd>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <dt className="text-gray-400">Method</dt>
+                      <dd className="col-span-2 font-mono text-gray-700">{selectedEvent.method}</dd>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <dt className="text-gray-400">Path</dt>
+                      <dd className="col-span-2 font-mono text-gray-700 break-all">{selectedEvent.path}</dd>
+                    </div>
+                    {selectedEvent.email && (
+                      <div className="grid grid-cols-3 gap-2">
+                        <dt className="text-gray-400">User email</dt>
+                        <dd className="col-span-2 text-gray-700 break-all">{selectedEvent.email}</dd>
+                      </div>
+                    )}
+                    {selectedEvent.userId && (
+                      <div className="grid grid-cols-3 gap-2">
+                        <dt className="text-gray-400">User ID</dt>
+                        <dd className="col-span-2 font-mono text-gray-700 break-all">{selectedEvent.userId}</dd>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-3 gap-2">
+                      <dt className="text-gray-400">User agent</dt>
+                      <dd className="col-span-2 font-mono text-gray-700 break-all">{selectedEvent.userAgent || '—'}</dd>
+                    </div>
+                  </dl>
+
+                  <div>
+                    <p className="text-xs text-gray-400 mb-2">Raw details</p>
+                    <pre className="bg-gray-900 text-gray-100 text-xs rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-words">{(() => {
+                      try {
+                        const parsed = JSON.parse(selectedEvent.details);
+                        return JSON.stringify(parsed, null, 2);
+                      } catch {
+                        return JSON.stringify(selectedEvent, null, 2);
+                      }
+                    })()}</pre>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ═══ COMPLIANCE TAB ═══ */}
         {activeTab === 'compliance' && (

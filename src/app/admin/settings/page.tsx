@@ -1,16 +1,16 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import {
-  Settings, Building2, Shield, Calendar, Palette, Bell, Globe,
-  Lock, Users, BookOpen, Save, RotateCcw, Eye, CheckCircle2,
-  Clock, Gamepad2, Brain, Mail, AlertTriangle, Zap, Target,
+  Settings, Building2, Shield, Palette, Bell,
+  Users, BookOpen, Save, RotateCcw, Eye, CheckCircle2,
+  Clock, Brain, Mail, AlertTriangle, Zap, Target,
   ToggleLeft, ToggleRight,
 } from 'lucide-react';
 
@@ -58,6 +58,7 @@ const DEMO_SETTINGS = {
     parentPortalEnabled: true,
     gameStoreEnabled: true,
     focusModeEnabled: true,
+    examSimEnabled: true,
     maxGameMinutesPerDay: 30,
     xpMultiplier: 1.0,
     requireSurvey: true,
@@ -91,16 +92,36 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [hasChanges, setHasChanges] = useState(false);
+  const lastLoaded = useRef<string | null>(null);
 
   useEffect(() => { fetchSettings(); }, [isDemo]);
 
   async function fetchSettings() {
-    if (isDemo) { setSettings(JSON.parse(JSON.stringify(DEMO_SETTINGS))); setLoading(false); return; }
+    if (isDemo) {
+      const snapshot = JSON.stringify(DEMO_SETTINGS);
+      lastLoaded.current = snapshot;
+      setSettings(JSON.parse(snapshot));
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch('/api/district/settings');
-      if (res.ok) { const data = await res.json(); setSettings(data.settings || DEMO_SETTINGS); }
-      else { setSettings(JSON.parse(JSON.stringify(DEMO_SETTINGS))); }
-    } catch { setSettings(JSON.parse(JSON.stringify(DEMO_SETTINGS))); }
+      if (res.ok) {
+        const data = await res.json();
+        const loaded = data.settings || DEMO_SETTINGS;
+        const snapshot = JSON.stringify(loaded);
+        lastLoaded.current = snapshot;
+        setSettings(JSON.parse(snapshot));
+      } else {
+        const snapshot = JSON.stringify(DEMO_SETTINGS);
+        lastLoaded.current = snapshot;
+        setSettings(JSON.parse(snapshot));
+      }
+    } catch {
+      const snapshot = JSON.stringify(DEMO_SETTINGS);
+      lastLoaded.current = snapshot;
+      setSettings(JSON.parse(snapshot));
+    }
     finally { setLoading(false); }
   }
 
@@ -115,6 +136,7 @@ export default function AdminSettingsPage() {
     setSaving(true);
     if (isDemo) {
       await new Promise(r => setTimeout(r, 800));
+      lastLoaded.current = JSON.stringify(settings);
       toast.success('Settings saved (Demo)');
       setSaving(false); setHasChanges(false); return;
     }
@@ -123,16 +145,20 @@ export default function AdminSettingsPage() {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       });
-      if (res.ok) { toast.success('Settings saved successfully!'); setHasChanges(false); }
-      else toast.error('Failed to save settings');
+      if (res.ok) {
+        lastLoaded.current = JSON.stringify(settings);
+        toast.success('Settings saved successfully!');
+        setHasChanges(false);
+      } else toast.error('Failed to save settings');
     } catch { toast.error('Failed to save settings'); }
     finally { setSaving(false); }
   }
 
-  function handleReset() {
-    setSettings(JSON.parse(JSON.stringify(DEMO_SETTINGS)));
+  function handleDiscard() {
+    if (!lastLoaded.current) return;
+    setSettings(JSON.parse(lastLoaded.current));
     setHasChanges(false);
-    toast.success('Settings reset to defaults');
+    toast.success('Unsaved changes discarded');
   }
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
@@ -166,8 +192,8 @@ export default function AdminSettingsPage() {
           </div>
           <div className="flex gap-2">
             {hasChanges && (
-              <button onClick={handleReset} className="btn-secondary flex items-center gap-2 text-sm">
-                <RotateCcw size={14} /> Reset
+              <button onClick={handleDiscard} className="btn-secondary flex items-center gap-2 text-sm">
+                <RotateCcw size={14} /> Discard unsaved changes
               </button>
             )}
             <button onClick={handleSave} disabled={!hasChanges || saving}
@@ -295,6 +321,21 @@ export default function AdminSettingsPage() {
                   <input type="number" value={settings.security.maxLoginAttempts} onChange={e => updateSetting('security', 'maxLoginAttempts', parseInt(e.target.value))} className="input-field" min={1} max={20} /></div>
                 <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Session Timeout (minutes)</label>
                   <input type="number" value={settings.security.sessionTimeout} onChange={e => updateSetting('security', 'sessionTimeout', parseInt(e.target.value))} className="input-field" min={15} max={480} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password Change Frequency (days)</label>
+                  <input type="number" value={settings.security.passwordChangeDays} onChange={e => updateSetting('security', 'passwordChangeDays', parseInt(e.target.value))} className="input-field" min={30} max={365} /></div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Allowed IP Addresses</label>
+                <textarea
+                  value={settings.security.allowedIPs}
+                  onChange={e => updateSetting('security', 'allowedIPs', e.target.value)}
+                  className="input-field font-mono text-xs"
+                  rows={4}
+                  placeholder="One IP or CIDR per line, e.g.&#10;192.168.1.0/24&#10;10.0.0.5"
+                  disabled={!settings.security.ipRestriction}
+                />
+                <p className="text-xs text-gray-400 mt-1">Only used when IP Address Restriction is enabled below.</p>
               </div>
 
               <div className="space-y-3">
@@ -378,6 +419,35 @@ export default function AdminSettingsPage() {
                 ))}
               </div>
 
+              <hr />
+              <h4 className="font-medium text-gray-700 dark:text-gray-300">Gamification Limits</h4>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Game Minutes per Day</label>
+                  <input
+                    type="number"
+                    value={settings.features.maxGameMinutesPerDay}
+                    onChange={e => updateSetting('features', 'maxGameMinutesPerDay', parseInt(e.target.value))}
+                    className="input-field"
+                    min={0}
+                    max={240}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Daily cap on Game Store time per student.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">XP Multiplier</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={settings.features.xpMultiplier}
+                    onChange={e => updateSetting('features', 'xpMultiplier', parseFloat(e.target.value))}
+                    className="input-field"
+                    min={0.1}
+                    max={5}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Boost or dampen XP earned district-wide (1.0 = normal).</p>
+                </div>
+              </div>
             </div>
           )}
 

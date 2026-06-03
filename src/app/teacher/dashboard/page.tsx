@@ -55,27 +55,47 @@ export default function TeacherDashboard() {
   }, [status, isDemo]);
 
   async function fetchData() {
-    try {
-      const [analyticsRes, assignRes, classroomsRes] = await Promise.all([
-        fetch('/api/analytics'),
-        fetch('/api/assignments'),
-        // v12.4.4: Use dedicated teacher endpoint for reliable classroom visibility
-        fetch('/api/teacher/classrooms'),
-      ]);
-      if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
-      if (assignRes.ok) {
-        const data = await assignRes.json();
-        setAssignments(data.assignments || []);
+    // v17.5: Promise.allSettled so a single failing endpoint doesn't take down the whole dashboard.
+    const [analyticsResult, assignResult, classroomsResult] = await Promise.allSettled([
+      fetch('/api/analytics'),
+      fetch('/api/assignments'),
+      // v12.4.4: Use dedicated teacher endpoint for reliable classroom visibility
+      fetch('/api/teacher/classrooms'),
+    ]);
+
+    if (analyticsResult.status === 'fulfilled' && analyticsResult.value.ok) {
+      try {
+        setAnalytics(await analyticsResult.value.json());
+      } catch (err) {
+        console.error('Error parsing analytics response:', err);
       }
-      if (classroomsRes.ok) {
-        const data = await classroomsRes.json();
-        setMyClassrooms(data.classrooms || []);
-      }
-    } catch (err) {
-      console.error('Error fetching teacher data:', err);
-    } finally {
-      setLoading(false);
+    } else if (analyticsResult.status === 'rejected') {
+      console.error('Error fetching analytics:', analyticsResult.reason);
     }
+
+    if (assignResult.status === 'fulfilled' && assignResult.value.ok) {
+      try {
+        const data = await assignResult.value.json();
+        setAssignments(data.assignments || []);
+      } catch (err) {
+        console.error('Error parsing assignments response:', err);
+      }
+    } else if (assignResult.status === 'rejected') {
+      console.error('Error fetching assignments:', assignResult.reason);
+    }
+
+    if (classroomsResult.status === 'fulfilled' && classroomsResult.value.ok) {
+      try {
+        const data = await classroomsResult.value.json();
+        setMyClassrooms(data.classrooms || []);
+      } catch (err) {
+        console.error('Error parsing classrooms response:', err);
+      }
+    } else if (classroomsResult.status === 'rejected') {
+      console.error('Error fetching classrooms:', classroomsResult.reason);
+    }
+
+    setLoading(false);
   }
 
   if (!isDemo && (status === 'loading' || loading)) {
@@ -104,6 +124,27 @@ export default function TeacherDashboard() {
   };
 
   const atRiskStudents = students.filter((s: any) => s.riskLevel === 'high' || s.riskLevel === 'medium');
+
+  // v17.5: "Today's classes" widget — sorted by period (when present), else by name.
+  const todayLabel = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+  const periodOrder = (p: unknown): number => {
+    if (typeof p !== 'string' || !p.trim()) return Number.POSITIVE_INFINITY;
+    const m = p.match(/\d+/);
+    return m ? parseInt(m[0], 10) : Number.POSITIVE_INFINITY;
+  };
+  const hasAnyPeriod = myClassrooms.some((c: any) => typeof c?.period === 'string' && c.period.trim().length > 0);
+  const todaysClasses = [...myClassrooms].sort((a: any, b: any) => {
+    if (hasAnyPeriod) {
+      const ap = periodOrder(a?.period);
+      const bp = periodOrder(b?.period);
+      if (ap !== bp) return ap - bp;
+    }
+    return String(a?.name || '').localeCompare(String(b?.name || ''));
+  });
 
   return (
     <DashboardLayout>
@@ -146,6 +187,70 @@ export default function TeacherDashboard() {
           </div>
         </motion.div>
 
+        {/* ═══ TODAY'S CLASSES — v17.5: Time-based view of today's schedule ═══ */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="card"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                <CalendarDays size={16} className="text-emerald-600" />
+              </div>
+              Today&apos;s classes
+            </h2>
+            <span className="text-xs text-gray-500 font-medium">{todayLabel}</span>
+          </div>
+          {todaysClasses.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-sm text-gray-500 mb-3">No classes scheduled today.</p>
+              <Link
+                href={`/teacher/classrooms${demoSuffix}`}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-600 hover:underline"
+              >
+                Create your first classroom <ArrowRight size={14} />
+              </Link>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {todaysClasses.map((c: any) => {
+                const periodLabel = typeof c?.period === 'string' && c.period.trim() ? c.period : null;
+                const studentCount = c?._count?.students ?? 0;
+                return (
+                  <li
+                    key={c.id}
+                    className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div
+                      className="w-1 h-10 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: c.color || '#3B82F6' }}
+                    />
+                    <div className="w-20 flex-shrink-0">
+                      <span className="text-xs font-semibold text-gray-700">
+                        {periodLabel || '—'}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <Users size={10} /> {studentCount} student{studentCount === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/teacher/classrooms/${c.id}${demoSuffix}`}
+                      className="text-xs text-primary-600 font-semibold hover:underline flex items-center gap-1 whitespace-nowrap"
+                    >
+                      Go to class <ArrowRight size={12} />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </motion.div>
+
         {/* ═══ AT-RISK ALERT — Blueprint: "AI flags at-risk students" ═══ */}
         {summary.atRisk > 0 && (
           <motion.div
@@ -162,7 +267,7 @@ export default function TeacherDashboard() {
                 {summary.atRisk} student{summary.atRisk > 1 ? 's' : ''} flagged as at-risk
               </p>
               <p className="text-sm text-red-600/80">
-                AI detected declining engagement trends — these students may need human intervention.
+                Students with average score below 75%. Review their recent work.
               </p>
             </div>
             <Link href={`/teacher/intelligence${demoSuffix}`} className="btn-danger text-xs whitespace-nowrap flex items-center gap-1.5">
@@ -287,25 +392,39 @@ export default function TeacherDashboard() {
           ))}
         </div>
 
-        {/* ═══ MY CLASSES — v12.4.3: Show assigned classrooms ═══ */}
-        {myClassrooms.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="card"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <BookOpen size={16} className="text-blue-500" />
-                </div>
-                My Classes ({myClassrooms.length})
-              </h2>
-              <Link href={`/teacher/classrooms${demoSuffix}`} className="text-xs text-primary-600 font-semibold hover:underline flex items-center gap-1">
-                View all <ArrowRight size={12} />
-              </Link>
-            </div>
+        {/* ═══ MY CLASSES — v12.4.3: Show assigned classrooms; v17.5: empty state added ═══ */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="card"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                <BookOpen size={16} className="text-blue-500" />
+              </div>
+              My Classes ({myClassrooms.length})
+            </h2>
+            <Link href={`/teacher/classrooms${demoSuffix}`} className="text-xs text-primary-600 font-semibold hover:underline flex items-center gap-1">
+              View all <ArrowRight size={12} />
+            </Link>
+          </div>
+          {myClassrooms.length === 0 ? (
+            <EmptyState
+              icon={<BookOpen size={28} />}
+              title="No classrooms yet"
+              description="Create your first classroom to organize students, assignments, and grades."
+              action={
+                <Link
+                  href={`/teacher/classrooms${demoSuffix}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm transition"
+                >
+                  Create your first classroom
+                </Link>
+              }
+            />
+          ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {myClassrooms.slice(0, 6).map((c: any) => (
                 <Link key={c.id} href={`/teacher/classrooms${demoSuffix}`}
@@ -326,8 +445,8 @@ export default function TeacherDashboard() {
                 </Link>
               ))}
             </div>
-          </motion.div>
-        )}
+          )}
+        </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Students Needing Attention — Blueprint: Intelligence Dashboard alerts */}

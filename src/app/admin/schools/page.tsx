@@ -20,6 +20,7 @@ const DEMO_SCHOOLS = [
 type SchoolRow = {
   id: string;
   name: string;
+  description?: string | null;
   address?: string | null;
   city?: string | null;
   state?: string | null;
@@ -44,10 +45,9 @@ export default function AdminSchoolsPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', address: '', city: '', state: '', zipCode: '', phone: '' });
-  // v17.1: per-row Edit & Archive. Edit opens a small modal; Archive runs a
-  // confirm dialog and POSTs the existing DELETE endpoint. Both fall back to
-  // a "coming in v17.2" toast if the API errors (defensive — the API does
-  // exist, but admins shouldn't ever see a silent failure).
+  // Per-row Edit & Archive. Edit opens a small modal; Archive runs a confirm
+  // dialog and calls the existing DELETE endpoint. Errors surface the server's
+  // own message so admins never see a silent failure.
   const [editing, setEditing] = useState<EditState | null>(null);
   const [editSaving, setEditSaving] = useState(false);
   const [archiving, setArchiving] = useState<string | null>(null);
@@ -72,31 +72,34 @@ export default function AdminSchoolsPage() {
     if (!editing) return;
     if (!editing.name.trim()) { toast.error('School name required'); return; }
     if (isDemo) {
-      setSchools(prev => prev.map(s => s.id === editing.id ? { ...s, name: editing.name } : s));
+      setSchools(prev => prev.map(s => s.id === editing.id
+        ? { ...s, name: editing.name, description: editing.description }
+        : s));
       toast.success('School updated (Demo)');
       setEditing(null);
       return;
     }
     setEditSaving(true);
     try {
-      // The schools API only persists name/address/etc — description is not a
-      // first-class field yet. v17.1: persist the name today; if/when a
-      // description column lands, this body can extend it.
       const res = await fetch('/api/district/schools', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ schoolId: editing.id, name: editing.name }),
+        body: JSON.stringify({
+          schoolId: editing.id,
+          name: editing.name,
+          description: editing.description,
+        }),
       });
       if (res.ok) {
         toast.success('School updated');
         setEditing(null);
         fetchSchools();
       } else {
-        // Surface a non-silent fallback — the spec calls this out as "honest UX"
-        toast('School management API errored — full editor lands in v17.2', { icon: 'ℹ️' });
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error || 'Could not save changes. Please try again.');
         setEditing(null);
       }
     } catch {
-      toast('School management API is coming in v17.2', { icon: 'ℹ️' });
+      toast.error('Could not save changes. Please try again.');
       setEditing(null);
     } finally {
       setEditSaving(false);
@@ -105,9 +108,7 @@ export default function AdminSchoolsPage() {
 
   async function handleArchive(school: SchoolRow) {
     const confirmed = window.confirm(
-      `Archive ${school.name}?\n\n` +
-      `This unassigns all users from the school and removes it from your district. ` +
-      `Classrooms are kept but lose their school link.`
+      `Archive school "${school.name}"? Students and teachers in this school will lose their school assignment.`
     );
     if (!confirmed) return;
 
@@ -126,10 +127,11 @@ export default function AdminSchoolsPage() {
         toast.success('School archived');
         fetchSchools();
       } else {
-        toast('School management API errored — archive lands in v17.2', { icon: 'ℹ️' });
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error || 'Could not save changes. Please try again.');
       }
     } catch {
-      toast('School management API is coming in v17.2', { icon: 'ℹ️' });
+      toast.error('Could not save changes. Please try again.');
     } finally {
       setArchiving(null);
     }
@@ -202,14 +204,20 @@ export default function AdminSchoolsPage() {
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <h3 className="font-bold text-gray-900 text-lg truncate">{school.name}</h3>
+                {school.description && (
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    {school.description.length > 80
+                      ? `${school.description.slice(0, 80)}…`
+                      : school.description}
+                  </p>
+                )}
                 {school.address && (
                   <p className="text-sm text-gray-500 flex items-center gap-1 mt-1"><MapPin size={12} /> {school.address}{school.city ? `, ${school.city}` : ''}</p>
                 )}
               </div>
-              {/* v17.1: per-row Edit + Archive action buttons */}
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button
-                  onClick={() => setEditing({ id: school.id, name: school.name, description: '' })}
+                  onClick={() => setEditing({ id: school.id, name: school.name, description: school.description ?? '' })}
                   title="Edit school"
                   className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition"
                 >
@@ -246,9 +254,7 @@ export default function AdminSchoolsPage() {
         ))}
       </div>
 
-      {/* v17.1: Edit School modal — name + description. Description isn't a
-          first-class column yet, so the input is accepted but not persisted
-          to the DB; that's called out in the helper text below. */}
+      {/* Edit School modal — name + description. */}
       <AnimatePresence>
         {editing && (
           <motion.div
@@ -286,9 +292,6 @@ export default function AdminSchoolsPage() {
                     rows={3}
                     placeholder="Optional notes about this school..."
                   />
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    Description is captured locally for v17.1; persisted-description support lands in v17.2.
-                  </p>
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-4">
@@ -316,6 +319,12 @@ export default function AdminSchoolsPage() {
         <div className="text-center py-12 text-gray-400">
           <Building2 size={48} className="mx-auto mb-3 opacity-50" />
           <p>No schools yet. Create your first school to get started.</p>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="btn-primary mt-4 inline-flex items-center gap-2"
+          >
+            <Plus size={16} /> Add first school
+          </button>
         </div>
       )}
     </div>

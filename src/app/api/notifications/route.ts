@@ -2,6 +2,24 @@ import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
+// v17.5 SEC: prevent stored XSS via notification links. Reject any URL whose
+// protocol is not http(s) (blocks javascript:, data:, vbscript:, file:, etc).
+// Same-origin relative paths (starting with a single `/`) are preserved.
+function sanitizeNotificationLink(link: string | undefined | null): string | null {
+  if (!link) return null;
+  const trimmed = link.trim();
+  if (!trimmed) return null;
+  // Relative same-origin path: starts with `/` but not `//` (protocol-relative).
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return trimmed;
+  try {
+    const u = new URL(trimmed);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
 
@@ -87,6 +105,11 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'userId, title, and message are required' }, { status: 400 });
   }
 
+  const safeLink = sanitizeNotificationLink(link);
+  if (link && !safeLink) {
+    return NextResponse.json({ error: 'Invalid notification link' }, { status: 400 });
+  }
+
   // Verify relationship: teacher/parent can only notify their students
   if (userId !== user.id) {
     if (user.role === 'TEACHER') {
@@ -106,7 +129,7 @@ export const POST = apiHandler(async (req: Request) => {
       title,
       message,
       type: type || 'system',
-      link: link || null,
+      link: safeLink,
     },
   });
 

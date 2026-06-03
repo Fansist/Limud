@@ -28,6 +28,28 @@ export const GET = apiHandler(async (req: Request) => {
 
   // ── Per-assignment view: all submissions with method details ──
   if (assignmentId) {
+    // FERPA: confirm the teacher owns or co-teaches the course this assignment
+    // belongs to. Without this, any TEACHER could read insights for any
+    // assignment id — including ones from other districts they don't teach.
+    // Master demo (synthetic data) and ADMIN are exempted from the scope check.
+    if (user.role === 'TEACHER' && !user.isMasterDemo) {
+      const scopeCheck = await prisma.assignment.findUnique({
+        where: { id: assignmentId },
+        select: {
+          createdById: true,
+          course: { select: { teachers: { select: { teacherId: true } } } },
+        },
+      });
+      if (!scopeCheck) {
+        return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+      }
+      const isOwner = scopeCheck.createdById === user.id;
+      const isCoTeacher = scopeCheck.course?.teachers.some(t => t.teacherId === user.id) ?? false;
+      if (!isOwner && !isCoTeacher) {
+        return NextResponse.json({ error: 'Forbidden: you do not teach this assignment' }, { status: 403 });
+      }
+    }
+
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
       select: {

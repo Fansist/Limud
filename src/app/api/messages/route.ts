@@ -104,12 +104,28 @@ export async function isAllowedDm(sender: UserSession, receiver: DmReceiver): Pr
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
 
+  // FERPA: district isolation. If the requester is associated with a district
+  // (DISTRICT account type), restrict their conversation list to threads where
+  // BOTH parties are in the same district. This prevents a transferred user
+  // from continuing to see threads with the old district's staff/students.
+  // Individual learners and homeschoolers (no districtId) keep unscoped behavior.
+  // Master demo is preserved by the existing demo data flow — no DB writes occur
+  // here, and the where clause applies uniformly to any persisted rows.
+  const userDistrictId = user.districtId;
+  const districtScope = userDistrictId
+    ? {
+        sender: { districtId: userDistrictId },
+        receiver: { districtId: userDistrictId },
+      }
+    : {};
+
   const messages = await prisma.message.findMany({
     where: {
       OR: [
         { senderId: user.id },
         { receiverId: user.id },
       ],
+      AND: districtScope,
     },
     include: {
       sender: { select: { id: true, name: true, role: true } },

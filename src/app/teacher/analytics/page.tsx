@@ -169,16 +169,16 @@ function AnalyticsContent() {
               <p className="text-xs text-gray-400">Comprehensive view of student performance, insights & learning profiles</p>
             </div>
           </div>
-          {/* v12.0.0: PDF Export */}
-          <button onClick={async () => {
-            try {
-              const res = await fetch('/api/reports/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'class-summary' }) });
-              if (res.ok) { const toast = (await import('react-hot-toast')).default; toast.success('Report generated (PDF export)'); }
-            } catch (err) { console.error('[teacher/analytics] pdf export failed', err); toast.error('PDF export failed'); }
-          }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm transition">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          {/* v17.5: PDF Export — /api/reports/export is a per-student report, not a class summary.
+              Until a class-summary endpoint ships, send the user to per-student PDF on /teacher/reports. */}
+          <Link
+            href={`/teacher/reports${needsDemoParam ? '?demo=true' : ''}`}
+            onClick={() => toast('Per-class PDF coming in v17.6 — for now, generate per-student reports', { icon: 'ℹ️' })}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Export PDF
-          </button>
+          </Link>
         </div>
 
         {/* Tab Bar */}
@@ -216,6 +216,7 @@ function AnalyticsContent() {
 
 function OverviewTab({ data, needsDemoParam }: { data: any; needsDemoParam: boolean }) {
   const [search, setSearch] = useState('');
+  const [selectedClassName, setSelectedClassName] = useState<string>('');
   const [drillDown, setDrillDown] = useState<{ type: string; title: string; data: any[] } | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
@@ -232,8 +233,36 @@ function OverviewTab({ data, needsDemoParam }: { data: any; needsDemoParam: bool
     );
   }
 
-  const summary = data?.summary || {};
-  const allStudents = data?.students || [];
+  const rawStudents: any[] = data?.students || [];
+
+  // v17.5: Per-class drill-down — the analytics API doesn't expose classroom IDs, but it does
+  // return students[].courses[{name, subject}]. We filter client-side on course name.
+  const classNames: string[] = Array.from(new Set(
+    rawStudents.flatMap((s: any) => (s.courses || []).map((c: any) => c.name).filter(Boolean) as string[])
+  )).sort();
+
+  const allStudents: any[] = selectedClassName
+    ? rawStudents.filter((s: any) =>
+        (s.courses || []).some((c: any) => c.name === selectedClassName)
+      )
+    : rawStudents;
+
+  // Recompute summary so the cards reflect the current class filter.
+  const filteredScores = allStudents
+    .map((s: any) => (typeof s.averageScore === 'number' ? s.averageScore : null))
+    .filter((v: number | null): v is number => v !== null);
+  const summary = selectedClassName
+    ? {
+        totalStudents: allStudents.length,
+        atRisk: allStudents.filter((s: any) => s.riskLevel === 'high').length,
+        averageScore: filteredScores.length > 0
+          ? Math.round((filteredScores.reduce((a: number, b: number) => a + b, 0) / filteredScores.length) * 10) / 10
+          : 0,
+        // Pending count is a class-wide aggregate from the API — no per-class breakdown available.
+        pendingSubmissions: data?.summary?.pendingSubmissions ?? 0,
+      }
+    : (data?.summary || {});
+
   const students = allStudents.filter((s: any) =>
     s.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -271,6 +300,30 @@ function OverviewTab({ data, needsDemoParam }: { data: any; needsDemoParam: bool
 
   return (
     <div className="space-y-6">
+      {/* v17.5: Per-class drill-down filter (client-side on course name) */}
+      {classNames.length > 0 && (
+        <div className="flex items-center gap-2">
+          <label htmlFor="overview-class-filter" className="text-xs font-medium text-gray-500 dark:text-gray-400">Class</label>
+          <select
+            id="overview-class-filter"
+            value={selectedClassName}
+            onChange={(e) => setSelectedClassName(e.target.value)}
+            className="input-field text-sm py-2 px-3 w-56"
+            aria-label="Filter analytics by class"
+          >
+            <option value="">All my classes</option>
+            {classNames.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          {selectedClassName && (
+            <span className="text-xs text-gray-400">
+              Showing {allStudents.length} student{allStudents.length !== 1 ? 's' : ''} in {selectedClassName}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Summary Cards — now clickable */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -296,33 +349,70 @@ function OverviewTab({ data, needsDemoParam }: { data: any; needsDemoParam: bool
 
       {/* Score Distribution — bars clickable */}
       <div className="card">
-        <h3 className="font-bold text-gray-900 dark:text-white mb-4">Score Distribution <span className="text-xs font-normal text-gray-400 ml-1">(click a bar for details)</span></h3>
-        <div className="flex items-end gap-2 h-32">
-          {[
+        <h3 id="score-distribution-heading" className="font-bold text-gray-900 dark:text-white mb-4">Score Distribution <span className="text-xs font-normal text-gray-400 ml-1">(click a bar for details)</span></h3>
+        {(() => {
+          const buckets = [
             { label: '90-100', min: 90, color: 'bg-green-500 hover:bg-green-600' },
             { label: '80-89', min: 80, color: 'bg-blue-500 hover:bg-blue-600' },
             { label: '70-79', min: 70, color: 'bg-yellow-500 hover:bg-yellow-600' },
             { label: '60-69', min: 60, color: 'bg-orange-500 hover:bg-orange-600' },
             { label: '<60', min: 0, color: 'bg-red-500 hover:bg-red-600' },
-          ].map(range => {
-            const count = allStudents.filter((s: any) => {
+          ];
+          const bucketCounts = buckets.map(b => ({
+            ...b,
+            count: allStudents.filter((s: any) => {
               if (s.averageScore === null) return false;
-              if (range.min === 0) return s.averageScore < 60;
-              return s.averageScore >= range.min && s.averageScore < range.min + 10;
-            }).length;
-            const maxCount = Math.max(allStudents.length, 1);
-            const pct = (count / maxCount) * 100;
-            return (
-              <div key={range.label} className="flex-1 flex flex-col items-center gap-1 cursor-pointer group"
-                onClick={() => drillIntoRange(range.label, range.min)}>
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{count}</span>
-                <motion.div initial={{ height: 0 }} animate={{ height: `${Math.max(pct, 4)}%` }} transition={{ duration: 0.5, delay: 0.2 }}
-                  className={cn('w-full rounded-t-lg cursor-pointer transition-colors', range.color)} />
-                <span className="text-xs text-gray-400">{range.label}</span>
+              if (b.min === 0) return s.averageScore < 60;
+              return s.averageScore >= b.min && s.averageScore < b.min + 10;
+            }).length,
+          }));
+          const maxCount = Math.max(allStudents.length, 1);
+          return (
+            <>
+              <div
+                className="flex items-end gap-2 h-32"
+                role="group"
+                aria-labelledby="score-distribution-heading"
+                aria-label="Score distribution"
+              >
+                {bucketCounts.map(b => {
+                  const pct = (b.count / maxCount) * 100;
+                  return (
+                    <button
+                      key={b.label}
+                      type="button"
+                      className="flex-1 flex flex-col items-center gap-1 cursor-pointer group bg-transparent border-0 p-0"
+                      onClick={() => drillIntoRange(b.label, b.min)}
+                      aria-label={`${b.label}: ${b.count} student${b.count === 1 ? '' : 's'}. Click for details.`}
+                    >
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{b.count}</span>
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: `${Math.max(pct, 4)}%` }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className={cn('w-full rounded-t-lg cursor-pointer transition-colors', b.color)}
+                        aria-hidden="true"
+                      />
+                      <span className="text-xs text-gray-400">{b.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+              {/* v17.5: Visually-hidden text fallback for screen readers and no-CSS users */}
+              <table className="sr-only" aria-label="Score distribution data table">
+                <caption>Score distribution across {allStudents.length} student{allStudents.length === 1 ? '' : 's'}</caption>
+                <thead>
+                  <tr><th scope="col">Score range</th><th scope="col">Number of students</th></tr>
+                </thead>
+                <tbody>
+                  {bucketCounts.map(b => (
+                    <tr key={b.label}><td>{b.label}</td><td>{b.count}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          );
+        })()}
       </div>
 
       {/* Student Table — rows clickable */}
@@ -599,19 +689,28 @@ function InsightsTab({ data }: { data: any }) {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Misconception Heatmap */}
         <div className="card">
-          <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <h3 id="misconception-heatmap-heading" className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Brain size={16} className="text-purple-500" /> Misconception Heatmap
           </h3>
-          <div className="space-y-3">
+          <div
+            className="space-y-3"
+            role="group"
+            aria-labelledby="misconception-heatmap-heading"
+            aria-label="Misconception heatmap by skill"
+          >
             {(data.heatmap || []).map((item: any) => (
-              <div key={item.skill} className="flex items-center gap-3">
-                <div className={cn('w-3 h-3 rounded-full flex-shrink-0', severityColors[item.severity])} />
+              <div
+                key={item.skill}
+                className="flex items-center gap-3"
+                aria-label={`${item.skill}: ${item.count} errors by ${item.studentCount} students. Severity ${item.severity}.`}
+              >
+                <div className={cn('w-3 h-3 rounded-full flex-shrink-0', severityColors[item.severity])} aria-hidden="true" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-semibold text-gray-900 dark:text-white">{item.skill}</span>
                     <span className="text-xs text-gray-400">{item.count} errors by {item.studentCount} students</span>
                   </div>
-                  <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden" aria-hidden="true">
                     <div className={cn('h-full rounded-full', severityColors[item.severity])} style={{ width: `${Math.min(100, item.count * 7)}%`, opacity: 0.7 }} />
                   </div>
                   {item.types?.length > 0 && (
@@ -625,6 +724,24 @@ function InsightsTab({ data }: { data: any }) {
               </div>
             ))}
           </div>
+          {/* v17.5: Visually-hidden text fallback for screen readers */}
+          {(data.heatmap || []).length > 0 && (
+            <table className="sr-only" aria-label="Misconception heatmap data table">
+              <thead>
+                <tr><th scope="col">Skill</th><th scope="col">Errors</th><th scope="col">Students</th><th scope="col">Severity</th></tr>
+              </thead>
+              <tbody>
+                {(data.heatmap || []).map((item: any) => (
+                  <tr key={item.skill}>
+                    <td>{item.skill}</td>
+                    <td>{item.count}</td>
+                    <td>{item.studentCount}</td>
+                    <td>{item.severity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Skill Gaps */}
