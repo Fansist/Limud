@@ -38,7 +38,7 @@ function Section({ children, className = '', id }: { children: React.ReactNode; 
   );
 }
 
-function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
+function FAQItem({ q, a, index }: { q: string; a: React.ReactNode; index: number }) {
   // R10: respect prefers-reduced-motion. Note: the panel expand/collapse
   // still needs to snap between heights (otherwise the panel never opens),
   // so we set duration: 0 rather than dropping the animate props.
@@ -137,6 +137,7 @@ export default function LandingPage() {
           "applicationCategory": "EducationalApplication",
           "operatingSystem": "Web",
           "offers": [
+            { "@type": "Offer", "name": "Single tool", "price": "3", "priceCurrency": "USD", "description": "Individual tool subscription from $3/month — pick one tool instead of the full platform" },
             { "@type": "Offer", "name": "Family", "price": "9", "priceCurrency": "USD", "description": "Up to 5 children per parent account — for families with K-12 kids at any school" },
             { "@type": "Offer", "name": "Standard", "price": "6", "priceCurrency": "USD", "description": "Per student/month — full features" },
             { "@type": "Offer", "name": "Enterprise", "description": "Custom pricing for districts with SSO/SLA" }
@@ -158,7 +159,7 @@ export default function LandingPage() {
           "@context": "https://schema.org",
           "@type": "FAQPage",
           "mainEntity": [
-            { "@type": "Question", "name": "How much does Limud cost?", "acceptedAnswer": { "@type": "Answer", "text": "The Family tier is $7-9/month for up to 5 students per parent account (annual saves 22%). Districts and schools run on per-seat pricing that scales with capacity, AI usage, and admin controls — six tiers in all, from Starter to Enterprise. Every paid plan ships with a 30-day money-back guarantee." }},
+            { "@type": "Question", "name": "How much does Limud cost?", "acceptedAnswer": { "@type": "Answer", "text": "Individual tools start at $3/month or $4 per use — pick just one if you don't need the full platform. The Family tier is $7-9/month for up to 5 students per parent account (annual saves 22%). Districts and schools run on per-seat pricing that scales with capacity, AI usage, and admin controls — six tiers in all, from Starter to Enterprise. Every paid plan ships with a 30-day money-back guarantee." }},
             { "@type": "Question", "name": "What subjects does Limud cover?", "acceptedAnswer": { "@type": "Answer", "text": "Limud supports Math (Algebra, Geometry, Fractions), Science, English Language Arts, History, and more. Teachers can create custom content for any subject." }},
             { "@type": "Question", "name": "How does the AI tutor work?", "acceptedAnswer": { "@type": "Answer", "text": "Limud's AI tutor uses Socratic questioning — it guides students to discover answers rather than giving them directly. It adapts to each student's learning style and interests." }},
             { "@type": "Question", "name": "Is Limud FERPA and COPPA compliant?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Limud is built for compliance from the ground up with AES-256-GCM encryption, 7-year audit log retention, parental consent tracking, and role-based access control." }},
@@ -204,6 +205,17 @@ export default function LandingPage() {
 
         {mobileMenu && (
           <div id="mobile-nav" className="md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
+            {/* v17.7: Single tools link surfaced at the top of the mobile menu
+                — the /products route was reachable only from the topbar
+                (hidden md:inline) so phone visitors couldn't find the
+                stand-alone tools without scrolling all the way to the footer. */}
+            <Link
+              href="/products"
+              onClick={() => setMobileMenu(false)}
+              className="block px-3 py-2 text-sm font-semibold text-primary-600 hover:bg-primary-50 rounded-lg"
+            >
+              Single tools
+            </Link>
             {NAV_ITEMS.map(item => (
               <a key={item} href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={e => scrollTo(e, item.toLowerCase().replace(/\s+/g, '-'))}
@@ -532,7 +544,11 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Simple, transparent pricing</h2>
-            <p className="mt-3 text-gray-500">Districts, families, and individuals &mdash; same product, pricing scales with size. Or grab a single tool from $5.</p>
+            {/* v17.7: floor price corrected — Citation Finder and Exam
+                Postmortem both subscribe at $3/month, which is the real
+                cheapest entry point. "$5" was stale and made single tools
+                look more expensive than they actually are. */}
+            <p className="mt-3 text-gray-500">Districts, families, and individuals &mdash; same product, pricing scales with size. Or grab a <Link href="/products" className="text-primary-600 hover:text-primary-700 underline underline-offset-2">single tool from $3/month</Link>.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
@@ -594,11 +610,26 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* v17.4: pricing teaser shows 3 of 6 real tiers; surface the rest. */}
+          {/* v17.4: pricing teaser shows 3 of 6 real tiers; surface the rest.
+              v17.7: "See all 6 plans" → "See all 6 district plans" because
+              /pricing is the district / school plan grid. The /products page
+              owns single-tool pricing — without the qualifier, visitors who
+              wanted to compare per-student plans bounced into single-tool
+              tiers instead. */}
           <div className="mt-6 text-center">
             <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-600 hover:text-primary-700 transition">
-              See all 6 plans <ArrowRight size={14} />
+              See all 6 district plans <ArrowRight size={14} />
             </Link>
+          </div>
+
+          {/* v17.7: dual billing model explainer. Visitors landing on the
+              pricing teaser couldn't tell that single tools have BOTH
+              one-time and monthly options — the per-student / per-month
+              copy on the cards above implied subscription-only. */}
+          <div className="mt-8 max-w-2xl mx-auto bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-sm text-gray-600 leading-relaxed text-center">
+            <strong className="text-gray-900">Two ways to pay:</strong>{' '}
+            <strong>one-time</strong> (use forever, no recurring charge) or{' '}
+            <strong>monthly</strong> (unlimited use while subscribed, cancel anytime). <Link href="/products#bundles" className="text-primary-600 hover:text-primary-700 underline underline-offset-2">Bundle 3+ tools</Link> to save up to 45%.
           </div>
 
           <div className="mt-6 text-center">
@@ -610,6 +641,83 @@ export default function LandingPage() {
         </div>
       </Section>
 
+      {/* ═══ BUNDLE TEASER ═════════════════════════════════════ */}
+      {/* v17.7: bundle teaser. Single tools have a dedicated /products page
+          and bundles live at /products#bundles, but the landing surface had
+          no signal that combining 3+ tools is the cheapest route to the
+          full kit. 4-card row mirrors the BUNDLES catalog in
+          src/lib/bundles.ts so prices stay in sync if/when the catalog
+          changes (we link out rather than re-source the numbers). */}
+      <Section className="py-16 bg-gradient-to-br from-fuchsia-50/40 via-white to-blue-50/40 border-y border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Bundle and save</h2>
+            <p className="mt-2 text-sm text-gray-500 max-w-xl mx-auto">Pick a curated set of tools and pay less than buying them one at a time.</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {([
+              {
+                name: 'All-Access',
+                pitch: 'every tool',
+                oneTime: '$79 one-time',
+                monthly: '$15/mo',
+                badge: 'Best value',
+                ring: 'bg-gradient-to-br from-fuchsia-50 to-blue-50 border-fuchsia-200',
+              },
+              {
+                name: 'Study Bundle',
+                pitch: '3 study tools',
+                oneTime: '$15 one-time',
+                monthly: '$9/mo',
+                badge: null,
+                ring: 'bg-white border-gray-200',
+              },
+              {
+                name: 'Writing Bundle',
+                pitch: '3 writing tools',
+                oneTime: '$12 one-time',
+                monthly: '$8/mo',
+                badge: null,
+                ring: 'bg-white border-gray-200',
+              },
+              {
+                name: 'STEM Bundle',
+                pitch: '3 STEM tools',
+                oneTime: '$14 one-time',
+                monthly: '$9/mo',
+                badge: null,
+                ring: 'bg-white border-gray-200',
+              },
+            ] as { name: string; pitch: string; oneTime: string; monthly: string; badge: string | null; ring: string }[]).map(bundle => (
+              <Link
+                key={bundle.name}
+                href="/products#bundles"
+                className={cn(
+                  'group rounded-xl p-5 border flex flex-col transition hover:shadow-md hover:border-primary-300',
+                  bundle.ring,
+                )}
+              >
+                {bundle.badge && (
+                  <span className="text-[10px] font-bold bg-fuchsia-100 text-fuchsia-700 rounded-full px-2 py-0.5 self-start mb-2">
+                    {bundle.badge}
+                  </span>
+                )}
+                <h3 className="text-base font-bold text-gray-900">{bundle.name}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{bundle.pitch}</p>
+                <div className="mt-3 flex-1">
+                  <p className="text-sm font-bold text-gray-900">{bundle.oneTime}</p>
+                  <p className="text-xs text-gray-500">or {bundle.monthly}</p>
+                </div>
+                <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary-600 group-hover:text-primary-700">
+                  See bundle <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </Section>
+
       {/* ═══ FAQ ═══════════════════════════════════════════════ */}
       <Section id="faq" className="py-20 bg-gray-50">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
@@ -617,18 +725,40 @@ export default function LandingPage() {
             <h2 className="text-3xl font-extrabold text-gray-900">Frequently asked questions</h2>
           </div>
 
+          {/* v17.7: FAQ entries now accept React nodes so mentions of single
+              "tools" or "products" can carry an actual link to /products.
+              The FAQItem signature was widened from `a: string` to
+              `a: React.ReactNode` for this. */}
           <div className="bg-white rounded-xl border border-gray-100 p-6">
-            {[
+            {([
               { q: 'What is "Learning DNA"?', a: 'Learning DNA is Limud\'s proprietary cognitive profiler. Through a quick onboarding survey and ongoing analysis of how a student interacts with content, it builds a profile that captures their learning modality (visual, auditory, kinesthetic, reading), cognitive speed, retention rate, and peak study hours. Every piece of content is then adapted to match.' },
               { q: 'Who is Limud built for?', a: 'Districts and families, equally. Districts run multi-school deployments with SSO, district-wide analytics, and dedicated support. Families run a parent account with up to 5 kids — wherever those kids go to school. Same engine, same AI, same outcomes; the difference is capacity, controls, and integrations.' },
               { q: 'How much is the Family plan?', a: 'The Family plan is $9/month (or $7/month billed yearly — saves 22%) for up to 5 kids in one parent account. Every paid plan ships with a 30-day money-back guarantee. Parents who teach at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload — included.' },
+              {
+                q: 'Can I just buy one tool instead of the full platform?',
+                a: (
+                  <>
+                    Yes. Every individual tool — Exam Study Helper, Math Tutor, Essay Coach, Citation Finder, and more — is available standalone from{' '}
+                    <Link href="/products" className="text-primary-600 hover:text-primary-700 underline underline-offset-2">$3/month or $4 per use</Link>. Bundle 3+ tools to save up to 45% on the{' '}
+                    <Link href="/products#bundles" className="text-primary-600 hover:text-primary-700 underline underline-offset-2">bundle page</Link>.
+                  </>
+                ),
+              },
               { q: 'How does the Socratic AI tutor work?', a: 'Unlike ChatGPT which gives direct answers, Limud\'s AI tutor uses Socratic questioning to guide students to discover answers themselves. It uses analogies based on the student\'s interests (from their Learning DNA profile) to make concepts relatable. All conversations are logged for parent/teacher review.' },
               { q: 'How does a teacher upload one assignment for all students?', a: 'Teachers upload a single baseline assignment. Limud\'s AI Assignment Adapter automatically generates individualized versions for different learning styles — visual learners get diagrams, auditory learners get discussion prompts, kinesthetic learners get hands-on activities. Teachers review and approve the adaptations.' },
               { q: 'What is the AI parent check-in?', a: 'Parents click one button and receive a plain-English, conversational summary of their child\'s recent academic performance, emotional engagement, study habits, and areas needing attention. No more deciphering complex grade books.' },
-              { q: 'Do I need to leave Google Classroom or Khan Academy?', a: 'Not at all! Limud integrates with both and 16+ other platforms in total. Keep everything you love — Limud adds the AI grading, adaptive Learning DNA, and intelligence dashboards that those platforms don\'t offer.' },
+              {
+                q: 'Do I need to leave Google Classroom or Khan Academy?',
+                a: (
+                  <>
+                    Not at all! Limud integrates with both and 16+ other platforms in total. Keep everything you love — Limud adds the AI grading, adaptive Learning DNA, and intelligence dashboards that those platforms don&apos;t offer. Prefer a single workflow rather than the whole platform? Pick up the matching{' '}
+                    <Link href="/products" className="text-primary-600 hover:text-primary-700 underline underline-offset-2">standalone tool</Link>.
+                  </>
+                ),
+              },
               { q: 'Is it FERPA and COPPA compliant?', a: 'Yes, fully. All data is encrypted with AES-256-GCM. We never sell student data. Compliance is built into every layer — from field-level PII encryption to brute-force lockout, audit logging, and 7-year data retention per FERPA.' },
               { q: 'How long does setup take?', a: 'Most families are ready in under 5 minutes with the Learning DNA onboarding survey. Districts can provision teachers and students via CSV upload in under 30 minutes. The 3-step Quick Setup wizard for teachers takes about 2 minutes.' },
-            ].map((faq, i) => <FAQItem key={faq.q} q={faq.q} a={faq.a} index={i} />)}
+            ] as { q: string; a: React.ReactNode }[]).map((faq, i) => <FAQItem key={faq.q} q={faq.q} a={faq.a} index={i} />)}
           </div>
         </div>
       </Section>
@@ -734,6 +864,33 @@ export default function LandingPage() {
       </footer>
 
       <ScrollToTop />
+      <MobileStickyCTA />
+    </div>
+  );
+}
+
+function MobileStickyCTA() {
+  // v17.7: phone visitors who scroll past the hero get a thumb-reachable
+  // CTA pointing at single tools. The hero CTA is the only call-to-action
+  // above the fold on mobile, so once you scroll past it there's no
+  // persistent way to act on the page until the final CTA section.
+  // Desktop already has the topbar Products link, so this is mobile-only.
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const h = () => setShow(window.scrollY > 600);
+    window.addEventListener('scroll', h);
+    return () => window.removeEventListener('scroll', h);
+  }, []);
+  if (!show) return null;
+  return (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-2px_8px_rgba(0,0,0,0.05)] px-4 py-3">
+      <Link
+        href="/products"
+        className="flex items-center justify-between gap-2 bg-primary-600 text-white rounded-lg px-4 py-2.5"
+      >
+        <span className="text-sm font-bold">Single tools from $3 &rarr; Try free</span>
+        <ArrowRight size={16} />
+      </Link>
     </div>
   );
 }

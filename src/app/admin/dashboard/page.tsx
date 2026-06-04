@@ -15,6 +15,7 @@ import {
   CheckCircle, Activity, Database, FileSearch, Lock, Globe, Cpu, Zap,
   TrendingDown, Flame, Eye, Star, MessageSquare, Brain, Clock, Package,
 } from 'lucide-react';
+import MySubscriptionsCard from '@/components/dashboard/MySubscriptionsCard';
 
 /*
  * Admin Dashboard v12.4 — Simplified + District Controls
@@ -549,6 +550,14 @@ export default function AdminDashboard() {
                 </motion.div>
               ))}
             </div>
+
+            {/* ═══ MY SUBSCRIPTIONS — v17.7 QoL: rolling view of the admin's
+                own product/bundle subs, so they can see what they're paying
+                for without leaving the command center. Distinct from the
+                district subscription block in the hero. ═══ */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.33 }}>
+              <MySubscriptionsCard />
+            </motion.div>
 
             {/* ═══ CAPACITY OVERVIEW ═══ */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="card">

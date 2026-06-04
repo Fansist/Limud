@@ -30,6 +30,18 @@ const CONFIG: ToolConfig = {
   },
   helperText:
     "Limud won't fabricate DOIs. If it can't recall a specific source, it'll tell you and suggest search keywords instead.",
+  sampleInput:
+    "Social media use among adolescents has been linked to higher rates of anxiety and depression, particularly among teenage girls. Studies suggest that more than three hours of daily screen time correlates with measurable declines in subjective well-being. School-based interventions that delay smartphone access until high school have shown promising results in pilot programs across the United States.",
+  sampleOption: 'APA 7th edition',
+  etaText: '~15-30 s',
+  antiCheat:
+    'Limud finds real sources for claims you wrote. It will not write your essay.',
+  related: [
+    { href: '/essay-coach', name: 'Essay Coach', reason: 'Get feedback once your sources are in' },
+    { href: '/lab-report', name: 'Lab Report Reviewer', reason: 'Cite sources in your lab discussion' },
+  ],
+  priceLabel: '$3/mo · $4 pack of 25',
+  checkoutHref: '/products/citation-finder/checkout?billing=monthly',
 };
 
 export default function CitationFinderPage() {

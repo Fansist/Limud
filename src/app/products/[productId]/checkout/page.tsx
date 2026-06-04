@@ -28,7 +28,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import {
-  Sparkles, Check, ArrowRight, Lock, Loader2, Package,
+  Sparkles, Check, ArrowRight, Lock, Loader2, Package, RotateCcw,
 } from 'lucide-react';
 import { findProduct, type Product } from '@/lib/products-catalog';
 
@@ -64,6 +64,7 @@ export default function ProductCheckoutPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [alreadyActive, setAlreadyActive] = useState(false);
   const [effective, setEffective] = useState<EffectivePriceResponse | null>(null);
 
   // Fetch the override-aware price once we know the product id and the
@@ -104,6 +105,13 @@ export default function ProductCheckoutPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data?.success !== false) {
+        // v17.7: the API returns alreadyActive:true when the user already
+        // owns this product (v17.3 dup guard). Treat that as a distinct
+        // "you already own it" state so we don't pretend it was a fresh
+        // purchase.
+        if (data?.alreadyActive === true) {
+          setAlreadyActive(true);
+        }
         setConfirmed(true);
       } else {
         toast.error(data?.error || 'Could not complete your purchase. Please try again.');
@@ -177,6 +185,9 @@ export default function ProductCheckoutPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Log in to purchase</h1>
           <p className="text-sm text-gray-500">
+            We need your account so we can attach this purchase to it.
+          </p>
+          <p className="text-sm text-gray-500">
             Sign in to add the <span className="font-semibold text-gray-800">{product.name}</span> to your account.
           </p>
           <Link
@@ -189,6 +200,42 @@ export default function ProductCheckoutPage() {
             Don&apos;t have an account?{' '}
             <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">Create one</Link>
           </p>
+        </div>
+      </PageShell>
+    );
+  }
+
+  // ---- Already-owned success state ----
+  // v17.7: distinct copy + primary CTA goes straight to the product
+  // rather than pretending a fresh purchase happened.
+  if (confirmed && alreadyActive) {
+    return (
+      <PageShell>
+        <div className="card max-w-lg mx-auto text-center space-y-5 p-8">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white flex items-center justify-center">
+            <Check size={30} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">You already own this — jump in</h1>
+            <p className="text-sm text-gray-500 mt-2">
+              The <span className="font-semibold text-gray-800">{product.name}</span> is already active on your account. No new charge.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+            <Link
+              href={product.href}
+              className="btn-primary inline-flex items-center justify-center gap-2"
+            >
+              Open {product.name} <ArrowRight size={16} />
+            </Link>
+            <Link
+              href="/account/subscriptions"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              See my purchases
+            </Link>
+          </div>
         </div>
       </PageShell>
     );
@@ -273,8 +320,15 @@ export default function ProductCheckoutPage() {
               <p className="text-xs uppercase tracking-wide text-gray-400 font-semibold">
                 {billingMode === 'monthly' ? 'Monthly subscription' : 'One-time purchase'}
               </p>
-              <p className="text-3xl font-extrabold text-gray-900 mt-1">
-                ${displayPrice}
+              <p className="font-extrabold text-gray-900 mt-1">
+                {priceIsOverride ? (
+                  <span>
+                    <s className="text-gray-400 mr-2 text-xl">${staticPrice}</s>
+                    <span className="text-3xl">${displayPrice}</span>
+                  </span>
+                ) : (
+                  <span className="text-3xl">${displayPrice}</span>
+                )}
                 <span className="text-sm text-gray-400 font-normal">{cadenceLabel}</span>
               </p>
               {priceIsOverride && (
@@ -286,34 +340,70 @@ export default function ProductCheckoutPage() {
             </div>
           </div>
 
-          {/* Confirm */}
-          <button
-            type="button"
-            onClick={() => handleConfirm(product)}
-            disabled={submitting}
-            className={'btn-primary w-full flex items-center justify-center gap-2 py-3 text-base ' + (submitting ? 'opacity-60 cursor-not-allowed' : '')}
-          >
-            {submitting ? (
-              <>
-                <Loader2 size={18} className="animate-spin" /> Processing…
-              </>
-            ) : (
-              <>
-                <Sparkles size={18} /> Confirm purchase
-              </>
+          {/* Bullets — reinforce value at purchase moment (v17.7) */}
+          {product.bullets.length > 0 && (
+            <ul className="space-y-2">
+              {product.bullets.slice(0, 3).map((b) => (
+                <li key={b} className="flex items-start gap-2 text-sm text-gray-700">
+                  <Check size={16} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Refund / cadence honesty line (v17.7) */}
+          {billingMode === 'oneTime' && (
+            <p className="text-[11px] text-gray-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              One-time purchases are non-refundable once activated — try the monthly plan first if you want to test it out.
+            </p>
+          )}
+
+          {/* Trust strip (v17.7) */}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-gray-500">
+            <span className="inline-flex items-center gap-1">
+              <Lock size={12} /> No credit card collected here
+            </span>
+            {billingMode === 'monthly' && (
+              <span className="inline-flex items-center gap-1">
+                <RotateCcw size={12} /> Cancel anytime
+              </span>
             )}
-          </button>
+            <span className="inline-flex items-center gap-1">
+              <Check size={12} /> Activates immediately
+            </span>
+          </div>
+
+          {/* Cancel + Confirm row (v17.7) — stacked on mobile */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link
+              href="/products"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:w-1/3"
+            >
+              Cancel
+            </Link>
+            <button
+              type="button"
+              onClick={() => handleConfirm(product)}
+              disabled={submitting}
+              className={'btn-primary flex-1 flex items-center justify-center gap-2 py-3 text-base ' + (submitting ? 'opacity-60 cursor-not-allowed' : '')}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> Processing…
+                </>
+              ) : (
+                <>
+                  <Sparkles size={18} /> Confirm purchase
+                </>
+              )}
+            </button>
+          </div>
 
           <p className="text-[11px] text-gray-400 text-center">
             By confirming, you authorize Limud to activate the {product.name} on your account.
             {billingMode === 'monthly' ? ' You can cancel anytime from your subscriptions page.' : ''}
           </p>
-        </div>
-
-        <div className="text-center mt-4">
-          <Link href="/products" className="text-sm text-gray-500 hover:text-gray-700">
-            Back to products
-          </Link>
         </div>
       </div>
     </PageShell>

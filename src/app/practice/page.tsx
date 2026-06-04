@@ -17,6 +17,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
+  ArrowRight,
   BookOpen,
   Brain,
   Check,
@@ -24,6 +25,7 @@ import {
   Loader2,
   LogIn,
   RefreshCw,
+  ShieldAlert,
   Sparkles,
   Target,
   Trophy,
@@ -82,6 +84,12 @@ type HistoryEntry = {
 
 const HISTORY_KEY = 'limud-practice-history-v1';
 const DRAFT_KEY = 'limud-practice-draft';
+
+// v17.7: curated sample so anonymous + first-time visitors can see what the
+// tool produces without inventing their own topic. Mirrors the MarkdownToolPage
+// "Try a sample" pattern.
+const SAMPLE_TOPIC = 'Krebs cycle';
+const SAMPLE_DIFFICULTY: Difficulty = 'standard';
 
 const DIFFICULTIES: { value: Difficulty; label: string; blurb: string }[] = [
   { value: 'intro',       label: 'Intro',       blurb: 'Recall & recognition. Warm-up level.' },
@@ -277,6 +285,21 @@ export default function PracticePage() {
           questionTypes: selectedTypes,
         }),
       });
+      // v17.7: graceful 402 handling — the entitlement gate on
+      // /api/practice/generate returns 402 + { error, productId, checkoutUrl }
+      // when the user lacks a sub for `practice-generator`. Toast the error
+      // and bounce to checkout instead of throwing a generic failure. Mirrors
+      // the pattern in MarkdownToolPage.tsx.
+      if (res.status === 402) {
+        const data: { error?: string; productId?: string; checkoutUrl?: string } | null = await res
+          .json()
+          .catch(() => null);
+        toast.error(data?.error || 'Subscription required to use this tool');
+        if (data?.checkoutUrl) {
+          setTimeout(() => router.push(data.checkoutUrl as string), 1200);
+        }
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `Request failed with ${res.status}`);
@@ -427,6 +450,18 @@ export default function PracticePage() {
     setOverrides(new Set());
   }
 
+  /** v17.7: load a curated sample so users can see what the tool does without
+   *  having to invent a topic. Wipes any in-progress quiz result. */
+  function loadSample() {
+    setTopic(SAMPLE_TOPIC);
+    setDifficulty(SAMPLE_DIFFICULTY);
+    setResult(null);
+    setAnswers({});
+    setRevealed(new Set());
+    setSubmitted(false);
+    toast.success('Sample loaded — click Generate to see what it does.');
+  }
+
   function loadFromHistory(h: HistoryEntry) {
     setResult(h.result);
     setAnswers({});
@@ -481,16 +516,51 @@ export default function PracticePage() {
             explanations on every answer so you learn from the misses, not just the
             hits.
           </p>
+          {/* v17.7: price chip in the hero — small pill with the price and a
+              deep-link to checkout so the cost is visible up front. */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-primary-50 text-primary-700 border border-primary-100">
+              $4/mo · $5 per topic
+            </span>
+            <Link
+              href="/products/practice-generator/checkout?billing=monthly"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-primary-700 hover:text-primary-800 underline decoration-dotted underline-offset-2"
+            >
+              Buy this tool <ArrowRight size={11} />
+            </Link>
+          </div>
         </motion.div>
+
+        {/* v17.7: anti-cheat banner. Reinforces that the tool is for
+            self-study, not for submitting as homework. */}
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 flex items-start gap-2">
+          <ShieldAlert size={16} className="text-amber-700 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-900">
+            Practice questions are for self-testing — do not submit them as homework.
+          </p>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* LEFT — config + quiz */}
           <div className="lg:col-span-2 space-y-5">
             {/* Config card */}
             <div className="card">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
-                <Target size={16} className="text-primary-500" /> What do you want to practice?
-              </h2>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Target size={16} className="text-primary-500" /> What do you want to practice?
+                </h2>
+                {/* v17.7: Try a sample — loads a curated topic + difficulty
+                    so the user can see what the tool does without typing
+                    anything. Mirrors MarkdownToolPage. */}
+                <button
+                  type="button"
+                  onClick={loadSample}
+                  disabled={generating}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-200 bg-white text-[11px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Sparkles size={11} /> Try a sample
+                </button>
+              </div>
               <div className="space-y-3">
                 <input
                   className="input-field"
@@ -525,8 +595,10 @@ export default function PracticePage() {
                   </div>
                 </div>
 
-                {/* Difficulty picker */}
-                <div className="grid grid-cols-3 gap-2">
+                {/* Difficulty picker — v17.7: stack on mobile so the cards
+                    aren't crushed below ~360px. Sub-sm viewports get one
+                    full-width card per row; sm+ keeps the 3-up grid. */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {DIFFICULTIES.map(d => (
                     <button
                       key={d.value}
@@ -618,10 +690,15 @@ export default function PracticePage() {
                   )}
                 >
                   {generating ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      Writing your quiz…
-                    </>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 size={18} className="animate-spin" />
+                        Writing your quiz…
+                      </span>
+                      <span className="text-xs font-normal text-white/80">
+                        Usually takes ~10-20 s
+                      </span>
+                    </div>
                   ) : !isAuthed && !isLoadingSession ? (
                     <>
                       <LogIn size={18} />
@@ -634,6 +711,13 @@ export default function PracticePage() {
                     </>
                   )}
                 </button>
+                {/* v17.7: ETA hint outside the button so users see the expected
+                    wait before they click. */}
+                {!generating && (
+                  <p className="text-xs text-gray-400 text-center">
+                    Usually ~10-20 s
+                  </p>
+                )}
               </div>
             </div>
 
@@ -975,20 +1059,62 @@ export default function PracticePage() {
               )}
             </div>
 
-            <div className="card bg-gradient-to-br from-gray-50 to-white">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-2">
-                <BookOpen size={16} className="text-fuchsia-500" /> Studying for an exam?
-              </h3>
-              <p className="text-xs text-gray-500 mb-3">
-                The Exam Study Helper rewrites your coursework as a textbook, comic, diagrams, cheatsheet, or flashcards.
-              </p>
-              <Link
-                href="/study"
-                className="inline-flex items-center gap-1 text-xs font-bold text-fuchsia-600 hover:text-fuchsia-700"
-              >
-                Open the Study Helper <ChevronRight size={14} />
-              </Link>
-            </div>
+          </div>
+        </div>
+
+        {/* v17.7: Pairs well with — two curated peer tools so users have a
+            clear next step after a practice session. */}
+        <div className="mt-2">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">
+            Pairs well with
+          </h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Link
+              href="/study"
+              className="group card hover:border-primary-200 hover:shadow-md transition flex items-start justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-fuchsia-500 text-white flex items-center justify-center flex-shrink-0">
+                    <BookOpen size={16} />
+                  </div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-700">
+                    Exam Study Helper
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 leading-snug">
+                  Rewrite your coursework as a textbook, comic, diagrams,
+                  cheatsheet, or flashcards before you quiz yourself.
+                </p>
+              </div>
+              <ArrowRight
+                size={16}
+                className="text-gray-400 group-hover:text-primary-600 flex-shrink-0 mt-1"
+              />
+            </Link>
+            <Link
+              href="/exam-postmortem"
+              className="group card hover:border-primary-200 hover:shadow-md transition flex items-start justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center flex-shrink-0">
+                    <Target size={16} />
+                  </div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-700">
+                    Exam Postmortem
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 leading-snug">
+                  After the real exam, drop your wrong answers in and Limud
+                  builds a targeted review plan.
+                </p>
+              </div>
+              <ArrowRight
+                size={16}
+                className="text-gray-400 group-hover:text-primary-600 flex-shrink-0 mt-1"
+              />
+            </Link>
           </div>
         </div>
       </div>

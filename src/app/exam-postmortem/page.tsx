@@ -21,6 +21,17 @@ const CONFIG: ToolConfig = {
   },
   helperText:
     'Mistakes get clustered by HABIT (misread the question, sign error, ran out of time) not by topic. The goal is to fix the underlying pattern — not to grade individual questions.',
+  sampleInput:
+    "AP Biology Unit 4 Exam — questions I got wrong:\n\nQ3. Which of the following best describes the role of ATP in cellular respiration?\nCorrect answer: ATP is the primary energy currency produced by cellular respiration and used to drive endergonic reactions.\nMy answer: ATP is broken down in the mitochondria to release glucose.\n\nQ7. During the Krebs cycle, what is the source of the carbon atoms released as CO2?\nCorrect answer: The acetyl group of acetyl-CoA, originally from pyruvate.\nMy answer: From the oxygen entering the mitochondria.\n\nQ12. A student adds a chemical that blocks ATP synthase in isolated mitochondria. Which of the following will most likely occur first?\nCorrect answer: A buildup of protons in the intermembrane space and a drop in ATP production.\nMy answer: The electron transport chain will speed up to compensate.",
+  etaText: '~15-30 s',
+  antiCheat:
+    'Limud clusters past mistakes by habit so you can re-study them. It does not write new answers.',
+  related: [
+    { href: '/study', name: 'Exam Study Helper', reason: 'Re-study the habits that tripped you up' },
+    { href: '/practice', name: 'Practice Generator', reason: 'Drill the gaps before the next exam' },
+  ],
+  priceLabel: '$3/mo · $4 per exam',
+  checkoutHref: '/products/exam-postmortem/checkout?billing=monthly',
 };
 
 export default function ExamPostmortemPage() {

@@ -782,13 +782,64 @@ export default function PricingPage() {
   return (
     <AnonShell>
       <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* v17.7: Topbar-adjacent cross-link strip. The shared AnonShell topbar
+          doesn't list /products as its own item (it currently anchors to the
+          landing's #products section), so pricing visitors looking for the
+          per-tool catalog kept getting lost on this district-focused page.
+          This sub-bar gives them a one-click escape to /products without
+          touching the shared shell. */}
+      <div className="border-b border-indigo-100/70 bg-white/60 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-gray-500">
+            <School size={12} className="text-indigo-500" />
+            <span>You&apos;re viewing <span className="font-semibold text-gray-700">district &amp; family</span> pricing.</span>
+          </div>
+          <Link
+            href="/products"
+            className="inline-flex items-center gap-1.5 font-bold text-fuchsia-700 hover:text-fuchsia-800 transition"
+          >
+            <Sparkles size={12} /> Single tools <ArrowRight size={12} />
+          </Link>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         {/* Hero */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-1.5 rounded-full text-sm font-medium mb-4"><Zap size={14} /> Transparent Pricing</div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">Plans for every learning journey</h1>
+          {/* v17.7: Renamed from "Plans for every learning journey" to make
+              the school/family scope explicit. Per-tool pricing lives at
+              /products; this page is seats-based. */}
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900">District &amp; family pricing</h1>
           <p className="text-lg text-gray-500 mt-3 max-w-2xl mx-auto">Built for districts and families. Same engine, same outcomes — pricing scales to your size.</p>
         </div>
+
+        {/* v17.7: Cross-link banner — sits between the hero and the plan
+            grid so solo learners landing here have an obvious off-ramp to
+            the per-tool catalog before they start scanning seat-based
+            tiers. */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="mb-10 rounded-2xl border-2 border-fuchsia-100 bg-gradient-to-r from-fuchsia-50 via-pink-50 to-rose-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        >
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-500 text-white flex items-center justify-center shadow-md flex-shrink-0">
+              <Sparkles size={16} />
+            </div>
+            <p className="text-sm text-gray-700">
+              <span className="font-bold text-gray-900">Just need a single tool?</span>{' '}
+              Pricing for individual tools starts at <span className="font-bold text-fuchsia-700">$3/mo</span>.
+            </p>
+          </div>
+          <Link
+            href="/products"
+            className="inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:opacity-95 transition whitespace-nowrap self-start sm:self-auto"
+          >
+            See single-tool pricing <ArrowRight size={12} />
+          </Link>
+        </motion.div>
 
         {/* Billing Toggle */}
         <div className="flex justify-center mb-10">
@@ -1137,6 +1188,60 @@ export default function PricingPage() {
           </div>
         </motion.div>
 
+        {/* v17.7: District-vs-individual switch. The parity callouts above
+            split district from family; this row splits *district/family*
+            (this page) from *single-tool* (/products) so a visitor can
+            self-route in one glance before they hit the FAQ. */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.62 }}
+          className="mt-10"
+        >
+          <div className="text-center mb-5">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Not sure which side you&apos;re on?</h2>
+            <p className="text-sm text-gray-500 mt-1">Pick the row that sounds like you.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="rounded-2xl border-2 border-primary-200 bg-white p-5 flex flex-col gap-3">
+              <div className="flex items-center gap-2 text-primary-700">
+                <School size={18} />
+                <span className="text-xs font-bold uppercase tracking-wider">District &amp; family plans</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-900 leading-snug">
+                I&apos;m a school district / family with multiple learners
+              </p>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Seat-based licensing. One subscription covers every learner, teacher, and parent under your account &mdash; with admin tools, analytics, and integrations included.
+              </p>
+              <Link
+                href="#family"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-700 hover:text-primary-800 transition self-start"
+              >
+                Browse district &amp; family plans <ArrowRight size={12} />
+              </Link>
+            </div>
+            <div className="rounded-2xl border-2 border-fuchsia-200 bg-white p-5 flex flex-col gap-3">
+              <div className="flex items-center gap-2 text-fuchsia-700">
+                <Sparkles size={18} />
+                <span className="text-xs font-bold uppercase tracking-wider">Single tools</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-900 leading-snug">
+                I&apos;m an individual learner / single-subject prep
+              </p>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Per-tool purchase. Pick one tool for the exam or subject you&apos;re studying for &mdash; pay once, no seats to manage, no district account required.
+              </p>
+              <Link
+                href="/products"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-fuchsia-700 hover:text-fuchsia-800 transition self-start"
+              >
+                See single-tool pricing <ArrowRight size={12} />
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+
         {/* FAQ */}
         <motion.div id="faq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
           className="mt-12 max-w-3xl mx-auto scroll-mt-24">
@@ -1144,6 +1249,7 @@ export default function PricingPage() {
           <div className="space-y-4">
             {[
               { q: 'Who is Limud built for?', a: 'Districts and families, equally. Districts run multi-school deployments with SSO/SAML, district-wide analytics, custom AI training, and dedicated support. Families run a parent account with up to 5 kids — wherever those kids go to school. Same engine, same AI, same outcomes; the difference is capacity, controls, and integrations.' },
+              { q: 'What’s the difference between a district plan and a single tool?', a: 'District and family plans (this page) are seat-based subscriptions: one account covers every learner, teacher, and parent under it, plus admin dashboards, analytics, and integrations. Single tools (over at /products) are per-tool purchases — pick one tool like the Exam Study Helper or Practice Generator for the subject you’re actually studying, pay once or subscribe to just that tool, and you’re done. There are no seats to manage and no district account required. Pick a district/family plan when more than one person needs ongoing access; pick a single tool when you’re studying solo for a specific exam or subject.' },
               { q: 'How much is the Family plan?', a: 'The Family plan is $9/month (or $7/month billed yearly — saving 22%) for up to 5 children in one parent account. It includes 50 AI Tutor sessions/month, 3 quiz generations/month, adaptive material rewrites, the parent dashboard, weekly check-ins, and Family Teaching Mode. Every paid tier (including Family) ships with a 30-day money-back guarantee — try it risk-free for a month.' },
               { q: 'What happens when I hit a limit?', a: 'You will see a friendly notification and can either upgrade or wait for your monthly limit to reset. We never cut off access to existing work — students can always view their past assignments, grades, and progress.' },
               { q: 'Can I switch plans at any time?', a: 'Absolutely. Upgrade instantly and we will prorate the difference. Downgrade at the end of your billing cycle. Your data is always preserved regardless of plan changes.' },

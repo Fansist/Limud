@@ -23,6 +23,17 @@ const CONFIG: ToolConfig = {
   inputMin: 20,
   helperText:
     'Limud is a tutor, not a calculator. It will not give you the answer. It will give you the next move so you can take it. Paste your new attempt to get the next hint.',
+  sampleInput:
+    "PROBLEM:\nSolve for x: x² + 5x + 6 = 0\n\nMY ATTEMPT:\nI tried factoring but I'm stuck. I think I need to find two numbers that add to 5 and multiply to 6, but I keep getting confused about which signs to use.",
+  etaText: '~10-20 s',
+  antiCheat:
+    'Limud will not solve the problem for you. It walks you through hints — you finish the work.',
+  related: [
+    { href: '/practice', name: 'Practice Generator', reason: 'Drill the concept after a hint chain' },
+    { href: '/exam-postmortem', name: 'Exam Postmortem', reason: 'Cluster mistakes after the test' },
+  ],
+  priceLabel: '$4/mo · $7 pack of 50',
+  checkoutHref: '/products/math-solver/checkout?billing=monthly',
 };
 
 export default function MathSolverPage() {

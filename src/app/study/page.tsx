@@ -19,17 +19,19 @@ import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import toast from 'react-hot-toast';
 import {
+  ArrowRight,
   BookOpen,
   BookText,
   Brain,
   ClipboardList,
+  Layers,
   Loader2,
   LogIn,
   Network,
+  ShieldAlert,
   Sparkles,
   Upload,
   Wand2,
-  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -105,6 +107,19 @@ type HistoryEntry = {
 };
 
 const HISTORY_KEY = 'limud-study-history-v1';
+
+// v17.7: curated sample input so anonymous + first-time visitors can see what
+// the tool produces without pasting their own material. Roughly 200 words of
+// chapter-style prose about photosynthesis — generic enough to match any of
+// the five output formats. Mirrors MarkdownToolPage's "Try a sample" pattern.
+const SAMPLE_RAW_MATERIAL = `Photosynthesis is the process by which plants, algae, and certain bacteria convert light energy into chemical energy stored in glucose. The overall equation is 6CO2 + 6H2O + light energy → C6H12O6 + 6O2. The process occurs in two stages: the light-dependent reactions and the Calvin cycle.
+
+The light-dependent reactions take place in the thylakoid membranes of chloroplasts. They capture light using chlorophyll in photosystems I and II, then split water molecules in a process called photolysis, releasing oxygen as a byproduct. The captured energy is stored temporarily in ATP and NADPH.
+
+The Calvin cycle takes place in the stroma. It uses the ATP and NADPH from the light reactions, along with carbon dioxide drawn from the atmosphere, to build glucose. The key enzyme RuBisCO catalyzes carbon fixation by attaching CO2 to a five-carbon sugar called RuBP. The cycle produces G3P, which is used to build glucose and other organic molecules the plant needs.
+
+Factors affecting the rate of photosynthesis include light intensity, carbon dioxide concentration, temperature, and water availability. Photosynthesis ultimately powers nearly every food chain on Earth.`;
+const SAMPLE_SUBJECT = 'Biology';
 
 function loadHistory(): HistoryEntry[] {
   if (typeof window === 'undefined') return [];
@@ -277,6 +292,21 @@ export default function StudyPage() {
           topicHint: topicHint || undefined,
         }),
       });
+      // v17.7: graceful 402 handling — the entitlement gate on
+      // /api/study/generate returns 402 + { error, productId, checkoutUrl }
+      // when the user lacks a sub for `exam-study-helper`. Toast the error
+      // and bounce to checkout instead of throwing a generic failure. Mirrors
+      // the pattern in MarkdownToolPage.tsx.
+      if (res.status === 402) {
+        const data: { error?: string; productId?: string; checkoutUrl?: string } | null = await res
+          .json()
+          .catch(() => null);
+        toast.error(data?.error || 'Subscription required to use this tool');
+        if (data?.checkoutUrl) {
+          setTimeout(() => router.push(data.checkoutUrl as string), 1200);
+        }
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `Request failed with ${res.status}`);
@@ -305,6 +335,15 @@ export default function StudyPage() {
     } finally {
       setGenerating(false);
     }
+  }
+
+  /** v17.7: load a curated sample chapter so users can see what the tool
+   *  does without pasting their own material. */
+  function loadSample() {
+    setRawMaterial(SAMPLE_RAW_MATERIAL);
+    setSubject(SAMPLE_SUBJECT);
+    setResult(null);
+    toast.success('Sample loaded — click Generate to see what it does.');
   }
 
   function loadFromHistory(entry: HistoryEntry) {
@@ -370,32 +409,69 @@ export default function StudyPage() {
             want to study it. Limud rewrites the same content as a book, a comic, a
             diagram set, a cheatsheet, or flashcards — your call.
           </p>
+          {/* v17.7: price chip in the hero — small pill with the price and a
+              deep-link to checkout so the cost is visible up front. */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-100">
+              $5/mo · $9 per exam
+            </span>
+            <Link
+              href="/products/exam-study-helper/checkout?billing=monthly"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-fuchsia-700 hover:text-fuchsia-800 underline decoration-dotted underline-offset-2"
+            >
+              Buy this tool <ArrowRight size={11} />
+            </Link>
+          </div>
         </motion.div>
+
+        {/* v17.7: anti-cheat banner. Limud reformats coursework rather than
+            inventing new content — make that obvious so students don't try
+            to submit the output as their own work. */}
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 flex items-start gap-2">
+          <ShieldAlert size={16} className="text-amber-700 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-900">
+            Limud reformats your own coursework — it does not invent new content.
+            Use the output to study, not to submit as your own work.
+          </p>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* LEFT — input + controls */}
           <div className="lg:col-span-2 space-y-5">
             {/* Material textarea + file drop */}
             <div className="card">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Brain size={16} className="text-primary-500" /> Your material
                 </h2>
-                <label className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 cursor-pointer">
-                  <Upload size={14} />
-                  <span>Upload files (.txt, .md)</span>
-                  <input
-                    type="file"
-                    accept=".txt,.md,.markdown,.text"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      const fs = e.target.files;
-                      if (fs && fs.length > 0) handleFilesUpload(fs);
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
+                <div className="flex items-center gap-2">
+                  {/* v17.7: Try a sample — loads a curated chapter excerpt so
+                      the user can see what the tool does without pasting
+                      anything. Mirrors MarkdownToolPage. */}
+                  <button
+                    type="button"
+                    onClick={loadSample}
+                    disabled={generating}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-200 bg-white text-[11px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Sparkles size={11} /> Try a sample
+                  </button>
+                  <label className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 cursor-pointer">
+                    <Upload size={14} />
+                    <span>Upload files (.txt, .md)</span>
+                    <input
+                      type="file"
+                      accept=".txt,.md,.markdown,.text"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const fs = e.target.files;
+                        if (fs && fs.length > 0) handleFilesUpload(fs);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
               <textarea
                 value={rawMaterial}
@@ -502,34 +578,49 @@ export default function StudyPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={generate}
-              disabled={generating}
-              className={cn(
-                'w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-white font-semibold transition shadow-lg',
-                generating
-                  ? 'bg-gray-300 cursor-wait'
-                  : 'bg-gradient-to-r from-primary-600 to-fuchsia-600 hover:opacity-95 shadow-primary-600/20',
+            <div>
+              <button
+                type="button"
+                onClick={generate}
+                disabled={generating}
+                className={cn(
+                  'w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-white font-semibold transition shadow-lg',
+                  generating
+                    ? 'bg-gray-300 cursor-wait'
+                    : 'bg-gradient-to-r from-primary-600 to-fuchsia-600 hover:opacity-95 shadow-primary-600/20',
+                )}
+              >
+                {generating ? (
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 size={18} className="animate-spin" />
+                      Generating your {FORMAT_OPTIONS.find((f) => f.id === format)?.label.toLowerCase()}…
+                    </span>
+                    <span className="text-xs font-normal text-white/80">
+                      Usually ~20-30 s per format
+                    </span>
+                  </div>
+                ) : !isAuthed && !isLoadingSession ? (
+                  <>
+                    <LogIn size={18} />
+                    Sign in to generate
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={18} />
+                    Generate
+                  </>
+                )}
+              </button>
+              {/* v17.7: ETA hint outside the button so users see the expected
+                  wait before they click. Per-format estimates remain on the
+                  format picker cards above. */}
+              {!generating && (
+                <p className="mt-2 text-xs text-gray-400 text-center">
+                  Usually ~20-30 s per format
+                </p>
               )}
-            >
-              {generating ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Generating your {FORMAT_OPTIONS.find((f) => f.id === format)?.label.toLowerCase()}…
-                </>
-              ) : !isAuthed && !isLoadingSession ? (
-                <>
-                  <LogIn size={18} />
-                  Sign in to generate
-                </>
-              ) : (
-                <>
-                  <Sparkles size={18} />
-                  Generate
-                </>
-              )}
-            </button>
+            </div>
           </div>
 
           {/* RIGHT — history + tips */}
@@ -632,6 +723,62 @@ export default function StudyPage() {
             </article>
           </motion.div>
         )}
+
+        {/* v17.7: Pairs well with — two curated peer tools so users have a
+            clear next step after a study session. */}
+        <div>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">
+            Pairs well with
+          </h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Link
+              href="/practice"
+              className="group card hover:border-primary-200 hover:shadow-md transition flex items-start justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-blue-500 text-white flex items-center justify-center flex-shrink-0">
+                    <Brain size={16} />
+                  </div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-700">
+                    Practice Generator
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 leading-snug">
+                  Turn the same material into a quiz with explanations on every
+                  answer — test what stuck.
+                </p>
+              </div>
+              <ArrowRight
+                size={16}
+                className="text-gray-400 group-hover:text-primary-600 flex-shrink-0 mt-1"
+              />
+            </Link>
+            <Link
+              href="/flashcard-forge"
+              className="group card hover:border-primary-200 hover:shadow-md transition flex items-start justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-lime-500 to-green-500 text-white flex items-center justify-center flex-shrink-0">
+                    <Layers size={16} />
+                  </div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-700">
+                    Flashcard Forge
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 leading-snug">
+                  Pull key terms and definitions from your material into a
+                  spaced-repetition deck.
+                </p>
+              </div>
+              <ArrowRight
+                size={16}
+                className="text-gray-400 group-hover:text-primary-600 flex-shrink-0 mt-1"
+              />
+            </Link>
+          </div>
+        </div>
       </div>
     </Shell>
   );

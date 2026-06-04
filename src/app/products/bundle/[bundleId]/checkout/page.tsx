@@ -14,6 +14,12 @@
  * Anonymous users see a "log in to purchase" state with a callback URL that
  * preserves the bundle and billing selection. Auth gating happens here; no
  * middleware change is required.
+ *
+ * v17.7 (QoL): success CTA deep-links each tool; alternative-cadence price
+ * shown as fine print; explicit refund/cancel line; already-owned warning
+ * driven by /api/products/subscriptions; lucide icon per tool on the included
+ * list; "Only need 2-3?" escape hatch back to /products; trust strip mirroring
+ * the per-product checkout; prominent two-button row (cancel + confirm).
  */
 
 import { useEffect, useState } from 'react';
@@ -22,7 +28,26 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import {
-  Package, Check, Sparkles, ArrowRight, Lock, Loader2,
+  Package,
+  Check,
+  Sparkles,
+  ArrowRight,
+  Lock,
+  Loader2,
+  AlertTriangle,
+  RotateCcw,
+  Zap,
+  Brain,
+  BookOpen,
+  Calculator,
+  FileText,
+  Beaker,
+  Languages,
+  Quote,
+  Layers,
+  Presentation,
+  Code2,
+  Target,
 } from 'lucide-react';
 import {
   findBundle,
@@ -30,8 +55,10 @@ import {
   bundleSavingsPct,
   formatSavingsPct,
   BUNDLE_PRODUCT_NAMES,
+  BUNDLE_PRODUCT_HREFS,
   type BillingMode,
   type BundleDef,
+  type BundleProductId,
 } from '@/lib/bundles';
 
 function isBillingMode(value: string | null): value is BillingMode {
@@ -53,6 +80,32 @@ type EffectivePriceResponse = {
   staticMonthlyPrice: number | null;
 };
 
+// v17.7: mirror the icon set the products grid renders so the included-tools
+// list shows the same lucide icon per tool. Keys must match BundleProductId.
+const BUNDLE_PRODUCT_ICONS: Record<BundleProductId, React.ReactNode> = {
+  'exam-study-helper': <Sparkles size={16} />,
+  'practice-generator': <Brain size={16} />,
+  'math-solver': <Calculator size={16} />,
+  'essay-coach': <BookOpen size={16} />,
+  'notes-cleaner': <FileText size={16} />,
+  'lab-report-builder': <Beaker size={16} />,
+  'citation-finder': <Quote size={16} />,
+  'language-lab': <Languages size={16} />,
+  'flashcard-forge': <Layers size={16} />,
+  'presentation-prep': <Presentation size={16} />,
+  'code-companion': <Code2 size={16} />,
+  'reading-decoder': <BookOpen size={16} />,
+  'exam-postmortem': <Target size={16} />,
+};
+
+// v17.7: precheck shape returned by /api/products/subscriptions. We only
+// care about active bundle ids and active product ids; everything else on
+// the response is ignored.
+type SubscriptionsPrecheck = {
+  ownedBundleIds: Set<string>;
+  ownedProductIds: Set<string>;
+};
+
 export default function BundleCheckoutPage() {
   const params = useParams<{ bundleId: string }>();
   const searchParams = useSearchParams();
@@ -67,6 +120,7 @@ export default function BundleCheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [effective, setEffective] = useState<EffectivePriceResponse | null>(null);
+  const [ownership, setOwnership] = useState<SubscriptionsPrecheck | null>(null);
 
   // Fetch the effective (override-aware) price as soon as we know the
   // bundle id AND the user is authenticated. The endpoint requires auth
@@ -89,6 +143,60 @@ export default function BundleCheckoutPage() {
         if (!cancelled) setEffective(data);
       } catch {
         // Network error — leave effective null and fall back to static.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bundle, status]);
+
+  // v17.7: precheck the user's subscriptions so we can warn when they
+  // already own the bundle (or every tool inside it via individual
+  // product subs). Same endpoint the /products page uses — no new API
+  // surface needed.
+  useEffect(() => {
+    if (!bundle || status !== 'authenticated') {
+      setOwnership(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/products/subscriptions', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data: unknown = await res.json();
+        const ownedBundleIds = new Set<string>();
+        const ownedProductIds = new Set<string>();
+        if (data && typeof data === 'object') {
+          const obj = data as Record<string, unknown>;
+          const bundleArr = Array.isArray(obj.bundleSubscriptions)
+            ? obj.bundleSubscriptions
+            : Array.isArray(obj.subscriptions)
+              ? obj.subscriptions
+              : [];
+          for (const entry of bundleArr) {
+            if (entry && typeof entry === 'object') {
+              const entryStatus = (entry as { status?: unknown }).status;
+              if (typeof entryStatus === 'string' && entryStatus !== 'active') continue;
+              const bId = (entry as { bundleId?: unknown }).bundleId;
+              if (typeof bId === 'string') ownedBundleIds.add(bId);
+            }
+          }
+          const productArr = Array.isArray(obj.productSubscriptions)
+            ? obj.productSubscriptions
+            : [];
+          for (const entry of productArr) {
+            if (entry && typeof entry === 'object') {
+              const entryStatus = (entry as { status?: unknown }).status;
+              if (typeof entryStatus === 'string' && entryStatus !== 'active') continue;
+              const pId = (entry as { productId?: unknown }).productId;
+              if (typeof pId === 'string') ownedProductIds.add(pId);
+            }
+          }
+        }
+        if (!cancelled) setOwnership({ ownedBundleIds, ownedProductIds });
+      } catch {
+        if (!cancelled) setOwnership(null);
       }
     })();
     return () => {
@@ -155,8 +263,35 @@ export default function BundleCheckoutPage() {
     effectiveForMode !== null &&
     effectiveForMode !== staticPrice;
   const cadenceLabel = billingMode === 'monthly' ? '/month' : ' one-time';
+  // v17.7: alternative-cadence fine print so the user can second-guess at
+  // the last second without bouncing back to /products. Prefer the
+  // override-aware number for the alt cadence too.
+  const altPrice =
+    billingMode === 'monthly'
+      ? (effective?.oneTimePrice ?? bundle.oneTimePrice)
+      : (effective?.monthlyPrice ?? bundle.monthlyPrice);
+  const altLabel =
+    billingMode === 'monthly'
+      ? `or $${altPrice} one-time`
+      : `or $${altPrice}/month`;
   const productNames = bundle.productIds.map((id) => BUNDLE_PRODUCT_NAMES[id]);
   const savingsLabel = formatSavingsPct(bundleSavingsPct(bundle, billingMode));
+
+  // v17.7: already-owned precheck. Two trigger conditions:
+  //   1. an active BundleSubscription for THIS bundle id
+  //   2. an active ProductSubscription for EVERY product in the bundle
+  // Either one means a fresh purchase adds nothing new — warn loudly.
+  const alreadyOwnsBundle = ownership ? ownership.ownedBundleIds.has(bundle.id) : false;
+  const ownsAllProducts =
+    !!ownership &&
+    bundle.productIds.length > 0 &&
+    bundle.productIds.every((pid) => ownership.ownedProductIds.has(pid));
+  const alreadyOwned = alreadyOwnsBundle || ownsAllProducts;
+  const ownedReason: string = alreadyOwnsBundle
+    ? `You already have an active ${bundle.name} subscription.`
+    : ownsAllProducts
+      ? 'You already have active subscriptions for every tool in this bundle.'
+      : '';
 
   // ---- Loading session ----
   if (status === 'loading') {
@@ -202,7 +337,7 @@ export default function BundleCheckoutPage() {
   if (confirmed) {
     return (
       <PageShell>
-        <div className="card max-w-lg mx-auto text-center space-y-5 p-8">
+        <div className="card max-w-xl mx-auto text-center space-y-5 p-8">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white flex items-center justify-center">
             <Check size={30} />
           </div>
@@ -213,14 +348,40 @@ export default function BundleCheckoutPage() {
             </p>
           </div>
 
+          {/* v17.7: deep-link each bundled tool so the user can jump straight
+              into any one instead of trudging back through /account or
+              /products to find them. */}
           <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-4 text-left">
-            <p className="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-2">Included tools</p>
-            <ul className="space-y-1.5">
-              {productNames.map((name) => (
-                <li key={name} className="text-sm text-gray-700 flex items-center gap-2">
-                  <Check size={14} className="text-green-600 flex-shrink-0" /> {name}
-                </li>
-              ))}
+            <p className="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-3">
+              Jump into your tools
+            </p>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {bundle.productIds.map((pid) => {
+                const name = BUNDLE_PRODUCT_NAMES[pid];
+                const href = BUNDLE_PRODUCT_HREFS[pid];
+                return (
+                  <li key={pid}>
+                    <Link
+                      href={href}
+                      className="group flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-primary-300 hover:shadow-sm"
+                    >
+                      <span
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm bg-gradient-to-br ${bundle.ring} flex-shrink-0`}
+                      >
+                        {BUNDLE_PRODUCT_ICONS[pid]}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-gray-900 truncate">{name}</span>
+                        <span className="block text-[11px] text-gray-400 truncate">{href}</span>
+                      </span>
+                      <ArrowRight
+                        size={14}
+                        className="text-gray-300 group-hover:text-primary-500 transition flex-shrink-0"
+                      />
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
@@ -235,7 +396,7 @@ export default function BundleCheckoutPage() {
               href="/products"
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
             >
-              <Sparkles size={16} /> Try the tools
+              <Sparkles size={16} /> Browse more
             </Link>
           </div>
         </div>
@@ -256,6 +417,41 @@ export default function BundleCheckoutPage() {
           <p className="text-sm text-gray-500 mt-2">Review the details below, then activate.</p>
         </div>
 
+        {/* v17.7: already-owned warning. Loud enough to actually catch eyes
+            but not blocking — the existing duplicate-purchase guard on the
+            server is still the source of truth; this is a UI-side heads-up
+            so the user doesn't even try. */}
+        {alreadyOwned && (
+          <div
+            role="alert"
+            className="mb-4 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 flex items-start gap-3"
+          >
+            <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-900">
+                You already own all the tools in this bundle.
+              </p>
+              <p className="text-xs text-amber-800 mt-1">
+                {ownedReason} Purchasing won&apos;t add anything new.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Link
+                  href="/account/subscriptions"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
+                >
+                  View my subscriptions <ArrowRight size={12} />
+                </Link>
+                <Link
+                  href="/products"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-800 hover:text-amber-900 transition"
+                >
+                  Back to products
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Bundle card */}
         <div className="card space-y-5 p-6">
           <div className="flex items-start justify-between gap-3">
@@ -269,6 +465,18 @@ export default function BundleCheckoutPage() {
                 )}
               </div>
               <p className="text-sm text-gray-500 mt-1">{bundle.pitch}</p>
+              {/* v17.7: escape hatch for buyers who only need a few of the
+                  bundled tools — sending them to per-tool pricing reduces
+                  refund risk and looks honest. */}
+              <p className="text-xs text-gray-500 mt-2">
+                Only need 2-3 of these tools?{' '}
+                <Link
+                  href="/products"
+                  className="font-semibold text-primary-600 hover:text-primary-700"
+                >
+                  See per-tool pricing →
+                </Link>
+              </p>
             </div>
           </div>
 
@@ -287,6 +495,9 @@ export default function BundleCheckoutPage() {
                   Updated pricing — was ${staticPrice}, now ${price}.
                 </p>
               )}
+              {/* v17.7: show the OTHER cadence so users can flip without
+                  navigating away. */}
+              <p className="text-[11px] text-gray-400 mt-1">{altLabel}</p>
             </div>
             {savingsLabel ? (
               <div className="text-right">
@@ -297,41 +508,110 @@ export default function BundleCheckoutPage() {
             ) : null}
           </div>
 
-          {/* Included tools */}
+          {/* Included tools — v17.7: render with the same lucide icon style
+              as the main /products grid so the surfaces feel cohesive. */}
           <div>
             <p className="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-2">
               Included tools ({productNames.length})
             </p>
-            <ul className="grid sm:grid-cols-2 gap-1.5">
-              {productNames.map((name) => (
-                <li key={name} className="text-sm text-gray-700 flex items-center gap-2">
-                  <Check size={14} className="text-green-600 flex-shrink-0" /> {name}
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {bundle.productIds.map((pid) => (
+                <li
+                  key={pid}
+                  className="flex items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50/60 px-2.5 py-2"
+                >
+                  <span
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm bg-gradient-to-br ${bundle.ring} flex-shrink-0`}
+                  >
+                    {BUNDLE_PRODUCT_ICONS[pid]}
+                  </span>
+                  <span className="text-sm font-medium text-gray-800 truncate">
+                    {BUNDLE_PRODUCT_NAMES[pid]}
+                  </span>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Confirm */}
-          <button
-            type="button"
-            onClick={() => handleConfirm(bundle)}
-            disabled={submitting}
-            className={`btn-primary w-full flex items-center justify-center gap-2 py-3 text-base ${submitting ? 'opacity-60 cursor-not-allowed' : ''}`}
-          >
-            {submitting ? (
+          {/* v17.7: refund/cancel clarity. Two explicit lines so neither
+              cadence's terms are buried in a paragraph. */}
+          <div className="rounded-xl border border-gray-100 bg-white p-3 text-[11px] text-gray-600 space-y-1.5">
+            {billingMode === 'monthly' ? (
               <>
-                <Loader2 size={18} className="animate-spin" /> Processing…
+                <p className="flex items-start gap-2">
+                  <RotateCcw size={13} className="text-primary-500 flex-shrink-0 mt-0.5" />
+                  <span>
+                    <span className="font-semibold text-gray-800">Monthly:</span>{' '}
+                    cancel anytime from your subscriptions page — you keep access
+                    until the end of the current billing period.
+                  </span>
+                </p>
+                <p className="flex items-start gap-2 text-gray-500">
+                  <Lock size={13} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                  <span>One-time purchases are final and non-refundable.</span>
+                </p>
               </>
             ) : (
               <>
-                <Sparkles size={18} /> Confirm purchase
+                <p className="flex items-start gap-2">
+                  <Lock size={13} className="text-gray-500 flex-shrink-0 mt-0.5" />
+                  <span>
+                    <span className="font-semibold text-gray-800">One-time:</span>{' '}
+                    permanent access to every tool in the bundle. Final purchase,
+                    non-refundable.
+                  </span>
+                </p>
+                <p className="flex items-start gap-2 text-gray-500">
+                  <RotateCcw size={13} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                  <span>Prefer monthly? Cancel anytime from your subscriptions page.</span>
+                </p>
               </>
             )}
-          </button>
+          </div>
+
+          {/* v17.7: two-button row — cancel + confirm — so the exit lane is
+              as obvious as the commit lane. */}
+          <div className="grid grid-cols-1 sm:grid-cols-[auto,1fr] gap-2">
+            <Link
+              href="/products"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+            >
+              Cancel
+            </Link>
+            <button
+              type="button"
+              onClick={() => handleConfirm(bundle)}
+              disabled={submitting}
+              className={`btn-primary w-full flex items-center justify-center gap-2 py-3 text-base ${submitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> Processing…
+                </>
+              ) : (
+                <>
+                  <Sparkles size={18} /> Confirm purchase
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* v17.7: trust strip — three short reassurances that travel with
+              every checkout surface. */}
+          <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11px] text-gray-500 pt-1">
+            <li className="inline-flex items-center gap-1.5">
+              <Lock size={12} className="text-gray-400" /> No credit card
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <RotateCcw size={12} className="text-gray-400" /> Cancel anytime (monthly)
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <Zap size={12} className="text-gray-400" /> Activates immediately
+            </li>
+          </ul>
 
           <p className="text-[11px] text-gray-400 text-center">
             By confirming, you authorize Limud to activate the {bundle.name} on your account.
-            {billingMode === 'monthly' ? ' You can cancel anytime from your subscriptions page.' : ''}
           </p>
         </div>
 

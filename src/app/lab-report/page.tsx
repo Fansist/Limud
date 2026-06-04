@@ -24,6 +24,17 @@ const CONFIG: ToolConfig = {
   inputMin: 40,
   helperText:
     "Limud will not write your report. It will tell you what each section needs to answer and where your draft is weak — so the report you turn in is genuinely yours.",
+  sampleInput:
+    "HYPOTHESIS:\nThe equivalence point of the titration of 25.00 mL of unknown HCl solution with 0.100 M NaOH will occur at pH 7.00, and the concentration of HCl can be calculated from the volume of NaOH added at that point.\n\nDATA TABLE (Trial 1):\n| Volume NaOH added (mL) | pH |\n|---|---|\n| 0.00 | 1.10 |\n| 5.00 | 1.32 |\n| 10.00 | 1.56 |\n| 15.00 | 1.88 |\n| 20.00 | 2.31 |\n| 22.00 | 2.79 |\n| 22.50 | 3.40 |\n| 22.80 | 4.20 |\n| 23.00 | 7.02 |\n| 23.20 | 9.80 |\n| 23.50 | 10.62 |\n| 25.00 | 11.45 |\n\nMY DRAFT SO FAR:\nIn this experiment we titrated an unknown HCl with NaOH. The equivalence point was at 23.00 mL where the pH jumped from 4.20 to 7.02. Using M1V1 = M2V2 we calculated the HCl concentration as 0.092 M. The hypothesis was supported.",
+  etaText: '~30-60 s',
+  antiCheat:
+    'Limud will not write your report. It tells you what each section needs and critiques your draft.',
+  related: [
+    { href: '/citation-finder', name: 'Citation Finder', reason: 'Cite sources for your discussion' },
+    { href: '/essay-coach', name: 'Essay Coach', reason: 'Improve the writing in your draft' },
+  ],
+  priceLabel: '$4/mo · $6 per report',
+  checkoutHref: '/products/lab-report-builder/checkout?billing=monthly',
 };
 
 export default function LabReportPage() {

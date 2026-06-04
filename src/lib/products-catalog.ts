@@ -12,6 +12,15 @@
  * product surface is reachable; until then it renders as a coming-soon card.
  */
 
+export type ProductSubject =
+  | 'Math'
+  | 'Science'
+  | 'English'
+  | 'Languages'
+  | 'Study'
+  | 'CS'
+  | 'Research';
+
 export type Product = {
   id: string;
   name: string;
@@ -23,6 +32,7 @@ export type Product = {
   available: boolean;
   ring: string;
   bullets: string[];
+  subject: ProductSubject;
 };
 
 export const PRODUCTS: Product[] = [
@@ -42,6 +52,7 @@ export const PRODUCTS: Product[] = [
       'AI-generated comic panel art when you pick the comic format',
       'Multi-file upload — paste in chapter + notes + slides together',
     ],
+    subject: 'Study',
   },
   {
     id: 'practice-generator',
@@ -59,6 +70,7 @@ export const PRODUCTS: Product[] = [
       'Plausible distractors and 1-3 sentence explanations',
       'Anchor questions to your own notes or assignment brief',
     ],
+    subject: 'Study',
   },
   {
     id: 'math-solver',
@@ -76,6 +88,7 @@ export const PRODUCTS: Product[] = [
       "Names the concept and the common trap",
       "Pre-algebra through calculus and statistics",
     ],
+    subject: 'Math',
   },
   {
     id: 'essay-coach',
@@ -93,6 +106,7 @@ export const PRODUCTS: Product[] = [
       'Thesis + evidence + transitions diagnostics',
       'Optional rubric alignment for school assignments',
     ],
+    subject: 'English',
   },
   {
     id: 'notes-cleaner',
@@ -110,6 +124,7 @@ export const PRODUCTS: Product[] = [
       'Adds section headings and a 5-bullet TL;DR',
       "Never invents facts the lecture didn't cover",
     ],
+    subject: 'Study',
   },
   {
     id: 'lab-report-builder',
@@ -127,6 +142,7 @@ export const PRODUCTS: Product[] = [
       'Suggests graph types from your data table',
       'Flags missing controls or unclear methodology',
     ],
+    subject: 'Science',
   },
   {
     id: 'citation-finder',
@@ -144,6 +160,7 @@ export const PRODUCTS: Product[] = [
       'Flags weak or unsupported claims before you submit',
       'Prefers peer-reviewed and primary sources',
     ],
+    subject: 'Research',
   },
   {
     id: 'language-lab',
@@ -161,6 +178,7 @@ export const PRODUCTS: Product[] = [
       'Spaced repetition tuned to your error patterns',
       'Reading passages at your current grammar level',
     ],
+    subject: 'Languages',
   },
   {
     id: 'flashcard-forge',
@@ -177,6 +195,7 @@ export const PRODUCTS: Product[] = [
       'Auto-detects key terms + definitions',
       'Export to Anki, Quizlet, or print',
     ],
+    subject: 'Study',
   },
   {
     id: 'presentation-prep',
@@ -194,6 +213,7 @@ export const PRODUCTS: Product[] = [
       'Talking-point cues, not a script',
       'Question angles to think through ahead of time',
     ],
+    subject: 'English',
   },
   {
     id: 'code-companion',
@@ -210,6 +230,7 @@ export const PRODUCTS: Product[] = [
       'Walks you through fixes, never writes them',
       'Python, JavaScript, Java, C++',
     ],
+    subject: 'CS',
   },
   {
     id: 'reading-decoder',
@@ -226,6 +247,7 @@ export const PRODUCTS: Product[] = [
       'Defines unfamiliar terms inline',
       'Highlights what to quote later',
     ],
+    subject: 'English',
   },
   {
     id: 'exam-postmortem',
@@ -242,6 +264,7 @@ export const PRODUCTS: Product[] = [
       'Targeted re-practice for each gap',
       'Tracks improvement across exams',
     ],
+    subject: 'Study',
   },
 ];
 

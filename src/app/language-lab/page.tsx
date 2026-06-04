@@ -36,6 +36,18 @@ const CONFIG: ToolConfig = {
   },
   helperText:
     "Drills are tuned to the level of what you paste — don't paste a grammar review if you're early in the chapter. These are practice drills — answers are shown so you can self-check. Do not submit them as homework.",
+  sampleInput:
+    "Capítulo 5: La rutina diaria\n\nVocabulario:\n- despertarse (to wake up)\n- levantarse (to get up)\n- ducharse (to shower)\n- desayunar (to eat breakfast)\n- vestirse (to get dressed)\n- acostarse (to go to bed)\n\nGramática: verbos reflexivos en presente. Los pronombres reflexivos (me, te, se, nos, os, se) se colocan delante del verbo conjugado.\n\nTexto: Marta se despierta a las siete de la mañana. Se levanta, se ducha rápidamente y se viste para ir al colegio. Desayuna café con leche y pan tostado con su hermano. Después, los dos se cepillan los dientes y salen de casa juntos.",
+  sampleOption: 'Spanish',
+  etaText: '~20-40 s',
+  antiCheat:
+    "Drills are for self-study. Do not submit Limud's generated text as your own homework.",
+  related: [
+    { href: '/flashcard-forge', name: 'Flashcard Forge', reason: 'Build vocab decks from your readings' },
+    { href: '/reading-decoder', name: 'Reading Decoder', reason: 'Decode a difficult passage' },
+  ],
+  priceLabel: '$5/mo · $12 per semester',
+  checkoutHref: '/products/language-lab/checkout?billing=monthly',
 };
 
 export default function LanguageLabPage() {

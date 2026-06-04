@@ -30,6 +30,18 @@ const CONFIG: ToolConfig = {
   },
   helperText:
     'Reading Decoder prepares you to read carefully — it does not replace the reading. The thesis tree and glossary help you engage with the text; the "what you should still re-read" block tells you where to slow down.',
+  sampleInput:
+    "The contemporary discourse surrounding algorithmic governance frequently elides the distinction between procedural automation and substantive decisional authority. Whereas the former merely accelerates the execution of pre-determined rules, the latter delegates normative judgment to opaque computational processes whose internal logic remains inaccessible to those subject to their determinations. This conflation is not merely semantic; it has profound implications for the legitimacy of administrative action in liberal democracies, where the principle of reasoned justification has historically constrained the exercise of public power.\n\nProponents of algorithmic decision-making contend that machine learning systems can reduce the arbitrariness and inconsistency that plague human adjudication. By processing vast quantities of historical data, such systems purport to identify patterns that escape human cognition, thereby rendering decisions more accurate and impartial. Yet this technocratic optimism overlooks a fundamental epistemic problem: the patterns these systems detect are themselves artifacts of prior human choices, encoded in training data that reflects existing social hierarchies and institutional biases. The result is what scholars have termed 'laundered prejudice' — discriminatory outcomes that acquire the veneer of objectivity precisely because they emerge from a computational, rather than human, source.",
+  sampleOption: 'Grade 10',
+  etaText: '~20-40 s',
+  antiCheat:
+    'The thesis tree and glossary support your reading. It does not replace re-reading the article.',
+  related: [
+    { href: '/flashcard-forge', name: 'Flashcard Forge', reason: 'Build vocab cards from the glossary' },
+    { href: '/essay-coach', name: 'Essay Coach', reason: 'Write a response paper' },
+  ],
+  priceLabel: '$4/mo · $5 per article',
+  checkoutHref: '/products/reading-decoder/checkout?billing=monthly',
 };
 
 export default function ReadingDecoderPage() {

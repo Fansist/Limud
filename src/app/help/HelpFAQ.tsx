@@ -44,6 +44,11 @@ const FAQ_DATA: FAQCategory[] = [
       { question: 'How does billing work?', answer: 'Plans are billed monthly or annually (save 25% with annual billing). Upgrades are prorated. Payment methods include credit card, ACH bank transfer, and purchase orders (Enterprise). Invoices are available in the Billing section.' },
       { question: 'What individual products does Limud offer?', answer: 'Limud has 13 standalone products that anyone can use without a district plan: Exam Study Helper, Practice Generator, Math Tutor, Essay Coach, Notes Cleaner, Lab Report Builder, Citation Finder, Language Lab, Flashcard Forge, Presentation Prep, Code Companion, Reading Decoder, and Exam Postmortem. Each product is available as a one-time per-use purchase OR as a monthly unlimited subscription. See /products for the full catalog.' },
       { question: 'Are there bundles to save money?', answer: 'Yes — Limud offers 4 bundles that group related tools at a discount: All-Access Pass (every product, up to 45% off vs. buying them individually), Study Bundle, Writing Bundle, and STEM Bundle. Bundles are billed monthly and can be combined with or replace single-product subscriptions.' },
+      { question: 'Which tool for which situation?', answer: 'Use this matrix to match your need to the right Limud tool:\n• If: Study for an upcoming exam → Use: Exam Study Helper + Practice Generator\n• If: Get unstuck on a math problem → Use: Math Tutor\n• If: Get feedback on an essay → Use: Essay Coach\n• If: Clean up messy lecture notes → Use: Notes Cleaner\n• If: Write a lab report → Use: Lab Report Reviewer + Citation Finder\n• If: Find sources for a claim → Use: Citation Finder\n• If: Build vocab + grammar drills → Use: Language Lab\n• If: Make flashcards from a chapter → Use: Flashcard Forge\n• If: Outline a class presentation → Use: Presentation Prep\n• If: Debug code with hints → Use: Code Companion\n• If: Decode a dense article → Use: Reading Decoder\n• If: Learn from past wrong answers → Use: Exam Postmortem' },
+      { question: 'When do bundles save money?', answer: 'If you\'ll use 3+ tools this semester, a bundle saves money. Per-tool pricing fits occasional use.' },
+      { question: 'Can I switch from one-time to monthly?', answer: 'Yes, buy the monthly subscription separately. Your one-time purchase still works forever, so you\'ll have both.' },
+      { question: 'How do I cancel my subscription?', answer: 'Visit /account/subscriptions, click \'Cancel\' next to the row. Access continues until end of billing period. One-time purchases can\'t be cancelled (you already own the tool).' },
+      { question: 'How do I get a refund?', answer: 'Email billing@limud.co within 14 days of a monthly purchase for a full refund. One-time purchases are non-refundable.' },
       { question: 'What is the Owner role?', answer: 'Owner is the highest privilege level for Limud staff who manage finances and platform pricing. Owner accounts require 2-step verification (email code) on every sign-in. Owner functionality is not available to regular customers.' },
     ],
   },
@@ -137,7 +142,7 @@ export default function HelpFAQ() {
                             {openItem === itemKey && (
                               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden">
-                                <p className="px-6 pb-4 pl-12 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{item.answer}</p>
+                                <p className="px-6 pb-4 pl-12 text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">{item.answer}</p>
                               </motion.div>
                             )}
                           </AnimatePresence>

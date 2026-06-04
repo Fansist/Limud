@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { DollarSign, Tag, ShieldCheck } from 'lucide-react';
+import MySubscriptionsCard from '@/components/dashboard/MySubscriptionsCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,6 +79,11 @@ export default async function OwnerHomePage() {
           </p>
         </Link>
       </div>
+
+      {/* ── My Subscriptions — v17.7 QoL: owner sees their own product/bundle
+          subs without leaving the console. Client component renders fine from
+          this server component via the App Router's RSC boundary. ────────── */}
+      <MySubscriptionsCard />
     </div>
   );
 }
