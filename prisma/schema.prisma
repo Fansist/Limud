@@ -136,6 +136,7 @@ model School {
   id          String   @id @default(cuid())
   districtId  String
   name        String
+  description String?  @db.Text  // v17.6: admin schools page reads/writes
   address     String?
   city        String?
   state       String?
@@ -159,6 +160,8 @@ model School {
 model Classroom {
   id          String   @id @default(cuid())
   name        String
+  description String?              // v17.6: admin classrooms page reads/writes
+  maxCapacity Int?                 // v17.6: admin classrooms page reads/writes
   schoolId    String?
   districtId  String
   gradeLevel  String?
@@ -817,6 +820,8 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+  // v17.6: notifications page filters by userId then orders by createdAt desc
+  @@index([userId, createdAt(sort: Desc)])
   @@map("notifications")
 }
 
@@ -854,6 +859,8 @@ model Message {
 
   @@index([senderId])
   @@index([receiverId])
+  // v17.6: inbox lists messages by receiverId ordered by createdAt desc
+  @@index([receiverId, createdAt(sort: Desc)])
   @@map("messages")
 }
 
@@ -1943,6 +1950,8 @@ model TwoFactorChallenge {
 
   @@index([userId])
   @@index([expiresAt])
+  // v17.6: cleanup-tfa cron filters by user+expiry together
+  @@index([userId, expiresAt])
   @@map("two_factor_challenges")
 }
 
@@ -1957,7 +1966,8 @@ model PriceOverride {
   reason        String?  @db.VarChar(280)
   createdAt     DateTime @default(now())
 
-  @@index([kind, productId])
+  // v17.6: replaces plain [kind, productId] index — append-only history; newest wins, so sort desc for fast "latest" lookup
+  @@index([kind, productId, createdAt(sort: Desc)])
   @@map("price_overrides")
 }
 
@@ -1977,6 +1987,9 @@ model ProductSubscription {
 
   @@index([userId, status])
   @@index([productId])
+  // v17.6: DB-level guard against duplicate-status rows for same (user, product). Status is a free string,
+  // so 'active' + 'cancelled' still coexist; only two rows with identical status will collide.
+  @@unique([userId, productId, status])
   @@map("product_subscriptions")
 }
 

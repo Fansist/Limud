@@ -476,8 +476,8 @@ export default function OnboardPage() {
 
               {!isFree && !isHomeschool && !isEnterprise && (
                 <div className="card max-w-md mx-auto p-5">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">How many students?</label>
-                  <input type="number" value={studentCount} onChange={e => setStudentCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  <label htmlFor="onboard-step2-student-count" className="block text-sm font-medium text-gray-700 mb-2">How many students?</label>
+                  <input id="onboard-step2-student-count" type="number" value={studentCount} onChange={e => setStudentCount(Math.max(1, parseInt(e.target.value) || 1))}
                     className="input-field text-center text-2xl font-bold" min={1} max={plan.students} style={NO_IOS_ZOOM} />
                   <p className="text-xs text-gray-400 text-center mt-1">Max {plan.students.toLocaleString()} students on {plan.tier} plan</p>
                   <p className="text-center text-lg font-bold text-primary-600 mt-2">
@@ -512,37 +512,37 @@ export default function OnboardPage() {
               {/* District-specific fields */}
               {!isHomeschool && (
                 <div className="card space-y-4">
-                  <h3 className="font-bold text-gray-900 flex items-center gap-2"><Building2 size={18} /> District Information</h3>
+                  <h2 className="font-bold text-gray-900 flex items-center gap-2"><Building2 size={18} /> District Information</h2>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">District Name *</label>
-                    <input value={form.districtName} onChange={e => updateForm('districtName', e.target.value)} className="input-field" placeholder="e.g., Springfield School District" style={NO_IOS_ZOOM} />
+                    <label htmlFor="onboard-step3-district-name" className="block text-sm font-medium text-gray-700 mb-1">District Name *</label>
+                    <input id="onboard-step3-district-name" value={form.districtName} onChange={e => updateForm('districtName', e.target.value)} className="input-field" placeholder="e.g., Springfield School District" style={NO_IOS_ZOOM} />
                   </div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email *</label>
-                      <input type="email" value={form.contactEmail} onChange={e => updateForm('contactEmail', e.target.value)} className="input-field" style={NO_IOS_ZOOM} autoComplete="email" />
+                      <label htmlFor="onboard-step3-contact-email" className="block text-sm font-medium text-gray-700 mb-1">Contact Email *</label>
+                      <input id="onboard-step3-contact-email" type="email" value={form.contactEmail} onChange={e => updateForm('contactEmail', e.target.value)} className="input-field" style={NO_IOS_ZOOM} autoComplete="email" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                      <input type="tel" value={form.contactPhone} onChange={e => updateForm('contactPhone', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
+                      <label htmlFor="onboard-step3-contact-phone" className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                      <input id="onboard-step3-contact-phone" type="tel" value={form.contactPhone} onChange={e => updateForm('contactPhone', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                    <input value={form.address} onChange={e => updateForm('address', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
+                    <label htmlFor="onboard-step3-address" className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <input id="onboard-step3-address" value={form.address} onChange={e => updateForm('address', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
                   </div>
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                      <input value={form.city} onChange={e => updateForm('city', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
+                      <label htmlFor="onboard-step3-city" className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                      <input id="onboard-step3-city" value={form.city} onChange={e => updateForm('city', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                      <input value={form.state} onChange={e => updateForm('state', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
+                      <label htmlFor="onboard-step3-state" className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                      <input id="onboard-step3-state" value={form.state} onChange={e => updateForm('state', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
-                      <input value={form.zipCode} onChange={e => updateForm('zipCode', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
+                      <label htmlFor="onboard-step3-zip" className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
+                      <input id="onboard-step3-zip" value={form.zipCode} onChange={e => updateForm('zipCode', e.target.value)} className="input-field" style={NO_IOS_ZOOM} />
                     </div>
                   </div>
                 </div>
@@ -550,26 +550,26 @@ export default function OnboardPage() {
 
               {/* Account fields */}
               <div className="card space-y-4">
-                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="font-bold text-gray-900 flex items-center gap-2">
                   {isHomeschool ? <><Users size={18} /> Parent Account</> : <><Shield size={18} /> Superintendent Account</>}
-                </h3>
+                </h2>
                 {!isHomeschool && (
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700">
                     This account has full access to manage schools, students, teachers, classes, and billing.
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                  <input value={form.adminName} onChange={e => updateForm('adminName', e.target.value)} className="input-field" placeholder="Your full name" style={NO_IOS_ZOOM} autoComplete="name" />
+                  <label htmlFor="onboard-step3-admin-name" className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                  <input id="onboard-step3-admin-name" value={form.adminName} onChange={e => updateForm('adminName', e.target.value)} className="input-field" placeholder="Your full name" style={NO_IOS_ZOOM} autoComplete="name" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input type="email" value={form.adminEmail} onChange={e => updateForm('adminEmail', e.target.value)} className="input-field" placeholder="you@example.com" style={NO_IOS_ZOOM} autoComplete="email" inputMode="email" />
+                  <label htmlFor="onboard-step3-admin-email" className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <input id="onboard-step3-admin-email" type="email" value={form.adminEmail} onChange={e => updateForm('adminEmail', e.target.value)} className="input-field" placeholder="you@example.com" style={NO_IOS_ZOOM} autoComplete="email" inputMode="email" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                  <label htmlFor="onboard-step3-admin-password" className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
                   <div className="relative">
-                    <input type={showPassword ? 'text' : 'password'} value={form.adminPassword}
+                    <input id="onboard-step3-admin-password" type={showPassword ? 'text' : 'password'} value={form.adminPassword}
                       onChange={e => updateForm('adminPassword', e.target.value)} className="input-field pr-10" placeholder="Min 10 characters" style={NO_IOS_ZOOM} autoComplete="new-password" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -580,8 +580,8 @@ export default function OnboardPage() {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
-                  <input type="password" value={form.confirmPassword} onChange={e => updateForm('confirmPassword', e.target.value)} className="input-field" placeholder="Re-enter password" style={NO_IOS_ZOOM} autoComplete="new-password" />
+                  <label htmlFor="onboard-step3-confirm-password" className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
+                  <input id="onboard-step3-confirm-password" type="password" value={form.confirmPassword} onChange={e => updateForm('confirmPassword', e.target.value)} className="input-field" placeholder="Re-enter password" style={NO_IOS_ZOOM} autoComplete="new-password" />
                   {form.confirmPassword && form.adminPassword !== form.confirmPassword && (
                     <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
                   )}
@@ -592,9 +592,9 @@ export default function OnboardPage() {
               {isHomeschool && (
                 <div className="card space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                    <h2 className="font-bold text-gray-900 flex items-center gap-2">
                       <GraduationCap size={18} /> Your Children
-                    </h3>
+                    </h2>
                     <button onClick={addChild} className="text-sm text-primary-600 font-medium flex items-center gap-1 hover:text-primary-700">
                       <Plus size={14} /> Add Child
                     </button>
@@ -611,13 +611,13 @@ export default function OnboardPage() {
                       </div>
                       <div className="grid sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
-                          <input value={child.name} onChange={e => updateChild(idx, 'name', e.target.value)}
+                          <label htmlFor={`onboard-step3-child-${idx}-name`} className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
+                          <input id={`onboard-step3-child-${idx}-name`} value={child.name} onChange={e => updateChild(idx, 'name', e.target.value)}
                             className="input-field" placeholder="Child's name" style={NO_IOS_ZOOM} />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Grade Level</label>
-                          <select value={child.grade} onChange={e => updateChild(idx, 'grade', e.target.value)} className="input-field" style={NO_IOS_ZOOM}>
+                          <label htmlFor={`onboard-step3-child-${idx}-grade`} className="block text-xs font-medium text-gray-600 mb-1">Grade Level</label>
+                          <select id={`onboard-step3-child-${idx}-grade`} value={child.grade} onChange={e => updateChild(idx, 'grade', e.target.value)} className="input-field" style={NO_IOS_ZOOM}>
                             <option value="">Select grade</option>
                             {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
                           </select>
@@ -659,7 +659,7 @@ export default function OnboardPage() {
 
               {/* Order Summary */}
               <div className="card bg-gray-50">
-                <h3 className="font-bold text-gray-900 mb-3">Order Summary</h3>
+                <h2 className="font-bold text-gray-900 mb-3">Order Summary</h2>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-gray-600">Account Type</span><span className="font-medium">{isHomeschool ? 'Homeschool' : 'District'}</span></div>
                   <div className="flex justify-between"><span className="text-gray-600">Plan</span><span className="font-medium">{selectedPlan}</span></div>
@@ -696,7 +696,7 @@ export default function OnboardPage() {
 
               {/* Payment Method */}
               <div className="card space-y-4">
-                <h3 className="font-bold text-gray-900 flex items-center gap-2"><CreditCard size={18} /> Payment Method</h3>
+                <h2 className="font-bold text-gray-900 flex items-center gap-2"><CreditCard size={18} /> Payment Method</h2>
                 <div className="flex gap-3">
                   {['card', 'purchase_order'].map(m => (
                     <button key={m} onClick={() => updateForm('paymentMethod', m)}
@@ -711,18 +711,18 @@ export default function OnboardPage() {
                 {form.paymentMethod === 'card' && (
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
-                      <input value={form.cardNumber} onChange={e => updateForm('cardNumber', e.target.value)}
+                      <label htmlFor="onboard-step4-card-number" className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
+                      <input id="onboard-step4-card-number" value={form.cardNumber} onChange={e => updateForm('cardNumber', e.target.value)}
                         className="input-field" placeholder="4242 4242 4242 4242" style={NO_IOS_ZOOM} inputMode="numeric" autoComplete="cc-number" />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Expiry</label>
-                        <input value={form.cardExpiry} onChange={e => updateForm('cardExpiry', e.target.value)} className="input-field" placeholder="MM/YY" style={NO_IOS_ZOOM} inputMode="numeric" autoComplete="cc-exp" />
+                        <label htmlFor="onboard-step4-card-expiry" className="block text-sm font-medium text-gray-700 mb-1">Expiry</label>
+                        <input id="onboard-step4-card-expiry" value={form.cardExpiry} onChange={e => updateForm('cardExpiry', e.target.value)} className="input-field" placeholder="MM/YY" style={NO_IOS_ZOOM} inputMode="numeric" autoComplete="cc-exp" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">CVC</label>
-                        <input value={form.cardCvc} onChange={e => updateForm('cardCvc', e.target.value)} className="input-field" placeholder="123" style={NO_IOS_ZOOM} inputMode="numeric" autoComplete="cc-csc" />
+                        <label htmlFor="onboard-step4-card-cvc" className="block text-sm font-medium text-gray-700 mb-1">CVC</label>
+                        <input id="onboard-step4-card-cvc" value={form.cardCvc} onChange={e => updateForm('cardCvc', e.target.value)} className="input-field" placeholder="123" style={NO_IOS_ZOOM} inputMode="numeric" autoComplete="cc-csc" />
                       </div>
                     </div>
                   </div>

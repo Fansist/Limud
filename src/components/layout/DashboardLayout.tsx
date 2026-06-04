@@ -353,11 +353,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   async function fetchNotifications() {
     try {
       const res = await fetch('/api/notifications');
+      let notifUnread = 0;
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
+        notifUnread = data.unreadCount || 0;
       }
+      // Parents have a separate ParentAlert table — the bell badge must
+      // include those too, even though the dropdown still shows only
+      // notifications. The /api/parent/alerts response includes an
+      // aggregate `unreadCount` we can fold in.
+      let alertUnread = 0;
+      if (sessionRole === 'PARENT' || sessionRole === 'HOMESCHOOL_PARENT') {
+        try {
+          const alertRes = await fetch('/api/parent/alerts?unreadOnly=true');
+          if (alertRes.ok) {
+            const alertData = await alertRes.json();
+            alertUnread = typeof alertData?.unreadCount === 'number' ? alertData.unreadCount : 0;
+          }
+        } catch {}
+      }
+      setUnreadCount(notifUnread + alertUnread);
     } catch {}
   }
 

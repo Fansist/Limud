@@ -5,21 +5,40 @@ import { useEffect, useState } from 'react';
 
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { CreditCard, DollarSign, Calendar, CheckCircle2, ArrowUpRight, Zap, Star, Crown, Shield, Users, Building2, TrendingUp, Info } from 'lucide-react';
+import { CreditCard, DollarSign, Calendar, CheckCircle2, ArrowUpRight, Zap, Star, Crown, Shield, Users, Building2, TrendingUp, Info, Mail } from 'lucide-react';
 import { cn, formatDate } from '@/lib/utils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { DEMO_DISTRICT } from '@/lib/demo-data';
 
 const DEMO_PAYMENTS = [
   { id: 'p1', amount: 2400, status: 'COMPLETED', description: 'STANDARD plan - 300 students', tier: 'STANDARD', paidAt: new Date().toISOString(), createdAt: new Date().toISOString() },
-  { id: 'p2', amount: 1200, status: 'COMPLETED', description: 'Initial STARTER plan - 100 students', tier: 'STARTER', paidAt: new Date(Date.now() - 180 * 86400000).toISOString(), createdAt: new Date(Date.now() - 180 * 86400000).toISOString() },
+  { id: 'p2', amount: 300, status: 'COMPLETED', description: 'Initial STARTER plan - 100 students', tier: 'STARTER', paidAt: new Date(Date.now() - 180 * 86400000).toISOString(), createdAt: new Date(Date.now() - 180 * 86400000).toISOString() },
 ];
 
-const PLANS = [
-  { tier: 'STARTER', price: 5, students: 100, icon: <Zap size={18} />, color: 'from-blue-500 to-cyan-500', label: 'Small Schools' },
-  { tier: 'STANDARD', price: 8, students: 500, icon: <Star size={18} />, color: 'from-emerald-500 to-teal-500', label: 'Growing Districts', popular: true },
+// v17.6 — These prices MUST stay in sync with TIER_PRICES in
+// src/app/api/payments/route.ts (the canonical-price gate). The backend
+// rejects ADMIN upgrade/renew requests whose computed amount doesn't match
+// the canonical price for the requested tier and emits a
+// PRIVILEGE_ESCALATION audit log. Previously this UI advertised
+// non-canonical numbers (STARTER $5, ENTERPRISE $15) which guaranteed every
+// ADMIN upgrade attempt 403'd. ENTERPRISE has no canonical price and always
+// requires OWNER, so it is intentionally NOT in this list — it's surfaced
+// as a contact-sales card below.
+type AdminPlan = {
+  tier: 'STARTER' | 'GROWTH' | 'STANDARD' | 'PREMIUM';
+  price: number;
+  students: number;
+  icon: React.ReactNode;
+  color: string;
+  label: string;
+  popular?: boolean;
+};
+
+const PLANS: AdminPlan[] = [
+  { tier: 'STARTER', price: 3, students: 50, icon: <Zap size={18} />, color: 'from-blue-500 to-cyan-500', label: 'Small Schools' },
+  { tier: 'GROWTH', price: 5, students: 200, icon: <TrendingUp size={18} />, color: 'from-indigo-500 to-blue-500', label: 'Growing Schools' },
+  { tier: 'STANDARD', price: 8, students: 500, icon: <Star size={18} />, color: 'from-emerald-500 to-teal-500', label: 'Districts', popular: true },
   { tier: 'PREMIUM', price: 12, students: 2000, icon: <Crown size={18} />, color: 'from-purple-500 to-pink-500', label: 'Large Districts' },
-  { tier: 'ENTERPRISE', price: 15, students: 10000, icon: <Shield size={18} />, color: 'from-amber-500 to-red-500', label: 'States & Mega-Districts' },
 ];
 
 export default function AdminPaymentsPage() {
@@ -117,8 +136,9 @@ export default function AdminPaymentsPage() {
           <Info size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-blue-900">
             This page can upgrade your district to a canonical tier price
-            (Starter $2/student/yr, Growth $4, Enterprise $8). Custom pricing
-            is OWNER-only — contact us if you need a different rate.
+            (Starter $3/student/yr, Growth $5, Standard $8, Premium $12).
+            Enterprise and any other custom rate is OWNER-only — contact us
+            if you need a different price.
           </p>
         </motion.div>
 
@@ -180,6 +200,11 @@ export default function AdminPaymentsPage() {
                       Most Popular
                     </div>
                   )}
+                  {isCurrent && (
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-[10px] px-3 py-0.5 rounded-full font-medium flex items-center gap-1">
+                      <CheckCircle2 size={10} /> Current plan
+                    </div>
+                  )}
                   <div className={cn('w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center text-white mb-2', plan.color)}>
                     {plan.icon}
                   </div>
@@ -234,6 +259,40 @@ export default function AdminPaymentsPage() {
               );
             })}
           </div>
+
+          {/* v17.6 — ENTERPRISE is intentionally not a clickable upgrade
+              tile. It has no canonical price (canonicalAmount returns null),
+              so ADMIN attempts always 403 with a PRIVILEGE_ESCALATION audit
+              log. Surface it as a contact-sales card instead. */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className="card border-2 border-transparent hover:border-gray-200 transition-all mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-red-500 flex items-center justify-center text-white flex-shrink-0">
+                <Shield size={18} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">ENTERPRISE</p>
+                <p className="text-xs text-gray-500">States &amp; mega-districts — unlimited students &amp; schools</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Contact us for custom pricing. Negotiated rates require an OWNER on our side, so this can&apos;t be self-served from this page.
+                </p>
+              </div>
+            </div>
+            <a
+              href="mailto:sales@limud.co?subject=Enterprise%20pricing%20inquiry"
+              className="text-sm bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 inline-flex items-center gap-1.5 flex-shrink-0"
+            >
+              <Mail size={14} /> Contact sales
+            </a>
+          </motion.div>
+
+          <p className="text-xs text-gray-500 mt-3">
+            Custom pricing requires OWNER role. Contact{' '}
+            <a href="mailto:sales@limud.co" className="text-primary-600 hover:underline">sales@limud.co</a>
+            {' '}for non-canonical rates.
+          </p>
         </div>
 
         {/* Payment History */}

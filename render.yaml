@@ -84,6 +84,34 @@ services:
       - key: LIMUD_BASE_URL
         value: https://limud.co
 
+  - type: cron
+    name: cleanup-tfa-daily
+    runtime: node
+    region: oregon
+    plan: starter
+    schedule: '0 3 * * *'   # 03:00 UTC daily — prune consumed/expired 2FA challenges
+    buildCommand: echo 'no build needed'
+    startCommand: 'curl -fsS -H "Authorization: Bearer $CRON_SECRET" $LIMUD_BASE_URL/api/cron/cleanup-tfa'
+    envVars:
+      - key: CRON_SECRET
+        sync: false
+      - key: LIMUD_BASE_URL
+        value: https://limud.co
+
+  - type: cron
+    name: flush-audit-hourly
+    runtime: node
+    region: oregon
+    plan: starter
+    schedule: '7 * * * *'   # :07 hourly — drain in-memory security audit buffer
+    buildCommand: echo 'no build needed'
+    startCommand: 'curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" $LIMUD_BASE_URL/api/cron/flush-audit'
+    envVars:
+      - key: CRON_SECRET
+        sync: false
+      - key: LIMUD_BASE_URL
+        value: https://limud.co
+
 # ─── Optional: Render PostgreSQL Database ─────────────────────
 # Uncomment below to provision a managed Render PostgreSQL DB.
 # After creation, DATABASE_URL is automatically injected.

@@ -162,12 +162,23 @@ export async function PUT(req: Request) {
 
     // If approved, link the student to the district
     if (action === 'approve') {
+      // v17.6: gradeLevel was previously written via a malformed expression
+      // `linkRequest.gradeLevel || linkRequest.student.districtId ? undefined : linkRequest.gradeLevel`
+      // which evaluated as `(A || B) ? undefined : A` — so the student's grade was
+      // never actually written from the link request. Only set gradeLevel from the
+      // request when the student doesn't already have one, so we don't clobber a
+      // grade the student has previously set on their profile.
+      const fetchedStudent = await prisma.user.findUnique({
+        where: { id: linkRequest.studentId },
+        select: { gradeLevel: true },
+      });
+
       await prisma.user.update({
         where: { id: linkRequest.studentId },
         data: {
           districtId: linkRequest.districtId,
           accountType: 'DISTRICT',
-          gradeLevel: linkRequest.gradeLevel || linkRequest.student.districtId ? undefined : linkRequest.gradeLevel,
+          gradeLevel: fetchedStudent?.gradeLevel ? undefined : linkRequest.gradeLevel ?? undefined,
         },
       });
 
@@ -177,6 +188,35 @@ export async function PUT(req: Request) {
         create: { userId: linkRequest.studentId },
         update: {},
       });
+    }
+
+    // v17.6: notify the student about the decision (in-app notification).
+    // Shape mirrors src/lib/parent-fanout.ts — userId, title, message, type, link.
+    try {
+      if (action === 'approve') {
+        await prisma.notification.create({
+          data: {
+            userId: linkRequest.studentId,
+            type: 'DISTRICT_LINK_APPROVED',
+            title: 'Your district link request was approved',
+            message: `You are now linked to ${linkRequest.district.name}`,
+            link: '/student/dashboard',
+          },
+        });
+      } else {
+        await prisma.notification.create({
+          data: {
+            userId: linkRequest.studentId,
+            type: 'DISTRICT_LINK_DENIED',
+            title: 'District link request not approved',
+            message: reviewNote || 'Contact your school administrator for details.',
+            link: '/student/link-district',
+          },
+        });
+      }
+    } catch (notifyError: any) {
+      // Notification failure must not roll back the approve/deny decision.
+      console.error('[District Link Manage PUT] Notification fan-out failed:', notifyError.message);
     }
 
     createAuditLog({

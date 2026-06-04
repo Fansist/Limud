@@ -64,11 +64,19 @@ export default function AdminAnalyticsPage() {
   useEffect(() => { fetchAnalytics(); }, [isDemo, period]);
 
   async function fetchAnalytics() {
+    setLoading(true);
     if (isDemo) { setData(DEMO_ANALYTICS); setLoading(false); return; }
     try {
+      // v17.6: /api/analytics now returns a real `analytics` envelope for admins.
+      // Honor it when present; fall back to demo only when the API genuinely
+      // can't deliver (network error / non-200 / missing envelope).
       const res = await fetch(`/api/analytics?period=${period}&scope=district`);
-      if (res.ok) { const d = await res.json(); setData(d.analytics || DEMO_ANALYTICS); }
-      else { setData(DEMO_ANALYTICS); }
+      if (res.ok) {
+        const d = await res.json();
+        setData(d.analytics || DEMO_ANALYTICS);
+      } else {
+        setData(DEMO_ANALYTICS);
+      }
     } catch { setData(DEMO_ANALYTICS); }
     finally { setLoading(false); }
   }
@@ -212,19 +220,27 @@ export default function AdminAnalyticsPage() {
         {/* Engagement Bar Chart (Simple CSS) */}
         <div className="card">
           <h3 className="font-bold text-gray-900 dark:text-white mb-4">Daily Active Students (Last 2 Weeks)</h3>
-          <div className="flex items-end gap-1 h-40">
-            {data.engagement.dailyActive.map((val: number, i: number) => {
-              const maxVal = Math.max(...data.engagement.dailyActive);
-              const height = (val / maxVal) * 100;
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[9px] text-gray-400">{val}</span>
-                  <div className="w-full rounded-t-md bg-primary-500 dark:bg-primary-400 transition-all" style={{ height: `${height}%` }} />
-                  <span className="text-[9px] text-gray-400">{data.engagement.labels[i]}</span>
-                </div>
-              );
-            })}
-          </div>
+          {(() => {
+            const series: number[] = data.engagement?.dailyActive || [];
+            const maxVal = Math.max(0, ...series);
+            if (maxVal === 0) {
+              return <p className="text-gray-400 text-sm text-center py-8">Not enough activity yet to show engagement trends.</p>;
+            }
+            return (
+              <div className="flex items-end gap-1 h-40">
+                {series.map((val: number, i: number) => {
+                  const height = (val / maxVal) * 100;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-[9px] text-gray-400">{val}</span>
+                      <div className="w-full rounded-t-md bg-primary-500 dark:bg-primary-400 transition-all" style={{ height: `${height}%` }} />
+                      <span className="text-[9px] text-gray-400">{data.engagement.labels[i]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </DashboardLayout>

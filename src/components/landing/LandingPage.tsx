@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { motion, useInView, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
 import {
   BookOpen, BarChart3, GraduationCap,
@@ -19,6 +19,8 @@ import { useSession } from 'next-auth/react';
 /* ── Helpers ────────────────────────────────────────────────── */
 
 function Section({ children, className = '', id }: { children: React.ReactNode; className?: string; id?: string }) {
+  // R10: respect prefers-reduced-motion in each motion sub-component.
+  const reduced = useReducedMotion();
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-60px' });
   return (
@@ -27,9 +29,9 @@ function Section({ children, className = '', id }: { children: React.ReactNode; 
     // Was the cause of "the nav headers don't work" — they DID work, they
     // just landed underneath the 64px fixed nav so the heading was hidden.
     <motion.section ref={ref} id={id}
-      initial={{ opacity: 0, y: 30 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      initial={reduced ? false : { opacity: 0, y: 30 }}
+      animate={reduced ? {} : (isInView ? { opacity: 1, y: 0 } : {})}
+      transition={reduced ? { duration: 0 } : { duration: 0.5, ease: 'easeOut' }}
       className={`scroll-mt-20 ${className}`}>
       {children}
     </motion.section>
@@ -37,6 +39,10 @@ function Section({ children, className = '', id }: { children: React.ReactNode; 
 }
 
 function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
+  // R10: respect prefers-reduced-motion. Note: the panel expand/collapse
+  // still needs to snap between heights (otherwise the panel never opens),
+  // so we set duration: 0 rather than dropping the animate props.
+  const reduced = useReducedMotion();
   const [open, setOpen] = useState(false);
   const panelId = `faq-panel-${index}`;
   return (
@@ -48,7 +54,10 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
         className="w-full flex items-center justify-between py-4 text-left group"
       >
         <span className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition pr-4">{q}</span>
-        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+        <motion.div
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={reduced ? { duration: 0 } : { duration: 0.2 }}
+        >
           <ChevronDown size={18} className="text-gray-500 flex-shrink-0" />
         </motion.div>
       </button>
@@ -56,7 +65,7 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
         id={panelId}
         initial={false}
         animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
-        transition={{ duration: 0.25 }}
+        transition={reduced ? { duration: 0 } : { duration: 0.25 }}
         className="overflow-hidden"
       >
         <p className="pb-4 text-sm text-gray-500 leading-relaxed">{a}</p>
@@ -71,6 +80,8 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
    ============================================================ */
 
 export default function LandingPage() {
+  // R10: respect prefers-reduced-motion — gates the hero motion.divs below.
+  const reduced = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   // v16.4: session-aware so we can swap "Sign In / Start Free" for a
   // dashboard link when the visitor is already logged in.
@@ -220,7 +231,11 @@ export default function LandingPage() {
       <section id="main-content" className="relative pt-28 pb-20 lg:pt-36 lg:pb-28">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-blue-50/30" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <motion.div
+            initial={reduced ? false : { opacity: 0, y: 20 }}
+            animate={reduced ? {} : { opacity: 1, y: 0 }}
+            transition={reduced ? { duration: 0 } : { duration: 0.5 }}
+          >
             <div className="inline-flex items-center gap-2 bg-primary-50 border border-primary-200 text-primary-700 px-3 py-1 rounded-full text-sm font-medium mb-6">
               <Brain size={14} /> Cognitive Science + Generative AI
             </div>
@@ -258,8 +273,12 @@ export default function LandingPage() {
           </motion.div>
 
           {/* Mini dashboard preview — Sylvester's view */}
-          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }} className="mt-14 max-w-3xl mx-auto">
+          <motion.div
+            initial={reduced ? false : { opacity: 0, y: 40 }}
+            animate={reduced ? {} : { opacity: 1, y: 0 }}
+            transition={reduced ? { duration: 0 } : { duration: 0.6, delay: 0.2 }}
+            className="mt-14 max-w-3xl mx-auto"
+          >
             <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-200/60 overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
                 <div className="flex gap-1.5">

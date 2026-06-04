@@ -20,9 +20,15 @@ import {
  * Admin Dashboard v12.4 — Simplified + District Controls
  * Blueprint: High-level analytics, compliance, and ROI.
  * v12.4: Cleaned up quick actions, added Teacher Management link.
+ * v17.6: TRENDING_ALERTS and TRENDING_METRICS are no longer hardcoded literals
+ *   ("189 students", "Math scores dropped 8%"). They are derived from
+ *   /api/analytics, scoped to the admin's district. Demo accounts still see
+ *   the canned numbers via DEMO_TRENDING_*; real admins see real or empty.
  */
 
-const TRENDING_ALERTS = [
+// Demo-only fallbacks — surfaced only when isDemo is true so real admins
+// never see fabricated numbers.
+const DEMO_TRENDING_ALERTS = [
   {
     id: 't1',
     type: 'warning' as const,
@@ -69,7 +75,7 @@ const TRENDING_ALERTS = [
   },
 ];
 
-const TRENDING_METRICS = [
+const DEMO_TRENDING_METRICS = [
   { label: 'Active Students Today', value: '189', change: '+12', trend: 'up' as const, icon: Users, href: '/admin/students' },
   { label: 'Assignments Submitted', value: '47', change: '+8', trend: 'up' as const, icon: BookOpen, href: '/admin/analytics' },
   { label: 'AI Tutor Sessions', value: '64', change: '+22', trend: 'up' as const, icon: Brain, href: '/admin/analytics' },
@@ -78,17 +84,183 @@ const TRENDING_METRICS = [
   { label: 'Parent Check-ins', value: '23', change: '+5', trend: 'up' as const, icon: Eye, href: '/admin/analytics' },
 ];
 
+// Types so we can hand the derived data straight to JSX without `any`.
+type TrendingMetric = {
+  label: string;
+  value: string;
+  change: string;
+  trend: 'up' | 'down' | 'stable';
+  icon: typeof Users;
+  href: string;
+};
+
+type TrendingAlert = {
+  id: string;
+  type: 'warning' | 'success' | 'info';
+  title: string;
+  desc: string;
+  icon: typeof AlertTriangle;
+  color: string;
+  action: string;
+  href: string;
+  time: string;
+};
+
+// Build the live trending block from the /api/analytics envelope.
+function deriveTrendingMetrics(a: any): TrendingMetric[] {
+  const o = a?.overview ?? {};
+  const activeStudents = Number(o.activeStudents ?? 0);
+  const totalSubmissions = Number(o.totalSubmissions ?? 0);
+  const totalTutorSessions = Number(o.totalTutorSessions ?? 0);
+  const avgScore = Number(o.avgScore ?? 0);
+  const avgScoreChange = Number(o.avgScoreChange ?? 0);
+  const totalTeachers = Number(o.totalTeachers ?? 0);
+  const completionRate = Number(o.completionRate ?? 0);
+
+  return [
+    {
+      label: 'Active Students',
+      value: activeStudents.toLocaleString(),
+      change: '',
+      trend: 'stable',
+      icon: Users,
+      href: '/admin/students',
+    },
+    {
+      label: 'Assignments Submitted',
+      value: totalSubmissions.toLocaleString(),
+      change: '',
+      trend: 'stable',
+      icon: BookOpen,
+      href: '/admin/analytics',
+    },
+    {
+      label: 'AI Tutor Sessions',
+      value: totalTutorSessions.toLocaleString(),
+      change: '',
+      trend: 'stable',
+      icon: Brain,
+      href: '/admin/analytics',
+    },
+    {
+      label: 'Avg. Score',
+      value: `${avgScore}%`,
+      change: avgScoreChange !== 0 ? `${avgScoreChange > 0 ? '+' : ''}${avgScoreChange}%` : '',
+      trend: avgScoreChange > 0 ? 'up' : avgScoreChange < 0 ? 'down' : 'stable',
+      icon: Star,
+      href: '/admin/analytics',
+    },
+    {
+      label: 'Teachers',
+      value: totalTeachers.toLocaleString(),
+      change: '',
+      trend: 'stable',
+      icon: GraduationCap,
+      href: '/admin/employees',
+    },
+    {
+      label: 'Completion Rate',
+      value: `${completionRate}%`,
+      change: '',
+      trend: 'stable',
+      icon: Eye,
+      href: '/admin/analytics',
+    },
+  ];
+}
+
+// Build alerts from the analytics envelope. Each alert is rooted in real data;
+// if there's nothing meaningful to say, we return nothing and the page renders
+// an empty state.
+function deriveTrendingAlerts(a: any): TrendingAlert[] {
+  const out: TrendingAlert[] = [];
+  const o = a?.overview ?? {};
+  const atRisk: any[] = a?.atRisk ?? [];
+  const subjectPerf: any[] = a?.subjectPerformance ?? [];
+
+  if (atRisk.length > 0) {
+    out.push({
+      id: 'at-risk',
+      type: 'warning',
+      title: `${atRisk.length} student${atRisk.length === 1 ? '' : 's'} flagged at-risk`,
+      desc: 'Average score below 60%. Review individual profiles for outreach.',
+      icon: AlertTriangle,
+      color: 'text-amber-600 bg-amber-50 border-amber-200',
+      action: 'View Students',
+      href: '/admin/students',
+      time: 'live',
+    });
+  }
+
+  const avgScoreChange = Number(o.avgScoreChange ?? 0);
+  if (Math.abs(avgScoreChange) >= 1) {
+    const isUp = avgScoreChange > 0;
+    out.push({
+      id: 'score-trend',
+      type: isUp ? 'success' : 'warning',
+      title: `District average ${isUp ? 'up' : 'down'} ${Math.abs(avgScoreChange)}%`,
+      desc: isUp
+        ? 'Scores improved versus the prior period across graded assignments.'
+        : 'Scores dropped versus the prior period. Investigate before it widens.',
+      icon: isUp ? CheckCircle : TrendingDown,
+      color: isUp
+        ? 'text-green-600 bg-green-50 border-green-200'
+        : 'text-orange-600 bg-orange-50 border-orange-200',
+      action: 'View Analytics',
+      href: '/admin/analytics',
+      time: 'live',
+    });
+  }
+
+  const tutorSessions = Number(o.totalTutorSessions ?? 0);
+  if (tutorSessions > 0) {
+    const avgPer = Number(o.avgSessionsPerStudent ?? 0);
+    out.push({
+      id: 'tutor-usage',
+      type: 'info',
+      title: `${tutorSessions.toLocaleString()} AI tutor session${tutorSessions === 1 ? '' : 's'} this period`,
+      desc: avgPer > 0 ? `Roughly ${avgPer} per active student.` : 'Students are engaging with the AI tutor.',
+      icon: Brain,
+      color: 'text-blue-600 bg-blue-50 border-blue-200',
+      action: 'View Analytics',
+      href: '/admin/analytics',
+      time: 'live',
+    });
+  }
+
+  const weakest = subjectPerf
+    .filter(s => typeof s.avgScore === 'number')
+    .sort((a, b) => a.avgScore - b.avgScore)[0];
+  if (weakest && weakest.avgScore < 75) {
+    out.push({
+      id: 'weakest-subject',
+      type: 'warning',
+      title: `${weakest.subject} is the lowest-performing subject`,
+      desc: `Average ${weakest.avgScore}% across ${weakest.students} student${weakest.students === 1 ? '' : 's'}.`,
+      icon: TrendingDown,
+      color: 'text-orange-600 bg-orange-50 border-orange-200',
+      action: 'View Pattern',
+      href: '/admin/analytics',
+      time: 'live',
+    });
+  }
+
+  return out;
+}
+
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const isDemo = useIsDemo();
   const needsDemoParam = useNeedsDemoParam();
   const [districts, setDistricts] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (isDemo) {
       setDistricts([DEMO_DISTRICT]);
+      setAnalytics(null); // demo branch uses DEMO_TRENDING_* literals
       setLoading(false);
       return;
     }
@@ -96,6 +268,7 @@ export default function AdminDashboard() {
       const user = session?.user as any;
       if (user?.role !== 'ADMIN') { router.push('/'); return; }
       fetchDistricts();
+      fetchAnalytics();
     }
   }, [status, isDemo]);
 
@@ -112,6 +285,35 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }
+
+  // v17.6: pull the same envelope the analytics page uses so the Command
+  // Center surfaces real district numbers instead of "189 Active Students Today".
+  async function fetchAnalytics() {
+    try {
+      const res = await fetch('/api/analytics?period=week&scope=district');
+      if (res.ok) {
+        const data = await res.json();
+        setAnalytics(data.analytics ?? null);
+      }
+    } catch {
+      // Silent — UI falls back to the empty state below
+    }
+  }
+
+  // Pick the right source for trending metrics + alerts.
+  // - Demo session  → canned demo blocks (so demo screenshots stay rich)
+  // - Real admin    → derive from /api/analytics envelope
+  //                   if the envelope is empty / unavailable, render empty state
+  const trendingMetrics: TrendingMetric[] = isDemo
+    ? DEMO_TRENDING_METRICS
+    : analytics
+      ? deriveTrendingMetrics(analytics)
+      : [];
+  const trendingAlerts: TrendingAlert[] = isDemo
+    ? DEMO_TRENDING_ALERTS
+    : analytics
+      ? deriveTrendingAlerts(analytics)
+      : [];
 
   if (status === 'loading' || loading) {
     return (
@@ -234,34 +436,43 @@ export default function AdminDashboard() {
                 <h3 className="font-bold text-gray-900">Trending Today</h3>
                 <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">Live</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                {TRENDING_METRICS.map((metric, i) => (
-                  <motion.div
-                    key={metric.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.18 + i * 0.03 }}
-                  >
-                    <Link href={`${metric.href}${demoSuffix}`}
-                      className="card p-3 hover:shadow-md hover:-translate-y-0.5 transition-all block cursor-pointer"
+              {trendingMetrics.length === 0 ? (
+                <div className="card p-6 text-center">
+                  <p className="text-sm text-gray-500">Not enough activity yet to show trending metrics.</p>
+                  <p className="text-xs text-gray-400 mt-1">Once your district starts using Limud, live KPIs appear here.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {trendingMetrics.map((metric, i) => (
+                    <motion.div
+                      key={metric.label}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.18 + i * 0.03 }}
                     >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <metric.icon size={14} className="text-gray-400" />
-                        <span className={cn(
-                          'text-[10px] font-bold flex items-center gap-0.5',
-                          metric.trend === 'up' ? 'text-green-600' : metric.trend === 'down' ? 'text-red-600' : 'text-gray-400'
-                        )}>
-                          {metric.trend === 'up' && <TrendingUp size={10} />}
-                          {metric.trend === 'down' && <TrendingDown size={10} />}
-                          {metric.change}
-                        </span>
-                      </div>
-                      <p className="text-xl font-bold text-gray-900">{metric.value}</p>
-                      <p className="text-[10px] text-gray-500 mt-0.5">{metric.label}</p>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
+                      <Link href={`${metric.href}${demoSuffix}`}
+                        className="card p-3 hover:shadow-md hover:-translate-y-0.5 transition-all block cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <metric.icon size={14} className="text-gray-400" />
+                          {metric.change && (
+                            <span className={cn(
+                              'text-[10px] font-bold flex items-center gap-0.5',
+                              metric.trend === 'up' ? 'text-green-600' : metric.trend === 'down' ? 'text-red-600' : 'text-gray-400'
+                            )}>
+                              {metric.trend === 'up' && <TrendingUp size={10} />}
+                              {metric.trend === 'down' && <TrendingDown size={10} />}
+                              {metric.change}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xl font-bold text-gray-900">{metric.value}</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">{metric.label}</p>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
 
             {/* ═══ ALERTS & INSIGHTS ═══ */}
@@ -274,37 +485,43 @@ export default function AdminDashboard() {
                   </div>
                   Alerts &amp; Insights
                 </h3>
-                <span className="text-xs text-gray-400">{TRENDING_ALERTS.length} items</span>
+                <span className="text-xs text-gray-400">{trendingAlerts.length} items</span>
               </div>
-              <div className="space-y-2.5">
-                {TRENDING_ALERTS.map((alert, i) => (
-                  <motion.div
-                    key={alert.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.24 + i * 0.04 }}
-                  >
-                    <Link href={`${alert.href}${demoSuffix}`}
-                      className={cn(
-                        'flex items-center gap-3 p-3 rounded-xl border transition-all hover:shadow-sm group',
-                        alert.color
-                      )}
+              {trendingAlerts.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-6">
+                  Not enough activity yet to show trends. Alerts appear once students and teachers begin using Limud.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {trendingAlerts.map((alert, i) => (
+                    <motion.div
+                      key={alert.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.24 + i * 0.04 }}
                     >
-                      <div className="w-10 h-10 rounded-lg bg-white/70 flex items-center justify-center flex-shrink-0">
-                        <alert.icon size={18} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{alert.desc}</p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-[10px] text-gray-400">{alert.time}</span>
-                        <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
+                      <Link href={`${alert.href}${demoSuffix}`}
+                        className={cn(
+                          'flex items-center gap-3 p-3 rounded-xl border transition-all hover:shadow-sm group',
+                          alert.color
+                        )}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-white/70 flex items-center justify-center flex-shrink-0">
+                          <alert.icon size={18} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{alert.desc}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-[10px] text-gray-400">{alert.time}</span>
+                          <ArrowRight size={14} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
 
             {/* ═══ QUICK ACTIONS — v12.4: Streamlined to essential actions ═══ */}

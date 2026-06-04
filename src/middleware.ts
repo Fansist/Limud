@@ -87,6 +87,7 @@ const PARENT_PATHS = ['/parent'];
 const PARENT_API_PATHS = ['/api/parent'];
 
 const OWNER_PATHS = ['/owner'];
+const OWNER_API_PATHS = ['/api/owner'];
 
 // ═══════════════════════════════════════════════════════════════════
 // THREAT DETECTION PATTERNS
@@ -406,6 +407,16 @@ export async function middleware(request: NextRequest) {
         );
       }
       return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
+  // OWNER API paths — defense-in-depth on top of secureApiHandler({roles:['OWNER']})
+  if (matchesPath(pathname, OWNER_API_PATHS)) {
+    if (role !== 'OWNER') {
+      return new NextResponse(
+        JSON.stringify({ error: 'Forbidden: Owner access required' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
     }
   }
 
