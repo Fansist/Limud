@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ReactMarkdown from 'react-markdown';
@@ -112,6 +112,7 @@ type HistoryEntry = {
 export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
   const { status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isAuthed = status === 'authenticated';
   const isLoadingSession = status === 'loading';
 
@@ -134,6 +135,23 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
    */
   const [needsCheckout, setNeedsCheckout] = useState<boolean | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // v17.8: URL-param prefill. /my-tools (and any other hub) can deep-link
+  // into a tool with ?input=...&option=... and have the form arrive ready
+  // to generate. Runs ONCE on mount, BEFORE the draft restoration below so
+  // a saved /login-bounce draft still wins when present (the draft path
+  // clears localStorage in the same effect — by that point input/option
+  // will already hold the URL values, but the draft branch overwrites
+  // them, which is the desired precedence). Conversely, an empty draft
+  // means URL params land untouched. We only set state when the field is
+  // still empty so a user typing between mount and effect isn't clobbered.
+  useEffect(() => {
+    const qInput = searchParams.get('input');
+    const qOption = searchParams.get('option');
+    if (qInput && !input) setInput(qInput);
+    if (qOption && !option) setOption(qOption);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Restore draft if user just came back from /login.
   useEffect(() => {

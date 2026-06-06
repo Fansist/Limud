@@ -334,6 +334,7 @@ export default function SubscriptionsPage() {
   const inactiveBundleSubs = bundleSubs.filter((s) => s.status !== 'active');
   const inactiveProductSubs = productSubs.filter((s) => s.status !== 'active');
   const hasActive = activeBundleSubs.length > 0 || activeProductSubs.length > 0;
+  const activeCount = activeBundleSubs.length + activeProductSubs.length;
   const inactiveCount = inactiveBundleSubs.length + inactiveProductSubs.length;
   const hasInactive = inactiveCount > 0;
 
@@ -630,6 +631,25 @@ export default function SubscriptionsPage() {
           </motion.div>
         ) : (
           <div className="space-y-8">
+            {/* v17.8: Multi-tool consolidation CTA — only when the user owns
+                2+ active tools (bundles + products combined). Hidden for
+                single-tool owners who have nothing to consolidate. */}
+            {activeCount >= 2 && (
+              <div className="rounded-2xl border border-fuchsia-200 bg-fuchsia-50 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-fuchsia-900">You own {activeCount} tools.</p>
+                  <p className="text-xs text-fuchsia-800 mt-0.5">Switch between them from one place — paste once, send to any tool.</p>
+                </div>
+                <Link
+                  href="/my-tools"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-fuchsia-600 px-4 py-2 text-sm font-semibold text-white hover:bg-fuchsia-700 transition-colors"
+                >
+                  <Sparkles size={16} />
+                  Open My Tools
+                </Link>
+              </div>
+            )}
+
             {/* ── Active section (always expanded) ──────────────────── */}
             {hasActive && (
               <section>

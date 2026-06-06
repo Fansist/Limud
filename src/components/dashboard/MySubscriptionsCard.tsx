@@ -277,15 +277,28 @@ export default function MySubscriptionsCard() {
         </h2>
         {/* v17.7: View all stays visible whenever the user has *any* sub
             (active or cancelled) so the user can always jump to the full
-            management page. */}
-        {hasAny && (
-          <Link
-            href="/account/subscriptions"
-            className="text-xs text-fuchsia-600 font-semibold hover:underline flex items-center gap-1"
-          >
-            View all <ArrowRight size={12} />
-          </Link>
-        )}
+            management page.
+            v17.8: when the user owns 2+ active tools, also surface a small
+            "Open My Tools" link to the multi-product hub. */}
+        <div className="flex items-center gap-3">
+          {activeCount >= 2 && (
+            <Link
+              href="/my-tools"
+              className="text-xs font-medium text-fuchsia-600 hover:text-fuchsia-700 inline-flex items-center gap-1"
+            >
+              <Sparkles size={12} />
+              Open My Tools
+            </Link>
+          )}
+          {hasAny && (
+            <Link
+              href="/account/subscriptions"
+              className="text-xs text-fuchsia-600 font-semibold hover:underline flex items-center gap-1"
+            >
+              View all <ArrowRight size={12} />
+            </Link>
+          )}
+        </div>
       </div>
 
       {!loaded ? (

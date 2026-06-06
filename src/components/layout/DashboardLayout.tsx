@@ -35,6 +35,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/student/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
       { href: '/student/classrooms', label: 'My Classrooms', icon: <GraduationCap size={20} /> },
       { href: '/student/tutor', label: 'AI Tutor', icon: <MessageCircle size={20} /> },
+      { href: '/my-tools', label: 'My Tools', icon: <Sparkles size={20} /> },
     ]},
     { label: 'Learning', items: [
       { href: '/student/coursework', label: 'Coursework', icon: <BookOpen size={20} /> },
@@ -77,6 +78,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/teacher/quiz-generator', label: 'Quiz Generator', icon: <Lightbulb size={20} /> },
       { href: '/teacher/reports', label: 'AI Reports', icon: <FileText size={20} /> },
       { href: '/teacher/intelligence', label: 'Intelligence', icon: <Brain size={20} /> },
+      { href: '/my-tools', label: 'My Tools', icon: <Sparkles size={20} /> },
     ]},
     { label: 'Classroom', items: [
       { href: '/teacher/students', label: 'My Students', icon: <Users size={20} /> },
@@ -117,6 +119,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/parent/dashboard', label: 'Dashboard', icon: <Eye size={20} /> },
       { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
       { href: '/parent/reports', label: 'Growth Reports', icon: <TrendingUp size={20} /> },
+      { href: '/my-tools', label: 'My Tools', icon: <Sparkles size={20} /> },
     ]},
     { label: 'Account', items: [
       { href: '/parent/alerts', label: 'Alerts', icon: <Bell size={18} /> },
@@ -131,6 +134,7 @@ const GROUPED_NAV: Record<string, NavSection[]> = {
       { href: '/teacher/grading', label: 'AI Grading', icon: <GraduationCap size={20} /> },
       { href: '/teacher/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
       { href: '/parent/messages', label: 'Messages', icon: <Mail size={20} /> },
+      { href: '/my-tools', label: 'My Tools', icon: <Sparkles size={20} /> },
     ]},
     { label: 'Account', items: [
       { href: '/parent/alerts', label: 'Alerts', icon: <Bell size={18} /> },

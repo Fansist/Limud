@@ -14,8 +14,11 @@
  *
  * v17: PRODUCTS data moved to `src/lib/products-catalog.ts` so the per-product
  * checkout page and the entitlement gate on /api/products/generate can share
- * the exact same catalog without importing JSX. Icon JSX lives below in the
- * PRODUCT_ICONS map.
+ * the exact same catalog without importing JSX.
+ *
+ * v17.8: PRODUCT_ICONS map extracted to `src/lib/products-icons.tsx` so
+ * /my-tools (and any other client surface that lists individual products)
+ * can render the same iconography without duplicating the table here.
  *
  * v17.7 QoL additions:
  *   - "Start here" curated 3-up above the chips
@@ -33,19 +36,8 @@ import { useSession } from 'next-auth/react';
 import {
   Sparkles,
   ArrowRight,
-  Brain,
-  BookOpen,
-  Calculator,
-  FileText,
-  Beaker,
-  Languages,
-  Quote,
   Package,
   Check,
-  Layers,
-  Presentation,
-  Code2,
-  Target,
   Infinity as InfinityIcon,
   HelpCircle,
   Search,
@@ -53,6 +45,7 @@ import {
 } from 'lucide-react';
 import AuthAwareCTA from '@/components/AuthAwareCTA';
 import { PRODUCTS, type Product, type ProductSubject } from '@/lib/products-catalog';
+import { PRODUCT_ICONS } from '@/lib/products-icons';
 import { BUNDLES, bundleSavingsPct, formatSavingsPct, type BundleDef } from '@/lib/bundles';
 
 type BillingMode = 'oneTime' | 'monthly';
@@ -64,24 +57,6 @@ const BILLING_MODE_STORAGE_KEY = 'limud:billing-mode';
 function isBillingMode(value: unknown): value is BillingMode {
   return value === 'oneTime' || value === 'monthly';
 }
-
-// Icons live on the client only — the catalog itself is pure data so it can
-// be imported from server contexts. Keys must match PRODUCTS[].id.
-const PRODUCT_ICONS: Record<string, React.ReactNode> = {
-  'exam-study-helper': <Sparkles size={22} />,
-  'practice-generator': <Brain size={22} />,
-  'math-solver': <Calculator size={22} />,
-  'essay-coach': <BookOpen size={22} />,
-  'notes-cleaner': <FileText size={22} />,
-  'lab-report-builder': <Beaker size={22} />,
-  'citation-finder': <Quote size={22} />,
-  'language-lab': <Languages size={22} />,
-  'flashcard-forge': <Layers size={22} />,
-  'presentation-prep': <Presentation size={22} />,
-  'code-companion': <Code2 size={22} />,
-  'reading-decoder': <BookOpen size={22} />,
-  'exam-postmortem': <Target size={22} />,
-};
 
 // v17.7: subject filter chip set. 'All' is the default and shows everything.
 const SUBJECT_CHIPS: ReadonlyArray<'All' | ProductSubject> = [
