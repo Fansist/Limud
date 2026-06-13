@@ -50,6 +50,7 @@ import {
   Target,
 } from 'lucide-react';
 import {
+  BUNDLES,
   findBundle,
   bundlePrice,
   bundleSavingsPct,
@@ -277,20 +278,56 @@ export default function BundleCheckoutPage() {
   const productNames = bundle.productIds.map((id) => BUNDLE_PRODUCT_NAMES[id]);
   const savingsLabel = formatSavingsPct(bundleSavingsPct(bundle, billingMode));
 
-  // v17.7: already-owned precheck. Two trigger conditions:
-  //   1. an active BundleSubscription for THIS bundle id
-  //   2. an active ProductSubscription for EVERY product in the bundle
-  // Either one means a fresh purchase adds nothing new — warn loudly.
+  // v17.8.1 (C3): build the FULL set of products the user already owns —
+  // not just direct per-product subscriptions, but every tool reachable
+  // through their OTHER active bundle subscriptions. Without expanding
+  // owned bundles into their member products, an All-Access owner buying
+  // Study/Writing/STEM would see no overlap warning and get silently
+  // double-charged for tools they already have. Mirrors the
+  // `ownedProductsViaBundle` computation in /products/page.tsx.
+  //
+  // Plain const (not useMemo): this block runs after the `if (!bundle)`
+  // early return above, so a hook here would violate the rules of hooks.
+  // The computation is a couple of cheap set walks — no memo needed.
+  const ownedProductSet = ((): Set<string> => {
+    const set = new Set<string>();
+    if (!ownership) return set;
+    // Direct per-product subscriptions.
+    ownership.ownedProductIds.forEach((pid) => set.add(pid));
+    // Expand every owned bundle into the products it contains.
+    BUNDLES.forEach((b) => {
+      if (ownership.ownedBundleIds.has(b.id)) {
+        b.productIds.forEach((pid) => set.add(pid));
+      }
+    });
+    return set;
+  })();
+
+  // v17.8.1 (C3): which of THIS bundle's tools the user already owns by any
+  // means (direct sub or via another bundle). Drives the new overlap notice.
+  const overlapProductIds: BundleProductId[] = bundle.productIds.filter((pid) =>
+    ownedProductSet.has(pid),
+  );
+  const overlapCount = overlapProductIds.length;
+  const totalTools = bundle.productIds.length;
+  const overlapNames = overlapProductIds.map((pid) => BUNDLE_PRODUCT_NAMES[pid]);
+
+  // already-owned precheck. Trigger conditions, in priority order:
+  //   1. an active BundleSubscription for THIS exact bundle id
+  //   2. the user owns EVERY tool in this bundle (direct subs and/or other
+  //      bundles) — buying it adds nothing new
+  //   3. the user owns SOME (but not all) of this bundle's tools — disclose
+  //      the partial overlap so the charge isn't silent
   const alreadyOwnsBundle = ownership ? ownership.ownedBundleIds.has(bundle.id) : false;
-  const ownsAllProducts =
-    !!ownership &&
-    bundle.productIds.length > 0 &&
-    bundle.productIds.every((pid) => ownership.ownedProductIds.has(pid));
+  const ownsAllProducts = totalTools > 0 && overlapCount === totalTools;
   const alreadyOwned = alreadyOwnsBundle || ownsAllProducts;
+  // Partial overlap only matters when we're NOT already showing the
+  // full "you own everything" warning above.
+  const hasPartialOverlap = !alreadyOwned && overlapCount > 0;
   const ownedReason: string = alreadyOwnsBundle
     ? `You already have an active ${bundle.name} subscription.`
     : ownsAllProducts
-      ? 'You already have active subscriptions for every tool in this bundle.'
+      ? 'You already own every tool in this bundle through your other subscriptions.'
       : '';
 
   // ---- Loading session ----
@@ -446,6 +483,45 @@ export default function BundleCheckoutPage() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-800 hover:text-amber-900 transition"
                 >
                   Back to products
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* v17.8.1 (C3): partial-overlap notice. The user already owns SOME
+            (but not all) of this bundle's tools — most commonly because they
+            hold a broader bundle (e.g. All-Access) that already covers a few
+            of these. Disclose the overlap explicitly so the bundle charge
+            isn't a silent double-pay, but don't hard-block: monthly bundle
+            pricing can still be the cheaper path even with partial overlap. */}
+        {hasPartialOverlap && (
+          <div
+            role="alert"
+            className="mb-4 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 flex items-start gap-3"
+          >
+            <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-amber-900">
+                You already own {overlapCount} of these {totalTools} tools.
+              </p>
+              <p className="text-xs text-amber-800 mt-1">
+                Through your other subscriptions you already have{' '}
+                <span className="font-semibold">{overlapNames.join(', ')}</span>.
+                Buying this bundle will not refund or credit those tools.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Link
+                  href="/account/subscriptions"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
+                >
+                  View my subscriptions <ArrowRight size={12} />
+                </Link>
+                <Link
+                  href="/products"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-800 hover:text-amber-900 transition"
+                >
+                  See per-tool pricing
                 </Link>
               </div>
             </div>

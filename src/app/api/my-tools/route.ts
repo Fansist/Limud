@@ -47,21 +47,21 @@ interface BundleSubEntry {
   expiresAt: string | null;
 }
 
-interface ExpiringSoonEntry {
-  productId: string;
-  daysLeft: number;
-}
-
 interface OwnershipEnvelope {
   ownedProductIds: string[];
   activeProductSubs: ProductSubEntry[];
   activeBundleSubs: BundleSubEntry[];
   bundlesContaining: Record<string, string[]>;
-  expiringSoon: ExpiringSoonEntry[];
+  /** productId → days until earliest grant expiry (within the next 14 days). */
+  expiringSoon: Record<string, number>;
   summary: {
     totalOwned: number;
+    /** Alias of totalOwned — the /my-tools page reads this name. */
+    ownedCount: number;
     totalActiveSubs: number;
     hasAllAccess: boolean;
+    /** Count of expiringSoon entries with daysLeft <= 7. */
+    expiringWithin7: number;
   };
 }
 
@@ -150,20 +150,21 @@ function earliestExpiryForProduct(
 
 /**
  * For every owned productId, compute the earliest grant expiry and surface
- * the ones that fall within the next 14 days (and aren't already expired).
+ * the ones that fall within the next 14 days (and aren't already expired) as
+ * a productId → daysLeft map (the shape /my-tools and MyToolsGrid consume).
  */
 function computeExpiringSoon(
   ownedProductIds: string[],
   productSubs: ProductSubEntry[],
   bundleSubs: BundleSubEntry[],
-): ExpiringSoonEntry[] {
-  const out: ExpiringSoonEntry[] = [];
+): Record<string, number> {
+  const out: Record<string, number> = {};
   for (const productId of ownedProductIds) {
     const expiry = earliestExpiryForProduct(productId, productSubs, bundleSubs);
     const daysLeft = daysLeftFromNow(expiry);
     if (daysLeft === null) continue;
     if (daysLeft >= 0 && daysLeft < 14) {
-      out.push({ productId, daysLeft });
+      out[productId] = daysLeft;
     }
   }
   return out;
@@ -183,10 +184,11 @@ function buildEnvelope(
   const ownedProductIds = Array.from(ownedSet);
 
   const expiringSoon = computeExpiringSoon(ownedProductIds, productSubs, bundleSubs);
+  const expiringWithin7 = Object.values(expiringSoon).filter((d) => d <= 7).length;
 
   const hasAllAccess =
     bundleSubs.some((b) => b.bundleId === 'all-access') ||
-    ownedProductIds.length >= 13;
+    ownedProductIds.length >= PRODUCTS.length;
 
   return {
     ownedProductIds,
@@ -196,8 +198,10 @@ function buildEnvelope(
     expiringSoon,
     summary: {
       totalOwned: ownedProductIds.length,
+      ownedCount: ownedProductIds.length,
       totalActiveSubs: productSubs.length + bundleSubs.length,
       hasAllAccess,
+      expiringWithin7,
     },
   };
 }
@@ -244,7 +248,7 @@ function buildDemoEnvelope(): OwnershipEnvelope {
 
 /**
  * OWNER envelope — synthetic "owns everything" with no underlying subs.
- * hasAllAccess is true via the >=13 owned-product fallback.
+ * hasAllAccess is true via the full-catalog owned-product fallback.
  */
 function buildOwnerEnvelope(): OwnershipEnvelope {
   const ownedProductIds = PRODUCTS.map((p) => p.id);
@@ -253,11 +257,13 @@ function buildOwnerEnvelope(): OwnershipEnvelope {
     activeProductSubs: [],
     activeBundleSubs: [],
     bundlesContaining: {},
-    expiringSoon: [],
+    expiringSoon: {},
     summary: {
       totalOwned: ownedProductIds.length,
+      ownedCount: ownedProductIds.length,
       totalActiveSubs: 0,
       hasAllAccess: true,
+      expiringWithin7: 0,
     },
   };
 }

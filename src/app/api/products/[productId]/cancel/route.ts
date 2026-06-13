@@ -32,19 +32,40 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ success: true });
   }
 
-  const now = new Date();
-  const result = await prisma.productSubscription.updateMany({
+  // Bug C2 fix: the schema has @@unique([userId, productId, status]) on
+  // ProductSubscription. A buy → cancel → re-buy → cancel sequence would try
+  // to write a SECOND (userId, productId, 'cancelled') row and hit a P2002
+  // unique violation (→ 500), so a re-purchased tool could never be
+  // cancelled. Before flipping the active row to 'cancelled', delete any
+  // stale cancelled row for the same (userId, productId) so the constraint
+  // can't collide. The delete + update run in a single $transaction so the
+  // operation is atomic.
+  //
+  // The 404-on-no-active-sub contract is preserved: we only run the
+  // transaction once an active sub is confirmed to exist.
+  const active = await prisma.productSubscription.findFirst({
     where: { userId: user.id, productId, status: 'active' },
-    data: {
-      status: 'cancelled',
-      cancelledAt: now,
-      expiresAt: now,
-    },
+    select: { id: true },
   });
 
-  if (result.count === 0) {
+  if (!active) {
     return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
   }
+
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.productSubscription.deleteMany({
+      where: { userId: user.id, productId, status: 'cancelled' },
+    }),
+    prisma.productSubscription.updateMany({
+      where: { userId: user.id, productId, status: 'active' },
+      data: {
+        status: 'cancelled',
+        cancelledAt: now,
+        expiresAt: now,
+      },
+    }),
+  ]);
 
   return NextResponse.json({ success: true });
 });

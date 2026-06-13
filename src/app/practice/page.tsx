@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -142,6 +142,7 @@ function saveHistory(entries: HistoryEntry[]) {
 export default function PracticePage() {
   const { status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isAuthed = status === 'authenticated';
   const isLoadingSession = status === 'loading';
 
@@ -198,6 +199,14 @@ export default function PracticePage() {
     } catch {
       /* ignore */
     }
+    // H4 fix: hydrate the topic field from a ?topic= (or ?input= alias) query
+    // param so PasteAndSend (/my-tools) deep-links land with the user's pasted
+    // content. Only fill if empty — never clobber a typed value or restored draft.
+    const qTopic = searchParams.get('topic') || searchParams.get('input');
+    if (qTopic) {
+      setTopic((prev) => (prev && prev.trim() ? prev : qTopic));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /** Is the student's response to this question correct? Used both for the

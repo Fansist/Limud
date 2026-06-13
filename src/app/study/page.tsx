@@ -12,7 +12,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
@@ -174,6 +174,7 @@ function safeMarkdownUrlTransform(url: string): string {
 export default function StudyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isAuthed = status === 'authenticated';
   const isLoadingSession = status === 'loading';
 
@@ -206,6 +207,14 @@ export default function StudyPage() {
     } catch {
       /* ignore */
     }
+    // H4 fix: hydrate the material textarea from a ?input= query param so
+    // PasteAndSend (/my-tools) deep-links land with the user's pasted content.
+    // Only fill if empty — never clobber a typed value or a restored draft.
+    const qInput = searchParams.get('input') || searchParams.get('topic');
+    if (qInput) {
+      setRawMaterial((prev) => (prev && prev.trim() ? prev : qInput));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const wordCount = useMemo(
