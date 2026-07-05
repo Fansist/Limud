@@ -207,11 +207,26 @@ export const POST = apiHandler(async (req: Request) => {
   }
 
   // Master demo: don't persist messages or notifications — return a synthetic ack.
+  // Mirror the real success shape (`{ message }`) so the client can append
+  // `data.message` uniformly whether demo or real.
   if (user.isMasterDemo) {
+    const now = new Date().toISOString();
     return NextResponse.json({
       id: `demo-msg-${Date.now()}`,
       demo: true,
-      sentAt: new Date().toISOString(),
+      sentAt: now,
+      message: {
+        id: `demo-msg-${Date.now()}`,
+        senderId: user.id,
+        receiverId,
+        subject,
+        content,
+        parentOf: parentOf || null,
+        isRead: false,
+        createdAt: now,
+        sender: { id: user.id, name: user.name, role: user.role },
+        receiver: { id: receiver.id, name: receiver.name, role: receiver.role },
+      },
     });
   }
 
@@ -229,14 +244,24 @@ export const POST = apiHandler(async (req: Request) => {
     },
   });
 
-  // Notify receiver
+  // Notify receiver. The notification link must be role-aware: there is no
+  // top-level `/messages` route, only `/student/messages`, `/teacher/messages`,
+  // and `/parent/messages`. Roles without a messages page (ADMIN/OWNER) fall
+  // back to `/notifications` so the link never 404s.
+  const messagesLinkForRole = (role: string): string => {
+    const r = role.toLowerCase();
+    return r === 'student' || r === 'teacher' || r === 'parent'
+      ? `/${r}/messages`
+      : '/notifications';
+  };
+
   await prisma.notification.create({
     data: {
       userId: receiverId,
       title: `New message from ${user.name}`,
       message: subject,
       type: 'system',
-      link: '/messages',
+      link: messagesLinkForRole(receiver.role),
     },
   });
 

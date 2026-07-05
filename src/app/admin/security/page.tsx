@@ -43,6 +43,23 @@ interface ComplianceData {
   headers: Record<string, string>;
 }
 
+// Zeroed metrics for a real admin whose dashboard fetch succeeded but carried
+// no metrics payload. Honest "nothing to report" — distinct from DEMO_METRICS.
+const EMPTY_METRICS: SecurityMetrics = {
+  totalEvents: 0,
+  lastHour: {
+    total: 0, critical: 0, high: 0, blocked: 0,
+    authFailures: 0, authSuccesses: 0, rateLimits: 0,
+    xssAttempts: 0, sqlInjections: 0,
+  },
+  last24h: {
+    total: 0, critical: 0, high: 0, blocked: 0, uniqueIPs: 0,
+    topAttackTypes: [],
+  },
+  activeRateLimits: 0,
+  lockedAccounts: 0,
+};
+
 // Demo data for when no real data is available
 const DEMO_METRICS: SecurityMetrics = {
   totalEvents: 1247,
@@ -128,6 +145,7 @@ export default function SecurityDashboard() {
   const [events, setEvents] = useState<SecurityEvent[]>([]);
   const [compliance, setCompliance] = useState<ComplianceData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<string>('ALL');
   const [dateRangeFilter, setDateRangeFilter] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
@@ -139,15 +157,25 @@ export default function SecurityDashboard() {
       setMetrics(DEMO_METRICS);
       setEvents(DEMO_EVENTS);
       setCompliance(DEMO_COMPLIANCE);
+      setLoadError(false);
       setLoading(false);
       return;
     }
+    setLoadError(false);
     try {
       const [dashRes, auditRes, compRes] = await Promise.all([
         fetch('/api/security?view=dashboard'),
         fetch('/api/security?view=audit&limit=100'),
         fetch('/api/security?view=compliance'),
       ]);
+      // For a real admin, a failed dashboard fetch is the primary signal that
+      // we couldn't load the page. Never substitute DEMO_* here — that would
+      // show fabricated "compliant" badges and metrics to a real admin.
+      if (!dashRes.ok && !auditRes.ok && !compRes.ok) {
+        setLoadError(true);
+        setLoading(false);
+        return;
+      }
       if (dashRes.ok) {
         const d = await dashRes.json();
         const m = d.data?.metrics;
@@ -200,7 +228,10 @@ export default function SecurityDashboard() {
         const c = await compRes.json();
         if (c.data) setCompliance(c.data);
       }
-    } catch { /* use demo data on error */ }
+    } catch {
+      // Real admin + network failure: surface an honest error, never demo data.
+      setLoadError(true);
+    }
     setLoading(false);
   }, [isDemo]);
 
@@ -223,7 +254,36 @@ export default function SecurityDashboard() {
     );
   }
 
-  const m = metrics || DEMO_METRICS;
+  // Real admin whose fetch failed: show an honest error with retry — never
+  // fabricated DEMO_* compliance/metrics. (isDemo is false here, since the
+  // demo path above always populates state and clears loadError.)
+  if (loadError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="flex flex-col items-center gap-3 text-center max-w-sm">
+            <ShieldAlert className="w-10 h-10 text-red-500" />
+            <h2 className="text-lg font-bold text-gray-900">Couldn&apos;t load security data</h2>
+            <p className="text-gray-500 text-sm">
+              We couldn&apos;t reach the security service. Compliance status and threat
+              data are unavailable right now.
+            </p>
+            <button
+              onClick={() => { setLoading(true); fetchData(); }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition"
+            >
+              <RefreshCw size={16} /> Retry
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // metrics is non-null only after a successful real fetch (or the demo path).
+  // If a real admin's dashboard sub-fetch returned no metrics, render zeros —
+  // never DEMO_METRICS.
+  const m = metrics ?? EMPTY_METRICS;
 
   // Date-range cutoff in ms (Infinity = "all time")
   const rangeCutoffMs = (() => {
@@ -773,7 +833,25 @@ export default function SecurityDashboard() {
         </AnimatePresence>
 
         {/* ═══ COMPLIANCE TAB ═══ */}
-        {activeTab === 'compliance' && (
+        {activeTab === 'compliance' && !compliance && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <div className="bg-white rounded-2xl border border-gray-100 p-12 flex flex-col items-center text-center gap-3">
+              <ShieldAlert size={32} className="text-red-500" />
+              <p className="text-sm font-medium text-gray-700">Compliance status is unavailable.</p>
+              <p className="text-xs text-gray-400 max-w-sm">
+                We couldn&apos;t load the compliance report. Refresh to try again — we won&apos;t
+                show a status we couldn&apos;t verify.
+              </p>
+              <button
+                onClick={fetchData}
+                className="mt-1 flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                <RefreshCw size={14} /> Refresh
+              </button>
+            </div>
+          </motion.div>
+        )}
+        {activeTab === 'compliance' && compliance && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             {/* FERPA */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
@@ -783,12 +861,12 @@ export default function SecurityDashboard() {
                   FERPA Compliance
                 </h2>
                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                  {(compliance || DEMO_COMPLIANCE).ferpa.status}
+                  {compliance.ferpa.status}
                 </span>
               </div>
               <p className="text-sm text-gray-500 mb-4">Family Educational Rights and Privacy Act — protects student education records and PII.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {(compliance || DEMO_COMPLIANCE).ferpa.features.map((f, i) => (
+                {compliance.ferpa.features.map((f, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
                     {f.status === 'active' ? (
                       <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
@@ -812,12 +890,12 @@ export default function SecurityDashboard() {
                   COPPA Compliance
                 </h2>
                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                  {(compliance || DEMO_COMPLIANCE).coppa.status}
+                  {compliance.coppa.status}
                 </span>
               </div>
               <p className="text-sm text-gray-500 mb-4">Children&apos;s Online Privacy Protection Act — protects children under 13.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {(compliance || DEMO_COMPLIANCE).coppa.features.map((f, i) => (
+                {compliance.coppa.features.map((f, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
                     <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
                     <span className="text-sm text-gray-700">{f.name}</span>
@@ -835,7 +913,7 @@ export default function SecurityDashboard() {
                   Encryption
                 </h3>
                 <div className="space-y-3">
-                  {Object.entries((compliance || DEMO_COMPLIANCE).encryption).map(([key, value], i) => (
+                  {Object.entries(compliance.encryption).map(([key, value], i) => (
                     <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                       <span className="text-sm text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
                       <span className="text-sm font-medium text-gray-900">{String(value)}</span>
@@ -849,7 +927,7 @@ export default function SecurityDashboard() {
                   Security Headers
                 </h3>
                 <div className="space-y-3">
-                  {Object.entries((compliance || DEMO_COMPLIANCE).headers).map(([key, value], i) => (
+                  {Object.entries(compliance.headers).map(([key, value], i) => (
                     <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                       <span className="text-sm text-gray-500">{key}</span>
                       <span className="text-xs font-mono text-gray-700 max-w-[200px] truncate" title={value}>{value}</span>

@@ -114,6 +114,9 @@ export default function StudyPlannerPage() {
       if (res.ok) {
         toast.success('AI study plan generated!');
         loadData();
+      } else {
+        const data = await res.json().catch(() => null) as { error?: string } | null;
+        toast.error(data?.error || "Couldn't generate plan, try again");
       }
     } catch { toast.error('Failed to generate plan'); } finally { setGenerating(false); }
   }
@@ -137,12 +140,17 @@ export default function StudyPlannerPage() {
     }
     try {
       const session = sessions.find(s => s.id === sessionId);
-      await fetch('/api/study-planner', {
+      const res = await fetch('/api/study-planner', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, completed: !session?.completed, actualMinutes: session?.goalMinutes || 30 }),
       });
-      loadData();
+      if (res.ok) {
+        loadData();
+      } else {
+        const data = await res.json().catch(() => null) as { error?: string } | null;
+        toast.error(data?.error || "Couldn't update session, try again");
+      }
     } catch { toast.error('Failed to update'); }
   }
 
@@ -153,14 +161,19 @@ export default function StudyPlannerPage() {
       return;
     }
     try {
-      await fetch('/api/study-planner', {
+      const res = await fetch('/api/study-planner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newSession, date: new Date().toISOString() }),
       });
-      toast.success('Session added!');
-      setShowAdd(false);
-      loadData();
+      if (res.ok) {
+        toast.success('Session added!');
+        setShowAdd(false);
+        loadData();
+      } else {
+        const data = await res.json().catch(() => null) as { error?: string } | null;
+        toast.error(data?.error || "Couldn't add session, try again");
+      }
     } catch { toast.error('Failed to add session'); }
   }
 

@@ -63,19 +63,72 @@ const SUBJECT_COLORS: Record<string, string> = {
   'History': 'bg-amber-100 text-amber-700 border-amber-200',
 };
 
+interface GroupMember {
+  id: string;
+  userId?: string;
+  role?: string;
+  // Real API nests identity under `user`; demo path provides flat fields.
+  user?: { id: string; name: string | null; selectedAvatar?: string };
+  name?: string;
+  avatar?: string;
+}
+
+interface GroupMessage {
+  id: string;
+  // Demo path uses userId/userName/text/time; real API rows use authorId/content/createdAt.
+  userId?: string;
+  userName?: string;
+  text?: string;
+  time?: string;
+  authorId?: string;
+  content?: string;
+  createdAt?: string;
+}
+
+interface StudyGroup {
+  id: string;
+  name: string;
+  description?: string;
+  subject?: string;
+  isPublic?: boolean;
+  maxMembers?: number;
+  myRole?: string | null;
+  creatorName?: string;
+  _count?: { members?: number; messages?: number };
+  members?: GroupMember[];
+  messages?: GroupMessage[];
+  // Demo-only / derived display fields:
+  isMember?: boolean;
+  memberCount?: number;
+  studySessions?: number;
+  recentActivity?: string;
+}
+
+// A group belongs to the user when the list API set `myRole`; the demo path sets `isMember` directly.
+function isMemberOf(group: StudyGroup): boolean {
+  return group.isMember ?? group.myRole != null;
+}
+
+function memberCountOf(group: StudyGroup): number {
+  return group.memberCount ?? group._count?.members ?? group.members?.length ?? 0;
+}
+
 export default function StudyGroupsPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const isDemo = useIsDemo();
 
-  const [groups, setGroups] = useState<any[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState<any>(null);
+  const [groups, setGroups] = useState<StudyGroup[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<StudyGroup | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'my' | 'public'>('all');
   const [form, setForm] = useState({ name: '', description: '', subject: 'Math', maxMembers: 10, isPublic: true });
+
+  // Demo messages are authored by the canned 'demo-student' id; real users by their session id.
+  const selfId = isDemo ? 'demo-student' : session?.user?.id;
 
   useEffect(() => {
     if (isDemo) {
@@ -172,16 +225,16 @@ export default function StudyGroupsPage() {
     setNewMessage('');
 
     if (isDemo) {
-      const msg = { id: `m${Date.now()}`, userId: 'demo-student', userName, text, time: 'Just now' };
-      setSelectedGroup((prev: any) => ({ ...prev, messages: [...(prev?.messages || []), msg] }));
+      const msg: GroupMessage = { id: `m${Date.now()}`, userId: 'demo-student', userName, text, time: 'Just now' };
+      setSelectedGroup(prev => (prev ? { ...prev, messages: [...(prev.messages || []), msg] } : prev));
       setGroups(prev => prev.map(g => g.id === selectedGroup.id ? { ...g, messages: [...(g.messages || []), msg] } : g));
       return;
     }
 
     // Optimistically append while POST is in-flight.
     const tempId = `temp-${Date.now()}`;
-    const optimistic = { id: tempId, userId: session?.user?.id || 'me', userName, text, time: 'Just now' };
-    setSelectedGroup((prev: any) => ({ ...prev, messages: [...(prev?.messages || []), optimistic] }));
+    const optimistic: GroupMessage = { id: tempId, userId: session?.user?.id || 'me', userName, text, time: 'Just now' };
+    setSelectedGroup(prev => (prev ? { ...prev, messages: [...(prev.messages || []), optimistic] } : prev));
 
     try {
       const res = await fetch('/api/study-groups', {
@@ -191,16 +244,36 @@ export default function StudyGroupsPage() {
       });
       if (!res.ok) {
         toast.error('Failed to send message');
-        setSelectedGroup((prev: any) => ({ ...prev, messages: (prev?.messages || []).filter((m: any) => m.id !== tempId) }));
+        setSelectedGroup(prev => (prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== tempId) } : prev));
       }
     } catch {
       toast.error('Failed to send message');
-      setSelectedGroup((prev: any) => ({ ...prev, messages: (prev?.messages || []).filter((m: any) => m.id !== tempId) }));
+      setSelectedGroup(prev => (prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== tempId) } : prev));
+    }
+  }
+
+  async function openChat(group: StudyGroup) {
+    // Demo groups already carry their members + messages client-side.
+    if (isDemo) { setSelectedGroup(group); return; }
+
+    // Show the group immediately, then hydrate members + messages from the detail endpoint.
+    setSelectedGroup({ ...group, messages: group.messages ?? [] });
+    try {
+      const res = await fetch(`/api/study-groups?groupId=${encodeURIComponent(group.id)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const detail = data.group as (StudyGroup & { messages?: GroupMessage[] }) | null;
+      if (!detail) return;
+      // API returns messages newest-first; reverse to chronological for display.
+      const messages = (detail.messages ?? []).slice().reverse();
+      setSelectedGroup({ ...group, ...detail, messages });
+    } catch (e) {
+      console.error(e);
     }
   }
 
   const filteredGroups = groups.filter(g => {
-    if (filter === 'my') return g.isMember;
+    if (filter === 'my') return isMemberOf(g);
     if (filter === 'public') return g.isPublic;
     return true;
   }).filter(g => g.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -280,32 +353,42 @@ export default function StudyGroupsPage() {
                 <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
                   <div>
                     <h2 className="text-lg font-bold dark:text-white">{selectedGroup.name}</h2>
-                    <p className="text-sm text-gray-500">{selectedGroup.memberCount} members · {selectedGroup.studySessions} study sessions</p>
+                    <p className="text-sm text-gray-500">{memberCountOf(selectedGroup)} members{selectedGroup.subject ? ` · ${selectedGroup.subject}` : ''}</p>
                   </div>
                   <button onClick={() => setSelectedGroup(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"><X className="w-5 h-5" /></button>
                 </div>
                 {/* Members */}
                 <div className="px-4 py-2 border-b dark:border-gray-700 flex gap-2 overflow-x-auto">
-                  {selectedGroup.members.map((m: any) => (
-                    <div key={m.id} className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-xs whitespace-nowrap">
-                      <span>{m.avatar}</span> <span className="dark:text-gray-300">{m.name}</span>
-                      {m.role === 'leader' && <Crown className="w-3 h-3 text-yellow-500" />}
-                    </div>
-                  ))}
+                  {(selectedGroup.members ?? []).map(m => {
+                    const memberName = m.user?.name ?? m.name ?? 'Member';
+                    const isLeader = m.role === 'leader' || m.role === 'owner';
+                    return (
+                      <div key={m.id} className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-xs whitespace-nowrap">
+                        {m.avatar && <span>{m.avatar}</span>} <span className="dark:text-gray-300">{memberName}</span>
+                        {isLeader && <Crown className="w-3 h-3 text-yellow-500" />}
+                      </div>
+                    );
+                  })}
                 </div>
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {selectedGroup.messages.length === 0 ? (
+                  {(selectedGroup.messages?.length ?? 0) === 0 ? (
                     <div className="text-center text-gray-400 py-8"><MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>No messages yet. Start the conversation!</p></div>
-                  ) : selectedGroup.messages.map((msg: any) => (
-                    <div key={msg.id} className={cn('flex gap-3', msg.userId === 'demo-student' ? 'flex-row-reverse' : '')}>
-                      <div className={cn('max-w-[75%] rounded-2xl px-4 py-2', msg.userId === 'demo-student' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700')}>
-                        {msg.userId !== 'demo-student' && <p className="text-xs font-semibold mb-1 text-blue-600 dark:text-blue-400">{msg.userName}</p>}
-                        <p className={cn('text-sm', msg.userId !== 'demo-student' && 'dark:text-gray-200')}>{msg.text}</p>
-                        <p className={cn('text-xs mt-1', msg.userId === 'demo-student' ? 'text-blue-200' : 'text-gray-400')}>{msg.time}</p>
+                  ) : (selectedGroup.messages ?? []).map(msg => {
+                    const senderId = msg.userId ?? msg.authorId;
+                    const isSelf = senderId === selfId;
+                    const body = msg.text ?? msg.content ?? '';
+                    const when = msg.time ?? (msg.createdAt ? new Date(msg.createdAt).toLocaleString() : '');
+                    return (
+                      <div key={msg.id} className={cn('flex gap-3', isSelf ? 'flex-row-reverse' : '')}>
+                        <div className={cn('max-w-[75%] rounded-2xl px-4 py-2', isSelf ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700')}>
+                          {!isSelf && msg.userName && <p className="text-xs font-semibold mb-1 text-blue-600 dark:text-blue-400">{msg.userName}</p>}
+                          <p className={cn('text-sm', !isSelf && 'dark:text-gray-200')}>{body}</p>
+                          {when && <p className={cn('text-xs mt-1', isSelf ? 'text-blue-200' : 'text-gray-400')}>{when}</p>}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 {/* Input */}
                 <div className="p-4 border-t dark:border-gray-700">
@@ -338,14 +421,16 @@ export default function StudyGroupsPage() {
                 </span>
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {group.memberCount}/{group.maxMembers}</span>
-                <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {group.studySessions} sessions</span>
-                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {group.recentActivity}</span>
+                <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {memberCountOf(group)}/{group.maxMembers}</span>
+                {typeof group.studySessions === 'number' && (
+                  <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {group.studySessions} sessions</span>
+                )}
+                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {group.recentActivity ?? 'No recent activity'}</span>
               </div>
               <div className="flex gap-2">
-                {group.isMember ? (
+                {isMemberOf(group) ? (
                   <>
-                    <button onClick={() => setSelectedGroup(group)} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                    <button onClick={() => openChat(group)} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium">
                       <MessageCircle className="w-4 h-4" /> Open Chat
                     </button>
                     <button onClick={() => leaveGroup(group.id)} aria-label="Leave group" title="Leave group" className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 py-2 px-3 rounded-lg hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/40 dark:hover:text-red-300 transition text-sm font-medium">

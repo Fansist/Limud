@@ -278,7 +278,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/admin/districts');
       if (res.ok) {
         const data = await res.json();
-        setDistricts(data.districts || []);
+        setDistricts(data.items ?? data.districts ?? []);
       }
     } catch {
       toast.error('Failed to load districts');

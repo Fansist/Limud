@@ -32,9 +32,15 @@ import prisma from '@/lib/prisma';
 // v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
 export const maxDuration = 60;
 
-export const GET = apiHandler(async (req: Request, ctx: { params: { id: string } }) => {
+export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('TEACHER');
-  const materialId = ctx.params.id;
+  // Next.js passes { params } as the second arg, but apiHandler only forwards
+  // `req` — so parse the dynamic segment from the URL pathname instead of a
+  // `ctx.params` that would be undefined at runtime.
+  // Path is /api/teacher/materials/<id>/personalized — id is the segment
+  // immediately before the trailing 'personalized'.
+  const segments = new URL(req.url).pathname.split('/').filter(Boolean);
+  const materialId = segments[segments.length - 2];
   if (!materialId) {
     return NextResponse.json({ error: 'Missing material id' }, { status: 400 });
   }

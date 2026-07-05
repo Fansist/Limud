@@ -92,6 +92,47 @@ const DEMO_STUDENTS = DEMO_ANALYTICS.students.map((student, idx) => {
   };
 });
 
+// v17.8.2: Shape of each object in the `studentInsights` array returned by
+// GET /api/teacher/insights. Only the fields this page consumes are typed.
+interface StudentInsight {
+  id: string;
+  name: string;
+  course?: string;
+  averageScore: number;
+  currentStreak?: number;
+  level?: number;
+  riskLevel: 'low' | 'medium' | 'high';
+  indicators?: string[];
+}
+
+// v17.8.2: Map a real teacher-insights record into the rich student shape this
+// page renders. The insights endpoint doesn't carry email, gradeLevel, skills,
+// recent grades, or tutor/focus counts — fill those with safe, non-fabricated
+// defaults (empty arrays / dashes) so the card grid and detail view never read
+// undefined. avgScore and risk are real; the rest is intentionally minimal.
+function mapInsightToStudent(s: StudentInsight) {
+  return {
+    id: s.id,
+    name: s.name,
+    email: '',
+    gradeLevel: '—',
+    avatar: '👤',
+    stats: {
+      assignmentsCompleted: 0,
+      avgScore: s.averageScore,
+      tutorSessions: 0,
+      focusMinutes: 0,
+      lastActive: '—',
+    },
+    skills: [] as { name: string; mastery: number }[],
+    recentGrades: [] as { title: string; score: number; max: number; date: string }[],
+    risk: s.riskLevel,
+    learningStyle: '',
+    learningNeeds: [] as string[],
+    courses: s.course ? [{ name: s.course, subject: '' }] : [],
+  };
+}
+
 export default function TeacherStudentsPage() {
   const { data: session } = useSession();
   const isDemo = useIsDemo();
@@ -136,11 +177,17 @@ export default function TeacherStudentsPage() {
     // v9.7.7: isDemo is true for both generic demo and master demo users
     if (isDemo) { setStudents(DEMO_STUDENTS); setLoading(false); return; }
     try {
-      const res = await fetch('/api/teacher/insights?action=students');
+      const res = await fetch('/api/teacher/insights');
       if (res.ok) {
         const data = await res.json();
-        // v12.5: Never fall back to demo data for real users — show empty state instead
-        setStudents(data.students || []);
+        // v17.8.2: /api/teacher/insights returns { studentInsights, ... } (no
+        // `students` key). Map the per-student insight objects into the shape this
+        // page renders. The endpoint carries id/name/averageScore/riskLevel; fields
+        // it doesn't carry (email, gradeLevel, skills, recentGrades, focus/tutor
+        // counts) get safe defaults so the card grid and detail view never read
+        // undefined. v12.5: never fall back to demo data for real users.
+        const insights: StudentInsight[] = data.studentInsights ?? [];
+        setStudents(insights.map(mapInsightToStudent));
       } else {
         setStudents([]);
       }

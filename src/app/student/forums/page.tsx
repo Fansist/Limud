@@ -30,6 +30,10 @@ interface ForumPost {
   isResolved: boolean;
   createdAt: string;
   replies: ForumReply[];
+  // Server-reported reply count. Replies are fetched lazily on expand, so this
+  // lets the collapsed card show the real count from the API's `_count.replies`
+  // before the `replies` array is populated.
+  replyCount: number;
   upvotes: number;
   hasUpvoted: boolean;
 }
@@ -62,6 +66,7 @@ interface ApiForumPost {
   createdAt: string;
   upvotes: number;
   author: { id: string; name: string; role: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'PARENT' | 'OWNER' } | null;
+  _count?: { replies: number } | null;
 }
 
 const DEMO_COURSES: StudentCourse[] = [
@@ -81,6 +86,7 @@ const DEMO_POSTS: ForumPost[] = [
       { id: 'r1', authorId: 'strachen', authorName: 'Mr. Strachen', authorRole: 'TEACHER', content: 'Great question, Lior! Think of it this way: Photosystem II absorbs light energy which excites electrons. Those electrons need to be replaced — that\'s where water comes in. Water (H2O) is split into 2H+, 2 electrons, and 1/2 O2. The oxygen is a byproduct that we breathe! Try drawing the Z-scheme diagram to visualize the electron flow.', createdAt: '2026-03-31T15:00:00Z', upvotes: 4, hasUpvoted: false },
       { id: 'r2', authorId: 'eitan', authorName: 'Eitan Balan', authorRole: 'STUDENT', content: 'The AI Tutor has a great visual explanation for this! I asked it to explain with a waterfall analogy and it really clicked for me.', createdAt: '2026-03-31T15:30:00Z', upvotes: 2, hasUpvoted: false },
     ],
+    replyCount: 2,
     upvotes: 6, hasUpvoted: false,
   },
   {
@@ -91,6 +97,7 @@ const DEMO_POSTS: ForumPost[] = [
     replies: [
       { id: 'r3', authorId: 'strachen', authorName: 'Mr. Strachen', authorRole: 'TEACHER', content: 'Yes! When b²-4ac is a perfect square, you can factor directly. For example, x²-5x+6 = (x-2)(x-3). The trick is recognizing factor pairs of c that sum to b. I\'ll pin this as it\'s a common question.', createdAt: '2026-03-30T10:30:00Z', upvotes: 8, hasUpvoted: false },
     ],
+    replyCount: 1,
     upvotes: 12, hasUpvoted: false,
   },
   {
@@ -101,6 +108,7 @@ const DEMO_POSTS: ForumPost[] = [
     replies: [
       { id: 'r4', authorId: 'eitan', authorName: 'Eitan Balan', authorRole: 'STUDENT', content: 'I think it\'s both! Nick\'s narration literally says "he stretched out his arms toward the dark water" — that\'s personal. But in the final paragraph of the novel, the green light becomes universal: "we beat on, boats against the current, borne back ceaselessly into the past."', createdAt: '2026-03-29T19:00:00Z', upvotes: 3, hasUpvoted: false },
     ],
+    replyCount: 1,
     upvotes: 5, hasUpvoted: false,
   },
   {
@@ -109,6 +117,7 @@ const DEMO_POSTS: ForumPost[] = [
     content: 'For the upcoming essay, what are the key differences in the motivations behind these two revolutions? They both happened around the same time but seem fundamentally different.',
     isPinned: false, isResolved: false, createdAt: '2026-03-28T09:00:00Z',
     replies: [],
+    replyCount: 0,
     upvotes: 3, hasUpvoted: false,
   },
 ];
@@ -133,6 +142,7 @@ function mapApiPost(
     isResolved: !!api.isResolved,
     createdAt: api.createdAt,
     replies: [],
+    replyCount: api._count?.replies ?? 0,
     upvotes: api.upvotes ?? 0,
     hasUpvoted: false,
   };
@@ -286,6 +296,7 @@ export default function ForumsPage() {
         isResolved: false,
         createdAt: new Date().toISOString(),
         replies: [],
+        replyCount: 0,
         upvotes: 0,
         hasUpvoted: false,
       };
@@ -567,7 +578,13 @@ export default function ForumsPage() {
                           <span className={post.authorRole === 'TEACHER' ? 'text-emerald-600 font-medium' : ''}>{post.authorName}</span>
                         </span>
                         <span className="flex items-center gap-1"><Clock size={12} /> {timeAgo(post.createdAt)}</span>
-                        <span className="flex items-center gap-1"><MessageSquare size={12} /> {post.replies.length} {post.replies.length === 1 ? 'reply' : 'replies'}</span>
+                        {(() => {
+                          // Prefer the loaded replies array (so locally-added
+                          // replies bump the count) but fall back to the
+                          // server-reported `_count.replies` when collapsed.
+                          const count = Math.max(post.replyCount, post.replies.length);
+                          return <span className="flex items-center gap-1"><MessageSquare size={12} /> {count} {count === 1 ? 'reply' : 'replies'}</span>;
+                        })()}
                       </div>
                     </div>
                     <ChevronDown size={18} className={`text-gray-400 transition-transform flex-shrink-0 ${expandedPost === post.id ? 'rotate-180' : ''}`} />

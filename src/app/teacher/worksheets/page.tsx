@@ -260,20 +260,32 @@ export default function WorksheetBuilderPage() {
     finally { setAiGenerating(false); }
   }
 
-  async function shareToExchange(wsId: string) {
+  async function shareToExchange(ws: Worksheet) {
     if (isDemo) {
-      setWorksheets(prev => prev.map(w => w.id === wsId ? { ...w, sharedToExchange: true } : w));
+      setWorksheets(prev => prev.map(w => w.id === ws.id ? { ...w, sharedToExchange: true } : w));
       toast.success('Shared to Teacher Exchange! (Demo)');
       return;
     }
     try {
+      // The exchange route expects { action: 'upload', title, subject, ... }
+      // (see src/app/api/exchange/route.ts UploadBody). Map the worksheet's
+      // fields onto that shape; `type` is the legacy alias the route accepts.
       const res = await fetch('/api/exchange', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ worksheetId: wsId }),
+        body: JSON.stringify({
+          action: 'upload',
+          title: ws.title,
+          description: ws.instructions || `${ws.questions.length} questions · ${ws.totalPoints} points · ${ws.estimatedTime}`,
+          subject: ws.subject,
+          gradeLevel: ws.gradeLevel,
+          type: 'Worksheet',
+        }),
       });
       if (res.ok) {
-        setWorksheets(prev => prev.map(w => w.id === wsId ? { ...w, sharedToExchange: true } : w));
+        setWorksheets(prev => prev.map(w => w.id === ws.id ? { ...w, sharedToExchange: true } : w));
         toast.success('Shared to Teacher Exchange!');
+      } else {
+        toast.error('Share failed');
       }
     } catch { toast.error('Share failed'); }
   }
@@ -371,7 +383,7 @@ export default function WorksheetBuilderPage() {
                           <Copy size={16} />
                         </button>
                         {!ws.sharedToExchange && (
-                          <button onClick={() => shareToExchange(ws.id)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition" title="Share to Teacher Exchange">
+                          <button onClick={() => shareToExchange(ws)} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition" title="Share to Teacher Exchange">
                             <Globe2 size={16} />
                           </button>
                         )}

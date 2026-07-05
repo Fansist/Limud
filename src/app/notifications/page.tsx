@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { Bell, CheckCheck, Inbox } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { cn } from '@/lib/utils';
+import { useIsDemo } from '@/lib/hooks';
 import { DEMO_NOTIFICATIONS } from '@/lib/demo-data';
 
 type NotificationItem = {
@@ -111,30 +111,30 @@ function groupByDate(items: NotificationItem[]): Array<{ label: string; items: N
 export default function NotificationsPage() {
   const { data: session } = useSession();
   const u = session?.user as SessionUser | undefined;
-  const searchParams = useSearchParams();
+  const isDemo = useIsDemo();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
-    const isDemoParam = searchParams.get('demo') === 'true';
-    const storedDemo = typeof window !== 'undefined' && localStorage.getItem('limud-demo-mode') === 'true';
     const sessionIsMaster = u?.isMasterDemo === true;
 
+    // Master demo gets synthetic notifications so a walkthrough is never empty.
+    // useIsDemo() returns true for master demo, but its notifications differ
+    // from the generic DEMO_NOTIFICATIONS, so check it first.
     if (sessionIsMaster) {
-      setIsDemo(false);
       setNotifications(MASTER_DEMO_NOTIFICATIONS);
       setLoading(false);
       return;
     }
 
-    if (isDemoParam || storedDemo) {
-      setIsDemo(true);
+    // Genuine (non-master) demo session: canned demo notifications.
+    if (isDemo) {
       setNotifications(DEMO_NOTIFICATIONS as NotificationItem[]);
       setLoading(false);
       return;
     }
 
+    // Real user: always fetch live notifications, never DEMO_NOTIFICATIONS.
     let cancelled = false;
     (async () => {
       try {
@@ -162,7 +162,7 @@ export default function NotificationsPage() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, u]);
+  }, [isDemo, u]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 

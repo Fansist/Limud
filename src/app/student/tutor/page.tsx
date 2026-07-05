@@ -271,31 +271,12 @@ function TutorPageInner() {
     };
   }, [isDemo]);
 
-  // v17.4 CODER: deep-link from /student/knowledge — read `?topic=` and seed a
-  // synthetic user message so the chat opens already focused on the skill the
-  // student tapped. We stash the raw value in `topicHint` so subsequent POSTs
-  // include it as `topic` for /api/tutor (alongside `subject`).
-  const topicParam = searchParams?.get('topic') ?? null;
-  useEffect(() => {
-    if (!hydrated) return;
-    if (!topicParam) return;
-    if (seededTopicsRef.current.has(topicParam)) return;
-    seededTopicsRef.current.add(topicParam);
-    setTopicHint(topicParam);
-    const seedContent = `I want to work on: ${topicParam}`;
-    setMessages(prev => {
-      // Avoid duplicate seeding if the same message already exists at the end
-      // (e.g. restored from localStorage on a previous visit to the same URL).
-      const last = prev[prev.length - 1];
-      if (last && last.role === 'user' && last.content === seedContent) {
-        return prev;
-      }
-      return [...prev, { role: 'user', content: seedContent }];
-    });
-  }, [hydrated, topicParam]);
-
   const sendMessage = useCallback(
-    async (messageText?: string) => {
+    // v17.8.2 CODER (M14): `topicOverride` lets the deep-link auto-send pass the
+    // topic into the POST body directly. Without it, an auto-send fired right
+    // after `setTopicHint` would still read the stale (null) `topicHint` from
+    // this closure. Manual sends omit it and fall back to `topicHint`.
+    async (messageText?: string, topicOverride?: string) => {
       const text = messageText || input.trim();
       if (!text || loading) return;
 
@@ -319,7 +300,7 @@ function TutorPageInner() {
                 message: text,
                 sessionId,
                 subject,
-                topic: topicHint,
+                topic: topicOverride ?? topicHint,
               }),
             });
             if (res.status === 402) {
@@ -400,6 +381,30 @@ function TutorPageInner() {
     },
     [input, loading, isDemo, sessionId, subject, topicHint, router],
   );
+
+  // v17.8.2 CODER (M14): deep-link from /student/knowledge — read `?topic=` and
+  // AUTO-SEND an opening message so the tutor actually replies, instead of just
+  // seeding an unsent bubble that looked broken. We fire ONCE per topic value
+  // (guarded by `seededTopicsRef`) and only when the chat is otherwise empty, so
+  // a re-render, a route change back to the same URL, or rehydrated history
+  // never re-injects the message. `topicHint` is set so subsequent manual sends
+  // keep carrying `topic`; the topic is also passed straight into `sendMessage`
+  // to avoid the stale-closure race on first fire.
+  const topicParam = searchParams?.get('topic') ?? null;
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!topicParam) return;
+    if (seededTopicsRef.current.has(topicParam)) return;
+    if (messages.length > 0) return;
+    if (loading) return;
+    seededTopicsRef.current.add(topicParam);
+    setTopicHint(topicParam);
+    void sendMessage(`I want to work on: ${topicParam}`, topicParam);
+    // We intentionally depend only on the gate inputs, not on `sendMessage`
+    // (stable enough here) or `messages.length` (we read it as a one-shot guard
+    // and don't want length growth to re-run this effect).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, topicParam]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {

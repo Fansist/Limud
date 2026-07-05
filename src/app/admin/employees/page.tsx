@@ -148,7 +148,7 @@ export default function AdminEmployeesPage() {
       const res = await fetch('/api/district/teachers');
       if (res.ok) {
         const data = await res.json();
-        const mapped = (data.teachers || []).map((t: any) => ({
+        const mapped = (data.items ?? data.teachers ?? []).map((t: any) => ({
           id: t.id, name: t.name || `${t.firstName || ''} ${t.lastName || ''}`.trim(),
           email: t.email, role: 'TEACHER', phone: t.phone || '',
           title: '', department: '', school: t.school || null,

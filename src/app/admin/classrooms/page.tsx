@@ -251,7 +251,7 @@ export default function AdminClassroomsPageEnhanced() {
       const res = await fetch('/api/district/teachers');
       if (res.ok) {
         const data = await res.json();
-        setTeachers(data.teachers || []);
+        setTeachers(data.items ?? data.teachers ?? []);
       }
     } catch { toast.error('Failed to load teachers'); }
   }
@@ -275,7 +275,7 @@ export default function AdminClassroomsPageEnhanced() {
       const res = await fetch('/api/district/students');
       if (res.ok) {
         const data = await res.json();
-        setStudents(data.students || []);
+        setStudents(data.items ?? data.students ?? []);
       }
     } catch { toast.error('Failed to load students'); }
   }
@@ -294,7 +294,7 @@ export default function AdminClassroomsPageEnhanced() {
       const res = await fetch('/api/district/schools');
       if (res.ok) {
         const data = await res.json();
-        setDistrictSchools(data.schools || []);
+        setDistrictSchools(data.items ?? data.schools ?? []);
       }
     } catch { toast.error('Failed to load schools'); }
   }
@@ -518,7 +518,7 @@ export default function AdminClassroomsPageEnhanced() {
                   <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject</label>
                     <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} className="input-field">
                       <option value="">Select subject</option>
-                      {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.icon} {s.value}</option>)}
+                      {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select></div>
                   <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Grade Level</label>
                     <input value={form.gradeLevel} onChange={e => setForm(f => ({ ...f, gradeLevel: e.target.value }))} className="input-field" placeholder="e.g., 6th" /></div>
@@ -658,7 +658,7 @@ export default function AdminClassroomsPageEnhanced() {
                     <label className="block text-xs font-medium text-gray-500 mb-1">Subject</label>
                     <select value={subjectFilter} onChange={e => setSubjectFilter(e.target.value)} className="input-field text-sm">
                       <option value="">All Subjects</option>
-                      {SUBJECTS.map(s => <option key={s.value} value={s.value}>{s.icon} {s.value}</option>)}
+                      {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                   <div>

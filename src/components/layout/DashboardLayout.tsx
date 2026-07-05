@@ -19,7 +19,7 @@ import {
   Home, Brain, FileText, Calendar, CalendarDays, TrendingUp, Sun, Moon,
   Lightbulb, Focus, Zap, Settings,
   Building2, CreditCard, Shield, UserPlus, HelpCircle,
-  Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList, Clipboard, Palette,
+  Link2, PenTool, Globe2, UserCog, Megaphone, ClipboardList, Palette,
   MessageSquare, DollarSign,
   Award, RefreshCw, UsersRound,
 } from 'lucide-react';
@@ -318,17 +318,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sessionRole = u?.role || 'STUDENT';
   const isMasterDemo = u?.isMasterDemo === true;
   const isHomeschoolParent = isDemo ? false : (u?.isHomeschoolParent === true);
-  
-  // Master Demo: detect role from pathname to allow cross-role navigation
-  const masterRole = isMasterDemo
-    ? (pathname.startsWith('/student') ? 'STUDENT'
-       : pathname.startsWith('/teacher') ? 'TEACHER'
-       : pathname.startsWith('/admin') ? 'ADMIN'
-       : pathname.startsWith('/parent') ? 'PARENT'
-       : pathname.startsWith('/owner') ? 'OWNER'
-       : sessionRole)
-    : null;
-  const role = isDemo ? demoRole : (masterRole || sessionRole);
+
+  // v17.8.2 (H9): The master demo session holds exactly ONE role — 'TEACHER',
+  // or 'OWNER' when OWNER_EMAIL matches (see auth.ts). After SEC-3 the edge
+  // middleware enforces pure exact-match RBAC, so the demo can only ever BE
+  // its session role; cross-role routes 302 to '/'. The old pathname-sniffing
+  // `masterRole` was therefore dead code that implied unreachable navigation.
+  // The effective role is simply the session role.
+  const role = isDemo ? demoRole : sessionRole;
   const navKey = isHomeschoolParent ? 'HOMESCHOOL_PARENT' : role;
 
   const demoUser = isDemo ? getDemoUser(role) : null;
@@ -492,34 +489,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        {/* Master Demo role switcher */}
+        {/* Master Demo status indicator.
+            v17.8.2 (H9): The old "All Access" 5-button role switcher and the
+            student-survey quick link were dead after SEC-3 — the demo session
+            holds exactly ONE role (TEACHER, or OWNER when OWNER_EMAIL matches)
+            and the edge middleware enforces exact-match RBAC, so every
+            cross-role link 302'd to '/' and bounced. Replaced with an honest,
+            non-navigating badge that names the role the demo is actually signed
+            in as. */}
         {isMasterDemo && !isDemo && (
           <div className="mx-4 mt-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mb-1.5 flex items-center gap-1"><Shield size={10} /> Master Demo — All Access</p>
-            <div className="grid grid-cols-5 gap-1">
-              {[
-                { r: 'STUDENT', icon: <GraduationCap size={12} />, path: '/student/dashboard', color: 'bg-blue-100 text-blue-700' },
-                { r: 'TEACHER', icon: <BookOpen size={12} />, path: '/teacher/dashboard', color: 'bg-green-100 text-green-700' },
-                { r: 'ADMIN', icon: <Shield size={12} />, path: '/admin/dashboard', color: 'bg-purple-100 text-purple-700' },
-                { r: 'PARENT', icon: <Eye size={12} />, path: '/parent/dashboard', color: 'bg-pink-100 text-pink-700' },
-                { r: 'OWNER', icon: <DollarSign size={12} />, path: '/owner', color: 'bg-amber-100 text-amber-700' },
-              ].map(r => (
-                <Link key={r.r} href={r.path}
-                  className={cn('flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-[9px] font-medium transition',
-                    role === r.r ? r.color + ' ring-1 ring-amber-300' : 'hover:bg-gray-100 text-gray-500',
-                    FOCUS_RING)}
-                  onClick={() => setSidebarOpen(false)}>
-                  {r.icon}
-                  <span>{r.r.charAt(0) + r.r.slice(1).toLowerCase()}</span>
-                </Link>
-              ))}
-            </div>
-            {/* v9.4.0: Master demo quick access to student learning survey */}
-            <Link href="/student/survey"
-              className={cn('mt-1.5 flex items-center gap-1.5 text-[10px] text-amber-700 dark:text-amber-300 font-medium hover:underline py-1 rounded', FOCUS_RING)}
-              onClick={() => setSidebarOpen(false)}>
-              <Clipboard size={10} /> Open Student Learning Survey
-            </Link>
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+              <Shield size={10} /> Demo mode
+            </p>
+            <p className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-300 font-medium">
+              Signed in as {roleLabel}
+            </p>
           </div>
         )}
 

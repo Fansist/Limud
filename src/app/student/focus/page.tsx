@@ -1,13 +1,13 @@
 'use client';
 import { useIsDemo } from '@/lib/hooks';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { haptic } from '@/lib/performance';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
-  Focus, Play, Pause, RotateCcw, ChevronRight, Check, X, Timer, Brain, Sparkles, ArrowRight,
+  Focus, Play, Pause, RotateCcw, ChevronRight, Check, X, Brain, Sparkles, ArrowRight, Target,
 } from 'lucide-react';
 
 const AMBIENT_SOUNDS = [
@@ -36,26 +36,45 @@ const DEMO_QUESTIONS = [
 ];
 
 export default function FocusModePage() {
+  return (
+    <Suspense fallback={<DashboardLayout><div className="max-w-3xl mx-auto" /></DashboardLayout>}>
+      <FocusModeContent />
+    </Suspense>
+  );
+}
+
+function FocusModeContent() {
   const router = useRouter();
   const isDemo = useIsDemo();
+  const searchParams = useSearchParams();
+  // Deep-link from /student/knowledge: ?skill=<name> scopes the session label.
+  const skillParam = searchParams.get('skill');
 
   // Session state
-  const [phase, setPhase] = useState<'setup' | 'active' | 'review' | 'complete'>('setup');
+  const [phase, setPhase] = useState<'setup' | 'active' | 'complete'>('setup');
   const [selectedMinutes, setSelectedMinutes] = useState(25);
   const [ambientSound, setAmbientSound] = useState('none');
-  const [soundMuted, setSoundMuted] = useState(false);
 
   // Timer state
   const [timeLeft, setTimeLeft] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // Question state — shuffle on mount so each session feels different
-  const [questions, setQuestions] = useState<typeof DEMO_QUESTIONS>(DEMO_QUESTIONS);
+  // Question state.
+  // Real users have no question source yet (/api/focus only records sessions),
+  // so only demo sessions get the canned DEMO_QUESTIONS — a real student must
+  // never be scored on demo content. Real users run a timer-only session.
+  const [questions, setQuestions] = useState<typeof DEMO_QUESTIONS>(isDemo ? DEMO_QUESTIONS : []);
 
+  // Shuffle the demo deck on mount so each demo session feels different.
   useEffect(() => {
-    setQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
-  }, []);
+    if (isDemo) {
+      setQuestions([...DEMO_QUESTIONS].sort(() => Math.random() - 0.5));
+    } else {
+      setQuestions([]);
+    }
+  }, [isDemo]);
+  const hasQuestions = questions.length > 0;
   const [currentQ, setCurrentQ] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -70,12 +89,13 @@ export default function FocusModePage() {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [phase, isPaused, timeLeft]);
 
-  // Time's up
+  // Time's up. A timer-only session (no quiz) has no results, so complete on
+  // the clock alone; quiz sessions also complete once at least one answer is in.
   useEffect(() => {
-    if (phase === 'active' && timeLeft === 0 && results.length > 0) {
+    if (phase === 'active' && timeLeft === 0 && (!hasQuestions || results.length > 0)) {
       setPhase('complete');
     }
-  }, [timeLeft, phase, results.length]);
+  }, [timeLeft, phase, hasQuestions, results.length]);
 
   const startSession = useCallback(async () => {
     setTimeLeft(selectedMinutes * 60);
@@ -89,13 +109,18 @@ export default function FocusModePage() {
         const res = await fetch('/api/focus', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'start', plannedMinutes: selectedMinutes, sessionType: 'focus' }),
+          body: JSON.stringify({
+            action: 'start',
+            plannedMinutes: selectedMinutes,
+            sessionType: 'focus',
+            ...(skillParam ? { topic: skillParam, subject: skillParam } : {}),
+          }),
         });
         const data = await res.json();
         setSessionId(data.session?.id || null);
       } catch (err) { console.error('[Focus]', err); }
     }
-  }, [selectedMinutes, isDemo]);
+  }, [selectedMinutes, isDemo, skillParam]);
 
   const answerQuestion = (idx: number) => {
     if (selectedAnswer !== null) return;
@@ -127,8 +152,14 @@ export default function FocusModePage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'end', sessionId,
-            focusScore: Math.round((results.filter(r => r.correct).length / Math.max(1, results.length)) * 100),
-            itemsCompleted: results.length,
+            // Only send a quiz-derived focusScore when questions were actually
+            // answered; a timer-only session lets the API compute its default.
+            ...(results.length > 0
+              ? {
+                  focusScore: Math.round((results.filter(r => r.correct).length / results.length) * 100),
+                  itemsCompleted: results.length,
+                }
+              : {}),
           }),
         });
       } catch (err) { console.error('[Focus]', err); }
@@ -152,6 +183,17 @@ export default function FocusModePage() {
               </div>
               <h1 className="text-2xl font-bold text-gray-900">Focus Mode</h1>
               <p className="text-gray-500 mt-1">Minimal distractions. Maximum learning.</p>
+              {skillParam && (
+                <span className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-cyan-50 text-cyan-700 text-xs font-medium">
+                  <Target size={12} /> Focusing on {skillParam}
+                </span>
+              )}
+              {!hasQuestions && (
+                <p className="text-xs text-gray-400 mt-3 max-w-sm mx-auto">
+                  Focus quiz content is coming soon. Start a timer-based session
+                  now to study distraction-free — your focus time still counts.
+                </p>
+              )}
             </div>
 
             {/* Duration Presets */}
@@ -213,7 +255,7 @@ export default function FocusModePage() {
             <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 pb-4 pt-2">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-500">
-                  Q{currentQ + 1}/{questions.length}
+                  {hasQuestions ? `Q${currentQ + 1}/${questions.length}` : skillParam || 'Focus'}
                 </span>
                 <span className={cn(
                   'text-2xl font-mono font-bold tabular-nums',
@@ -256,7 +298,31 @@ export default function FocusModePage() {
               )}
             </AnimatePresence>
 
+            {/* Timer-only focus card — real users have no quiz content yet */}
+            {!hasQuestions && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="card text-center py-12"
+              >
+                <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Brain size={28} className="text-indigo-500" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {skillParam ? `Studying ${skillParam}` : 'Stay focused'}
+                </h2>
+                <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
+                  Focus quiz content is coming soon. For now, use this time to study
+                  distraction-free — the timer is tracking your focused minutes.
+                </p>
+                <p className="text-xs text-gray-400 mt-4">
+                  Tap the timer controls above to pause or end your session.
+                </p>
+              </motion.div>
+            )}
+
             {/* Question Card */}
+            {hasQuestions && (
             <motion.div
               key={currentQ}
               initial={{ opacity: 0, x: 50 }}
@@ -335,8 +401,10 @@ export default function FocusModePage() {
                 </motion.button>
               )}
             </motion.div>
+            )}
 
             {/* Score ticker */}
+            {hasQuestions && (
             <div className="flex items-center justify-center gap-6 text-sm">
               <span className="flex items-center gap-1 text-green-600 font-bold">
                 <Check size={14} /> {correctCount} correct
@@ -345,6 +413,7 @@ export default function FocusModePage() {
                 {results.length} answered
               </span>
             </div>
+            )}
           </div>
         )}
 
@@ -352,23 +421,32 @@ export default function FocusModePage() {
         {phase === 'complete' && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6">
             <div className="text-6xl mb-2">
-              {correctCount === results.length ? '🏆' : correctCount >= results.length * 0.7 ? '🎉' : '💪'}
+              {results.length === 0 ? '🎯' : correctCount === results.length ? '🏆' : correctCount >= results.length * 0.7 ? '🎉' : '💪'}
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Session Complete!</h1>
-            <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
-              <div className="card text-center p-4">
-                <p className="text-2xl font-bold text-green-600">{correctCount}/{results.length}</p>
-                <p className="text-[10px] text-gray-400">Correct</p>
+            {results.length > 0 ? (
+              <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
+                <div className="card text-center p-4">
+                  <p className="text-2xl font-bold text-green-600">{correctCount}/{results.length}</p>
+                  <p className="text-[10px] text-gray-400">Correct</p>
+                </div>
+                <div className="card text-center p-4">
+                  <p className="text-2xl font-bold text-purple-600">{selectedMinutes - Math.ceil(timeLeft / 60)}<span className="text-sm">m</span></p>
+                  <p className="text-[10px] text-gray-400">Focused Time</p>
+                </div>
+                <div className="card text-center p-4">
+                  <p className="text-2xl font-bold text-indigo-600">{Math.round((correctCount / results.length) * 100)}%</p>
+                  <p className="text-[10px] text-gray-400">Accuracy</p>
+                </div>
               </div>
-              <div className="card text-center p-4">
-                <p className="text-2xl font-bold text-purple-600">{selectedMinutes - Math.ceil(timeLeft / 60)}<span className="text-sm">m</span></p>
-                <p className="text-[10px] text-gray-400">Focused Time</p>
+            ) : (
+              <div className="max-w-xs mx-auto">
+                <div className="card text-center p-6">
+                  <p className="text-3xl font-bold text-purple-600">{selectedMinutes - Math.ceil(timeLeft / 60)}<span className="text-base">m</span></p>
+                  <p className="text-xs text-gray-400 mt-1">Focused Time</p>
+                </div>
               </div>
-              <div className="card text-center p-4">
-                <p className="text-2xl font-bold text-indigo-600">{results.length > 0 ? Math.round((correctCount / results.length) * 100) : 0}%</p>
-                <p className="text-[10px] text-gray-400">Accuracy</p>
-              </div>
-            </div>
+            )}
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => { setPhase('setup'); setResults([]); }}

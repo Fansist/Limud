@@ -280,7 +280,7 @@ export default function PlatformsPage() {
     fetch('/api/platforms', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ platformId, username: connectUsername }),
-    }).then(r => {
+    }).then(async r => {
       if (r.ok) {
         toast.success('Connected!');
         setLinked(prev => [...prev, {
@@ -288,8 +288,11 @@ export default function PlatformsPage() {
           lastSync: null, username: connectUsername, status: 'active', syncedItems: 0,
         }]);
         setShowConnect(null); setConnectUsername('');
+      } else {
+        const data = await r.json().catch(() => null) as { error?: string } | null;
+        toast.error(data?.error || "Couldn't connect platform, try again");
       }
-    });
+    }).catch(() => toast.error("Couldn't connect platform, try again"));
   }
 
   function handleDisconnect(platformId: string) {
@@ -300,7 +303,15 @@ export default function PlatformsPage() {
     fetch('/api/platforms', {
       method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ platformId }),
-    }).then(() => { setLinked(prev => prev.filter(p => p.platformId !== platformId)); toast.success('Disconnected'); });
+    }).then(async r => {
+      if (r.ok) {
+        setLinked(prev => prev.filter(p => p.platformId !== platformId));
+        toast.success('Disconnected');
+      } else {
+        const data = await r.json().catch(() => null) as { error?: string } | null;
+        toast.error(data?.error || "Couldn't disconnect platform, try again");
+      }
+    }).catch(() => toast.error("Couldn't disconnect platform, try again"));
   }
 
   function handleSync(platformId: string) {
@@ -319,12 +330,19 @@ export default function PlatformsPage() {
     fetch('/api/platforms', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ platformId, action: 'sync' }),
-    }).then(() => {
-      setLinked(prev => prev.map(p => p.platformId === platformId
-        ? { ...p, lastSync: new Date().toISOString(), status: 'active' as const }
-        : p));
-      setSyncing(null);
-      toast.success('Sync complete');
+    }).then(async r => {
+      if (r.ok) {
+        setLinked(prev => prev.map(p => p.platformId === platformId
+          ? { ...p, lastSync: new Date().toISOString(), status: 'active' as const }
+          : p));
+        setSyncing(null);
+        toast.success('Sync complete');
+      } else {
+        const data = await r.json().catch(() => null) as { error?: string } | null;
+        setLinked(prev => prev.map(p => p.platformId === platformId ? { ...p, status: 'error' as const } : p));
+        setSyncing(null);
+        toast.error(data?.error || "Couldn't sync platform, try again");
+      }
     }).catch(() => {
       setLinked(prev => prev.map(p => p.platformId === platformId ? { ...p, status: 'error' as const } : p));
       setSyncing(null);

@@ -103,7 +103,9 @@ export default function GradingPage() {
       const res = await fetch(`/api/submissions?assignmentId=${assignmentId}`);
       if (res.ok) {
         const data = await res.json();
-        setSubmissions(data.submissions || []);
+        // v17.8.2: /api/submissions list branch returns { items }; keep `submissions`
+        // as a fallback in case the shape changes back.
+        setSubmissions(data.items ?? data.submissions ?? []);
       }
     } catch {
       toast.error('Failed to load submissions');

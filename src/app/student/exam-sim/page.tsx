@@ -104,10 +104,12 @@ export default function ExamSimulatorPage() {
 
   async function submitExam() {
     if (submittedRef.current) return;
-    submittedRef.current = true;
+    if (loading) return;
     setLoading(true);
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     if (isDemo) {
+      // Demo path scores client-side and is final, so lock it in immediately.
+      submittedRef.current = true;
       const correctAnswers: Record<string, string> = { '5/4': '5/4', 'x = 5': 'x = 5', '9\u03c0': '9\u03c0', 'x\u2075': 'x\u2075', '3': '3', '(x+3)(x-3)': '(x+3)(x-3)' };
       let correct = 0;
       const demoResults = questions.map((q, i) => {
@@ -122,6 +124,14 @@ export default function ExamSimulatorPage() {
       setLoading(false);
       return;
     }
+    // A `temp-` attemptId means the POST couldn't persist the attempt to the DB,
+    // so the PUT will 404 and the server can't score it. Surface a retry affordance
+    // instead of bricking the Submit button \u2014 answers stay in memory either way.
+    if (!attemptId || attemptId.startsWith('temp-')) {
+      toast.error('Exam couldn\u2019t be saved to the server \u2014 please retry');
+      setLoading(false);
+      return;
+    }
     try {
       const ansArray = questions.map((_, i) => answers[i] || '');
       const res = await fetch('/api/exam-sim', {
@@ -131,11 +141,18 @@ export default function ExamSimulatorPage() {
       });
       if (res.ok) {
         const data = await res.json();
+        // Only lock submission once the server confirms a scored attempt.
+        submittedRef.current = true;
         setResults(data);
         setState('results');
         loadHistory();
+      } else {
+        // Non-OK PUT: keep answers, re-enable Submit so the student can retry.
+        toast.error('Couldn\u2019t submit \u2014 your answers are saved, try again');
       }
-    } catch { toast.error('Error submitting exam'); }
+    } catch {
+      toast.error('Couldn\u2019t submit \u2014 your answers are saved, try again');
+    }
     setLoading(false);
   }
 

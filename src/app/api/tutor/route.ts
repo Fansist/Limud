@@ -33,11 +33,30 @@ export const POST = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Only students can use the tutor' }, { status: 403 });
   }
 
-  const { message, sessionId, subject } = await req.json();
+  const { message, sessionId, subject, topic } = await req.json();
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return NextResponse.json({ error: 'Message is required' }, { status: 400 });
   }
+
+  // v17.8.2 (M14): `topic` arrives from a `?topic=` deep-link (e.g. a skill the
+  // student tapped on /student/knowledge). Fold it into the tutoring context so
+  // the Socratic prompt is seeded with the specific topic, not just the broad
+  // subject. We combine rather than replace: a student can have both a subject
+  // preset ("math") and a deep-linked topic ("solving two-step equations").
+  // `chatWithTutor` sanitizes this string before interpolation. The DB `subject`
+  // column keeps storing the raw preset only, so history/analytics stay clean.
+  const topicStr =
+    typeof topic === 'string' && topic.trim().length > 0 ? topic.trim() : null;
+  const subjectStr =
+    typeof subject === 'string' && subject.trim().length > 0
+      ? subject.trim()
+      : null;
+  const tutorContext = topicStr
+    ? subjectStr
+      ? `${subjectStr} — specifically: ${topicStr}`
+      : topicStr
+    : subjectStr ?? undefined;
 
   // ── Entitlement gate (v17.3) ──
   // The tutor is the in-app surface of the paid Exam Study Helper product.
@@ -134,7 +153,7 @@ export const POST = apiHandler(async (req: Request) => {
   // ── Get AI response (always works — has built-in demo fallback) ──
   // v13.3.0 (Update 2.8): capture aiError so the client can tell when the
   // response is demo filler vs. a real AI answer.
-  const { content, tokensUsed, aiGenerated, aiError } = await chatWithTutor(messages, subject, surveyData);
+  const { content, tokensUsed, aiGenerated, aiError } = await chatWithTutor(messages, tutorContext, surveyData);
 
   // ── Save AI response to DB (best-effort) ──
   if (prisma) {

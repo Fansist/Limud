@@ -3,6 +3,30 @@ import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
+// v17.8.2: shared validation for classroom description + maxCapacity.
+const INVALID = Symbol('invalid');
+const MAX_DESCRIPTION = 500;
+const MIN_CAPACITY = 1;
+const MAX_CAPACITY = 500;
+
+// Trimmed string (or null when empty/absent); INVALID on wrong type / over cap.
+function normalizeDescription(value: unknown): string | null | typeof INVALID {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string') return INVALID;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  if (trimmed.length > MAX_DESCRIPTION) return INVALID;
+  return trimmed;
+}
+
+// Positive integer within sane bounds (or null when absent); INVALID otherwise.
+function normalizeMaxCapacity(value: unknown): number | null | typeof INVALID {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'number' || !Number.isInteger(value)) return INVALID;
+  if (value < MIN_CAPACITY || value > MAX_CAPACITY) return INVALID;
+  return value;
+}
+
 // GET /api/district/classrooms
 // v12.4.4: Fixed teacher visibility — teachers can see their classrooms
 // even if their districtId is missing from the session (e.g. self-registered teachers)
@@ -72,10 +96,20 @@ export const GET = apiHandler(async (req: Request) => {
 // POST /api/district/classrooms - Create a classroom
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
-  const { name, schoolId, gradeLevel, subject, period, teacherId, courseId } = await req.json();
+  const { name, description, maxCapacity, schoolId, gradeLevel, subject, period, teacherId, courseId } = await req.json();
 
   if (!name) {
     return NextResponse.json({ error: 'Classroom name required' }, { status: 400 });
+  }
+
+  // v17.8.2: validate optional description + maxCapacity.
+  const cleanDescription = normalizeDescription(description);
+  if (cleanDescription === INVALID) {
+    return NextResponse.json({ error: 'Description must be a string of at most 500 characters' }, { status: 400 });
+  }
+  const cleanMaxCapacity = normalizeMaxCapacity(maxCapacity);
+  if (cleanMaxCapacity === INVALID) {
+    return NextResponse.json({ error: 'maxCapacity must be an integer between 1 and 500' }, { status: 400 });
   }
 
   // v12.4.5: Auto-create a Course when creating a classroom with a teacher
@@ -102,6 +136,8 @@ export const POST = apiHandler(async (req: Request) => {
   const classroom = await prisma.classroom.create({
     data: {
       name,
+      description: cleanDescription,
+      maxCapacity: cleanMaxCapacity,
       districtId: user.districtId,
       schoolId: schoolId || null,
       gradeLevel: gradeLevel || null,
@@ -279,6 +315,22 @@ export const PUT = apiHandler(async (req: Request) => {
     if (value !== undefined) {
       (updateData as Record<string, unknown>)[f] = value;
     }
+  }
+
+  // v17.8.2: description + maxCapacity are validated separately (not raw-assigned).
+  if (data.description !== undefined) {
+    const cleanDescription = normalizeDescription(data.description);
+    if (cleanDescription === INVALID) {
+      return NextResponse.json({ error: 'Description must be a string of at most 500 characters' }, { status: 400 });
+    }
+    updateData.description = cleanDescription;
+  }
+  if (data.maxCapacity !== undefined) {
+    const cleanMaxCapacity = normalizeMaxCapacity(data.maxCapacity);
+    if (cleanMaxCapacity === INVALID) {
+      return NextResponse.json({ error: 'maxCapacity must be an integer between 1 and 500' }, { status: 400 });
+    }
+    updateData.maxCapacity = cleanMaxCapacity;
   }
 
   const updated = await prisma.classroom.update({ where: { id: classroomId }, data: updateData });

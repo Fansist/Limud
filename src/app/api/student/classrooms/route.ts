@@ -3,10 +3,26 @@ import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 
 /**
+ * Shape of an assignment as rendered by src/app/student/classrooms/page.tsx.
+ * The page reads: id, title, type, dueDate, points, status.
+ */
+interface ClassroomAssignment {
+  id: string;
+  title: string;
+  type: string;
+  dueDate: string;
+  points: number;
+  status: 'graded' | 'submitted' | 'pending';
+}
+
+/**
  * GET /api/student/classrooms
  * Returns classrooms the authenticated student is enrolled in via ClassroomStudent.
- * Also includes classrooms linked via course enrollments for broader visibility.
+ * Each classroom is populated with the student's published assignments (scoped to
+ * the student's own course enrollments) so the page can render due work and drive
+ * the assignment → learning-method-picker flow.
  * v12.4: Created to replace demo data fallback and properly reflect assigned classrooms.
+ * v17.8.2 (Bug H3): populate per-classroom assignments instead of returning [].
  */
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireRole('STUDENT');
@@ -24,7 +40,76 @@ export const GET = apiHandler(async (req: Request) => {
     orderBy: { name: 'asc' },
   });
 
-  // 2. Also get teacher info for each classroom (teacherId is on Classroom model)
+  // 2. Scope assignments to the student's OWN course enrollments (FERPA/COPPA:
+  //    never expose assignments for courses the student isn't enrolled in).
+  const enrollments = await prisma.enrollment.findMany({
+    where: { studentId: user.id },
+    select: { courseId: true },
+  });
+  const enrolledCourseIds = new Set(enrollments.map((e) => e.courseId));
+
+  // Only classrooms that are linked to a course the student is enrolled in can
+  // carry assignments. Intersect classroom.courseId with enrolled courses.
+  const relevantCourseIds = Array.from(
+    new Set(
+      directClassrooms
+        .map((c) => c.courseId)
+        .filter((id): id is string => id !== null && enrolledCourseIds.has(id))
+    )
+  );
+
+  // 3. Fetch published assignments for those courses, with the student's own
+  //    submission (if any) to derive status. One query for all courses.
+  const assignmentsByCourse = new Map<string, ClassroomAssignment[]>();
+  if (relevantCourseIds.length > 0) {
+    const assignments = await prisma.assignment.findMany({
+      where: {
+        courseId: { in: relevantCourseIds },
+        isPublished: true,
+      },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        dueDate: true,
+        totalPoints: true,
+        courseId: true,
+        submissions: {
+          where: { studentId: user.id },
+          select: { status: true },
+        },
+      },
+      orderBy: { dueDate: 'asc' },
+    });
+
+    for (const a of assignments) {
+      const submission = a.submissions[0];
+      let status: ClassroomAssignment['status'] = 'pending';
+      if (submission) {
+        if (submission.status === 'GRADED' || submission.status === 'RETURNED') {
+          status = 'graded';
+        } else if (submission.status === 'SUBMITTED' || submission.status === 'GRADING') {
+          status = 'submitted';
+        }
+      }
+      const mapped: ClassroomAssignment = {
+        id: a.id,
+        title: a.title,
+        type: a.type,
+        dueDate: a.dueDate.toISOString(),
+        points: a.totalPoints,
+        status,
+      };
+      const existing = assignmentsByCourse.get(a.courseId);
+      if (existing) {
+        existing.push(mapped);
+      } else {
+        assignmentsByCourse.set(a.courseId, [mapped]);
+      }
+    }
+  }
+
+  // 4. Resolve teacher info and attach the matching assignments per classroom.
   const classroomsWithTeacher = await Promise.all(
     directClassrooms.map(async (c) => {
       let teacher = null;
@@ -45,8 +130,7 @@ export const GET = apiHandler(async (req: Request) => {
         school: c.school,
         studentCount: c._count.students,
         gamesDisabledDuringClass: c.gamesDisabledDuringClass,
-        // Assignments are fetched separately via /api/assignments
-        assignments: [],
+        assignments: c.courseId ? assignmentsByCourse.get(c.courseId) ?? [] : [],
       };
     })
   );

@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+
+// v17.8.2: shared description validation.
+// Returns a trimmed string (or null when empty/absent). Returns INVALID when the
+// value is the wrong type or exceeds the 500-char cap.
+const INVALID = Symbol('invalid');
+const MAX_DESCRIPTION = 500;
+function normalizeDescription(value: unknown): string | null | typeof INVALID {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string') return INVALID;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  if (trimmed.length > MAX_DESCRIPTION) return INVALID;
+  return trimmed;
+}
 
 // GET /api/district/schools
 // NOTE: response shape is { items, total, page, pageSize } as of v14.7.0
@@ -64,10 +79,16 @@ export const GET = apiHandler(async (req: Request) => {
 // POST /api/district/schools - Create a school
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
-  const { name, address, city, state, zipCode, phone, principalId } = await req.json();
+  const { name, description, address, city, state, zipCode, phone, principalId } = await req.json();
 
   if (!name) {
     return NextResponse.json({ error: 'School name is required' }, { status: 400 });
+  }
+
+  // v17.8.2: validate optional description — trimmed string, length-capped at 500.
+  const cleanDescription = normalizeDescription(description);
+  if (cleanDescription === INVALID) {
+    return NextResponse.json({ error: 'Description must be a string of at most 500 characters' }, { status: 400 });
   }
 
   // Check school capacity
@@ -85,6 +106,7 @@ export const POST = apiHandler(async (req: Request) => {
     data: {
       districtId: user.districtId,
       name,
+      description: cleanDescription,
       address: address || null,
       city: city || null,
       state: state || null,
@@ -144,10 +166,22 @@ export const PUT = apiHandler(async (req: Request) => {
   }
 
   // Update school info
-  const allowedFields = ['name', 'address', 'city', 'state', 'zipCode', 'phone', 'principalId', 'isActive'];
-  const updateData: any = {};
+  const allowedFields = ['name', 'address', 'city', 'state', 'zipCode', 'phone', 'principalId', 'isActive'] as const;
+  const updateData: Prisma.SchoolUpdateInput = {};
   for (const f of allowedFields) {
-    if (data[f] !== undefined) updateData[f] = data[f];
+    const value = (data as Record<string, unknown>)[f];
+    if (value !== undefined) {
+      (updateData as Record<string, unknown>)[f] = value;
+    }
+  }
+
+  // v17.8.2: description is validated separately (trimmed, length-capped).
+  if (data.description !== undefined) {
+    const cleanDescription = normalizeDescription(data.description);
+    if (cleanDescription === INVALID) {
+      return NextResponse.json({ error: 'Description must be a string of at most 500 characters' }, { status: 400 });
+    }
+    updateData.description = cleanDescription;
   }
 
   const updated = await prisma.school.update({ where: { id: schoolId }, data: updateData });

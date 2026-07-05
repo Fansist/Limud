@@ -89,6 +89,7 @@ export default function AdminSettingsPage() {
   const isDemo = useIsDemo();
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [hasChanges, setHasChanges] = useState(false);
@@ -97,6 +98,8 @@ export default function AdminSettingsPage() {
   useEffect(() => { fetchSettings(); }, [isDemo]);
 
   async function fetchSettings() {
+    setLoading(true);
+    setLoadError(false);
     if (isDemo) {
       const snapshot = JSON.stringify(DEMO_SETTINGS);
       lastLoaded.current = snapshot;
@@ -108,19 +111,28 @@ export default function AdminSettingsPage() {
       const res = await fetch('/api/district/settings');
       if (res.ok) {
         const data = await res.json();
-        const loaded = data.settings || DEMO_SETTINGS;
-        const snapshot = JSON.stringify(loaded);
-        lastLoaded.current = snapshot;
-        setSettings(JSON.parse(snapshot));
+        // v17.8.2 (M13): DEMO_SETTINGS is for the genuine demo session ONLY.
+        // For a real admin we must NOT populate the form with demo values on a
+        // failed/empty load — otherwise Save would overwrite their real
+        // settings with fabricated demo ones. Show the error state instead.
+        if (data.settings) {
+          const snapshot = JSON.stringify(data.settings);
+          lastLoaded.current = snapshot;
+          setSettings(JSON.parse(snapshot));
+        } else {
+          lastLoaded.current = null;
+          setSettings(null);
+          setLoadError(true);
+        }
       } else {
-        const snapshot = JSON.stringify(DEMO_SETTINGS);
-        lastLoaded.current = snapshot;
-        setSettings(JSON.parse(snapshot));
+        lastLoaded.current = null;
+        setSettings(null);
+        setLoadError(true);
       }
     } catch {
-      const snapshot = JSON.stringify(DEMO_SETTINGS);
-      lastLoaded.current = snapshot;
-      setSettings(JSON.parse(snapshot));
+      lastLoaded.current = null;
+      setSettings(null);
+      setLoadError(true);
     }
     finally { setLoading(false); }
   }
@@ -170,10 +182,30 @@ export default function AdminSettingsPage() {
     { id: 'branding', label: 'Branding', icon: <Palette size={16} /> },
   ];
 
-  if (loading || !settings) return (
+  if (loading) return (
     <DashboardLayout>
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+      </div>
+    </DashboardLayout>
+  );
+
+  // Real admin whose settings couldn't load: honest error + retry. We do NOT
+  // populate the form with DEMO_SETTINGS, so there is nothing to accidentally
+  // Save over their real district configuration.
+  if (loadError || !settings) return (
+    <DashboardLayout>
+      <div className="max-w-5xl mx-auto">
+        <div className="card flex flex-col items-center text-center gap-3 py-16">
+          <AlertTriangle size={32} className="text-red-500" />
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Couldn&apos;t load settings</h2>
+          <p className="text-gray-500 text-sm max-w-md">
+            We couldn&apos;t load your district settings. To protect your configuration, the
+            form stays empty until we can load your real values — nothing here can be
+            saved over them.
+          </p>
+          <button onClick={fetchSettings} className="btn-primary mt-1">Retry</button>
+        </div>
       </div>
     </DashboardLayout>
   );

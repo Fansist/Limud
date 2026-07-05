@@ -59,29 +59,58 @@ export default function AdminAnalyticsPage() {
   const isDemo = useIsDemo();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [period, setPeriod] = useState<'week' | 'month' | 'quarter'>('month');
 
   useEffect(() => { fetchAnalytics(); }, [isDemo, period]);
 
   async function fetchAnalytics() {
     setLoading(true);
+    setLoadError(false);
     if (isDemo) { setData(DEMO_ANALYTICS); setLoading(false); return; }
     try {
-      // v17.6: /api/analytics now returns a real `analytics` envelope for admins.
-      // Honor it when present; fall back to demo only when the API genuinely
-      // can't deliver (network error / non-200 / missing envelope).
+      // v17.6: /api/analytics returns a real `analytics` envelope for admins.
+      // v17.8.2 (M13): DEMO_ANALYTICS is for the genuine demo session ONLY.
+      // A real admin whose fetch fails / returns no envelope sees an honest
+      // error state, never fabricated district numbers.
       const res = await fetch(`/api/analytics?period=${period}&scope=district`);
       if (res.ok) {
         const d = await res.json();
-        setData(d.analytics || DEMO_ANALYTICS);
+        if (d.analytics) {
+          setData(d.analytics);
+        } else {
+          setData(null);
+          setLoadError(true);
+        }
       } else {
-        setData(DEMO_ANALYTICS);
+        setData(null);
+        setLoadError(true);
       }
-    } catch { setData(DEMO_ANALYTICS); }
+    } catch {
+      setData(null);
+      setLoadError(true);
+    }
     finally { setLoading(false); }
   }
 
-  if (loading || !data) return <DashboardLayout><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" /></div></DashboardLayout>;
+  if (loading) return <DashboardLayout><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" /></div></DashboardLayout>;
+
+  // Real admin whose analytics couldn't load: honest error + retry, never demo data.
+  if (loadError || !data) return (
+    <DashboardLayout>
+      <div className="max-w-7xl mx-auto">
+        <div className="card flex flex-col items-center text-center gap-3 py-16">
+          <BarChart3 size={32} className="text-red-500" />
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Couldn&apos;t load analytics</h2>
+          <p className="text-gray-500 text-sm max-w-sm">
+            We couldn&apos;t load district analytics right now. No data is shown rather than
+            an inaccurate estimate.
+          </p>
+          <button onClick={fetchAnalytics} className="btn-primary mt-1">Retry</button>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
 
   const o = data.overview;
 
