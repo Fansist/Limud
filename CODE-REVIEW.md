@@ -43,7 +43,7 @@ Required fields:
 
 <!-- prepend new entries here -->
 
-### (pending) — `v17.8.3 — Bug-fix sweep: FERPA leaks, demo-mode crashes, type errors, test toolchain`
+### 6b2cbbb — `v17.8.3 — Bug-fix sweep: FERPA leaks, demo-mode crashes, type errors, test toolchain`
 - **scope:** fix(security/api/schema/tooling) — v17.8.3
 - **files:** ~28 · 26 modified + docs. Security/API: `submissions/route.ts` (single-submission GET role scoping + RESUBMITTED→SUBMITTED), `adaptive/route.ts` (GET ownership), `teacher/assignment-diff/route.ts` (ADMIN/homeschool-PARENT ownership), `study-groups/route.ts` (demo guard + author include), `marketplace/route.ts` (demo guard + rating validation), `messages/thread/route.ts` (demo guard), `exchange/route.ts` (district-scoped mutate), `district/access/route.ts` (drop customPermissions merge), `district/students/route.ts` (schoolId district check), `admin/districts/route.ts` (0-value fix), `auth/verify-otp/route.ts` (atomic attempt cap), `worksheet-search/route.ts` (route through src/lib/ai.ts), `announcements` + `parent/ai-checkin` + `reports/export` + `security/dashboard` (type fixes). Frontend: `admin/security/page.tsx`, `student/dashboard/page.tsx`, `student/study-groups/page.tsx` (+author name), `teacher/worksheets/page.tsx`. Shared: `src/lib/security.ts` (AuditAction +3), `src/lib/middleware.ts` (P2003). Schema: `prisma/schema.prisma` (StudyGroupMessage.author + User back-ref; Worksheet +6 cols). Tooling: `package.json`, `package-lock.json`, `jest.config.js`. Docs: `CHANGELOG.md`, `CODE-REVIEW.md`.
 - **risk:** HIGH
@@ -54,7 +54,7 @@ Required fields:
 - **demo-mode:** PASS (repaired) — study-groups/marketplace/messages-thread now return synthetic responses for master demo; no new real-DB writes on the demo path.
 - **tests:** `tsc` gate passed (0 src errors). Jest toolchain repaired; 9 genuine test-vs-source mismatches remain in `__tests__/lib/{security,utils}.test.ts` (tests reference exports that don't exist) — flagged as follow-up, NOT fixed here. No `next build` run (no DB in this env).
 - **notes:**
-  - **Commit SHA `(pending)`** — backfill after it lands on `main`.
+  - **Commit SHA `6b2cbbb`** — landed on `main`.
   - **`prisma db push` required** (runs automatically in `npm run build`). Under `SKIP_DB_PUSH=true`, push the new Worksheet columns + StudyGroupMessage.author manually first or those routes error at runtime.
   - Pre-existing uncommitted `dashboard-paths` working-tree changes were deliberately left OUT of this commit.
   - `next.config.js` still has `typescript.ignoreBuildErrors:true` / `eslint.ignoreDuringBuilds:true` — left as-is; flagged so CI's blindness to type errors stays on the radar.
