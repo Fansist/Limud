@@ -4,6 +4,60 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.8.3] - 2026-07-08 — Bug-fix sweep: FERPA leaks, demo-mode crashes, type errors, test toolchain
+
+A find-and-fix pass surfaced by a multi-agent audit (backend security, frontend,
+schema/config). Closes 3 cross-tenant data-leak bugs, 3 demo-mode crashes, several
+input-validation/privilege gaps, all outstanding `src/` TypeScript errors, and the
+broken Jest toolchain. No user-facing feature changes.
+
+### Security (FERPA / tenant isolation)
+- `GET /api/submissions?submissionId=` now scopes access by role (TEACHER teaches the
+  course, ADMIN same district, PARENT is the student's parent). Previously only STUDENT
+  was checked, so any authenticated teacher/parent/admin could read any student's
+  submission, grade, and files by guessing the id.
+- `GET /api/adaptive` and `GET /api/teacher/assignment-diff` now run the same ownership
+  checks for TEACHER/ADMIN/PARENT that their POST/list paths already used, closing
+  cross-district reads of adapted content and per-student learning-needs flags.
+- `PUT /api/district/students` validates that a supplied `schoolId` belongs to the
+  admin's own district before reassigning a student.
+- `PUT /api/district/access` no longer merges caller-supplied `customPermissions` over
+  the access-level preset (was a privilege-escalation vector).
+- `POST /api/auth/verify-otp` uses an atomic check-and-increment on the attempt counter
+  (closes a TOCTOU that allowed more than 5 OTP guesses under concurrency).
+- Exchange like/save/download actions are now district-scoped like the read path.
+
+### Fixed
+- Demo mode: `study-groups`, `marketplace`, and `messages/thread` no longer attempt real
+  DB writes/reads for the master demo account (which is not a real DB row) — they return
+  synthetic responses instead of failing with a 500 / 403. Prisma `P2003` (FK) errors now
+  map to a clear 4xx in the shared error handler instead of a generic 500.
+- Study-group chat now shows sender names (added the missing `StudyGroupMessage.author`
+  relation and included it in the API + UI).
+- Marketplace ratings are validated (1–5, finite) before averaging (prevented NaN
+  corruption of a listing's stored rating).
+- `admin/districts` no longer silently drops a `maxStudents`/`maxTeachers` value of `0`.
+- Worksheets now persist correctly (added the `instructions`/`questions`/`totalPoints`/
+  `estimatedTime`/`isPublished`/`sharedToExchange` columns the route already wrote; every
+  create previously threw and fell back to a non-persisted stub).
+- `worksheet-search` AI now goes through `src/lib/ai.ts` (`callGeminiSafe`) instead of a
+  direct `@google/genai` call, restoring `FORCE_DEMO` and shared error tracking.
+- Resolved all remaining `src/` TypeScript errors (announcements role typing, ai-checkin
+  query include, reports/export response + buffer types, security dashboard stat fields,
+  student/teacher page null-guards, Lucide icon prop, worksheet question typing).
+
+### Tooling
+- Added `jest`, `ts-jest`, `@types/jest` to devDependencies and fixed an invalid Jest
+  config key, so `npm test` runs and test files type-check (200+ spurious `tsc` errors
+  cleared; 9 genuine test-vs-source mismatches remain, flagged for a follow-up).
+
+### Schema
+- `prisma db push` required (build script runs it automatically): added
+  `StudyGroupMessage.author` relation and the new `Worksheet` columns above. Additive
+  and nullable/defaulted — no data loss.
+
+---
+
 ## [17.4.0] - 2026-06-02 — Update 6.4: 15-CODER parallel cleanup pass
 
 Update 6.4 is the broad-front cleanup wave coming out of the 25-researcher

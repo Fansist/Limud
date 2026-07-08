@@ -92,9 +92,9 @@ export const GET = secureApiHandler(
     };
 
     // Threat summary
-    const threatLevel = metrics.suspiciousActivities > 10 ? 'HIGH'
-      : metrics.suspiciousActivities > 3 ? 'MEDIUM'
-      : metrics.failedLogins > 20 ? 'ELEVATED'
+    const threatLevel = metrics.lastHour.critical > 10 ? 'HIGH'
+      : metrics.lastHour.critical > 3 ? 'MEDIUM'
+      : metrics.lastHour.authFailures > 20 ? 'ELEVATED'
       : 'LOW';
 
     return NextResponse.json({

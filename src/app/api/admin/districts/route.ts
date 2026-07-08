@@ -101,8 +101,8 @@ export const PUT = apiHandler(async (req: Request) => {
     data: {
       ...(subscriptionStatus ? { subscriptionStatus } : {}),
       ...(subscriptionEnd ? { subscriptionEnd: new Date(subscriptionEnd) } : {}),
-      ...(maxStudents ? { maxStudents } : {}),
-      ...(maxTeachers ? { maxTeachers } : {}),
+      ...(maxStudents !== undefined ? { maxStudents } : {}),
+      ...(maxTeachers !== undefined ? { maxTeachers } : {}),
     },
   });
 

@@ -85,15 +85,21 @@ export async function POST(req: Request) {
 
   const hash = createHash('sha256').update(code).digest('hex');
   if (hash !== challenge.codeHash) {
-    await prisma.twoFactorChallenge.update({
-      where: { id: challengeId },
+    // Atomic check-and-increment: the WHERE clause re-verifies attempts < 5
+    // at the database level, so concurrent requests can't all read
+    // "attempts < 5" before any of them writes the increment (TOCTOU). Only
+    // requests that land while the row still qualifies get counted; once 5
+    // is reached, updateMany matches zero rows and we treat that as locked
+    // out, same as the upfront attempts >= 5 check above.
+    const { count } = await prisma.twoFactorChallenge.updateMany({
+      where: { id: challengeId, attempts: { lt: 5 } },
       data: { attempts: { increment: 1 } },
     });
     trackSecurityEvent('failed_login', ip);
     createAuditLog({
       action: 'LOGIN_FAILURE', userId: challenge.userId, ip, userAgent: ua,
       resource: '/api/auth/verify-otp',
-      details: { reason: 'Wrong OTP code', attempts: challenge.attempts + 1 },
+      details: { reason: count === 0 ? 'Locked out (too many attempts)' : 'Wrong OTP code', attempts: challenge.attempts + 1 },
       severity: 'warning', success: false,
     });
     // Same generic message as the missing/consumed/expired branch above so

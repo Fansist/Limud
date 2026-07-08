@@ -12,7 +12,6 @@ const config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  setupFilesAfterSetup: [],
   collectCoverageFrom: [
     'src/lib/**/*.{ts,tsx}',
     'src/app/api/**/*.ts',

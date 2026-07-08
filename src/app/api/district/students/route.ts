@@ -285,6 +285,19 @@ export const PUT = apiHandler(async (req: Request) => {
     'state', 'zipCode', 'phone', 'emergencyContact', 'emergencyPhone', 'isActive',
   ] as const;
 
+  // Tenant isolation: a schoolId being assigned must belong to the admin's own
+  // district. Without this check, an admin could move a student into a school
+  // owned by a different district (mirrors district/schools PUT assign-users).
+  if (updates.schoolId !== undefined && updates.schoolId !== null) {
+    const targetSchool = await prisma.school.findFirst({
+      where: { id: updates.schoolId, districtId: user.districtId },
+      select: { id: true },
+    });
+    if (!targetSchool) {
+      return NextResponse.json({ error: 'School not found in your district' }, { status: 404 });
+    }
+  }
+
   const data: Prisma.UserUpdateInput = {};
   for (const field of allowedFields) {
     if (updates[field] !== undefined) {

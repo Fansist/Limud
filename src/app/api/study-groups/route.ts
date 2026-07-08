@@ -21,6 +21,63 @@ export const POST = apiHandler(async (req: Request) => {
   const body = (await req.json()) as StudyGroupRequestBody;
   const { action, name, subject, description, maxMembers, isPublic, inviteCode, groupId, content } = body;
 
+  // Master demo: the demo user id ('master-demo') is not a real User row, so
+  // any prisma write below would throw FK P2003. Echo a synthetic success
+  // instead, mirroring exchange/forums.
+  if (user.isMasterDemo) {
+    const now = new Date().toISOString();
+    if (action === 'create') {
+      if (!name || !name.trim()) {
+        return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+      }
+      return NextResponse.json({
+        group: {
+          id: 'demo-group-' + Date.now(),
+          name: name.trim(),
+          subject: subject ?? null,
+          description: description ?? `Study group for ${subject || 'general topics'}`,
+          maxMembers: typeof maxMembers === 'number' && maxMembers >= 2 && maxMembers <= 50 ? maxMembers : 10,
+          isPublic: typeof isPublic === 'boolean' ? isPublic : false,
+          inviteCode: 'demo-invite-' + Date.now(),
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+    }
+
+    if (action === 'join') {
+      if (!inviteCode && !groupId) {
+        return NextResponse.json({ error: 'inviteCode or groupId required' }, { status: 400 });
+      }
+      return NextResponse.json({
+        group: { id: groupId || 'demo-group-1', maxMembers: 10 },
+      });
+    }
+
+    if (action === 'leave' && groupId) {
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'message' && groupId) {
+      const flagged = /badword|hate|violence/i.test(content || '');
+      return NextResponse.json({
+        reply: {
+          id: 'demo-msg-' + Date.now(),
+          groupId,
+          authorId: user.id,
+          author: { id: user.id, name: user.name, selectedAvatar: user.selectedAvatar },
+          content: content || '',
+          isAI: false,
+          flagged,
+          createdAt: now,
+        },
+        flagged,
+      });
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  }
+
   if (action === 'create') {
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -117,7 +174,12 @@ export const GET = apiHandler(async (req: Request) => {
       where: { id: groupId },
       include: {
         members: { include: { user: { select: { id: true, name: true, selectedAvatar: true } } } },
-        messages: { orderBy: { createdAt: 'desc' }, take: 50, where: { flagged: false } },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          where: { flagged: false },
+          include: { author: { select: { id: true, name: true, selectedAvatar: true } } },
+        },
       },
     });
     return NextResponse.json({ group });

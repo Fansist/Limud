@@ -376,6 +376,9 @@ export function secureApiHandler(
       if (error?.code === 'P2002') {
         return NextResponse.json({ error: 'A record with this data already exists.' }, { status: 409 });
       }
+      if (error?.code === 'P2003') {
+        return NextResponse.json({ error: 'Related record not found or invalid.' }, { status: 409 });
+      }
       if (error?.code === 'P2025') {
         return NextResponse.json({ error: 'Record not found.' }, { status: 404 });
       }

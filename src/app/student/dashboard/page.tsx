@@ -187,8 +187,8 @@ export default function StudentDashboard() {
   const pendingCount = upcomingAssignments.length;
   const avgScore = gradedSubmissions.length > 0
     ? Math.round(gradedSubmissions.reduce((sum, a) => {
-        const sub = a.submissions[0];
-        return sum + (sub.maxScore ? (sub.score / sub.maxScore) * 100 : 0);
+        const sub = a.submissions?.[0];
+        return sum + (sub?.maxScore ? (sub.score / sub.maxScore) * 100 : 0);
       }, 0) / gradedSubmissions.length)
     : 0;
 
@@ -655,9 +655,9 @@ export default function StudentDashboard() {
                 </div>
               ) : (
                 gradedSubmissions.map(assignment => {
-                  const sub = assignment.submissions[0];
-                  const pct = sub.maxScore ? Math.round((sub.score / sub.maxScore) * 100) : 0;
-                  const grade = sub.maxScore ? getLetterGrade(sub.score, sub.maxScore) : '-';
+                  const sub = assignment.submissions?.[0];
+                  const pct = sub?.maxScore ? Math.round((sub.score / sub.maxScore) * 100) : 0;
+                  const grade = sub?.maxScore ? getLetterGrade(sub.score, sub.maxScore) : '-';
                   return (
                     <Link
                       key={assignment.id}
@@ -681,7 +681,7 @@ export default function StudentDashboard() {
                         <p className="text-xs text-gray-400">{assignment.course?.name}</p>
                       </div>
                       <div className="text-right">
-                        <span className="text-sm font-bold text-gray-700">{sub.score}/{sub.maxScore}</span>
+                        <span className="text-sm font-bold text-gray-700">{sub?.score ?? 0}/{sub?.maxScore ?? 0}</span>
                         <div className="w-20 h-1.5 bg-gray-200 rounded-full mt-1 overflow-hidden">
                           <div
                             className={cn('h-full rounded-full', pct >= 90 ? 'bg-green-500' : pct >= 70 ? 'bg-amber-500' : 'bg-red-500')}

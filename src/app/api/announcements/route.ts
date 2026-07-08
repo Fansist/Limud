@@ -9,7 +9,17 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
+import { Role } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
+
+const VALID_ROLES = new Set<string>(Object.values(Role));
+
+function parseTargetRoles(targetRoles: string): Role[] {
+  return targetRoles
+    .split(',')
+    .map(r => r.trim())
+    .filter((r): r is Role => VALID_ROLES.has(r));
+}
 
 export const GET = apiHandler(async (req: Request) => {
   const user = await requireAuth();
@@ -92,11 +102,11 @@ export const POST = apiHandler(async (req: Request) => {
   });
 
   // Create notification for all relevant users
-  const roles = (announcement.targetRoles || 'STUDENT,TEACHER,PARENT,ADMIN').split(',');
+  const roles = parseTargetRoles(announcement.targetRoles || 'STUDENT,TEACHER,PARENT,ADMIN');
   const recipients = await prisma.user.findMany({
     where: {
       districtId: user.districtId,
-      role: { in: roles.map(r => r.trim()) },
+      role: { in: roles },
       id: { not: user.id },
     },
     select: { id: true },

@@ -146,7 +146,7 @@ export const POST = apiHandler(async (req: Request) => {
 // PUT /api/district/access - Update access level
 export const PUT = apiHandler(async (req: Request) => {
   const user = await requireRole('ADMIN');
-  const { adminUserId, accessLevel, ...customPermissions } = await req.json();
+  const { adminUserId, accessLevel } = await req.json();
 
   if (!adminUserId || !accessLevel) {
     return NextResponse.json({ error: 'adminUserId and accessLevel required' }, { status: 400 });
@@ -172,7 +172,11 @@ export const PUT = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'User not found in your district' }, { status: 404 });
   }
 
-  const permissions = { ...ACCESS_PERMISSIONS[accessLevel], ...customPermissions };
+  // Security: permissions are derived solely from the fixed ACCESS_PERMISSIONS
+  // preset for the chosen accessLevel. Never spread request-body fields into
+  // this object — that previously let a caller grant arbitrary permissions
+  // (e.g. canManageBilling) regardless of accessLevel, a privilege escalation.
+  const permissions = ACCESS_PERMISSIONS[accessLevel];
 
   const updated = await prisma.districtAdmin.upsert({
     where: { userId_districtId: { userId: adminUserId, districtId: user.districtId } },

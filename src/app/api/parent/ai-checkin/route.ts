@@ -23,6 +23,10 @@ type ChildWithReward = Prisma.UserGetPayload<{
   };
 }>;
 
+type SubmissionWithAssignment = Prisma.SubmissionGetPayload<{
+  include: { assignment: { include: { course: true } } };
+}>;
+
 const CHECKIN_SYSTEM_PROMPT = `You are Limud AI, a caring and insightful educational assistant helping parents monitor their children's academic wellbeing. Generate a comprehensive but concise check-in report based on the student data provided.
 
 Your report should cover:
@@ -46,7 +50,7 @@ export const POST = apiHandler(async (req: Request) => {
 
   // Try to verify child and gather data — return demo report if DB is unavailable
   let child: ChildWithReward | null = null;
-  let recentSubmissions: Submission[] = [];
+  let recentSubmissions: SubmissionWithAssignment[] = [];
   let tutorSessions = 0;
   let skills: SkillRecord[] = [];
   let studySessions: StudyPlanSession[] = [];
@@ -86,7 +90,7 @@ export const POST = apiHandler(async (req: Request) => {
     recentSubmissions = await prisma.submission.findMany({
       where: { studentId: childId, submittedAt: { gte: twoWeeksAgo } },
       include: {
-        assignment: { select: { title: true, totalPoints: true, course: { select: { name: true, subject: true } } } },
+        assignment: { include: { course: true } },
       },
       orderBy: { submittedAt: 'desc' },
       take: 20,

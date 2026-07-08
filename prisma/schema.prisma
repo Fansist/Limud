@@ -413,6 +413,7 @@ model User {
   seasonPassProgress SeasonPassProgress[]
   dailyBoosts        DailyBoost[]
   studyGroupMembers  StudyGroupMember[]
+  studyGroupMessages StudyGroupMessage[] @relation("StudyGroupMessageAuthor")
   questionPosts      QuestionPost[]
   questionVotes      QuestionVote[]
   marketplaceListings MarketplaceListing[]
@@ -723,15 +724,21 @@ model AdaptedAssignment {
 // ─── WORKSHEET (teacher-authored) ───────────────────────────────────────────
 
 model Worksheet {
-  id          String   @id @default(cuid())
-  teacherId   String
-  teacher     User     @relation("WorksheetTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
-  title       String
-  content     String   @db.Text
-  subject     String?
-  gradeLevel  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  teacherId       String
+  teacher         User     @relation("WorksheetTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  title           String
+  content         String   @db.Text @default("")
+  subject         String?
+  gradeLevel      String?
+  instructions    String?  @db.Text
+  questions       String?  @db.Text
+  totalPoints     Int?
+  estimatedTime   String?
+  isPublished     Boolean  @default(false)
+  sharedToExchange Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([teacherId])
 }
@@ -1582,7 +1589,8 @@ model StudyGroupMessage {
   flagged   Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  group StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group  StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  author User       @relation("StudyGroupMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([groupId, createdAt])
   @@map("study_group_messages")

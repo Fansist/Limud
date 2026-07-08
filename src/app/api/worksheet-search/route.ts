@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 import { log } from '@/lib/log';
+import { callGeminiSafe, extractJSON, isGeminiConfigured } from '@/lib/ai';
 
 /**
  * Worksheet Search API - v9.3.5
@@ -323,83 +324,66 @@ function searchWorksheets(
 // ─────────────────────────────────────────────────────────────
 
 async function aiSearchWorksheets(query: string, subject?: string, grade?: string): Promise<Worksheet[] | null> {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!apiKey || apiKey === 'demo-mode') return null;
+  if (!isGeminiConfigured()) return null;
 
-  try {
-    const { GoogleGenAI } = await import('@google/genai');
-    const ai = new GoogleGenAI({ apiKey });
-    const model = process.env.AI_MODEL || 'gemini-2.5-flash';
+  const prompt = `List 5 websites with free ${query}${subject ? ` ${subject}` : ''} worksheets as JSON array: [{"title":"name","url":"https://...","desc":"brief description"}]`;
 
-    // Use AbortController for timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
-
-    const response = await ai.models.generateContent({
-      model,
-      contents: `List 5 websites with free ${query}${subject ? ` ${subject}` : ''} worksheets as JSON array: [{"title":"name","url":"https://...","desc":"brief description"}]`,
-      config: {
-        maxOutputTokens: 2000,
-      },
-    });
-
-    clearTimeout(timeout);
-
-    const content = response.text || '';
-    if (!content) return null;
-
-    // v9.3.5: Detect API credit/error messages
-    const lower = content.toLowerCase();
-    if (lower.includes('credits have been exhausted') || lower.includes('quota exceeded') ||
-        (lower.includes('please visit') && lower.includes('pricing'))) {
-      console.warn('[AI WORKSHEET] API error:', content.substring(0, 150));
-      return null;
-    }
-
-    let jsonStr = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    if (!jsonStr.endsWith(']')) {
-      const lastComplete = jsonStr.lastIndexOf('}');
-      if (lastComplete > 0) jsonStr = jsonStr.substring(0, lastComplete + 1) + ']';
-    }
-
-    let parsed: any[] = [];
-    try {
-      const results = JSON.parse(jsonStr);
-      if (Array.isArray(results)) parsed = results;
-    } catch {
-      const regex = /\{[^{}]*\}/g;
-      let match;
-      while ((match = regex.exec(jsonStr)) !== null) {
-        try { parsed.push(JSON.parse(match[0])); } catch {}
-      }
-    }
-
-    if (parsed.length === 0) return null;
-
-    return parsed.slice(0, 8).map(ws => {
-      const domain = (() => { try { return new URL(ws.url).hostname.replace('www.', ''); } catch { return 'web'; } })();
-      return {
-        title: ws.title || 'Worksheet',
-        description: ws.desc || ws.description || `Practice worksheet for ${query} from ${domain}`,
-        subject: subject || guessSubject(query) || 'General',
-        gradeLevel: grade ? `${grade}` : guessGrade(query),
-        source: domain,
-        url: ws.url || '#',
-        pageCount: 3,
-        rating: 4.5,
-        downloads: Math.floor(3000 + Math.random() * 15000),
-        free: ws.free !== false,
-        tags: [query.toLowerCase()],
-      };
-    });
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      log.debug('WORKSHEET_SEARCH', 'Timed out, using curated results');
-    } else {
-      console.error('[AI WS SEARCH] Error:', error.message);
-    }
+  // Non-blocking enhancement: race against a 25s timeout so a slow/hanging
+  // Gemini call never holds up the curated results the route already has.
+  const TIMEOUT_MS = 25000;
+  const timeout = new Promise<{ ok: false; error: string }>((resolve) =>
+    setTimeout(() => resolve({ ok: false, error: 'AI search timed out' }), TIMEOUT_MS),
+  );
+  const result = await Promise.race([callGeminiSafe(prompt, { maxTokens: 2000 }), timeout]);
+  if (!result.ok) {
+    log.debug('WORKSHEET_SEARCH', `AI search failed, using curated results: ${result.error}`);
     return null;
   }
+
+  const content = result.data;
+  if (!content) return null;
+
+  // v9.3.5: Detect API credit/error messages
+  const lower = content.toLowerCase();
+  if (lower.includes('credits have been exhausted') || lower.includes('quota exceeded') ||
+      (lower.includes('please visit') && lower.includes('pricing'))) {
+    console.warn('[AI WORKSHEET] API error:', content.substring(0, 150));
+    return null;
+  }
+
+  const jsonStr = extractJSON(content);
+  if (!jsonStr) return null;
+
+  let parsed: any[] = [];
+  try {
+    const results = JSON.parse(jsonStr);
+    if (Array.isArray(results)) parsed = results;
+  } catch {
+    const regex = /\{[^{}]*\}/g;
+    let match;
+    while ((match = regex.exec(jsonStr)) !== null) {
+      try { parsed.push(JSON.parse(match[0])); } catch {}
+    }
+  }
+
+  if (parsed.length === 0) return null;
+
+  return parsed.slice(0, 8).map(ws => {
+    const domain = (() => { try { return new URL(ws.url).hostname.replace('www.', ''); } catch { return 'web'; } })();
+    return {
+      title: ws.title || 'Worksheet',
+      description: ws.desc || ws.description || `Practice worksheet for ${query} from ${domain}`,
+      subject: subject || guessSubject(query) || 'General',
+      gradeLevel: grade ? `${grade}` : guessGrade(query),
+      source: domain,
+      url: ws.url || '#',
+      pageCount: 3,
+      rating: 4.5,
+      downloads: Math.floor(3000 + Math.random() * 15000),
+      free: ws.free !== false,
+      tags: [query.toLowerCase()],
+    };
+  });
 }
 
 function guessSubject(query: string): string {

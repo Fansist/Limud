@@ -264,6 +264,21 @@ export const POST = apiHandler(async (req: Request) => {
       if (!b.id?.trim()) {
         return NextResponse.json({ error: 'Item id is required' }, { status: 400 });
       }
+      // District scoping: GET already scopes items by district, but this
+      // update-by-id path did not, allowing a caller to mutate any item
+      // regardless of district. OWNER can act cross-district; everyone else
+      // must match the uploader's district scope (including district-less
+      // homeschool/individual uploaders, scoped as null === null).
+      const existingItem = await prisma.exchangeItem.findUnique({
+        where: { id: b.id },
+        select: { uploader: { select: { districtId: true } } },
+      });
+      if (!existingItem) {
+        return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+      }
+      if (user.role !== 'OWNER' && existingItem.uploader.districtId !== user.districtId) {
+        return NextResponse.json({ error: 'Not authorized for this item' }, { status: 403 });
+      }
       const increment = { increment: 1 } as const;
       const data: { likes?: typeof increment; saves?: typeof increment; downloads?: typeof increment } =
         action === 'like'

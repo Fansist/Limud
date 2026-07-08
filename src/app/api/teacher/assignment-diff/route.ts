@@ -55,8 +55,9 @@ export const GET = apiHandler(async (req: Request) => {
   }
 
   // ── With assignmentId: return full diff data ──
-  // FERPA: verify teacher created the assignment or teaches its course
-  if (user.role === 'TEACHER' && !user.isMasterDemo) {
+  // FERPA: verify teacher (or homeschool parent acting as teacher) created the
+  // assignment or teaches its course; admins are restricted to their own district.
+  if ((user.role === 'TEACHER' || (user.role === 'PARENT' && user.isHomeschoolParent)) && !user.isMasterDemo) {
     const hasAccess = await prisma.assignment.findFirst({
       where: {
         id: assignmentId,
@@ -75,6 +76,7 @@ export const GET = apiHandler(async (req: Request) => {
   const assignment = await prisma.assignment.findUnique({
     where: { id: assignmentId },
     include: {
+      course: { select: { districtId: true } },
       adaptedVersions: {
         include: {
           student: { select: { id: true, name: true, gradeLevel: true } },
@@ -85,6 +87,11 @@ export const GET = apiHandler(async (req: Request) => {
 
   if (!assignment) {
     return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+  }
+
+  // Admins can only analyze assignments in their own district
+  if (user.role === 'ADMIN' && assignment.course.districtId !== user.districtId) {
+    return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
   }
 
   return NextResponse.json({

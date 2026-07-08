@@ -267,6 +267,42 @@ export const GET = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 
+  // FERPA: non-students viewing another student's adapted content must prove
+  // ownership of the assignment's course, mirroring the POST handler above.
+  if (user.role !== 'STUDENT' && targetStudentId !== user.id) {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      select: { courseId: true, course: { select: { districtId: true } } },
+    });
+
+    if (!assignment) {
+      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+    }
+
+    if (user.role === 'TEACHER') {
+      const owns = await prisma.courseTeacher.findFirst({
+        where: { teacherId: user.id, courseId: assignment.courseId },
+      });
+      if (!owns && assignment.course.districtId !== user.districtId) {
+        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      }
+    } else if (user.role === 'PARENT') {
+      const isParentOfStudent = await prisma.user.findFirst({
+        where: { id: targetStudentId, parentId: user.id },
+        select: { id: true },
+      });
+      if (!isParentOfStudent) {
+        return NextResponse.json({ error: 'Not authorized for this student' }, { status: 403 });
+      }
+    } else if (user.role === 'ADMIN') {
+      if (assignment.course.districtId !== user.districtId) {
+        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
+      }
+    } else {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
+  }
+
   const adapted = await prisma.adaptedAssignment.findUnique({
     where: {
       assignmentId_studentId: { assignmentId, studentId: targetStudentId },

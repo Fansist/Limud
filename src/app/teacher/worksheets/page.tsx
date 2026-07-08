@@ -232,13 +232,14 @@ export default function WorksheetBuilderPage() {
     try {
       if (isDemo) {
         await new Promise(r => setTimeout(r, 2000));
-        const demoGenerated: Question[] = [
+        const allDemoQuestions: Question[] = [
           { id: newId(), type: 'multiple_choice', text: `What is the main concept of ${aiTopic}?`, points: 2, options: ['Option A', 'Option B', 'Option C', 'Option D'], correctAnswer: 'Option A' },
           { id: newId(), type: 'true_false', text: `${aiTopic} is commonly studied in school curricula.`, points: 1, options: ['True', 'False'], correctAnswer: 'True' },
           { id: newId(), type: 'short_answer', text: `Explain one key principle of ${aiTopic} in your own words.`, points: 3 },
           { id: newId(), type: 'fill_blank', text: `The study of ${aiTopic} helps students understand ___.`, points: 2 },
           { id: newId(), type: 'essay', text: `Write a paragraph explaining why ${aiTopic} is important in everyday life.`, points: 5 },
-        ].slice(0, aiCount);
+        ];
+        const demoGenerated: Question[] = allDemoQuestions.slice(0, aiCount);
         setQuestions(prev => [...prev, ...demoGenerated]);
         if (!title) setTitle(`${aiTopic} Worksheet`);
         toast.success(`Generated ${demoGenerated.length} questions! (Demo)`);

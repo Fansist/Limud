@@ -490,7 +490,11 @@ export default function SecurityDashboard() {
                       <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-medium', SEVERITY_COLORS[event.severity])}>
                         {event.severity}
                       </span>
-                      {event.blocked && <XCircle size={14} className="text-red-400 flex-shrink-0" title="Blocked" />}
+                      {event.blocked && (
+                        <span title="Blocked">
+                          <XCircle size={14} className="text-red-400 flex-shrink-0" />
+                        </span>
+                      )}
                     </div>
                   ))
                 )}

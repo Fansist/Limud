@@ -26,6 +26,13 @@ export const GET = apiHandler(async (req: Request) => {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
+  // Master demo: the demo user id ('master-demo') has no real relationship
+  // rows, so isAllowedDm would always return false and demo would always
+  // 403. Mirror /api/messages and return an empty thread instead.
+  if (user.isMasterDemo) {
+    return NextResponse.json({ messages: [], otherUser });
+  }
+
   // COPPA/FERPA: verify the caller is allowed to DM this user.
   const allowed = await isAllowedDm(user, {
     id: otherUser.id,

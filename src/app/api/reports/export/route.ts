@@ -219,7 +219,7 @@ export const POST = apiHandler(async (req: Request) => {
   const safeName = reportData.studentName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
   const dateStr = new Date().toISOString().split('T')[0];
 
-  return new Response(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',

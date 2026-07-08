@@ -83,6 +83,8 @@ interface GroupMessage {
   authorId?: string;
   content?: string;
   createdAt?: string;
+  // Real API includes the sender's identity via the `author` relation.
+  author?: { id: string; name: string | null; selectedAvatar?: string | null };
 }
 
 interface StudyGroup {
@@ -186,7 +188,7 @@ export default function StudyGroupsPage() {
 
   async function joinGroup(groupId: string) {
     if (isDemo) {
-      setGroups(prev => prev.map(g => g.id === groupId ? { ...g, isMember: true, memberCount: g.memberCount + 1 } : g));
+      setGroups(prev => prev.map(g => g.id === groupId ? { ...g, isMember: true, memberCount: (g.memberCount ?? 0) + 1 } : g));
       toast.success('Joined group!');
     } else {
       try {
@@ -203,7 +205,7 @@ export default function StudyGroupsPage() {
 
   async function leaveGroup(groupId: string) {
     if (isDemo) {
-      setGroups(prev => prev.map(g => g.id === groupId ? { ...g, isMember: false, memberCount: Math.max(0, g.memberCount - 1) } : g));
+      setGroups(prev => prev.map(g => g.id === groupId ? { ...g, isMember: false, memberCount: Math.max(0, (g.memberCount ?? 0) - 1) } : g));
       toast.success('Left group');
     } else {
       try {
@@ -377,12 +379,13 @@ export default function StudyGroupsPage() {
                   ) : (selectedGroup.messages ?? []).map(msg => {
                     const senderId = msg.userId ?? msg.authorId;
                     const isSelf = senderId === selfId;
+                    const senderName = msg.author?.name ?? msg.userName;
                     const body = msg.text ?? msg.content ?? '';
                     const when = msg.time ?? (msg.createdAt ? new Date(msg.createdAt).toLocaleString() : '');
                     return (
                       <div key={msg.id} className={cn('flex gap-3', isSelf ? 'flex-row-reverse' : '')}>
                         <div className={cn('max-w-[75%] rounded-2xl px-4 py-2', isSelf ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700')}>
-                          {!isSelf && msg.userName && <p className="text-xs font-semibold mb-1 text-blue-600 dark:text-blue-400">{msg.userName}</p>}
+                          {!isSelf && senderName && <p className="text-xs font-semibold mb-1 text-blue-600 dark:text-blue-400">{senderName}</p>}
                           <p className={cn('text-sm', !isSelf && 'dark:text-gray-200')}>{body}</p>
                           {when && <p className={cn('text-xs mt-1', isSelf ? 'text-blue-200' : 'text-gray-400')}>{when}</p>}
                         </div>
@@ -416,7 +419,7 @@ export default function StudyGroupsPage() {
                   </div>
                   <p className="text-sm text-gray-500">{group.description}</p>
                 </div>
-                <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', SUBJECT_COLORS[group.subject] || 'bg-gray-100 text-gray-600')}>
+                <span className={cn('text-xs px-2 py-1 rounded-full border font-medium', (group.subject && SUBJECT_COLORS[group.subject]) || 'bg-gray-100 text-gray-600')}>
                   {group.subject}
                 </span>
               </div>

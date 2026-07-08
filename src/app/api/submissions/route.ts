@@ -76,7 +76,7 @@ export const POST = apiHandler(async (req: Request) => {
       where: { id: existing.id },
       data: {
         content: content || '(File submission - see attached files)',
-        status: 'RESUBMITTED',
+        status: 'SUBMITTED',
         submittedAt: new Date(),
         fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
         solvingMethod: solvingMethod || undefined,
@@ -133,9 +133,12 @@ export const GET = apiHandler(async (req: Request) => {
       where: { id: submissionId },
       include: {
         assignment: {
-          select: { title: true, totalPoints: true, dueDate: true, createdById: true, course: { select: { name: true } } },
+          select: {
+            title: true, totalPoints: true, dueDate: true, createdById: true,
+            course: { select: { name: true, districtId: true, teachers: { select: { teacherId: true } } } },
+          },
         },
-        student: { select: { id: true, name: true, email: true, gradeLevel: true } },
+        student: { select: { id: true, name: true, email: true, gradeLevel: true, parentId: true } },
       },
     });
 
@@ -143,8 +146,21 @@ export const GET = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
     }
 
-    // Access check
-    if (user.role === 'STUDENT' && submission.studentId !== user.id) {
+    // Access check — scope by role so a TEACHER/PARENT/ADMIN cannot read an arbitrary
+    // student's submission by guessing/enumerating the id (FERPA / tenant isolation).
+    let allowed = false;
+    if (user.role === 'STUDENT') {
+      allowed = submission.studentId === user.id;
+    } else if (user.role === 'TEACHER') {
+      allowed =
+        submission.assignment?.createdById === user.id ||
+        !!submission.assignment?.course?.teachers?.some((t) => t.teacherId === user.id);
+    } else if (user.role === 'ADMIN') {
+      allowed = !!user.districtId && submission.assignment?.course?.districtId === user.districtId;
+    } else if (user.role === 'PARENT') {
+      allowed = submission.student?.parentId === user.id;
+    }
+    if (!allowed) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
