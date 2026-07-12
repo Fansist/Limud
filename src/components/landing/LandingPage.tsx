@@ -13,6 +13,7 @@ import {
   Upload, Headphones, Hand, Focus, Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fadeUp, fadeUpSm, staggerContainerSlow, revealGroup, pressable } from '@/lib/motion';
 import AuthAwareCTA, { dashboardHrefFor } from '@/components/AuthAwareCTA';
 import { useSession } from 'next-auth/react';
 
@@ -244,34 +245,34 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-blue-50/30" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <motion.div
-            initial={reduced ? false : { opacity: 0, y: 20 }}
-            animate={reduced ? {} : { opacity: 1, y: 0 }}
-            transition={reduced ? { duration: 0 } : { duration: 0.5 }}
+            variants={staggerContainerSlow}
+            initial="hidden"
+            animate="show"
           >
-            <div className="inline-flex items-center gap-2 bg-primary-50 border border-primary-200 text-primary-700 px-3 py-1 rounded-full text-sm font-medium mb-6">
+            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-primary-50 border border-primary-200 text-primary-700 px-3 py-1 rounded-full text-sm font-medium mb-6">
               <Brain size={14} /> Cognitive Science + Generative AI
-            </div>
+            </motion.div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1]">
+            <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1] max-w-4xl mx-auto">
               Every mind learns
               <span className="bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent"> differently. </span>
               Limud teaches that way.
-            </h1>
+            </motion.h1>
 
-            <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            <motion.p variants={fadeUp} className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
               The AI rewrites every chapter for every student in the format that fits how they actually learn. Same facts. Same assignments. The doorway in is theirs. Built for districts, families, and individual learners — same engine, every tier.
-            </p>
+            </motion.p>
 
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+            <motion.div variants={fadeUp} className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               {/* v16.4: Hero CTA is now session-aware — logged-in users see
                   "Open your dashboard" instead of being routed to /register. */}
               <AuthAwareCTA variant="hero" />
               <Link href="/study" className="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-7 py-3.5 rounded-xl font-bold border border-gray-200 hover:border-primary-200 hover:bg-primary-50 transition">
                 Try the Exam Study Helper
               </Link>
-            </div>
+            </motion.div>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
+            <motion.div variants={fadeUp} className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
               {[
                 { icon: Check, text: 'Districts · families · individuals' },
                 { icon: Lock, text: 'FERPA & COPPA compliant' },
@@ -281,7 +282,7 @@ export default function LandingPage() {
                   <item.icon size={14} className="text-green-500" /> {item.text}
                 </span>
               ))}
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* Mini dashboard preview — Sylvester's view */}
@@ -291,7 +292,7 @@ export default function LandingPage() {
             transition={reduced ? { duration: 0 } : { duration: 0.6, delay: 0.2 }}
             className="mt-14 max-w-3xl mx-auto"
           >
-            <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-200/60 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-elev-4 border border-gray-200/60 overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
                 <div className="flex gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
@@ -332,7 +333,7 @@ export default function LandingPage() {
       </section>
 
       {/* ═══ THE CORE ENGINE ═══════════════════════════════════ */}
-      <Section id="how-it-works" className="py-14 bg-gray-50 border-y border-gray-100">
+      <Section id="how-it-works" className="py-20 bg-gray-50 border-y border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">The Core Engine</h2>
@@ -344,11 +345,11 @@ export default function LandingPage() {
               { icon: <Lightbulb size={28} className="text-amber-500" />, title: 'The Science', sub: 'SM-2 spaced repetition, adaptive difficulty targeting, and a proprietary "Learning DNA" profiler.', bg: 'bg-amber-50 border-amber-200' },
               { icon: <Shield size={28} className="text-green-500" />, title: 'The Security', sub: 'Enterprise-grade AES-256-GCM encryption. Strict FERPA, COPPA, and WCAG AA compliance.', bg: 'bg-green-50 border-green-200' },
             ].map(item => (
-              <div key={item.title} className={cn('rounded-xl p-6 border text-center', item.bg)}>
+              <motion.div key={item.title} {...pressable} className={cn('rounded-2xl p-6 border text-center shadow-elev-1', item.bg)}>
                 <div className="flex justify-center mb-3">{item.icon}</div>
                 <h3 className="text-base font-bold text-gray-900 mb-2">{item.title}</h3>
                 <p className="text-xs text-gray-600 leading-relaxed">{item.sub}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -373,7 +374,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Sylvester</strong> &mdash; Neurodiversity, Engagement &amp; Cognitive Load Reduction</p>
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <motion.div {...revealGroup} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { icon: <Brain size={20} />, title: '"Learning DNA" Onboarding', desc: 'A frictionless survey about hobbies, interests, and learning preferences (auditory, visual, physical). Builds a cognitive profile that improves over time.', color: 'bg-purple-100 text-purple-600' },
                 { icon: <Sparkles size={20} />, title: 'Adaptive Assignments', desc: 'Opens a history assignment and the AI has already adapted it into an auditory, interactive lesson tailored to their profile. No two students see the same thing.', color: 'bg-blue-100 text-blue-600' },
@@ -382,13 +383,13 @@ export default function LandingPage() {
                 { icon: <Zap size={20} />, title: 'Instant Feedback', desc: 'Upon submission, the AI Auto-Grader returns the score, a personalized rubric breakdown, and concrete next steps in seconds — no waiting until next class.', color: 'bg-amber-100 text-amber-600' },
                 { icon: <BarChart3 size={20} />, title: 'Growth Analytics', desc: 'Track mastery across subjects with radar charts, predicted grades, study heatmaps, and personalized learning paths.', color: 'bg-emerald-100 text-emerald-600' },
               ].map(f => (
-                <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
+                <motion.div key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
                   <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
                   <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
 
           {/* Pillar 2: Teacher (Mrs. Osher) */}
@@ -402,20 +403,20 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Mrs. Osher</strong> &mdash; Automation, Universal Differentiation &amp; Intervention</p>
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div {...revealGroup} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { icon: <Upload size={20} />, title: 'Single-Source Uploading', desc: 'Upload one standard baseline assignment. Limud auto-generates individualized versions for auditory, visual, and kinesthetic learners.', color: 'bg-green-100 text-green-600' },
                 { icon: <Lightbulb size={20} />, title: 'AI Quiz Generation', desc: 'Instantly generate curriculum-aligned quizzes using built-in topic banks for quick knowledge checks.', color: 'bg-amber-100 text-amber-600' },
                 { icon: <GraduationCap size={20} />, title: 'One-Click Auto-Grading', desc: 'AI evaluates essays against your rubric. Review suggested feedback, make quick edits, and approve.', color: 'bg-blue-100 text-blue-600' },
                 { icon: <BarChart3 size={20} />, title: 'Intelligence Dashboard', desc: 'Real-time aggregated data. AI flags at-risk students based on engagement trends, telling you exactly who needs human intervention.', color: 'bg-red-100 text-red-600' },
               ].map(f => (
-                <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
+                <motion.div key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
                   <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
                   <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
 
           {/* Pillar 3: Admin (Superintendent Ofer) */}
@@ -429,19 +430,19 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Superintendent Ofer</strong> &mdash; High-Level Analytics, Compliance &amp; ROI</p>
               </div>
             </div>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <motion.div {...revealGroup} className="grid sm:grid-cols-3 gap-4">
               {[
                 { icon: <LayoutDashboard size={20} />, title: 'The Command Center', desc: 'See district health at a glance — example district: 247 active students, 18 teachers, $12,000 annual cost. One dashboard, zero confusion.', color: 'bg-slate-100 text-slate-600' },
                 { icon: <Users size={20} />, title: 'Frictionless Management', desc: 'Bulk-import users via CSV and broadcast cross-role announcements that instantly ping teacher, student, and parent portals.', color: 'bg-blue-100 text-blue-600' },
                 { icon: <Shield size={20} />, title: 'Compliance at a Glance', desc: 'A dedicated widget confirms all systems are operational and actively maintaining FERPA, COPPA, and WCAG AA compliance.', color: 'bg-green-100 text-green-600' },
               ].map(f => (
-                <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
+                <motion.div key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
                   <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
                   <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
 
           {/* Pillar 4: Parent (David Betzalel) */}
@@ -455,24 +456,24 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>David Betzalel</strong> &mdash; transparency and plain-English reporting, whether his kid is in a district school or learning at home</p>
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <motion.div {...revealGroup} className="grid sm:grid-cols-2 gap-4">
               {[
                 { icon: <Sparkles size={20} />, title: 'The AI Check-In', desc: 'Instead of deciphering complex grade books, David clicks one button and receives a plain-English, conversational summary of his kid\'s academic performance, emotional engagement, and study habits.', color: 'bg-rose-100 text-rose-600' },
                 { icon: <Home size={20} />, title: 'Family Teaching Mode', desc: 'A parent who teaches at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload, and per-child analytics. Same single account.', color: 'bg-amber-100 text-amber-600' },
               ].map(f => (
-                <div key={f.title} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
+                <motion.div key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
                   <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
                   <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </div>
       </Section>
 
       {/* ═══ THE SELF-REINFORCING LOOP ═════════════════════════ */}
-      <Section className="py-16 bg-gradient-to-br from-primary-50 via-white to-accent-50/30">
+      <Section className="py-20 bg-gradient-to-br from-primary-50 via-white to-accent-50/30">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-8">The Self-Reinforcing Loop</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -482,7 +483,7 @@ export default function LandingPage() {
               { emoji: '👨‍👩‍👦', text: 'Parents stay effortlessly informed', color: 'bg-rose-50 border-rose-200' },
               { emoji: '📈', text: 'Districts see improved scores tied to funding', color: 'bg-amber-50 border-amber-200' },
             ].map(item => (
-              <div key={item.text} className={cn('rounded-xl p-5 border', item.color)}>
+              <div key={item.text} className={cn('rounded-2xl p-5 border shadow-elev-1', item.color)}>
                 <div className="text-3xl mb-3">{item.emoji}</div>
                 <p className="text-sm text-gray-700 font-medium leading-relaxed">{item.text}</p>
               </div>
@@ -520,7 +521,7 @@ export default function LandingPage() {
                 color: 'bg-purple-50 border-purple-200',
               },
             ].map(item => (
-              <div key={item.name} className={cn('rounded-xl p-5 border', item.color)}>
+              <div key={item.name} className={cn('rounded-2xl p-5 border shadow-elev-1', item.color)}>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">{item.emoji}</span>
                   <h4 className="font-bold text-gray-900 text-sm">{item.name}</h4>
@@ -584,10 +585,10 @@ export default function LandingPage() {
                 mobileOrder: 'order-1',
               },
             ].map(plan => (
-              <div key={plan.name} className={cn('rounded-2xl p-6 flex flex-col md:order-none', plan.mobileOrder,
+              <motion.div key={plan.name} {...pressable} className={cn('rounded-2xl p-6 flex flex-col md:order-none', plan.mobileOrder,
                 plan.highlight
-                  ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white ring-2 ring-primary-300 ring-offset-2'
-                  : 'bg-white border border-gray-200')}>
+                  ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white ring-2 ring-primary-300 ring-offset-2 shadow-elev-3'
+                  : 'bg-white border border-gray-200 shadow-elev-1')}>
                 {plan.highlight && <div className="text-[10px] font-bold bg-white/20 rounded-full px-2 py-0.5 self-start mb-3">Most Popular</div>}
                 <h3 className={cn('text-lg font-bold', plan.highlight ? '' : 'text-gray-900')}>{plan.name}</h3>
                 <p className={cn('text-xs mt-0.5', plan.highlight ? 'text-white/60' : 'text-gray-500')}>{plan.desc}</p>
@@ -606,7 +607,7 @@ export default function LandingPage() {
                   plan.highlight ? 'bg-white text-primary-700 hover:bg-gray-100' : 'bg-gray-100 text-gray-900 hover:bg-gray-200')}>
                   {plan.cta}
                 </Link>
-              </div>
+              </motion.div>
             ))}
           </div>
 
@@ -648,7 +649,7 @@ export default function LandingPage() {
           full kit. 4-card row mirrors the BUNDLES catalog in
           src/lib/bundles.ts so prices stay in sync if/when the catalog
           changes (we link out rather than re-source the numbers). */}
-      <Section className="py-16 bg-gradient-to-br from-fuchsia-50/40 via-white to-blue-50/40 border-y border-gray-100">
+      <Section className="py-20 bg-gradient-to-br from-fuchsia-50/40 via-white to-blue-50/40 border-y border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Bundle and save</h2>
@@ -663,7 +664,7 @@ export default function LandingPage() {
                 oneTime: '$79 one-time',
                 monthly: '$15/mo',
                 badge: 'Best value',
-                ring: 'bg-gradient-to-br from-fuchsia-50 to-blue-50 border-fuchsia-200',
+                ring: 'bg-gradient-to-br from-fuchsia-50 to-blue-50 border-fuchsia-200 ring-1 ring-fuchsia-200 shadow-elev-2',
               },
               {
                 name: 'Study Bundle',
@@ -694,7 +695,7 @@ export default function LandingPage() {
                 key={bundle.name}
                 href="/products#bundles"
                 className={cn(
-                  'group rounded-xl p-5 border flex flex-col transition hover:shadow-md hover:border-primary-300',
+                  'group rounded-2xl p-5 border flex flex-col shadow-elev-1 transition hover:shadow-elev-3 hover:border-primary-300',
                   bundle.ring,
                 )}
               >
@@ -766,7 +767,7 @@ export default function LandingPage() {
       {/* ═══ FINAL CTA ════════════════════════════════════════ */}
       <Section className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-10 lg:p-14 text-center text-white">
+          <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-10 lg:p-14 text-center text-white shadow-elev-3">
             <h2 className="text-3xl sm:text-4xl font-extrabold">Every mind learns differently</h2>
             <p className="mt-3 text-white/70 max-w-lg mx-auto">Cognitive science + generative AI, adapted to every student. The same product for districts and families.</p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
@@ -779,7 +780,7 @@ export default function LandingPage() {
                   guarantee is the real escape hatch. */}
               <Link
                 href={dashboardHref ?? '/onboard'}
-                className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-7 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition shadow-lg"
+                className="group inline-flex items-center justify-center gap-2 bg-white text-primary-700 px-7 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition shadow-elev-2"
               >
                 {dashboardHref ? 'Open your dashboard' : 'Get started'}
                 <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />

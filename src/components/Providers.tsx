@@ -2,6 +2,7 @@
 
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'react-hot-toast';
+import { MotionConfig } from 'framer-motion';
 import { ReactNode, createContext, useContext, useState, useEffect } from 'react';
 import { PerfProvider } from '@/lib/performance';
 import { I18nProvider } from '@/lib/i18n';
@@ -90,13 +91,25 @@ export default function Providers({ children }: { children: ReactNode }) {
       <PerfProvider>
         <I18nProvider>
         <AccessibilityProvider>
-          {children}
+          {/* v18: all Framer motion respects prefers-reduced-motion in one place */}
+          <MotionConfig reducedMotion="user">
+            {children}
+          </MotionConfig>
           <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
-              style: { borderRadius: '12px', padding: '16px', fontSize: '14px' },
-              success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
+              style: {
+                borderRadius: '14px',
+                padding: '14px 16px',
+                fontSize: '14px',
+                fontWeight: 500,
+                color: '#0f172a',
+                background: '#ffffff',
+                border: '1px solid rgb(15 23 42 / 0.06)',
+                boxShadow: '0 8px 24px -6px rgb(15 23 42 / 0.12), 0 2px 6px -2px rgb(15 23 42 / 0.08)',
+              },
+              success: { iconTheme: { primary: '#16a34a', secondary: '#fff' } },
               error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
             }}
           />

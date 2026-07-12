@@ -16,9 +16,18 @@ import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ReactMarkdown from 'react-markdown';
 import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
 import { ArrowRight, Loader2, LogIn, RefreshCw, ShieldAlert, Sparkles, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fadeUp, pressable } from '@/lib/motion';
 import type { ProductTool } from '@/lib/ai';
+
+/**
+ * v18 premium: motion-wrapped next/link so the sidebar "Buy this tool" CTA can
+ * take the shared `pressable` hover/tap feedback while keeping client-side
+ * navigation intact. Defined at module scope so its identity stays stable.
+ */
+const MotionLink = motion(Link);
 
 export type ToolConfig = {
   /** Tool discriminator sent to the generation endpoint. */
@@ -360,15 +369,26 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
 
   const headerEl = useMemo(
     () => (
-      <>
-        <div className={cn('inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border', config.chipClass)}>
-          <Sparkles size={14} /> Individual product · Beta
+      <div className="flex items-start gap-4">
+        <div
+          className={cn(
+            'flex-shrink-0 inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br text-white shadow-elev-2',
+            config.ring,
+          )}
+          aria-hidden
+        >
+          {config.icon}
         </div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mt-2">{config.name}</h1>
-        <p className="text-gray-500 dark:text-gray-400 max-w-2xl mt-1">{config.blurb}</p>
-      </>
+        <div className="min-w-0">
+          <div className={cn('inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border', config.chipClass)}>
+            <Sparkles size={14} /> Individual product · Beta
+          </div>
+          <h1 className="font-display text-2xl lg:text-3xl font-bold tracking-tight text-gray-900 dark:text-white mt-2">{config.name}</h1>
+          <p className="text-gray-500 dark:text-gray-400 max-w-2xl mt-1">{config.blurb}</p>
+        </div>
+      </div>
     ),
-    [config.name, config.blurb, config.chipClass],
+    [config.name, config.blurb, config.chipClass, config.icon, config.ring],
   );
 
   return (
@@ -397,8 +417,8 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
         <div>
           {headerEl}
           {config.antiCheat && (
-            <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-md px-3 py-2 text-sm">
-              <ShieldAlert size={16} className="mt-0.5 flex-shrink-0 text-amber-700" aria-hidden />
+            <div className="mt-3 flex items-start gap-2.5 bg-amber-50/60 border border-amber-200/60 text-amber-900 rounded-xl px-3.5 py-2.5 text-sm">
+              <ShieldAlert size={16} className="mt-0.5 flex-shrink-0 text-amber-600" aria-hidden />
               <p className="leading-snug">{config.antiCheat}</p>
             </div>
           )}
@@ -407,7 +427,7 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* LEFT — input + controls */}
           <div className="lg:col-span-2 space-y-5">
-            <div className="card">
+            <div className="card shadow-elev-1 hover:shadow-elev-1">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <label className="block text-sm font-bold text-gray-900 dark:text-white">
                   {config.inputLabel}
@@ -417,7 +437,7 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                     type="button"
                     onClick={loadSample}
                     disabled={generating}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-gray-200 bg-white text-[11px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-200 bg-white text-[11px] font-semibold text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:shadow-elev-1 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                   >
                     <Sparkles size={11} /> Try a sample
                   </button>
@@ -431,7 +451,7 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                 onBlur={() => setShortcutHint(false)}
                 placeholder={config.inputPlaceholder}
                 className={cn(
-                  'input-field min-h-[260px] text-sm leading-relaxed',
+                  'input-field min-h-[260px] text-sm leading-relaxed focus:border-primary-400 focus:shadow-elev-1',
                   config.monoInput && 'font-mono',
                 )}
                 disabled={generating}
@@ -480,10 +500,10 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                   aria-busy={generating}
                   aria-disabled={generating || !inputValid}
                   className={cn(
-                    'flex-1 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-white font-semibold transition shadow-lg',
+                    'flex-1 inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-white font-semibold transition-all duration-200',
                     generating || !inputValid
                       ? 'bg-gray-300 cursor-not-allowed opacity-80'
-                      : `bg-gradient-to-r ${config.ring} hover:opacity-95`,
+                      : `bg-gradient-to-r ${config.ring} shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5 active:translate-y-0`,
                     generating && 'cursor-wait',
                   )}
                 >
@@ -508,7 +528,7 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                   type="button"
                   onClick={generateAnother}
                   disabled={generating || (input.length === 0 && !content && !aiError)}
-                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:shadow-elev-1 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                   title="Reset input, option, and result"
                 >
                   <RefreshCw size={13} /> Reset
@@ -545,7 +565,7 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                   spinning button. Animated stripes mimic the eventual
                   markdown card. */}
               {generating && !content && (
-                <div className="card" aria-hidden>
+                <div className="card shadow-elev-1 hover:shadow-elev-1" aria-hidden>
                   <div className="flex items-center justify-between mb-3">
                     <div className="h-3.5 w-20 rounded bg-gray-200 animate-pulse" />
                     <div className="h-3.5 w-24 rounded bg-gray-200 animate-pulse" />
@@ -560,7 +580,12 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                 </div>
               )}
               {content && (
-                <div className="card">
+                <motion.div
+                  initial="hidden"
+                  animate="show"
+                  variants={fadeUp}
+                  className="card shadow-elev-2 hover:shadow-elev-2"
+                >
                   <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
                     <h2 className="text-sm font-bold text-gray-900 dark:text-white">Result</h2>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -601,7 +626,7 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                         doesn't silently lose its images. */}
                     <ReactMarkdown urlTransform={toolMarkdownUrlTransform}>{content}</ReactMarkdown>
                   </div>
-                </div>
+                </motion.div>
               )}
             </div>
           </div>
@@ -615,7 +640,7 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                 acknowledgement instead. */}
             {config.priceLabel && config.checkoutHref && (
               needsCheckout === false ? (
-                <div className="card bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
+                <div className="card shadow-elev-1 hover:shadow-elev-1 bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
                   <p className="text-xs font-semibold text-emerald-800">You own this tool</p>
                   <p className="text-[11px] text-emerald-700/80 mt-1">
                     Your subscription is active — generate away.
@@ -623,20 +648,21 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                 </div>
               ) : (
                 (!isAuthed || needsCheckout === true) && (
-                  <div className="card bg-gradient-to-br from-primary-50 to-fuchsia-50 border-primary-100">
-                    <p className="text-xs font-semibold text-gray-700">{config.priceLabel}</p>
-                    <Link
+                  <div className="card shadow-elev-1 hover:shadow-elev-1 bg-gradient-to-br from-primary-50 to-fuchsia-50 border-primary-100">
+                    <p className="text-sm font-bold text-gray-900">{config.priceLabel}</p>
+                    <MotionLink
                       href={config.checkoutHref}
-                      className="mt-2 inline-flex w-full items-center justify-center gap-1 bg-primary-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-primary-700 transition shadow-sm"
+                      {...pressable}
+                      className="mt-3 inline-flex w-full items-center justify-center gap-1.5 bg-primary-600 text-white text-xs font-bold px-3 py-2.5 rounded-xl hover:bg-primary-700 transition-colors shadow-elev-2 hover:shadow-elev-3"
                     >
                       Buy this tool <ArrowRight size={12} />
-                    </Link>
+                    </MotionLink>
                   </div>
                 )
               )
             )}
 
-            <div className="card">
+            <div className="card shadow-elev-1 hover:shadow-elev-1">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Recent</h3>
               {history.length === 0 ? (
                 <p className="text-xs text-gray-500">Your last 5 generations show up here, saved to this browser only.</p>
@@ -647,7 +673,7 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
                       key={h.id}
                       type="button"
                       onClick={() => loadFromHistory(h)}
-                      className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50/30 transition"
+                      className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50/30 hover:shadow-elev-1 transition"
                     >
                       <div className="text-xs text-gray-600 line-clamp-2">{h.preview || '(empty)'}</div>
                       <div className="text-[10px] text-gray-400 mt-1">{new Date(h.ts).toLocaleString()}</div>
@@ -658,13 +684,13 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
             </div>
 
             {config.helperText && (
-              <div className="card bg-gradient-to-br from-gray-50 to-white">
+              <div className="card shadow-elev-1 hover:shadow-elev-1 bg-gradient-to-br from-gray-50 to-white">
                 <p className="text-xs text-gray-600 leading-relaxed">{config.helperText}</p>
               </div>
             )}
 
             {config.related && config.related.length > 0 && (
-              <div className="card">
+              <div className="card shadow-elev-1 hover:shadow-elev-1">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Pairs well with</h3>
                 <div className="space-y-2">
                   {config.related.map((r) => (
@@ -692,7 +718,7 @@ export default function MarkdownToolPage({ config }: { config: ToolConfig }) {
             {/* When no curated `related` is configured, fall back to the
                 generic bundles nudge so the column still feels finished. */}
             {(!config.related || config.related.length === 0) && (
-              <div className="card bg-gradient-to-br from-gray-50 to-white">
+              <div className="card shadow-elev-1 hover:shadow-elev-1 bg-gradient-to-br from-gray-50 to-white">
                 <p className="text-xs text-gray-600 leading-relaxed">
                   Want more than one tool?{' '}
                   <Link href="/products" className="font-bold text-primary-600 hover:text-primary-700">

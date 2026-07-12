@@ -43,10 +43,12 @@ import {
   Search,
   Star,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import AuthAwareCTA from '@/components/AuthAwareCTA';
 import { PRODUCTS, type Product, type ProductSubject } from '@/lib/products-catalog';
 import { PRODUCT_ICONS } from '@/lib/products-icons';
 import { BUNDLES, bundleSavingsPct, formatSavingsPct, type BundleDef } from '@/lib/bundles';
+import { fadeUp, fadeUpSm, revealGroup, revealOnScroll, pressable } from '@/lib/motion';
 
 type BillingMode = 'oneTime' | 'monthly';
 
@@ -323,7 +325,7 @@ export default function ProductsPage() {
       <a
         href="#bundles"
         className={
-          'fixed z-40 bottom-6 right-6 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-gray-900 text-white text-xs font-bold shadow-lg transition-all ' +
+          'fixed z-40 bottom-6 right-6 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-gray-900 text-white text-xs font-bold shadow-elev-3 transition-all ' +
           (showBundlesChip ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none')
         }
         aria-hidden={!showBundlesChip}
@@ -334,37 +336,39 @@ export default function ProductsPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16">
         {/* Hero */}
-        <section className="text-center mb-10 lg:mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-50 text-fuchsia-700 text-xs font-medium border border-fuchsia-100 mb-4">
+        <motion.section {...revealGroup} className="text-center mb-10 lg:mb-12">
+          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-fuchsia-50 text-fuchsia-700 text-xs font-semibold border border-fuchsia-100 shadow-elev-1 mb-5">
             <Sparkles size={14} /> 13 tools · 4 bundles
-          </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight">
+          </motion.div>
+          <motion.h1 variants={fadeUp} className="mx-auto max-w-4xl text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight text-balance">
             Single tools. <span className="bg-gradient-to-r from-primary-600 to-fuchsia-500 bg-clip-text text-transparent">Your choice how to pay.</span>
-          </h1>
-          <p className="mt-5 max-w-2xl mx-auto text-lg text-gray-500 leading-relaxed">
+          </motion.h1>
+          <motion.p variants={fadeUp} className="mt-5 max-w-2xl mx-auto text-lg text-gray-500 leading-relaxed">
             Buy one tool for the exam you&apos;re actually studying for, pay once, keep it. Or
             subscribe monthly and use everything as much as you want.
-          </p>
-        </section>
+          </motion.p>
+        </motion.section>
 
         {/* v17.7: "Start here" curated 3-up. Bigger than catalog cards, with
             a small "Recommended" pill. Sits above the chips/grid so first-
             time visitors get a low-friction starting point. */}
         <section className="mb-12">
-          <div className="text-center mb-5">
+          <motion.div {...revealOnScroll} variants={fadeUp} className="text-center mb-5">
             <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">Start here</p>
             <h2 className="mt-1 text-xl sm:text-2xl font-extrabold text-gray-900">
               If you don&apos;t know where to start, try these three first
             </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          </motion.div>
+          <motion.div {...revealGroup} className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {startHereProducts.map((p) => {
               const price = billing === 'oneTime' ? p.oneTimePrice : p.monthlyPrice;
               const unit = billing === 'oneTime' ? p.oneTimeUnit : 'per month';
               return (
-                <article
+                <motion.article
                   key={p.id}
-                  className="rounded-3xl border-2 border-primary-200 bg-gradient-to-br from-white to-primary-50/40 shadow-md hover:shadow-lg transition p-7 flex flex-col"
+                  variants={fadeUpSm}
+                  {...pressable}
+                  className="rounded-3xl border border-primary-100 ring-1 ring-primary-200/60 bg-gradient-to-br from-white to-primary-50/40 shadow-elev-2 hover:shadow-elev-3 transition-shadow p-7 flex flex-col"
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <div
@@ -387,7 +391,7 @@ export default function ProductsPage() {
                   <p className="text-sm text-gray-700 leading-relaxed flex-1">{p.blurb}</p>
                   <div className="mt-5">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-extrabold text-gray-900">{formatPrice(price)}</span>
+                      <span className="text-3xl font-extrabold text-gray-900 font-display tabular-nums">{formatPrice(price)}</span>
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5">{unit}</div>
                   </div>
@@ -405,22 +409,22 @@ export default function ProductsPage() {
                       Buy
                     </Link>
                   </div>
-                </article>
+                </motion.article>
               );
             })}
-          </div>
+          </motion.div>
         </section>
 
         {/* Billing mode toggle */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="inline-flex items-center bg-white border-2 border-gray-100 rounded-2xl p-1 shadow-sm">
+          <div className="inline-flex items-center bg-white border-2 border-gray-100 rounded-2xl p-1 shadow-elev-1">
             <button
               type="button"
               onClick={() => setBilling('oneTime')}
               className={
                 'px-5 py-2 rounded-xl text-sm font-bold transition ' +
                 (billing === 'oneTime'
-                  ? 'bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white shadow'
+                  ? 'bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white shadow-elev-1'
                   : 'text-gray-500 hover:text-gray-900')
               }
             >
@@ -432,7 +436,7 @@ export default function ProductsPage() {
               className={
                 'px-5 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ' +
                 (billing === 'monthly'
-                  ? 'bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white shadow'
+                  ? 'bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white shadow-elev-1'
                   : 'text-gray-500 hover:text-gray-900')
               }
             >
@@ -489,7 +493,7 @@ export default function ProductsPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search tools..."
               aria-label="Search products by name or description"
-              className="w-full pl-9 pr-3 py-2 rounded-xl border-2 border-gray-100 bg-white text-sm focus:outline-none focus:border-primary-300 transition"
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl border-2 border-gray-100 bg-white text-sm shadow-elev-1 focus:outline-none focus:border-primary-300 transition"
             />
           </div>
           <div className="flex gap-2 overflow-x-auto flex-nowrap pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:justify-center scrollbar-thin">
@@ -502,10 +506,10 @@ export default function ProductsPage() {
                   onClick={() => setSubject(chip)}
                   aria-pressed={active}
                   className={
-                    'px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition border-2 ' +
+                    'px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition border-2 ' +
                     (active
-                      ? 'bg-gray-900 text-white border-gray-900'
-                      : 'bg-white text-gray-600 border-gray-100 hover:border-gray-300')
+                      ? 'bg-gray-900 text-white border-gray-900 shadow-elev-1'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-gray-900')
                   }
                 >
                   {chip}
@@ -516,7 +520,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Product cards */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
+        <motion.section {...revealGroup} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
           {filteredProducts.length === 0 ? (
             <div className="col-span-full text-center py-12 text-sm text-gray-500">
               No tools match that filter. Try clearing the search or picking a different subject.
@@ -526,13 +530,15 @@ export default function ProductsPage() {
               const price = billing === 'oneTime' ? p.oneTimePrice : p.monthlyPrice;
               const unit = billing === 'oneTime' ? p.oneTimeUnit : 'per month';
               return (
-                <article
+                <motion.article
                   key={p.id}
+                  variants={fadeUpSm}
+                  {...pressable}
                   className={
-                    'rounded-3xl border-2 p-6 flex flex-col ' +
+                    'rounded-2xl border p-6 flex flex-col transition-shadow ' +
                     (p.available
-                      ? 'border-primary-100 bg-white shadow-sm hover:shadow-md transition'
-                      : 'border-dashed border-gray-200 bg-white')
+                      ? 'border-primary-100 bg-white shadow-elev-1 hover:shadow-elev-3'
+                      : 'border-dashed border-gray-200 bg-white shadow-elev-1')
                   }
                 >
                   <div className="flex items-center gap-3 mb-3">
@@ -578,10 +584,10 @@ export default function ProductsPage() {
                         (e.g. "$9" / "per exam") instead of hiding next to
                         the dollar amount. */}
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-extrabold text-gray-900">{formatPrice(price)}</span>
+                      <span className="text-3xl font-extrabold text-gray-900 font-display tabular-nums">{formatPrice(price)}</span>
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5">{unit}</div>
-                    <div className="text-[11px] text-gray-400 mt-1">
+                    <div className="text-[11px] text-gray-400 mt-1 tabular-nums">
                       {billing === 'oneTime'
                         ? `or $${p.monthlyPrice ?? '—'}/mo unlimited`
                         : `or $${p.oneTimePrice ?? '—'} ${p.oneTimeUnit}`}
@@ -591,13 +597,13 @@ export default function ProductsPage() {
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <Link
                         href={p.href}
-                        className="block text-center py-2.5 rounded-xl font-bold text-sm border border-primary-200 text-primary-700 hover:bg-primary-50 transition"
+                        className="block text-center py-2.5 rounded-xl font-bold text-sm border border-primary-200 text-primary-700 hover:bg-primary-50 hover:border-primary-300 transition"
                       >
                         {openCtaLabel}
                       </Link>
                       <Link
                         href={'/products/' + p.id + '/checkout?billing=' + billing}
-                        className="block text-center py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white hover:opacity-95 transition"
+                        className="block text-center py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white shadow-elev-1 hover:shadow-elev-2 hover:opacity-95 transition"
                       >
                         Buy
                       </Link>
@@ -611,17 +617,17 @@ export default function ProductsPage() {
                       Notify me when it&apos;s ready
                     </button>
                   )}
-                </article>
+                </motion.article>
               );
             })
           )}
-        </section>
+        </motion.section>
 
         {/* Bundles */}
         {/* v17.1: id="bundles" so /products#bundles anchor scrolls here. */}
         <section id="bundles" ref={bundlesRef} className="mb-16 scroll-mt-20">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium border border-primary-100 mb-3">
+          <motion.div {...revealOnScroll} variants={fadeUp} className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary-50 text-primary-700 text-xs font-semibold border border-primary-100 shadow-elev-1 mb-3">
               <Package size={14} /> Bundles
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
@@ -630,9 +636,9 @@ export default function ProductsPage() {
             <p className="mt-3 text-sm text-gray-500 max-w-xl mx-auto">
               Stack the tools you actually use. Bundle prices include every product listed and any new product we add in the same category.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <motion.div {...revealGroup} className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {BUNDLES.map((b) => {
               const includes = b.productIds.map((id) => PRODUCTS.find((p) => p.id === id)?.name).filter(Boolean) as string[];
               const price = billing === 'oneTime' ? b.oneTimePrice : b.monthlyPrice;
@@ -644,11 +650,15 @@ export default function ProductsPage() {
               const savingsLabel = formatSavingsPct(bundleSavingsPct(b, billing));
               const subjectHint = bundleSubjectSummaries[b.id] ?? '';
               return (
-                <article
+                <motion.article
                   key={b.id}
+                  variants={fadeUpSm}
+                  {...pressable}
                   className={
-                    'rounded-3xl p-6 flex flex-col bg-white border-2 ' +
-                    (b.badge ? 'border-primary-300 shadow-lg shadow-primary-500/10' : 'border-gray-100 shadow-sm')
+                    'rounded-3xl p-6 flex flex-col bg-white border transition-shadow hover:shadow-elev-3 ' +
+                    (b.badge
+                      ? 'border-primary-200 ring-1 ring-primary-300/60 shadow-elev-2'
+                      : 'border-gray-100 shadow-elev-1')
                   }
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
@@ -711,10 +721,10 @@ export default function ProductsPage() {
                   <div className="mt-5 flex items-end justify-between gap-3">
                     <div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-extrabold text-gray-900">${price}</span>
+                        <span className="text-3xl font-extrabold text-gray-900 font-display tabular-nums">${price}</span>
                         <span className="text-xs text-gray-500">{unit}</span>
                       </div>
-                      <div className="text-[11px] text-gray-400 mt-0.5">
+                      <div className="text-[11px] text-gray-400 mt-0.5 tabular-nums">
                         {billing === 'oneTime'
                           ? `or $${b.monthlyPrice}/mo unlimited`
                           : `or $${b.oneTimePrice} one-time`}
@@ -723,23 +733,23 @@ export default function ProductsPage() {
                     {ownedBundles.has(b.id) ? (
                       <Link
                         href="/account/subscriptions"
-                        className="mt-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:opacity-95 transition whitespace-nowrap"
+                        className="mt-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-elev-1 hover:shadow-elev-2 hover:opacity-95 transition whitespace-nowrap"
                       >
                         ✓ Owned <ArrowRight size={14} />
                       </Link>
                     ) : (
                       <Link
                         href={`/products/bundle/${b.id}/checkout?billing=${billing}`}
-                        className="mt-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white hover:opacity-95 transition whitespace-nowrap"
+                        className="mt-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-primary-600 to-fuchsia-600 text-white shadow-elev-1 hover:shadow-elev-2 hover:opacity-95 transition whitespace-nowrap"
                       >
                         Get this bundle <ArrowRight size={14} />
                       </Link>
                     )}
                   </div>
-                </article>
+                </motion.article>
               );
             })}
-          </div>
+          </motion.div>
         </section>
 
       </main>

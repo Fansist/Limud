@@ -12,11 +12,73 @@
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+/* v18 premium type: Space Grotesk (display) + DM Sans (body) */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
-  --font-inter: 'Inter', system-ui, sans-serif;
+  /* Type system */
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-body: 'DM Sans', 'Inter', system-ui, sans-serif;
+  --font-inter: var(--font-body); /* back-compat: existing font-sans now = DM Sans */
+
+  /* v18 premium motion tokens */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms;
+  --dur-normal: 240ms;
+  --dur-slow: 400ms;
+
+  /* v18 premium elevation — soft, layered, low-opacity (not the flat default box) */
+  --elev-1: 0 1px 2px -1px rgb(15 23 42 / 0.08), 0 1px 3px rgb(15 23 42 / 0.06);
+  --elev-2: 0 2px 4px -2px rgb(15 23 42 / 0.08), 0 4px 12px -2px rgb(15 23 42 / 0.08);
+  --elev-3: 0 8px 24px -6px rgb(15 23 42 / 0.12), 0 2px 6px -2px rgb(15 23 42 / 0.08);
+  --elev-4: 0 24px 48px -12px rgb(15 23 42 / 0.18), 0 8px 16px -8px rgb(15 23 42 / 0.10);
+
   scroll-behavior: smooth;
 }
+
+/* v18 premium type application — display face on headings, tightened tracking */
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+h1 { letter-spacing: -0.035em; }
+
+/* v18 tabular figures for prices/data so numbers don't jitter on change */
+.tabular-nums, .font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* v18 premium interaction polish — smooth default transitions + refined focus ring.
+   Scoped to interactive elements only; respects reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  a, button, [role="button"], .card-interactive {
+    transition: color var(--dur-fast) var(--ease-out-expo),
+                background-color var(--dur-fast) var(--ease-out-expo),
+                border-color var(--dur-fast) var(--ease-out-expo),
+                box-shadow var(--dur-normal) var(--ease-out-expo),
+                transform var(--dur-normal) var(--ease-out-expo);
+  }
+}
+:where(a, button, [role="button"]):focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* v18 premium utility classes (opt-in, used by the polished surfaces) */
+.elev-1 { box-shadow: var(--elev-1); }
+.elev-2 { box-shadow: var(--elev-2); }
+.elev-3 { box-shadow: var(--elev-3); }
+.elev-4 { box-shadow: var(--elev-4); }
+.card-interactive { will-change: transform; }
+.card-interactive:hover { transform: translateY(-3px); box-shadow: var(--elev-3); }
+@media (prefers-reduced-motion: reduce) {
+  .card-interactive:hover { transform: none; }
+  * { scroll-behavior: auto; }
+}
+/* Refined text selection — brand-tinted, premium tell */
+::selection { background: rgb(37 99 235 / 0.16); }
 
 /* Scroll margin for anchor links (avoid navbar overlap) */
 [id] {

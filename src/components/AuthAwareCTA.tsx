@@ -26,9 +26,29 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { ArrowRight, LayoutDashboard } from 'lucide-react';
+import { pressable } from '@/lib/motion';
 
 type Variant = 'topbar' | 'hero';
+
+/**
+ * Motion-wrapped Next.js Link so the primary CTAs can carry the shared
+ * `pressable` hover/tap feedback while keeping client-side navigation intact.
+ * Reduced-motion is honored globally via <MotionConfig reducedMotion="user">.
+ */
+const MotionLink = motion.create(Link);
+
+// Shared CTA styles — one source of truth for the primary/secondary hierarchy.
+const TOPBAR_PRIMARY =
+  'inline-flex items-center gap-1 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-elev-1 transition-[background-color,box-shadow] duration-200 hover:bg-primary-700 hover:shadow-elev-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2';
+
+const HERO_PRIMARY =
+  'group inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-7 py-3.5 font-bold text-white shadow-elev-2 transition-[background-color,box-shadow] duration-200 hover:bg-primary-700 hover:shadow-elev-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2';
+
+// Secondary / ghost — clearly subordinate to the primary CTA.
+const GHOST_LINK =
+  'hidden sm:inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100/70 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2';
 
 /**
  * Compute the right "home" route for a session. Master demo lands on /demo
@@ -67,8 +87,7 @@ function PricingCrossLink({ pathname }: { pathname: string | null }) {
   const onProducts = pathname === '/products' || pathname?.startsWith('/products/');
   const onPricing = pathname === '/pricing' || pathname?.startsWith('/pricing/');
 
-  const linkClass =
-    'hidden sm:inline text-sm font-semibold text-gray-600 hover:text-gray-900 px-3 py-2';
+  const linkClass = GHOST_LINK;
 
   if (onProducts) {
     return (
@@ -117,13 +136,14 @@ export default function AuthAwareCTA({
       return (
         <>
           <PricingCrossLink pathname={pathname} />
-          <Link
+          <MotionLink
             href={href}
             aria-label="Go to dashboard"
-            className="inline-flex items-center gap-1 bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-700 transition shadow-sm"
+            {...pressable}
+            className={TOPBAR_PRIMARY}
           >
             <LayoutDashboard size={14} /> Dashboard
-          </Link>
+          </MotionLink>
         </>
       );
     }
@@ -136,17 +156,18 @@ export default function AuthAwareCTA({
         <Link
           href={loginHref}
           aria-label="Sign in to your account"
-          className="hidden sm:inline text-sm font-semibold text-gray-600 hover:text-gray-900 px-3 py-2"
+          className={GHOST_LINK}
         >
           Sign In
         </Link>
-        <Link
+        <MotionLink
           href="/register"
           aria-label="Create a free account"
-          className="inline-flex items-center gap-1 bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-700 transition shadow-sm"
+          {...pressable}
+          className={TOPBAR_PRIMARY}
         >
           Start Free <ArrowRight size={14} />
-        </Link>
+        </MotionLink>
       </>
     );
   }
@@ -155,22 +176,16 @@ export default function AuthAwareCTA({
   if (isAuthed && user) {
     const href = dashboardHrefFor(user);
     return (
-      <Link
-        href={href}
-        className="group inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-7 py-3.5 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-600/20"
-      >
+      <MotionLink href={href} {...pressable} className={HERO_PRIMARY}>
         Open your dashboard{' '}
         <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-      </Link>
+      </MotionLink>
     );
   }
   return (
-    <Link
-      href="/register"
-      className="group inline-flex items-center justify-center gap-2 bg-primary-600 text-white px-7 py-3.5 rounded-xl font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-600/20"
-    >
+    <MotionLink href="/register" {...pressable} className={HERO_PRIMARY}>
       Get started{' '}
       <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-    </Link>
+    </MotionLink>
   );
 }

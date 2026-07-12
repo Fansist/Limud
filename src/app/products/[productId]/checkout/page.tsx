@@ -26,11 +26,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Sparkles, Check, ArrowRight, Lock, Loader2, Package, RotateCcw,
 } from 'lucide-react';
 import { findProduct, type Product } from '@/lib/products-catalog';
+import { fadeUp, scaleIn, staggerContainer, revealGroup } from '@/lib/motion';
 
 type BillingMode = 'oneTime' | 'monthly';
 
@@ -127,18 +129,23 @@ export default function ProductCheckoutPage() {
   if (!product) {
     return (
       <PageShell>
-        <div className="card max-w-lg mx-auto text-center space-y-4 p-8">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-gray-400 to-gray-500 text-white flex items-center justify-center">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={scaleIn}
+          className="card max-w-lg mx-auto text-center space-y-4 p-8 shadow-elev-3 rounded-2xl"
+        >
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-gray-400 to-gray-500 text-white flex items-center justify-center shadow-elev-2">
             <Package size={26} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Product not found</h1>
+          <h1 className="text-2xl font-display font-bold text-gray-900">Product not found</h1>
           <p className="text-sm text-gray-500">
             We couldn&apos;t find a product with id <span className="font-mono text-gray-700">{productId}</span>.
           </p>
-          <Link href="/products" className="btn-primary inline-flex items-center gap-2 mx-auto">
+          <Link href="/products" className="btn-primary inline-flex items-center gap-2 mx-auto shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5">
             Browse products <ArrowRight size={16} />
           </Link>
-        </div>
+        </motion.div>
       </PageShell>
     );
   }
@@ -166,10 +173,15 @@ export default function ProductCheckoutPage() {
   if (status === 'loading') {
     return (
       <PageShell>
-        <div className="card max-w-lg mx-auto text-center p-10">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={scaleIn}
+          className="card max-w-lg mx-auto text-center p-10 shadow-elev-3 rounded-2xl"
+        >
           <Loader2 size={28} className="mx-auto animate-spin text-primary-600" />
           <p className="mt-3 text-sm text-gray-500">Loading…</p>
-        </div>
+        </motion.div>
       </PageShell>
     );
   }
@@ -179,11 +191,16 @@ export default function ProductCheckoutPage() {
     const callbackUrl = '/products/' + product.id + '/checkout?billing=' + billingMode;
     return (
       <PageShell>
-        <div className="card max-w-lg mx-auto text-center space-y-4 p-8">
-          <div className={'w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ' + product.ring + ' text-white flex items-center justify-center'}>
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={scaleIn}
+          className="card max-w-lg mx-auto text-center space-y-4 p-8 shadow-elev-3 rounded-2xl"
+        >
+          <div className={'w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ' + product.ring + ' text-white flex items-center justify-center shadow-elev-2'}>
             <Lock size={26} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Log in to purchase</h1>
+          <h1 className="text-2xl font-display font-bold text-gray-900">Log in to purchase</h1>
           <p className="text-sm text-gray-500">
             We need your account so we can attach this purchase to it.
           </p>
@@ -192,7 +209,7 @@ export default function ProductCheckoutPage() {
           </p>
           <Link
             href={'/login?callbackUrl=' + encodeURIComponent(callbackUrl)}
-            className="btn-primary inline-flex items-center gap-2 mx-auto"
+            className="btn-primary inline-flex items-center gap-2 mx-auto shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5"
           >
             Log in <ArrowRight size={16} />
           </Link>
@@ -200,7 +217,7 @@ export default function ProductCheckoutPage() {
             Don&apos;t have an account?{' '}
             <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">Create one</Link>
           </p>
-        </div>
+        </motion.div>
       </PageShell>
     );
   }
@@ -211,21 +228,29 @@ export default function ProductCheckoutPage() {
   if (confirmed && alreadyActive) {
     return (
       <PageShell>
-        <div className="card max-w-lg mx-auto text-center space-y-5 p-8">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white flex items-center justify-center">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={staggerContainer}
+          className="card max-w-lg mx-auto text-center space-y-5 p-8 shadow-elev-3 rounded-2xl"
+        >
+          <motion.div
+            variants={scaleIn}
+            className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white flex items-center justify-center shadow-elev-2"
+          >
             <Check size={30} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">You already own this — jump in</h1>
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <h1 className="text-3xl font-display font-bold text-gray-900">You already own this — jump in</h1>
             <p className="text-sm text-gray-500 mt-2">
               The <span className="font-semibold text-gray-800">{product.name}</span> is already active on your account. No new charge.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
             <Link
               href={product.href}
-              className="btn-primary inline-flex items-center justify-center gap-2"
+              className="btn-primary inline-flex items-center justify-center gap-2 shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5"
             >
               Open {product.name} <ArrowRight size={16} />
             </Link>
@@ -235,8 +260,8 @@ export default function ProductCheckoutPage() {
             >
               See my purchases
             </Link>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </PageShell>
     );
   }
@@ -245,21 +270,29 @@ export default function ProductCheckoutPage() {
   if (confirmed) {
     return (
       <PageShell>
-        <div className="card max-w-lg mx-auto text-center space-y-5 p-8">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white flex items-center justify-center">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={staggerContainer}
+          className="card max-w-lg mx-auto text-center space-y-5 p-8 shadow-elev-3 rounded-2xl"
+        >
+          <motion.div
+            variants={scaleIn}
+            className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white flex items-center justify-center shadow-elev-2"
+          >
             <Check size={30} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">You&apos;re all set!</h1>
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <h1 className="text-3xl font-display font-bold text-gray-900">You&apos;re all set!</h1>
             <p className="text-sm text-gray-500 mt-2">
               The <span className="font-semibold text-gray-800">{product.name}</span> is now on your account.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
             <Link
               href={product.href}
-              className="btn-primary inline-flex items-center justify-center gap-2"
+              className="btn-primary inline-flex items-center justify-center gap-2 shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5"
             >
               Go to product <ArrowRight size={16} />
             </Link>
@@ -269,8 +302,8 @@ export default function ProductCheckoutPage() {
             >
               See my purchases
             </Link>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </PageShell>
     );
   }
@@ -279,19 +312,24 @@ export default function ProductCheckoutPage() {
   if (staticPrice == null) {
     return (
       <PageShell>
-        <div className="card max-w-lg mx-auto text-center space-y-4 p-8">
-          <div className={'w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ' + product.ring + ' text-white flex items-center justify-center'}>
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={scaleIn}
+          className="card max-w-lg mx-auto text-center space-y-4 p-8 shadow-elev-3 rounded-2xl"
+        >
+          <div className={'w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ' + product.ring + ' text-white flex items-center justify-center shadow-elev-2'}>
             <Package size={26} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Pricing coming soon</h1>
+          <h1 className="text-2xl font-display font-bold text-gray-900">Pricing coming soon</h1>
           <p className="text-sm text-gray-500">
             We haven&apos;t finalized the price for <span className="font-semibold text-gray-800">{product.name}</span> yet.
             Check back shortly, or try a different product.
           </p>
-          <Link href="/products" className="btn-primary inline-flex items-center gap-2 mx-auto">
+          <Link href="/products" className="btn-primary inline-flex items-center gap-2 mx-auto shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5">
             Browse products <ArrowRight size={16} />
           </Link>
-        </div>
+        </motion.div>
       </PageShell>
     );
   }
@@ -299,86 +337,89 @@ export default function ProductCheckoutPage() {
   // ---- Confirmation state ----
   return (
     <PageShell>
-      <div className="max-w-xl mx-auto">
-        <div className="text-center mb-6">
-          <div className={'w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ' + product.ring + ' text-white flex items-center justify-center shadow-lg'}>
+      <motion.div
+        className="max-w-xl mx-auto"
+        initial="hidden"
+        animate="show"
+        variants={staggerContainer}
+      >
+        <motion.div variants={fadeUp} className="text-center mb-6">
+          <div className={'w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ' + product.ring + ' text-white flex items-center justify-center shadow-elev-2'}>
             <Sparkles size={26} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mt-4">Confirm your purchase</h1>
+          <h1 className="text-3xl font-display font-bold text-gray-900 mt-4">Confirm your purchase</h1>
           <p className="text-sm text-gray-500 mt-2">Review the details below, then activate.</p>
-        </div>
+        </motion.div>
 
-        <div className="card space-y-5 p-6">
+        <motion.div variants={scaleIn} className="card shadow-elev-3 rounded-2xl p-7 sm:p-8 space-y-6">
           <div>
             <h2 className="text-xl font-bold text-gray-900">{product.name}</h2>
             <p className="text-sm text-gray-500 mt-1">{product.blurb}</p>
           </div>
 
           {/* Price */}
-          <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-gray-400 font-semibold">
-                {billingMode === 'monthly' ? 'Monthly subscription' : 'One-time purchase'}
-              </p>
-              <p className="font-extrabold text-gray-900 mt-1">
-                {priceIsOverride ? (
-                  <span>
-                    <s className="text-gray-400 mr-2 text-xl">${staticPrice}</s>
-                    <span className="text-3xl">${displayPrice}</span>
-                  </span>
-                ) : (
-                  <span className="text-3xl">${displayPrice}</span>
-                )}
-                <span className="text-sm text-gray-400 font-normal">{cadenceLabel}</span>
-              </p>
+          <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-5 shadow-elev-1">
+            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">
+              {billingMode === 'monthly' ? 'Monthly subscription' : 'One-time purchase'}
+            </p>
+            <p className="mt-1.5 flex items-baseline gap-2 flex-wrap">
               {priceIsOverride && (
-                <p className="text-[11px] font-medium text-amber-700 mt-1">
-                  Updated pricing — was ${staticPrice}, now ${displayPrice}.
-                </p>
+                <s className="text-gray-400 text-xl font-normal font-display tabular-nums">${staticPrice}</s>
               )}
-              <p className="text-[11px] text-gray-400 mt-0.5">or {altLabel}</p>
-            </div>
+              <span className="text-4xl sm:text-5xl font-display font-bold text-gray-900 tabular-nums leading-none">
+                ${displayPrice}
+              </span>
+              <span className="text-sm text-gray-400 font-medium">{cadenceLabel}</span>
+            </p>
+            {priceIsOverride && (
+              <p className="text-[11px] font-medium text-amber-700 mt-2">
+                Updated pricing — was ${staticPrice}, now ${displayPrice}.
+              </p>
+            )}
+            <p className="text-[11px] text-gray-400 mt-1">or {altLabel}</p>
           </div>
 
           {/* Bullets — reinforce value at purchase moment (v17.7) */}
           {product.bullets.length > 0 && (
-            <ul className="space-y-2">
+            <motion.ul {...revealGroup} className="space-y-2.5">
               {product.bullets.slice(0, 3).map((b) => (
-                <li key={b} className="flex items-start gap-2 text-sm text-gray-700">
-                  <Check size={16} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+                <motion.li key={b} variants={fadeUp} className="flex items-start gap-2.5 text-sm text-gray-700">
+                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <Check size={13} />
+                  </span>
                   <span>{b}</span>
-                </li>
+                </motion.li>
               ))}
-            </ul>
+            </motion.ul>
           )}
 
           {/* Refund / cadence honesty line (v17.7) */}
           {billingMode === 'oneTime' && (
-            <p className="text-[11px] text-gray-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            <p className="text-[11px] text-gray-600 bg-amber-50 border border-amber-100 rounded-xl px-3.5 py-2.5">
               One-time purchases are non-refundable once activated — try the monthly plan first if you want to test it out.
             </p>
           )}
 
           {/* Trust strip (v17.7) */}
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-gray-500">
-            <span className="inline-flex items-center gap-1">
-              <Lock size={12} /> No credit card collected here
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-100 px-3 py-1.5 text-[11px] font-medium text-gray-600">
+              <Lock size={12} className="text-gray-400" /> No credit card collected here
             </span>
             {billingMode === 'monthly' && (
-              <span className="inline-flex items-center gap-1">
-                <RotateCcw size={12} /> Cancel anytime
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-100 px-3 py-1.5 text-[11px] font-medium text-gray-600">
+                <RotateCcw size={12} className="text-gray-400" /> Cancel anytime
               </span>
             )}
-            <span className="inline-flex items-center gap-1">
-              <Check size={12} /> Activates immediately
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-100 px-3 py-1.5 text-[11px] font-medium text-gray-600">
+              <Check size={12} className="text-gray-400" /> Activates immediately
             </span>
           </div>
 
           {/* Cancel + Confirm row (v17.7) — stacked on mobile */}
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2.5">
             <Link
               href="/products"
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition sm:w-1/3"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition sm:w-1/3"
             >
               Cancel
             </Link>
@@ -386,7 +427,7 @@ export default function ProductCheckoutPage() {
               type="button"
               onClick={() => handleConfirm(product)}
               disabled={submitting}
-              className={'btn-primary flex-1 flex items-center justify-center gap-2 py-3 text-base ' + (submitting ? 'opacity-60 cursor-not-allowed' : '')}
+              className={'btn-primary flex-1 flex items-center justify-center gap-2 py-3 text-base shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5 ' + (submitting ? 'opacity-60 cursor-not-allowed hover:translate-y-0' : '')}
             >
               {submitting ? (
                 <>
@@ -404,8 +445,8 @@ export default function ProductCheckoutPage() {
             By confirming, you authorize Limud to activate the {product.name} on your account.
             {billingMode === 'monthly' ? ' You can cancel anytime from your subscriptions page.' : ''}
           </p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </PageShell>
   );
 }

@@ -26,6 +26,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Package,
@@ -61,6 +62,7 @@ import {
   type BundleDef,
   type BundleProductId,
 } from '@/lib/bundles';
+import { fadeUp, scaleIn, staggerContainer, revealGroup } from '@/lib/motion';
 
 function isBillingMode(value: string | null): value is BillingMode {
   return value === 'oneTime' || value === 'monthly';
@@ -230,21 +232,26 @@ export default function BundleCheckoutPage() {
   if (!bundle) {
     return (
       <PageShell>
-        <div className="card max-w-lg mx-auto text-center space-y-4 p-8">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-gray-400 to-gray-500 text-white flex items-center justify-center">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={scaleIn}
+          className="card max-w-lg mx-auto text-center space-y-4 p-8 shadow-elev-3 rounded-2xl"
+        >
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-gray-400 to-gray-500 text-white flex items-center justify-center shadow-elev-2">
             <Package size={26} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Bundle not found</h1>
+          <h1 className="text-2xl font-display font-bold text-gray-900">Bundle not found</h1>
           <p className="text-sm text-gray-500">
             We couldn&apos;t find a bundle with id <span className="font-mono text-gray-700">{bundleId}</span>.
           </p>
           <Link
             href="/products"
-            className="btn-primary inline-flex items-center gap-2 mx-auto"
+            className="btn-primary inline-flex items-center gap-2 mx-auto shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5"
           >
             Browse bundles <ArrowRight size={16} />
           </Link>
-        </div>
+        </motion.div>
       </PageShell>
     );
   }
@@ -334,10 +341,15 @@ export default function BundleCheckoutPage() {
   if (status === 'loading') {
     return (
       <PageShell>
-        <div className="card max-w-lg mx-auto text-center p-10">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={scaleIn}
+          className="card max-w-lg mx-auto text-center p-10 shadow-elev-3 rounded-2xl"
+        >
           <Loader2 size={28} className="mx-auto animate-spin text-primary-600" />
           <p className="mt-3 text-sm text-gray-500">Loading…</p>
-        </div>
+        </motion.div>
       </PageShell>
     );
   }
@@ -347,17 +359,22 @@ export default function BundleCheckoutPage() {
     const callbackUrl = `/products/bundle/${bundle.id}/checkout?billing=${billingMode}`;
     return (
       <PageShell>
-        <div className="card max-w-lg mx-auto text-center space-y-4 p-8">
-          <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${bundle.ring} text-white flex items-center justify-center`}>
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={scaleIn}
+          className="card max-w-lg mx-auto text-center space-y-4 p-8 shadow-elev-3 rounded-2xl"
+        >
+          <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${bundle.ring} text-white flex items-center justify-center shadow-elev-2`}>
             <Lock size={26} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Log in to purchase</h1>
+          <h1 className="text-2xl font-display font-bold text-gray-900">Log in to purchase</h1>
           <p className="text-sm text-gray-500">
             Sign in to add the <span className="font-semibold text-gray-800">{bundle.name}</span> to your account.
           </p>
           <Link
             href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-            className="btn-primary inline-flex items-center gap-2 mx-auto"
+            className="btn-primary inline-flex items-center gap-2 mx-auto shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5"
           >
             Log in <ArrowRight size={16} />
           </Link>
@@ -365,7 +382,7 @@ export default function BundleCheckoutPage() {
             Don&apos;t have an account?{' '}
             <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">Create one</Link>
           </p>
-        </div>
+        </motion.div>
       </PageShell>
     );
   }
@@ -374,33 +391,44 @@ export default function BundleCheckoutPage() {
   if (confirmed) {
     return (
       <PageShell>
-        <div className="card max-w-xl mx-auto text-center space-y-5 p-8">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white flex items-center justify-center">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={staggerContainer}
+          className="card max-w-xl mx-auto text-center space-y-5 p-8 shadow-elev-3 rounded-2xl"
+        >
+          <motion.div
+            variants={scaleIn}
+            className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white flex items-center justify-center shadow-elev-2"
+          >
             <Check size={30} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">You&apos;re all set!</h1>
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <h1 className="text-3xl font-display font-bold text-gray-900">You&apos;re all set!</h1>
             <p className="text-sm text-gray-500 mt-2">
               The <span className="font-semibold text-gray-800">{bundle.name}</span> is now on your account.
             </p>
-          </div>
+          </motion.div>
 
           {/* v17.7: deep-link each bundled tool so the user can jump straight
               into any one instead of trudging back through /account or
               /products to find them. */}
-          <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-4 text-left">
-            <p className="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-3">
+          <motion.div
+            variants={fadeUp}
+            className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-4 text-left shadow-elev-1"
+          >
+            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-3">
               Jump into your tools
             </p>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <motion.ul {...revealGroup} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {bundle.productIds.map((pid) => {
                 const name = BUNDLE_PRODUCT_NAMES[pid];
                 const href = BUNDLE_PRODUCT_HREFS[pid];
                 return (
-                  <li key={pid}>
+                  <motion.li key={pid} variants={fadeUp}>
                     <Link
                       href={href}
-                      className="group flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-primary-300 hover:shadow-sm"
+                      className="group flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-primary-300 hover:shadow-elev-2 hover:-translate-y-0.5"
                     >
                       <span
                         className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm bg-gradient-to-br ${bundle.ring} flex-shrink-0`}
@@ -416,16 +444,16 @@ export default function BundleCheckoutPage() {
                         className="text-gray-300 group-hover:text-primary-500 transition flex-shrink-0"
                       />
                     </Link>
-                  </li>
+                  </motion.li>
                 );
               })}
-            </ul>
-          </div>
+            </motion.ul>
+          </motion.div>
 
-          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
             <Link
               href="/account/subscriptions"
-              className="btn-primary inline-flex items-center justify-center gap-2"
+              className="btn-primary inline-flex items-center justify-center gap-2 shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5"
             >
               View my subscriptions <ArrowRight size={16} />
             </Link>
@@ -435,8 +463,8 @@ export default function BundleCheckoutPage() {
             >
               <Sparkles size={16} /> Browse more
             </Link>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </PageShell>
     );
   }
@@ -444,15 +472,20 @@ export default function BundleCheckoutPage() {
   // ---- Confirmation state ----
   return (
     <PageShell>
-      <div className="max-w-xl mx-auto">
+      <motion.div
+        className="max-w-xl mx-auto"
+        initial="hidden"
+        animate="show"
+        variants={staggerContainer}
+      >
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${bundle.ring} text-white flex items-center justify-center shadow-lg`}>
+        <motion.div variants={fadeUp} className="text-center mb-6">
+          <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${bundle.ring} text-white flex items-center justify-center shadow-elev-2`}>
             <Package size={26} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mt-4">Confirm your bundle</h1>
+          <h1 className="text-3xl font-display font-bold text-gray-900 mt-4">Confirm your bundle</h1>
           <p className="text-sm text-gray-500 mt-2">Review the details below, then activate.</p>
-        </div>
+        </motion.div>
 
         {/* v17.7: already-owned warning. Loud enough to actually catch eyes
             but not blocking — the existing duplicate-purchase guard on the
@@ -461,7 +494,7 @@ export default function BundleCheckoutPage() {
         {alreadyOwned && (
           <div
             role="alert"
-            className="mb-4 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 flex items-start gap-3"
+            className="mb-4 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 flex items-start gap-3 shadow-elev-1"
           >
             <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="min-w-0">
@@ -498,7 +531,7 @@ export default function BundleCheckoutPage() {
         {hasPartialOverlap && (
           <div
             role="alert"
-            className="mb-4 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 flex items-start gap-3"
+            className="mb-4 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 flex items-start gap-3 shadow-elev-1"
           >
             <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="min-w-0">
@@ -529,7 +562,7 @@ export default function BundleCheckoutPage() {
         )}
 
         {/* Bundle card */}
-        <div className="card space-y-5 p-6">
+        <motion.div variants={scaleIn} className="card shadow-elev-3 rounded-2xl p-7 sm:p-8 space-y-6">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -557,17 +590,19 @@ export default function BundleCheckoutPage() {
           </div>
 
           {/* Price */}
-          <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between">
+          <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-5 shadow-elev-1 flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-wide text-gray-400 font-semibold">
+              <p className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold">
                 {billingMode === 'monthly' ? 'Monthly subscription' : 'One-time purchase'}
               </p>
-              <p className="text-3xl font-extrabold text-gray-900 mt-1">
-                ${price}
-                <span className="text-sm text-gray-400 font-normal">{cadenceLabel}</span>
+              <p className="mt-1.5 flex items-baseline gap-2 flex-wrap">
+                <span className="text-4xl sm:text-5xl font-display font-bold text-gray-900 tabular-nums leading-none">
+                  ${price}
+                </span>
+                <span className="text-sm text-gray-400 font-medium">{cadenceLabel}</span>
               </p>
               {priceIsOverride && (
-                <p className="text-[11px] font-medium text-amber-700 mt-1">
+                <p className="text-[11px] font-medium text-amber-700 mt-2">
                   Updated pricing — was ${staticPrice}, now ${price}.
                 </p>
               )}
@@ -576,9 +611,9 @@ export default function BundleCheckoutPage() {
               <p className="text-[11px] text-gray-400 mt-1">{altLabel}</p>
             </div>
             {savingsLabel ? (
-              <div className="text-right">
-                <p className="text-xs text-gray-400">Save</p>
-                <p className="text-lg font-bold text-green-600">{savingsLabel}</p>
+              <div className="text-right flex-shrink-0 rounded-xl bg-green-50 border border-green-100 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-green-600/80 font-semibold">Save</p>
+                <p className="text-lg font-display font-bold text-green-600 tabular-nums leading-tight">{savingsLabel}</p>
                 <p className="text-[10px] text-gray-400">vs. separate</p>
               </div>
             ) : null}
@@ -587,14 +622,15 @@ export default function BundleCheckoutPage() {
           {/* Included tools — v17.7: render with the same lucide icon style
               as the main /products grid so the surfaces feel cohesive. */}
           <div>
-            <p className="text-xs uppercase tracking-wide text-gray-400 font-semibold mb-2">
+            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-semibold mb-2.5">
               Included tools ({productNames.length})
             </p>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <motion.ul {...revealGroup} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {bundle.productIds.map((pid) => (
-                <li
+                <motion.li
                   key={pid}
-                  className="flex items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50/60 px-2.5 py-2"
+                  variants={fadeUp}
+                  className="flex items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50/60 px-2.5 py-2 transition hover:border-gray-200 hover:bg-white"
                 >
                   <span
                     className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm bg-gradient-to-br ${bundle.ring} flex-shrink-0`}
@@ -604,14 +640,14 @@ export default function BundleCheckoutPage() {
                   <span className="text-sm font-medium text-gray-800 truncate">
                     {BUNDLE_PRODUCT_NAMES[pid]}
                   </span>
-                </li>
+                </motion.li>
               ))}
-            </ul>
+            </motion.ul>
           </div>
 
           {/* v17.7: refund/cancel clarity. Two explicit lines so neither
               cadence's terms are buried in a paragraph. */}
-          <div className="rounded-xl border border-gray-100 bg-white p-3 text-[11px] text-gray-600 space-y-1.5">
+          <div className="rounded-xl border border-gray-100 bg-white p-3.5 text-[11px] text-gray-600 space-y-1.5 shadow-elev-1">
             {billingMode === 'monthly' ? (
               <>
                 <p className="flex items-start gap-2">
@@ -647,10 +683,10 @@ export default function BundleCheckoutPage() {
 
           {/* v17.7: two-button row — cancel + confirm — so the exit lane is
               as obvious as the commit lane. */}
-          <div className="grid grid-cols-1 sm:grid-cols-[auto,1fr] gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-[auto,1fr] gap-2.5">
             <Link
               href="/products"
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition"
             >
               Cancel
             </Link>
@@ -658,7 +694,7 @@ export default function BundleCheckoutPage() {
               type="button"
               onClick={() => handleConfirm(bundle)}
               disabled={submitting}
-              className={`btn-primary w-full flex items-center justify-center gap-2 py-3 text-base ${submitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`btn-primary w-full flex items-center justify-center gap-2 py-3 text-base shadow-elev-2 hover:shadow-elev-3 hover:-translate-y-0.5 ${submitting ? 'opacity-60 cursor-not-allowed hover:translate-y-0' : ''}`}
             >
               {submitting ? (
                 <>
@@ -674,29 +710,29 @@ export default function BundleCheckoutPage() {
 
           {/* v17.7: trust strip — three short reassurances that travel with
               every checkout surface. */}
-          <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11px] text-gray-500 pt-1">
-            <li className="inline-flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-100 px-3 py-1.5 text-[11px] font-medium text-gray-600">
               <Lock size={12} className="text-gray-400" /> No credit card
-            </li>
-            <li className="inline-flex items-center gap-1.5">
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-100 px-3 py-1.5 text-[11px] font-medium text-gray-600">
               <RotateCcw size={12} className="text-gray-400" /> Cancel anytime (monthly)
-            </li>
-            <li className="inline-flex items-center gap-1.5">
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-100 px-3 py-1.5 text-[11px] font-medium text-gray-600">
               <Zap size={12} className="text-gray-400" /> Activates immediately
-            </li>
-          </ul>
+            </span>
+          </div>
 
           <p className="text-[11px] text-gray-400 text-center">
             By confirming, you authorize Limud to activate the {bundle.name} on your account.
           </p>
-        </div>
+        </motion.div>
 
         <div className="text-center mt-4">
           <Link href="/products" className="text-sm text-gray-500 hover:text-gray-700">
             Back to bundles
           </Link>
         </div>
-      </div>
+      </motion.div>
     </PageShell>
   );
 }

@@ -50,8 +50,13 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-body)', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Inter', 'system-ui', 'sans-serif'],
         dyslexia: ['OpenDyslexic', 'Comic Sans MS', 'sans-serif'],
+      },
+      transitionTimingFunction: {
+        'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'spring': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
       },
       animation: {
         'bounce-slow': 'bounce 2s infinite',
@@ -82,6 +87,11 @@ module.exports = {
         'glow-sm': '0 0 10px -1px rgba(59, 130, 246, 0.3)',
         'glow': '0 0 20px -2px rgba(59, 130, 246, 0.4)',
         'glow-lg': '0 0 30px -4px rgba(59, 130, 246, 0.5)',
+        // v18 premium elevation — soft, layered, low-opacity
+        'elev-1': '0 1px 2px -1px rgb(15 23 42 / 0.08), 0 1px 3px rgb(15 23 42 / 0.06)',
+        'elev-2': '0 2px 4px -2px rgb(15 23 42 / 0.08), 0 4px 12px -2px rgb(15 23 42 / 0.08)',
+        'elev-3': '0 8px 24px -6px rgb(15 23 42 / 0.12), 0 2px 6px -2px rgb(15 23 42 / 0.08)',
+        'elev-4': '0 24px 48px -12px rgb(15 23 42 / 0.18), 0 8px 16px -8px rgb(15 23 42 / 0.10)',
       },
       spacing: {
         '18': '4.5rem',
