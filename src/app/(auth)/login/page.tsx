@@ -3,7 +3,7 @@
 import { signIn } from 'next-auth/react';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Eye, EyeOff, ShieldCheck } from 'lucide-react';
@@ -53,8 +53,12 @@ const OTP_TTL_SECONDS = 300;
 const OTP_RESEND_COOLDOWN_SECONDS = 30;
 
 function LoginPageInner() {
-  // R10: respect prefers-reduced-motion — gates all motion.* prop sets below.
-  const reduced = useReducedMotion();
+  // v17.12: motion reveals below are UNCONDITIONAL (initial + animate) so SSR and
+  // client render identical HTML. Reduced-motion handling is done two ways that
+  // don't depend on the SSR-unsafe useReducedMotion() hook: the app-level
+  // <MotionConfig reducedMotion="user"> strips transforms, and the global
+  // `[data-lp-reveal]` CSS safety net force-shows these blocks (incl. the login
+  // form) so they can never be stranded at opacity:0. See globals.css.
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -420,9 +424,10 @@ function LoginPageInner() {
 
           <div className="flex-1 flex flex-col justify-center max-w-md">
             <motion.div
-              initial={reduced ? false : { opacity: 0, y: 20 }}
-              animate={reduced ? {} : { opacity: 1, y: 0 }}
-              transition={reduced ? { duration: 0 } : { delay: 0.2 }}
+              data-lp-reveal
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
             >
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white/90 px-3 py-1.5 rounded-full text-sm font-medium mb-6">
                 <Sparkles size={14} />
@@ -437,9 +442,10 @@ function LoginPageInner() {
             </motion.div>
 
             <motion.div
-              initial={reduced ? false : { opacity: 0, y: 20 }}
-              animate={reduced ? {} : { opacity: 1, y: 0 }}
-              transition={reduced ? { duration: 0 } : { delay: 0.4 }}
+              data-lp-reveal
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
               className="mt-12 space-y-4"
             >
               {[
@@ -464,9 +470,9 @@ function LoginPageInner() {
       {/* Right side - Login form */}
       <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
         <motion.div
-          initial={reduced ? false : { opacity: 0, y: 20 }}
-          animate={reduced ? {} : { opacity: 1, y: 0 }}
-          transition={reduced ? { duration: 0 } : undefined}
+          data-lp-reveal
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
           {/* Mobile logo */}

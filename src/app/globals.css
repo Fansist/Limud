@@ -142,6 +142,22 @@ h1 { letter-spacing: -0.035em; }
 .spotlight-card:hover::after { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob { animation: none; }
+
+  /* v17.12 — reduced-motion visibility safety net for landing reveals.
+     Framer sets an inline `opacity:0` as the entrance's initial state; the
+     reveal animation then fades it to 1. But reduced-motion users get no motion
+     anyway, and if that animation is ever deferred or throttled (e.g. a tab that
+     loads in the background), the content would be stranded at opacity:0 — the
+     "blank below the hero" bug. `!important` overrides Framer's inline style, so
+     these users see the content immediately, with zero dependence on JS, the
+     IntersectionObserver, or tab visibility. Scoped to the tagged reveal wrappers
+     and their DIRECT children only (the grid cards / hero items), so it can never
+     force-show deep toggle UI such as a collapsed FAQ panel. */
+  [data-lp-reveal],
+  [data-lp-reveal] > * {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 /* Scroll margin for anchor links (avoid navbar overlap) */

@@ -4,6 +4,43 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.12.0] - 2026-07-12 — Fix: blank landing page & invisible login form under reduced motion
+
+A `prefers-reduced-motion` regression left the marketing landing page blank below the
+hero, and the login form invisible, for reduced-motion users (a large share of real
+devices — accessibility settings, corporate machines, battery savers). This is the
+public-facing centerpiece for the Congressional App Challenge submission, so it had to
+be bulletproof. Root cause and reasoning are documented inline in the changed files.
+
+### Fixed
+- **Landing page rendered blank below the hero for reduced-motion users.** Every
+  `<Section>` and the hero mini-dashboard gated their reveal on `useReducedMotion()`
+  inside `initial`/`animate`. That hook returns `false` during SSR (the server has no
+  media query) but `true` on a reduced-motion client, so the server baked `opacity:0`
+  into the HTML and the client then hydrated with `initial={false}` — which tells Framer
+  "the current DOM state IS the resting state" and permanently adopts the SSR `opacity:0`
+  with no target to animate to. Whole sections (background bands included) stayed
+  transparent, and React logged a hydration mismatch. Reveals are now UNCONDITIONAL
+  (identical SSR/client HTML, no mismatch) and trigger on mount via `animate` — the same
+  reliable mechanism the always-visible hero already used.
+- **Login form was invisible for reduced-motion users** — the identical trap wrapped the
+  entire `w-full max-w-md` sign-in column, so a reduced-motion visitor (or a CAC judge)
+  had no visible login form at all. Fixed the same way.
+- Added a global `@media (prefers-reduced-motion: reduce)` CSS safety net
+  (`[data-lp-reveal]`) that force-shows the tagged reveal wrappers and their direct
+  children with `!important`, overriding Framer's inline `opacity:0`. Content is now
+  guaranteed visible for reduced-motion users even if the entrance animation never runs
+  (backgrounded tab, throttled rAF) — zero dependence on JS, the IntersectionObserver,
+  or tab visibility. Scoped to direct children only, so it never force-shows deep toggle
+  UI such as a collapsed FAQ panel (verified).
+
+### Changed
+- Landing reveals moved from scroll-triggered (`whileInView`/`useInView`) to
+  mount-triggered (`animate`). Added a reusable `revealGroupOnMount` to
+  `src/lib/motion.ts` for staggered groups that must reveal regardless of scroll.
+
+---
+
 ## [17.8.3] - 2026-07-08 — Bug-fix sweep: FERPA leaks, demo-mode crashes, type errors, test toolchain
 
 A find-and-fix pass surfaced by a multi-agent audit (backend security, frontend,

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { motion, useInView, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { useRef, useState, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import {
   BookOpen, BarChart3, GraduationCap,
   Shield, Users, Brain, Sparkles, ArrowRight,
@@ -13,7 +13,7 @@ import {
   Upload, Headphones, Hand, Focus, Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { fadeUp, fadeUpSm, staggerContainerSlow, revealGroup, pressable } from '@/lib/motion';
+import { fadeUp, fadeUpSm, staggerContainerSlow, revealGroupOnMount, pressable } from '@/lib/motion';
 import Aurora from '@/components/ui/Aurora';
 import SpotlightCard from '@/components/ui/SpotlightCard';
 import AuthAwareCTA, { dashboardHrefFor } from '@/components/AuthAwareCTA';
@@ -22,19 +22,35 @@ import { useSession } from 'next-auth/react';
 /* ── Helpers ────────────────────────────────────────────────── */
 
 function Section({ children, className = '', id }: { children: React.ReactNode; className?: string; id?: string }) {
-  // R10: respect prefers-reduced-motion in each motion sub-component.
-  const reduced = useReducedMotion();
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-60px' });
   return (
     // v15.1: `scroll-mt-20` (= scroll-margin-top: 5rem) so the fixed top nav
     // doesn't cover the section heading when anchor links scroll into view.
-    // Was the cause of "the nav headers don't work" — they DID work, they
-    // just landed underneath the 64px fixed nav so the heading was hidden.
-    <motion.section ref={ref} id={id}
-      initial={reduced ? false : { opacity: 0, y: 30 }}
-      animate={reduced ? {} : (isInView ? { opacity: 1, y: 0 } : {})}
-      transition={reduced ? { duration: 0 } : { duration: 0.5, ease: 'easeOut' }}
+    //
+    // v17.12 FIX — "blank below the hero" for prefers-reduced-motion users.
+    // The reveal used to gate BOTH the resting state and the trigger on
+    // `useReducedMotion()`. That hook returns `false` during SSR (the server
+    // can't read a media query) but `true` on a reduced-motion client, so the
+    // server baked `opacity:0` into the HTML and the client then hydrated with
+    // `initial={false}` — which tells Framer "the current DOM state IS the
+    // resting state" and permanently adopts that SSR `opacity:0`. Every section
+    // below the hero stayed invisible for reduced-motion users (a large share of
+    // devices/corporate machines), and React logged a hydration mismatch.
+    //
+    // The fix has two parts. (1) Keep `initial` UNCONDITIONAL so server and client
+    // render identical HTML (no hydration mismatch). (2) Reveal on MOUNT via
+    // `animate` rather than on scroll via `whileInView`/`useInView`. Scroll-based
+    // IntersectionObserver reveals proved unreliable under prefers-reduced-motion
+    // (they never fired, leaving sections stuck at opacity:0), while mount-triggered
+    // `animate` is exactly what the always-visible hero uses. The app-level
+    // <MotionConfig reducedMotion="user"> in Providers.tsx still strips the
+    // transform for reduced-motion users, so they get a pure opacity fade.
+    // Below-the-fold sections finish their reveal before they're scrolled to —
+    // standard, premium, and guaranteed never blank.
+    <motion.section id={id}
+      data-lp-reveal
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
       className={`scroll-mt-20 ${className}`}>
       {children}
     </motion.section>
@@ -83,8 +99,6 @@ function FAQItem({ q, a, index }: { q: string; a: React.ReactNode; index: number
    ============================================================ */
 
 export default function LandingPage() {
-  // R10: respect prefers-reduced-motion — gates the hero motion.divs below.
-  const reduced = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   // v16.4: session-aware so we can swap "Sign In / Start Free" for a
   // dashboard link when the visitor is already logged in.
@@ -248,6 +262,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50/40 via-transparent to-blue-50/30" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <motion.div
+            data-lp-reveal
             variants={staggerContainerSlow}
             initial="hidden"
             animate="show"
@@ -290,9 +305,10 @@ export default function LandingPage() {
 
           {/* Mini dashboard preview — Sylvester's view */}
           <motion.div
-            initial={reduced ? false : { opacity: 0, y: 40 }}
-            animate={reduced ? {} : { opacity: 1, y: 0 }}
-            transition={reduced ? { duration: 0 } : { duration: 0.6, delay: 0.2 }}
+            data-lp-reveal
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-14 max-w-3xl mx-auto"
           >
             <div className="bg-white rounded-2xl shadow-elev-4 border border-gray-200/60 overflow-hidden">
@@ -377,7 +393,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Sylvester</strong> &mdash; Neurodiversity, Engagement &amp; Cognitive Load Reduction</p>
               </div>
             </div>
-            <motion.div {...revealGroup} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <motion.div data-lp-reveal {...revealGroupOnMount} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { icon: <Brain size={20} />, title: '"Learning DNA" Onboarding', desc: 'A frictionless survey about hobbies, interests, and learning preferences (auditory, visual, physical). Builds a cognitive profile that improves over time.', color: 'bg-purple-100 text-purple-600' },
                 { icon: <Sparkles size={20} />, title: 'Adaptive Assignments', desc: 'Opens a history assignment and the AI has already adapted it into an auditory, interactive lesson tailored to their profile. No two students see the same thing.', color: 'bg-blue-100 text-blue-600' },
@@ -406,7 +422,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Mrs. Osher</strong> &mdash; Automation, Universal Differentiation &amp; Intervention</p>
               </div>
             </div>
-            <motion.div {...revealGroup} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div data-lp-reveal {...revealGroupOnMount} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { icon: <Upload size={20} />, title: 'Single-Source Uploading', desc: 'Upload one standard baseline assignment. Limud auto-generates individualized versions for auditory, visual, and kinesthetic learners.', color: 'bg-green-100 text-green-600' },
                 { icon: <Lightbulb size={20} />, title: 'AI Quiz Generation', desc: 'Instantly generate curriculum-aligned quizzes using built-in topic banks for quick knowledge checks.', color: 'bg-amber-100 text-amber-600' },
@@ -433,7 +449,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Superintendent Ofer</strong> &mdash; High-Level Analytics, Compliance &amp; ROI</p>
               </div>
             </div>
-            <motion.div {...revealGroup} className="grid sm:grid-cols-3 gap-4">
+            <motion.div data-lp-reveal {...revealGroupOnMount} className="grid sm:grid-cols-3 gap-4">
               {[
                 { icon: <LayoutDashboard size={20} />, title: 'The Command Center', desc: 'See district health at a glance — example district: 247 active students, 18 teachers, $12,000 annual cost. One dashboard, zero confusion.', color: 'bg-slate-100 text-slate-600' },
                 { icon: <Users size={20} />, title: 'Frictionless Management', desc: 'Bulk-import users via CSV and broadcast cross-role announcements that instantly ping teacher, student, and parent portals.', color: 'bg-blue-100 text-blue-600' },
@@ -459,7 +475,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>David Betzalel</strong> &mdash; transparency and plain-English reporting, whether his kid is in a district school or learning at home</p>
               </div>
             </div>
-            <motion.div {...revealGroup} className="grid sm:grid-cols-2 gap-4">
+            <motion.div data-lp-reveal {...revealGroupOnMount} className="grid sm:grid-cols-2 gap-4">
               {[
                 { icon: <Sparkles size={20} />, title: 'The AI Check-In', desc: 'Instead of deciphering complex grade books, David clicks one button and receives a plain-English, conversational summary of his kid\'s academic performance, emotional engagement, and study habits.', color: 'bg-rose-100 text-rose-600' },
                 { icon: <Home size={20} />, title: 'Family Teaching Mode', desc: 'A parent who teaches at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload, and per-child analytics. Same single account.', color: 'bg-amber-100 text-amber-600' },

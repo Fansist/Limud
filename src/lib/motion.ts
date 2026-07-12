@@ -93,6 +93,24 @@ export const revealGroup = {
   variants: staggerContainer,
 };
 
+/**
+ * Mount-triggered staggered reveal (parent gets this, children get variants).
+ *
+ * Use INSTEAD of `revealGroup` when the content MUST become visible even if an
+ * IntersectionObserver-based scroll trigger never fires. In production under
+ * `prefers-reduced-motion`, `whileInView` reveals proved unreliable and left
+ * whole sections stuck at `opacity:0` (the "blank below the hero" bug). This
+ * variant animates on MOUNT — the same trigger the always-visible hero uses — so
+ * the reveal is guaranteed. Below-the-fold groups simply finish their stagger
+ * before they're scrolled into view. Reduced-motion users still get the opacity
+ * fade because <MotionConfig reducedMotion="user"> only strips the transforms.
+ */
+export const revealGroupOnMount = {
+  initial: 'hidden' as const,
+  animate: 'show' as const,
+  variants: staggerContainer,
+};
+
 /** Tasteful press feedback for interactive cards/buttons (pair with whileHover). */
 export const pressable = {
   whileHover: { y: -3, transition: { duration: 0.24, ease: easeOutExpo } },
