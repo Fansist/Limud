@@ -403,8 +403,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const buildHref = (href: string) => isDemo ? `${href}?demo=true` : href;
 
-  // Show floating AI button for students (replaced by AI Navigator)
-  const showFAB = false; // Disabled — replaced by AI Navigator
   const showNavigator = role === 'STUDENT';
 
   return (
@@ -875,17 +873,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             );
           })}
         </nav>
-
-        {/* ─── Floating AI Button (Students only) ─── */}
-        {showFAB && (
-          <Link
-            href={buildHref('/student/tutor')}
-            className="fab lg:hidden"
-            aria-label="Ask AI Tutor"
-          >
-            <MessageCircle size={24} />
-          </Link>
-        )}
 
         {/* ─── AI Navigator (Students only) ─── */}
         {showNavigator && <AINavigator />}

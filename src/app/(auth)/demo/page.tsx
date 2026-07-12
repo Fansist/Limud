@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { DEMO_CREDENTIALS } from '@/lib/demo-data';
 import AnonShell from '@/components/layout/AnonShell';
+import { dashboardPathForRole } from '@/lib/dashboard-paths';
 
 const ROLE_CONFIG: Record<string, { icon: any; color: string; bg: string; desc: string }> = {
   Student: {
@@ -60,18 +61,6 @@ const DEMO_EMAIL_ROLES: Record<string, string> = {
   // and has its own login path via the Master Demo button on /login
 };
 
-function getDashboardPath(role?: string): string {
-  switch (role?.toUpperCase()) {
-    case 'STUDENT': return '/student/dashboard';
-    case 'TEACHER': return '/teacher/dashboard';
-    case 'ADMIN': return '/admin/dashboard';
-    case 'PARENT': return '/parent/dashboard';
-    // v17.1: OWNER elevation (when a demo button hits an OWNER account)
-    // routes to /owner instead of falling through to /student/dashboard.
-    case 'OWNER': return '/owner';
-    default: return '/student/dashboard';
-  }
-}
 
 export default function DemoPage() {
   const router = useRouter();
@@ -107,7 +96,7 @@ export default function DemoPage() {
         // Auth succeeded — use known role mapping for instant redirect
         const knownRole = DEMO_EMAIL_ROLES[email.toLowerCase()];
         if (knownRole) {
-          router.push(`${getDashboardPath(knownRole)}?demo=true`);
+          router.push(`${dashboardPathForRole(knownRole)}?demo=true`);
           router.refresh();
         } else {
           // Fallback: try from DEMO_CREDENTIALS

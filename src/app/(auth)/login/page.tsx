@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { MASTER_DEMO_EMAIL, MASTER_DEMO_PASSWORD } from '@/lib/demo-accounts';
+import { dashboardPathForRole } from '@/lib/dashboard-paths';
 
 // Master demo credentials kept for the typed-in path (no on-page button).
 // The demo grid was removed in v3.1 to lead with the real product.
@@ -17,22 +18,6 @@ const MASTER_DEMO = {
   dashRole: 'TEACHER',
 };
 
-/**
- * Determine the dashboard path from a role string
- */
-function getDashboardPath(role?: string): string {
-  switch (role?.toUpperCase()) {
-    case 'STUDENT': return '/student/dashboard';
-    case 'TEACHER': return '/teacher/dashboard';
-    case 'ADMIN': return '/admin/dashboard';
-    case 'PARENT': return '/parent/dashboard';
-    // v17: OWNER landing is at /owner (Finances + Prices cards).
-    case 'OWNER': return '/owner';
-    // v17.1: unknown roles fall to '/', not /student/dashboard — the latter
-    // creates a middleware redirect loop for any non-STUDENT session.
-    default: return '/';
-  }
-}
 
 /**
  * Known demo email → role mapping for immediate client-side redirect
@@ -235,7 +220,7 @@ function LoginPageInner() {
       try {
         await fetch('/api/auth/session', { cache: 'no-store' });
       } catch {}
-      router.push(safeCallbackUrl ?? getDashboardPath('OWNER'));
+      router.push(safeCallbackUrl ?? dashboardPathForRole('OWNER'));
       router.refresh();
       return 'ok';
     }
@@ -247,7 +232,7 @@ function LoginPageInner() {
         localStorage.removeItem('limud-demo-role');
       } catch {}
       // Redirect to teacher dashboard (default master role) without ?demo=true
-      router.push(safeCallbackUrl ?? getDashboardPath(MASTER_DEMO.dashRole));
+      router.push(safeCallbackUrl ?? dashboardPathForRole(MASTER_DEMO.dashRole));
       router.refresh();
       return 'ok';
     }
@@ -273,7 +258,7 @@ function LoginPageInner() {
     // Strategy 1: Use known demo email mapping (most reliable, no network call)
     const knownRole = DEMO_EMAIL_ROLES[normalizedEmail];
     if (knownRole) {
-      router.push(safeCallbackUrl ?? (getDashboardPath(knownRole) + demoParam));
+      router.push(safeCallbackUrl ?? (dashboardPathForRole(knownRole) + demoParam));
       router.refresh();
       return 'ok';
     }
@@ -285,7 +270,7 @@ function LoginPageInner() {
         const session = await res.json();
         const role = session?.user?.role;
         if (role) {
-          router.push(safeCallbackUrl ?? getDashboardPath(role));
+          router.push(safeCallbackUrl ?? dashboardPathForRole(role));
           router.refresh();
           return 'ok';
         }

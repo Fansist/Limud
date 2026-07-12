@@ -35,26 +35,10 @@ export type BundleProductId =
   | 'reading-decoder'
   | 'exam-postmortem';
 
-/**
- * Per-tool break-even point for a bundle.
- *
- * `perToolMonthly` is the raw `monthlyPrice / productIds.length` (rounded to
- * 2 decimals) so consumers can do math on it. `label` is a ready-to-render
- * one-liner like `"Effective $1.88/tool/month vs $4–5/tool individually"`.
- */
-export type CrossoverPrice = {
-  perToolMonthly: number;
-  label: string;
-};
-
 export type BundleDef = {
   id: BundleId;
   name: string;
   pitch: string;
-  /** One-sentence audience pitch in subject terms (who this bundle is for). */
-  subjectHint: string;
-  /** 2–3 short audience descriptors used as quick-glance tags. */
-  bestFor: readonly string[];
   productIds: BundleProductId[];
   oneTimePrice: number;
   monthlyPrice: number;
@@ -62,24 +46,17 @@ export type BundleDef = {
   savingsPctOneTime: number;
   /** Savings vs. the sum of the bundled products' monthly prices. */
   savingsPctMonthly: number;
-  /** Effective per-tool monthly cost — the break-even point vs. buying individually. */
-  crossoverPrice: CrossoverPrice;
   badge?: string;
   ring: string;
 };
 
-type BundleSeed = Omit<
-  BundleDef,
-  'savingsPctOneTime' | 'savingsPctMonthly' | 'crossoverPrice'
->;
+type BundleSeed = Omit<BundleDef, 'savingsPctOneTime' | 'savingsPctMonthly'>;
 
 const BUNDLE_SEEDS: BundleSeed[] = [
   {
     id: 'all-access',
     name: 'All-Access Pass',
     pitch: 'Every current product + every future product. The cheapest way to use more than two tools.',
-    subjectHint: 'For students balancing classes across every subject — STEM, writing, research, and language.',
-    bestFor: ['Heavy users', 'Multi-subject load', 'Long-term planning'],
     productIds: ['exam-study-helper','practice-generator','math-solver','essay-coach','notes-cleaner','lab-report-builder','citation-finder','language-lab','flashcard-forge','presentation-prep','code-companion','reading-decoder','exam-postmortem'],
     oneTimePrice: 79,
     monthlyPrice: 15,
@@ -90,8 +67,6 @@ const BUNDLE_SEEDS: BundleSeed[] = [
     id: 'study-bundle',
     name: 'Study Bundle',
     pitch: 'Everything you need the week before an exam — material rewriting, practice questions, and notes cleanup.',
-    subjectHint: 'For test-takers — covers studying, practicing, and organizing notes for any subject.',
-    bestFor: ['Test prep crunch', 'Note-takers', 'Quiz drillers'],
     productIds: ['exam-study-helper','practice-generator','notes-cleaner'],
     oneTimePrice: 15,
     monthlyPrice: 9,
@@ -101,8 +76,6 @@ const BUNDLE_SEEDS: BundleSeed[] = [
     id: 'writing-bundle',
     name: 'Writing Bundle',
     pitch: 'Coach your draft, find your sources, and clean your notes — for the essay-heavy classes.',
-    subjectHint: 'For essay-heavy classes — coaching, citations, and presentation prep in one.',
-    bestFor: ['English & history majors', 'Essay-driven classes', 'Public speaking'],
     productIds: ['essay-coach','citation-finder','notes-cleaner'],
     oneTimePrice: 12,
     monthlyPrice: 8,
@@ -112,8 +85,6 @@ const BUNDLE_SEEDS: BundleSeed[] = [
     id: 'stem-bundle',
     name: 'STEM Bundle',
     pitch: 'Hints when you get stuck on a math problem, feedback on your lab report drafts, and practice quizzes to drill the concepts — for the science / math grind.',
-    subjectHint: 'For STEM students — math hints, lab report critique, and timed practice quizzes.',
-    bestFor: ['AP science', 'Engineering track', 'Programming + math combo'],
     productIds: ['math-solver','lab-report-builder','practice-generator'],
     oneTimePrice: 14,
     monthlyPrice: 9,
@@ -143,21 +114,6 @@ function computeSavingsPct(listTotal: number, bundlePrice: number): number {
   return Math.round(raw * 10) / 10;
 }
 
-/**
- * Compute the per-tool break-even: `monthlyPrice / productIds.length`,
- * paired with a ready-to-render label that contrasts against the typical
- * individual per-tool monthly price range ($4–5).
- */
-function computeCrossoverPrice(
-  monthlyPrice: number,
-  toolCount: number,
-): CrossoverPrice {
-  const perToolMonthly =
-    toolCount > 0 ? Math.round((monthlyPrice / toolCount) * 100) / 100 : 0;
-  const label = `Effective $${perToolMonthly.toFixed(2)}/tool/month vs $4–5/tool individually`;
-  return { perToolMonthly, label };
-}
-
 export const BUNDLES: BundleDef[] = BUNDLE_SEEDS.map((seed) => {
   const oneTimeListTotal = sumProductPrices(seed.productIds, 'oneTimePrice');
   const monthlyListTotal = sumProductPrices(seed.productIds, 'monthlyPrice');
@@ -165,7 +121,6 @@ export const BUNDLES: BundleDef[] = BUNDLE_SEEDS.map((seed) => {
     ...seed,
     savingsPctOneTime: computeSavingsPct(oneTimeListTotal, seed.oneTimePrice),
     savingsPctMonthly: computeSavingsPct(monthlyListTotal, seed.monthlyPrice),
-    crossoverPrice: computeCrossoverPrice(seed.monthlyPrice, seed.productIds.length),
   };
 });
 
