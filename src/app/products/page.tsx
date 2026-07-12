@@ -1,6 +1,6 @@
 'use client';
 /**
- * Individual Products Catalog (v17.7 — QoL sweep)
+ * Individual Products Catalog (v17.7 - QoL sweep)
  *
  * Public-facing landing page for the standalone tools that any single
  * learner can use, with or without a district plan. Each product carries
@@ -45,6 +45,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AuthAwareCTA from '@/components/AuthAwareCTA';
+import Aurora from '@/components/ui/Aurora';
+import SpotlightCard from '@/components/ui/SpotlightCard';
 import { PRODUCTS, type Product, type ProductSubject } from '@/lib/products-catalog';
 import { PRODUCT_ICONS } from '@/lib/products-icons';
 import { BUNDLES, bundleSavingsPct, formatSavingsPct, type BundleDef } from '@/lib/bundles';
@@ -86,7 +88,7 @@ function formatPrice(p: number | null): string {
 
 /**
  * Derive a 1-line subject hint for a bundle. Hardcoded labels would drift if
- * a productId moves between bundles — instead, we group the bundle's
+ * a productId moves between bundles - instead, we group the bundle's
  * products by subject and pick a label that fits.
  */
 function bundleSubjectSummary(bundle: BundleDef): string {
@@ -96,7 +98,7 @@ function bundleSubjectSummary(bundle: BundleDef): string {
     if (p) subjects.add(p.subject);
   }
   // If a bundle covers (almost) every subject, treat it as "every subject"
-  // — All-Access carries all 7. The threshold is >=6 to absorb future
+  // - All-Access carries all 7. The threshold is >=6 to absorb future
   // additions without re-tuning the copy.
   const totalSubjects = new Set(PRODUCTS.map((p) => p.subject)).size;
   if (subjects.size >= Math.min(6, totalSubjects)) return 'Every subject';
@@ -122,7 +124,7 @@ function bundleSubjectSummary(bundle: BundleDef): string {
 
 export default function ProductsPage() {
   // Initial render is 'oneTime' so SSR/CSR match. The persisted value (if
-  // any) is hydrated in the effect below — that avoids hydration mismatch
+  // any) is hydrated in the effect below - that avoids hydration mismatch
   // warnings while still restoring the user's last choice.
   const [billing, setBilling] = useState<BillingMode>('oneTime');
   const { status } = useSession();
@@ -150,7 +152,7 @@ export default function ProductsPage() {
       const stored = window.localStorage.getItem(BILLING_MODE_STORAGE_KEY);
       if (isBillingMode(stored)) setBilling(stored);
     } catch {
-      // localStorage disabled (private mode, quota, etc.) — keep the default.
+      // localStorage disabled (private mode, quota, etc.) - keep the default.
     }
   }, []);
 
@@ -160,7 +162,7 @@ export default function ProductsPage() {
     try {
       window.localStorage.setItem(BILLING_MODE_STORAGE_KEY, billing);
     } catch {
-      // Silently ignore — the toggle still works for this session.
+      // Silently ignore - the toggle still works for this session.
     }
   }, [billing]);
 
@@ -238,7 +240,7 @@ export default function ProductsPage() {
   }, [ownedBundles]);
 
   // v17.7: scroll listener for the sticky bundles jump chip. We use an
-  // IntersectionObserver on the bundle section's bottom edge — once it
+  // IntersectionObserver on the bundle section's bottom edge - once it
   // scrolls out of view (i.e. the user has read past it) we surface the
   // chip so they can hop back without scrolling manually.
   useEffect(() => {
@@ -312,7 +314,7 @@ export default function ProductsPage() {
               District plans
             </Link>
             {/* v16.4: AuthAwareCTA replaces the hardcoded Sign in / Start free
-                pair — logged-in users see a Dashboard button. */}
+                pair - logged-in users see a Dashboard button. */}
             <AuthAwareCTA variant="topbar" callbackUrl="/products" />
           </div>
         </div>
@@ -336,11 +338,12 @@ export default function ProductsPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16">
         {/* Hero */}
-        <motion.section {...revealGroup} className="text-center mb-10 lg:mb-12">
+        <motion.section {...revealGroup} className="relative text-center mb-10 lg:mb-12">
+          <Aurora intensity={0.6} />
           <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-fuchsia-50 text-fuchsia-700 text-xs font-semibold border border-fuchsia-100 shadow-elev-1 mb-5">
             <Sparkles size={14} /> 13 tools · 4 bundles
           </motion.div>
-          <motion.h1 variants={fadeUp} className="mx-auto max-w-4xl text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight text-balance">
+          <motion.h1 variants={fadeUp} className="mx-auto max-w-4xl text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold text-gray-900 tracking-tighter text-balance">
             Single tools. <span className="bg-gradient-to-r from-primary-600 to-fuchsia-500 bg-clip-text text-transparent">Your choice how to pay.</span>
           </motion.h1>
           <motion.p variants={fadeUp} className="mt-5 max-w-2xl mx-auto text-lg text-gray-500 leading-relaxed">
@@ -364,11 +367,12 @@ export default function ProductsPage() {
               const price = billing === 'oneTime' ? p.oneTimePrice : p.monthlyPrice;
               const unit = billing === 'oneTime' ? p.oneTimeUnit : 'per month';
               return (
-                <motion.article
+                <SpotlightCard
+                  as={motion.article}
                   key={p.id}
                   variants={fadeUpSm}
                   {...pressable}
-                  className="rounded-3xl border border-primary-100 ring-1 ring-primary-200/60 bg-gradient-to-br from-white to-primary-50/40 shadow-elev-2 hover:shadow-elev-3 transition-shadow p-7 flex flex-col"
+                  className="rounded-3xl border border-primary-100 ring-1 ring-primary-300/70 bg-gradient-to-br from-white to-primary-50/40 shadow-elev-2 hover:shadow-elev-4 transition-shadow p-7 flex flex-col"
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <div
@@ -409,7 +413,7 @@ export default function ProductsPage() {
                       Buy
                     </Link>
                   </div>
-                </motion.article>
+                </SpotlightCard>
               );
             })}
           </motion.div>
@@ -493,7 +497,7 @@ export default function ProductsPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search tools..."
               aria-label="Search products by name or description"
-              className="w-full pl-9 pr-3 py-2.5 rounded-xl border-2 border-gray-100 bg-white text-sm shadow-elev-1 focus:outline-none focus:border-primary-300 transition"
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl border-2 border-gray-100 bg-white text-sm shadow-elev-1 hover:border-gray-200 focus:outline-none focus:border-primary-300 focus:shadow-elev-2 transition"
             />
           </div>
           <div className="flex gap-2 overflow-x-auto flex-nowrap pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:justify-center scrollbar-thin">
@@ -508,8 +512,8 @@ export default function ProductsPage() {
                   className={
                     'px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition border-2 ' +
                     (active
-                      ? 'bg-gray-900 text-white border-gray-900 shadow-elev-1'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-gray-900')
+                      ? 'bg-gray-900 text-white border-gray-900 shadow-elev-2'
+                      : 'bg-white text-gray-600 border-gray-200 shadow-elev-1 hover:border-gray-300 hover:text-gray-900 hover:shadow-elev-2')
                   }
                 >
                   {chip}
@@ -530,7 +534,8 @@ export default function ProductsPage() {
               const price = billing === 'oneTime' ? p.oneTimePrice : p.monthlyPrice;
               const unit = billing === 'oneTime' ? p.oneTimeUnit : 'per month';
               return (
-                <motion.article
+                <SpotlightCard
+                  as={motion.article}
                   key={p.id}
                   variants={fadeUpSm}
                   {...pressable}
@@ -589,8 +594,8 @@ export default function ProductsPage() {
                     <div className="text-xs text-gray-500 mt-0.5">{unit}</div>
                     <div className="text-[11px] text-gray-400 mt-1 tabular-nums">
                       {billing === 'oneTime'
-                        ? `or $${p.monthlyPrice ?? '—'}/mo unlimited`
-                        : `or $${p.oneTimePrice ?? '—'} ${p.oneTimeUnit}`}
+                        ? `or $${p.monthlyPrice ?? '-'}/mo unlimited`
+                        : `or $${p.oneTimePrice ?? '-'} ${p.oneTimeUnit}`}
                     </div>
                   </div>
                   {p.available ? (
@@ -617,7 +622,7 @@ export default function ProductsPage() {
                       Notify me when it&apos;s ready
                     </button>
                   )}
-                </motion.article>
+                </SpotlightCard>
               );
             })
           )}
@@ -650,15 +655,16 @@ export default function ProductsPage() {
               const savingsLabel = formatSavingsPct(bundleSavingsPct(b, billing));
               const subjectHint = bundleSubjectSummaries[b.id] ?? '';
               return (
-                <motion.article
+                <SpotlightCard
+                  as={motion.article}
                   key={b.id}
                   variants={fadeUpSm}
                   {...pressable}
                   className={
-                    'rounded-3xl p-6 flex flex-col bg-white border transition-shadow hover:shadow-elev-3 ' +
+                    'rounded-3xl p-6 flex flex-col bg-white border transition-shadow ' +
                     (b.badge
-                      ? 'border-primary-200 ring-1 ring-primary-300/60 shadow-elev-2'
-                      : 'border-gray-100 shadow-elev-1')
+                      ? 'border-primary-200 ring-2 ring-primary-300/70 shadow-elev-3 hover:shadow-elev-4'
+                      : 'border-gray-100 shadow-elev-1 hover:shadow-elev-3')
                   }
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
@@ -746,7 +752,7 @@ export default function ProductsPage() {
                       </Link>
                     )}
                   </div>
-                </motion.article>
+                </SpotlightCard>
               );
             })}
           </motion.div>

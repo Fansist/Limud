@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fadeUp, fadeUpSm, staggerContainerSlow, revealGroup, pressable } from '@/lib/motion';
+import Aurora from '@/components/ui/Aurora';
+import SpotlightCard from '@/components/ui/SpotlightCard';
 import AuthAwareCTA, { dashboardHrefFor } from '@/components/AuthAwareCTA';
 import { useSession } from 'next-auth/react';
 
@@ -242,7 +244,8 @@ export default function LandingPage() {
 
       {/* ═══ HERO ═════════════════════════════════════════════ */}
       <section id="main-content" className="relative pt-28 pb-20 lg:pt-36 lg:pb-28">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-blue-50/30" />
+        <Aurora />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-50/40 via-transparent to-blue-50/30" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <motion.div
             variants={staggerContainerSlow}
@@ -253,7 +256,7 @@ export default function LandingPage() {
               <Brain size={14} /> Cognitive Science + Generative AI
             </motion.div>
 
-            <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.1] max-w-4xl mx-auto">
+            <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 tracking-tighter leading-[1.05] max-w-4xl mx-auto">
               Every mind learns
               <span className="bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent"> differently. </span>
               Limud teaches that way.
@@ -345,11 +348,11 @@ export default function LandingPage() {
               { icon: <Lightbulb size={28} className="text-amber-500" />, title: 'The Science', sub: 'SM-2 spaced repetition, adaptive difficulty targeting, and a proprietary "Learning DNA" profiler.', bg: 'bg-amber-50 border-amber-200' },
               { icon: <Shield size={28} className="text-green-500" />, title: 'The Security', sub: 'Enterprise-grade AES-256-GCM encryption. Strict FERPA, COPPA, and WCAG AA compliance.', bg: 'bg-green-50 border-green-200' },
             ].map(item => (
-              <motion.div key={item.title} {...pressable} className={cn('rounded-2xl p-6 border text-center shadow-elev-1', item.bg)}>
+              <SpotlightCard as={motion.div} key={item.title} {...pressable} className={cn('rounded-2xl p-6 border text-center shadow-elev-1', item.bg)}>
                 <div className="flex justify-center mb-3">{item.icon}</div>
                 <h3 className="text-base font-bold text-gray-900 mb-2">{item.title}</h3>
                 <p className="text-xs text-gray-600 leading-relaxed">{item.sub}</p>
-              </motion.div>
+              </SpotlightCard>
             ))}
           </div>
         </div>
@@ -383,11 +386,11 @@ export default function LandingPage() {
                 { icon: <Zap size={20} />, title: 'Instant Feedback', desc: 'Upon submission, the AI Auto-Grader returns the score, a personalized rubric breakdown, and concrete next steps in seconds — no waiting until next class.', color: 'bg-amber-100 text-amber-600' },
                 { icon: <BarChart3 size={20} />, title: 'Growth Analytics', desc: 'Track mastery across subjects with radar charts, predicted grades, study heatmaps, and personalized learning paths.', color: 'bg-emerald-100 text-emerald-600' },
               ].map(f => (
-                <motion.div key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
+                <SpotlightCard as={motion.div} key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
                   <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
                   <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-                </motion.div>
+                </SpotlightCard>
               ))}
             </motion.div>
           </div>
@@ -410,11 +413,11 @@ export default function LandingPage() {
                 { icon: <GraduationCap size={20} />, title: 'One-Click Auto-Grading', desc: 'AI evaluates essays against your rubric. Review suggested feedback, make quick edits, and approve.', color: 'bg-blue-100 text-blue-600' },
                 { icon: <BarChart3 size={20} />, title: 'Intelligence Dashboard', desc: 'Real-time aggregated data. AI flags at-risk students based on engagement trends, telling you exactly who needs human intervention.', color: 'bg-red-100 text-red-600' },
               ].map(f => (
-                <motion.div key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
+                <SpotlightCard as={motion.div} key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
                   <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
                   <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-                </motion.div>
+                </SpotlightCard>
               ))}
             </motion.div>
           </div>
@@ -436,11 +439,11 @@ export default function LandingPage() {
                 { icon: <Users size={20} />, title: 'Frictionless Management', desc: 'Bulk-import users via CSV and broadcast cross-role announcements that instantly ping teacher, student, and parent portals.', color: 'bg-blue-100 text-blue-600' },
                 { icon: <Shield size={20} />, title: 'Compliance at a Glance', desc: 'A dedicated widget confirms all systems are operational and actively maintaining FERPA, COPPA, and WCAG AA compliance.', color: 'bg-green-100 text-green-600' },
               ].map(f => (
-                <motion.div key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
+                <SpotlightCard as={motion.div} key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
                   <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
                   <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-                </motion.div>
+                </SpotlightCard>
               ))}
             </motion.div>
           </div>
@@ -461,11 +464,11 @@ export default function LandingPage() {
                 { icon: <Sparkles size={20} />, title: 'The AI Check-In', desc: 'Instead of deciphering complex grade books, David clicks one button and receives a plain-English, conversational summary of his kid\'s academic performance, emotional engagement, and study habits.', color: 'bg-rose-100 text-rose-600' },
                 { icon: <Home size={20} />, title: 'Family Teaching Mode', desc: 'A parent who teaches at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload, and per-child analytics. Same single account.', color: 'bg-amber-100 text-amber-600' },
               ].map(f => (
-                <motion.div key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
+                <SpotlightCard as={motion.div} key={f.title} variants={fadeUpSm} {...pressable} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-elev-1 hover:shadow-elev-3">
                   <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', f.color)}>{f.icon}</div>
                   <h4 className="text-sm font-bold text-gray-900 mb-1">{f.title}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-                </motion.div>
+                </SpotlightCard>
               ))}
             </motion.div>
           </div>
@@ -585,7 +588,7 @@ export default function LandingPage() {
                 mobileOrder: 'order-1',
               },
             ].map(plan => (
-              <motion.div key={plan.name} {...pressable} className={cn('rounded-2xl p-6 flex flex-col md:order-none', plan.mobileOrder,
+              <SpotlightCard as={motion.div} key={plan.name} {...pressable} className={cn('rounded-2xl p-6 flex flex-col md:order-none', plan.mobileOrder,
                 plan.highlight
                   ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white ring-2 ring-primary-300 ring-offset-2 shadow-elev-3'
                   : 'bg-white border border-gray-200 shadow-elev-1')}>
@@ -607,7 +610,7 @@ export default function LandingPage() {
                   plan.highlight ? 'bg-white text-primary-700 hover:bg-gray-100' : 'bg-gray-100 text-gray-900 hover:bg-gray-200')}>
                   {plan.cta}
                 </Link>
-              </motion.div>
+              </SpotlightCard>
             ))}
           </div>
 

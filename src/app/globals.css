@@ -80,6 +80,70 @@ h1 { letter-spacing: -0.035em; }
 /* Refined text selection — brand-tinted, premium tell */
 ::selection { background: rgb(37 99 235 / 0.16); }
 
+/* v18 Aurora atmosphere — slow, subtle drift. Compositor-only; gated on
+   reduced-motion so it collapses to a static (still beautiful) gradient. */
+@media (prefers-reduced-motion: no-preference) {
+  .aurora-blob {
+    animation: aurora-drift 22s var(--ease-out-expo) infinite alternate;
+    will-change: transform;
+  }
+}
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(3%, 4%, 0) scale(1.08); }
+  100% { transform: translate3d(-2%, -3%, 0) scale(0.96); }
+}
+
+/* v18 Spotlight card — cursor-tracked radial highlight on the border/surface.
+   The --mx/--my custom props are written directly to the element (no React
+   state — taste §3.B). Falls back to a static premium edge under reduced-motion
+   or when the cursor never enters (touch). */
+.spotlight-card {
+  position: relative;
+  isolation: isolate;
+}
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(
+    240px circle at var(--mx, 50%) var(--my, 0%),
+    rgb(59 130 246 / 0.55),
+    rgb(217 70 239 / 0.28) 40%,
+    transparent 70%
+  );
+  /* mask so the gradient only paints the 1px border ring */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--dur-normal) var(--ease-out-expo);
+  pointer-events: none;
+}
+.spotlight-card:hover::before { opacity: 1; }
+.spotlight-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    360px circle at var(--mx, 50%) var(--my, 0%),
+    rgb(59 130 246 / 0.06),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity var(--dur-normal) var(--ease-out-expo);
+  pointer-events: none;
+  z-index: -1;
+}
+.spotlight-card:hover::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob { animation: none; }
+}
+
 /* Scroll margin for anchor links (avoid navbar overlap) */
 [id] {
   scroll-margin-top: 80px;
