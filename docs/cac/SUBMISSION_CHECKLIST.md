@@ -5,21 +5,17 @@
 
 ---
 
-## How Limud maps to the rubric (30 pts)
+## How Limud maps to the official judging criteria
 
-### Concept — /15
-| Sub-criterion | Limud's case |
-|---|---|
-| **Ideology** | Solves two real harms at once: one-size-fits-all lessons *and* answer-dumping AI that enables cheating. A clear, opinionated point of view. |
-| **Impact** | Serves K‑12 students, teachers, parents, and whole districts; adapts to each learner and keeps humans in the loop. |
-| **Structure (the video)** | 2:52 script leads with the "refuses to cheat" moment, shows real screens, explains the code, and states every required element. |
+The 2026 rules judge apps on **three official criteria** (no fixed point values). Full rule wording + every requirement is in **[CAC_REQUIREMENTS.md](./CAC_REQUIREMENTS.md)**.
 
-### Technology — /15
-| Sub-criterion | Limud's case |
+| Official criterion | Limud's case |
 |---|---|
-| **Function** | A live, working platform: 102 screens, 126 API endpoints, 81 DB models, ~85k LOC. Not a mockup. |
-| **Code** | TypeScript strict, centralized middleware, Prisma schema, hardened AI layer; the video *explains code on camera* (the tutor's system prompt + the security model) for extra points. |
-| **UI** | Custom design system, five role-tailored dashboards, full reduced-motion accessibility support. |
+| **1. Quality of the idea** (creativity & originality) | Solves two real harms at once — one-size-fits-all lessons *and* answer-dumping AI that enables cheating. A clear, opinionated point of view serving K‑12 students, teachers, parents, and whole districts. |
+| **2. Implementation of the idea** (user experience & design) | Custom design system; five role-tailored dashboards (student/teacher/parent/admin/owner); full reduced-motion accessibility; a real "shared-state" flow where one action updates every role. |
+| **3. Demonstrated excellence of coding & programming** | A live, working platform — 102 screens, 126 API endpoints, 81 DB models, ~85k LOC of strict TypeScript, centralized auth/middleware, Prisma schema, and a hardened AI layer. The video explains real code on camera (the tutor's system prompt + the security model). |
+
+> ⚠️ **Judges may request the app + source code** to verify it runs as claimed — refusing means **immediate disqualification**. Keep the live site and repo available and working through judging.
 
 ---
 
