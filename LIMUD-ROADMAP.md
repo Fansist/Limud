@@ -136,6 +136,8 @@ Each phase header gives: **trigger** (the `/pwork` prompt to run), **waves** (ex
 
 ### PHASE 3 — Turn on the type safety net (CI typecheck) — DO THIS BEFORE SECURITY
 **Trigger:** `/pwork flip typescript.ignoreBuildErrors off, fix the fallout, add a CI typecheck`
+
+> **STATUS (2026-07-12, commit 921eefb):** WAVE 1 discovery is effectively done — `npx tsc --noEmit` on the whole repo now exits **0**. The only errors were two stale test files (`__tests__/lib/security.test.ts`, `__tests__/lib/utils.test.ts`), both fixed. The remaining Phase 3 work is the flag flip (WAVE 3's config CODER) + CI typecheck + the v18.0.0 release. Do the flip only in an attended/CI run where a full `next build` verifies first — a local build shares `.next` with the running preview dev server and needs build-time env, so it's unsafe to verify unattended.
 **Why here:** every prior phase's `tsc` runs were per-diff. The security phase touches auth-critical code where a silent type error is dangerous. Establish the net *before* the risky phase.
 
 **WAVE 1 — RESEARCH: 1 RESEARCHER.** Run `npx tsc --noEmit` against the whole repo, capture the full error list, and **bucket errors by file + root-cause pattern** (e.g. "implicit any in map callbacks", "missing null guard", "wrong API shape"). Output a bucketed worklist — this defines the CODER partition.
