@@ -42,6 +42,32 @@ file-disjoint parallel fix wave resolved them. tsc clean.
 
 ---
 
+## [17.15.0] - 2026-07-12 — Visual "POP": fix the invisible hero aurora + bolder effects
+
+The special effects "could barely be seen" for a real, verified reason: the hero
+**Aurora blobs were rendering at `width: 0px`** — Tailwind was not generating the
+`w-[55vh]` arbitrary-value classes for that component, so the entire brand-gradient
+atmosphere was a zero-width, invisible sliver. Boosting opacity did nothing because
+there was no box to paint.
+
+### Fixed
+- **Aurora is now actually visible.** `Aurora.tsx` sizes/positions/blurs each blob with
+  **inline styles** (`width`/`height`/`filter`) instead of Tailwind arbitrary classes,
+  so the atmosphere can never be tree-shaken to 0×0 again. Also made it bolder: opacities
+  raised (blue 0.28→0.55, fuchsia 0.18→0.42, indigo 0.16→0.40), a **4th sky-cyan blob**
+  added for a fuller mesh, and default intensity 0.9→1. It reads richly even as a STATIC
+  gradient, so reduced-motion users (who get no drift) finally see the effect.
+- **Spotlight cards now glow at rest.** The cursor-tracked border/halo had `opacity: 0`
+  until hover — so at rest every card was flat. They now carry a visible resting glow
+  (border 0.5, halo 0.7) that brightens to full on hover; premium even without a hover
+  or any motion.
+- Added a reusable **`.glow-primary`** brand-glow utility for primary CTAs / focal points.
+
+Note: verified type-clean and correct on disk; the local dev preview served a stale
+cached bundle so the new look shows on the next clean (Render) build.
+
+---
+
 ## [17.13.1] - 2026-07-12 — Post-audit follow-ups
 
 An independent adversarial re-review of the v17.13.0 fixes confirmed M2, C4, M9, L1
