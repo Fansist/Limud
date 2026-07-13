@@ -79,14 +79,9 @@ export const POST = apiHandler(async (req: Request) => {
   }
   const { title, body: content, courseId, classroomId, assignmentId, subject, gradeLevel, isPublished } = parsed.data;
 
-  if (!courseId && !classroomId) {
-    return NextResponse.json(
-      { error: 'Material must belong to a course or a classroom' },
-      { status: 400 }
-    );
-  }
-
-  // Master demo: don't persist. UI handles this via demo-state.
+  // Master demo: don't persist. UI handles this via demo-state. This runs
+  // before the course/classroom requirement so the showcase account always
+  // gets a synthetic success even when it posts without an explicit target.
   if (user.isMasterDemo) {
     return NextResponse.json({
       material: {
@@ -105,6 +100,26 @@ export const POST = apiHandler(async (req: Request) => {
     }, { status: 201 });
   }
 
+  // The upload form has no course picker yet, so a real teacher posts without a
+  // courseId. Fall back to the first course the teacher owns so the material
+  // still lands somewhere they can personalize from.
+  let resolvedCourseId = courseId;
+  if (!resolvedCourseId && !classroomId) {
+    const firstCourse = await prisma.courseTeacher.findFirst({
+      where: { teacherId: user.id },
+      select: { courseId: true },
+      orderBy: { assignedAt: 'asc' },
+    });
+    resolvedCourseId = firstCourse?.courseId || undefined;
+  }
+
+  if (!resolvedCourseId && !classroomId) {
+    return NextResponse.json(
+      { error: 'Material must belong to a course or a classroom' },
+      { status: 400 }
+    );
+  }
+
   // Tenant check: teacher must own the course/classroom
   if (classroomId) {
     const cls = await prisma.classroom.findUnique({
@@ -115,9 +130,9 @@ export const POST = apiHandler(async (req: Request) => {
       return NextResponse.json({ error: 'Classroom not accessible' }, { status: 403 });
     }
   }
-  if (courseId) {
+  if (resolvedCourseId) {
     const link = await prisma.courseTeacher.findFirst({
-      where: { courseId, teacherId: user.id },
+      where: { courseId: resolvedCourseId, teacherId: user.id },
       select: { id: true },
     });
     if (!link) {
@@ -131,7 +146,7 @@ export const POST = apiHandler(async (req: Request) => {
       body: content,
       subject: subject || null,
       gradeLevel: gradeLevel || null,
-      courseId: courseId || null,
+      courseId: resolvedCourseId || null,
       classroomId: classroomId || null,
       assignmentId: assignmentId || null,
       createdById: user.id,

@@ -1075,7 +1075,11 @@ export default function TeacherAssignments() {
                   </label>
                 </div>
 
-                {/* Attachments Section */}
+                {/* Attachments Section — demo only. Real assignments have no schema
+                    column to persist attachments (Assignment has no attachments field and
+                    FileUpload has no assignmentId), so the /api/assignments POST silently
+                    drops them. Hide the UI for real teachers rather than lose their files. */}
+                {isDemo && (
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                     <Paperclip size={14} /> Attachments (Worksheets, Files, Links)
@@ -1121,8 +1125,11 @@ export default function TeacherAssignments() {
                   )}
                   <p className="text-[10px] text-gray-400 mt-2">Students will see these attachments when viewing the assignment.</p>
                 </div>
+                )}
 
-                {/* v12.0.0: Video Lesson URL */}
+                {/* v12.0.0: Video Lesson URL — demo only. There is no schema column to
+                    persist videoUrl on a real assignment, so don't offer it to real teachers. */}
+                {isDemo && (
                 <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
                   <h3 className="text-sm font-semibold text-indigo-700 mb-2 flex items-center gap-2">
                     🎬 Video Lesson (Optional)
@@ -1131,6 +1138,7 @@ export default function TeacherAssignments() {
                   <input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))}
                     className="input-field text-sm" placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..." />
                 </div>
+                )}
 
                 <div className="flex items-center gap-2">
                   <input type="checkbox" id="isPublished" checked={form.isPublished}

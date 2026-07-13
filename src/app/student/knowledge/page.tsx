@@ -31,6 +31,14 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'growth', label: 'Growth & Predictions', icon: <TrendingUp size={16} /> },
 ];
 
+// Maps a study-next primaryAction.type to the route that starts that action.
+const STUDY_NEXT_ROUTES: Record<string, string> = {
+  daily_boost: '/student/focus',
+  assignment_prep: '/student/assignments',
+  skill_practice: '/student/tutor',
+  spaced_review: '/student/review',
+};
+
 // ═══════════════════════════════════════════════════════════════
 // CHART COMPONENTS
 // ═══════════════════════════════════════════════════════════════
@@ -191,6 +199,7 @@ function KnowledgeTab({ data }: { data: any }) {
   const [expandedSkill, setExpandedSkill] = useState<string | null>(null);
   const isDemo = useIsDemo();
   const demoSuffix = isDemo ? '?demo=true' : '';
+  const primaryActionHref = (STUDY_NEXT_ROUTES[studyNext.primaryAction?.type] || '/student/dashboard') + demoSuffix;
   const masteredCount = skills.filter((s: { masteryLevel: number }) => s.masteryLevel >= 80).length;
   const inProgressCount = skills.filter((s: { masteryLevel: number }) => s.masteryLevel >= 40 && s.masteryLevel < 80).length;
   const needsWorkCount = skills.filter((s: { masteryLevel: number }) => s.masteryLevel < 40).length;
@@ -223,7 +232,7 @@ function KnowledgeTab({ data }: { data: any }) {
                 <p className="text-sm text-gray-500">{studyNext.primaryAction.description}</p>
               </div>
             </div>
-            <button className="btn-primary text-sm flex items-center gap-1.5 whitespace-nowrap">Start <ArrowRight size={14} /></button>
+            <Link href={primaryActionHref} className="btn-primary text-sm flex items-center gap-1.5 whitespace-nowrap">Start <ArrowRight size={14} /></Link>
           </div>
         </motion.div>
       )}

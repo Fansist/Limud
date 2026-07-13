@@ -161,10 +161,10 @@ export default function TeacherMaterialsPage() {
             body: body.trim(),
             subject: subject || undefined,
             gradeLevel: gradeLevel || undefined,
-            // For now we don't have a course picker — the teacher's first
-            // available course is selected server-side as a fallback in the
-            // future. Today the API rejects without one, so demo mode is the
-            // primary path until the picker ships.
+            // The form has no course picker yet, so we omit courseId. The API
+            // falls back to the teacher's first owned course server-side, so a
+            // real post still lands somewhere. A picker can send courseId here
+            // when it ships.
           }),
         });
         const data = await res.json();

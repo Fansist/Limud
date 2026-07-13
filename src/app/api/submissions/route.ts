@@ -4,15 +4,19 @@ import prisma from '@/lib/prisma';
 
 export const POST = apiHandler(async (req: Request) => {
   const user = await requireRole('STUDENT');
-  const { assignmentId, content, fileUploadIds, solvingMethod, methodDetails } = await req.json();
+  const { assignmentId, content, linkUrl, submissionType, fileUploadIds, solvingMethod, methodDetails } = await req.json();
 
   if (!assignmentId) {
     return NextResponse.json({ error: 'assignmentId is required' }, { status: 400 });
   }
 
-  if (!content && (!fileUploadIds || fileUploadIds.length === 0)) {
+  // A submitted link counts as content: students can submit just a URL (e.g. Google Docs)
+  // with no written note and no file attachment.
+  const trimmedLink = typeof linkUrl === 'string' ? linkUrl.trim() : '';
+
+  if (!content && !trimmedLink && (!fileUploadIds || fileUploadIds.length === 0)) {
     return NextResponse.json(
-      { error: 'Either content text or file uploads are required' },
+      { error: 'Either content text, a link, or file uploads are required' },
       { status: 400 }
     );
   }
@@ -57,13 +61,18 @@ export const POST = apiHandler(async (req: Request) => {
     select: { id: true, status: true },
   });
 
+  // Persist the submitted link inside content so the teacher sees it (no schema change needed).
+  const storedContent = trimmedLink
+    ? `Submitted link: ${trimmedLink}${content ? `\n\n${content}` : ''}`
+    : content || '(File submission - see attached files)';
+
   let submission;
   if (!existing) {
     submission = await prisma.submission.create({
       data: {
         assignmentId,
         studentId: user.id,
-        content: content || '(File submission - see attached files)',
+        content: storedContent,
         status: 'SUBMITTED',
         submittedAt: new Date(),
         fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
@@ -75,7 +84,7 @@ export const POST = apiHandler(async (req: Request) => {
     submission = await prisma.submission.update({
       where: { id: existing.id },
       data: {
-        content: content || '(File submission - see attached files)',
+        content: storedContent,
         status: 'SUBMITTED',
         submittedAt: new Date(),
         fileUploadIds: fileUploadIds ? JSON.stringify(fileUploadIds) : null,
@@ -87,7 +96,7 @@ export const POST = apiHandler(async (req: Request) => {
     submission = await prisma.submission.update({
       where: { id: existing.id },
       data: {
-        content: content || '(File submission - see attached files)',
+        content: storedContent,
         status: 'SUBMITTED',
         submittedAt: new Date(),
         score: null,

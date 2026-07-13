@@ -466,6 +466,7 @@ export default function RegisterPage() {
                   {ACCOUNT_OPTIONS.map(opt => (
                     <motion.button
                       key={opt.value}
+                      type="button"
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                       onClick={() => setAccountType(opt.value)}

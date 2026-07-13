@@ -78,7 +78,7 @@ export default function PrivacyPolicy() {
       <ul>
         <li>Access your personal data</li>
         <li>Correct inaccurate information</li>
-        <li>Request deletion of your data — Students and Parents can request account deletion by emailing privacy@limud.co; District ADMINs can also process deletion requests through the District Admin Console. See our <a href="/api/security/data-deletion">Data Deletion API</a> docs.</li>
+        <li>Request deletion of your data — Students and Parents can request account deletion by emailing privacy@limud.co; District ADMINs can also process deletion requests through the District Admin Console. See our Data Deletion API docs.</li>
         <li>Export your data in a portable format</li>
         <li>Opt out of non-essential communications</li>
       </ul>

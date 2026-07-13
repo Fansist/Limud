@@ -4,6 +4,44 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.14.0] - 2026-07-12 — Website bug-fix sweep (multi-agent audit → parallel fix wave)
+
+A multi-agent audit of the live site surfaced 14 confirmed user-facing bugs; a
+file-disjoint parallel fix wave resolved them. tsc clean.
+
+### Fixed
+- **Student "Link / URL" submissions** now work: `/api/submissions` reads `linkUrl`,
+  counts it toward the not-empty validation, and persists it into the stored
+  submission so the teacher actually receives the link (previously → 400, or the
+  link was silently dropped).
+- **Parent "Export PDF"** now downloads the growth-report PDF (the click fetched the
+  PDF but never handed it to the browser — nothing was ever saved).
+- **Teacher AI Feedback** now loads REAL submissions via an assignment selector
+  (fetches `/api/submissions?assignmentId=…` and reads `items`), so a real teacher
+  sees and can persist feedback on actual student work instead of always seeing the
+  hardcoded demo rows.
+- **Teacher "Post material"** now succeeds for real teachers: the API falls back to
+  the teacher's first owned course when none is supplied (was a hard 400 for everyone).
+- **AI Lesson Planner** gained its missing API route (`/api/teacher/lesson-planner`),
+  so it generates real AI plans instead of always degrading to a template + a false
+  "AI generation unavailable" banner.
+- **Knowledge "Study Next → Start"** button now navigates by action type (was dead).
+- **Teacher dashboard "Go to class"** now links to the classrooms page (was a 404).
+- **Register** account-type cards no longer submit the step-1 form when re-clicked
+  (added `type="button"`).
+- **AnonShell top-nav "Products"** now points to `/products` (was a missing
+  `#products` anchor that dumped users on the hero).
+- **Admin "Send Message"** placeholder is now genuinely inert (was navigating to the
+  dashboard despite looking disabled).
+- **Privacy page** no longer links "Data Deletion API docs" to a raw protected API
+  route.
+- **Create Assignment** no longer shows file-attachment / video-lesson UI to real
+  teachers whose data the schema cannot persist (was a silent false success). Demo
+  mode is unchanged; persisting attachments/video needs a schema migration (noted
+  for v2.0).
+
+---
+
 ## [17.13.1] - 2026-07-12 — Post-audit follow-ups
 
 An independent adversarial re-review of the v17.13.0 fixes confirmed M2, C4, M9, L1

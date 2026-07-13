@@ -191,10 +191,34 @@ function generateFeedback(submission: typeof DEMO_SUBMISSIONS[0]): {
   };
 }
 
+// v17.9: Map a real submission row (from /api/submissions?assignmentId=…, teacher
+// list branch, which returns `{ items }` joined with `student`) into the shape
+// this page renders. The selected assignment supplies title/subject; the API row
+// supplies student, content, score, and status.
+function mapApiSubmission(s: any, assignment: any) {
+  const reviewed = s.status === 'GRADED' || !!s.aiFeedback;
+  return {
+    id: s.id,
+    studentName: s.student?.name || s.studentName || 'Student',
+    studentAvatar: '🧑‍🎓',
+    assignment: assignment?.title || 'Assignment',
+    subject: assignment?.course?.subject || assignment?.course?.name || '',
+    submittedAt: s.submittedAt,
+    content: s.content || '',
+    score: typeof s.score === 'number' ? s.score : null,
+    status: reviewed ? 'reviewed' : 'pending',
+    learningStyle: s.studentLearningStyle?.primary || '',
+    grade: s.student?.gradeLevel || '',
+    feedback: null,
+  };
+}
+
 export default function AIFeedbackPage() {
   const { data: session } = useSession();
   // v13.4.1 (Update 2.9.1): master demo gets real AI feedback.
   const isDemo = useIsDemo({ excludeMasterDemo: true });
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [selectedAssignment, setSelectedAssignment] = useState<string>('');
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
@@ -207,30 +231,68 @@ export default function AIFeedbackPage() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    loadSubmissions();
+    loadInitialData();
   }, [isDemo]);
 
-  async function loadSubmissions() {
+  // v17.9: Real teachers pick an assignment; submissions load per-selection from
+  // the real API. (Demo users keep the flat, multi-subject DEMO_SUBMISSIONS set.)
+  useEffect(() => {
+    if (isDemo) return;
+    if (selectedAssignment) fetchSubmissions(selectedAssignment);
+    else setSubmissions([]);
+  }, [isDemo, selectedAssignment]);
+
+  // v17.9: The previous loader hit `/api/submissions?status=SUBMITTED` and read
+  // `data.submissions`, but that GET route ignores `status`, 400s for teachers
+  // without an `assignmentId`, and returns `{ items }` — so real teachers ALWAYS
+  // fell back to demo data and "Send Feedback" never persisted. We now mirror the
+  // working grading page: load the teacher's assignments, let them pick one, and
+  // fetch real submissions via `?assignmentId=`. Demo data is used ONLY for demo
+  // users, never as a network-failure fallback for real teachers.
+  async function loadInitialData() {
     if (isDemo) {
       setSubmissions(DEMO_SUBMISSIONS.map(s => ({ ...s, feedback: null })));
       setLoading(false);
       return;
     }
     try {
-      const res = await fetch('/api/submissions?status=SUBMITTED');
+      const res = await fetch('/api/assignments');
       if (res.ok) {
         const data = await res.json();
-        if (data.submissions?.length > 0) {
-          setSubmissions(data.submissions.map((s: any) => ({ ...s, feedback: null })));
-          setLoading(false);
-          return;
-        }
+        const list = data.assignments || [];
+        setAssignments(list);
+        // Prefer the first assignment that has ungraded (SUBMITTED) work; else the first.
+        const withPending = list.filter(
+          (a: any) => a.submissions?.some((s: any) => s.status === 'SUBMITTED')
+        );
+        const initial = withPending[0] || list[0];
+        if (initial) setSelectedAssignment(initial.id); // submissions load via effect
+      } else {
+        toast.error('Failed to load assignments');
       }
     } catch {
-      // fallback to demo data
+      toast.error('Failed to load assignments');
+    } finally {
+      setLoading(false);
     }
-    setSubmissions(DEMO_SUBMISSIONS.map(s => ({ ...s, feedback: null })));
-    setLoading(false);
+  }
+
+  async function fetchSubmissions(assignmentId: string) {
+    const assignment = assignments.find((a: any) => a.id === assignmentId);
+    try {
+      const res = await fetch(`/api/submissions?assignmentId=${assignmentId}`);
+      if (res.ok) {
+        const data = await res.json();
+        // Teacher list branch returns { items }; keep `submissions` as a fallback.
+        const raw = data.items ?? data.submissions ?? [];
+        setSubmissions(raw.map((s: any) => mapApiSubmission(s, assignment)));
+      } else {
+        setSubmissions([]);
+      }
+    } catch {
+      toast.error('Failed to load submissions');
+      setSubmissions([]);
+    }
   }
 
   async function generateFeedbackForSubmission(sub: any) {
@@ -442,6 +504,28 @@ export default function AIFeedbackPage() {
           </div>
         </motion.div>
 
+        {/* Assignment Selector (real teachers pick which assignment to review) */}
+        {!isDemo && (
+          <div className="card">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Assignment</label>
+            <select
+              value={selectedAssignment}
+              onChange={e => setSelectedAssignment(e.target.value)}
+              className="input-field max-w-md"
+            >
+              <option value="">Choose an assignment...</option>
+              {assignments.map(a => {
+                const pending = a.submissions?.filter((s: any) => s.status === 'SUBMITTED').length || 0;
+                return (
+                  <option key={a.id} value={a.id}>
+                    {a.title} ({a.course?.name}) {pending > 0 ? `- ${pending} pending` : ''}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
@@ -484,6 +568,15 @@ export default function AIFeedbackPage() {
 
         {/* Submissions List */}
         <div className="space-y-3">
+          {!isDemo && filtered.length === 0 && (
+            <div className="card text-center py-8">
+              <p className="text-gray-400">
+                {selectedAssignment
+                  ? 'No submissions to review for this assignment'
+                  : 'Select an assignment to review submissions'}
+              </p>
+            </div>
+          )}
           {filtered.map((sub, i) => (
             <motion.div
               key={sub.id}

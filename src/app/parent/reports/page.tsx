@@ -90,6 +90,16 @@ export default function ParentReportsPage() {
               try {
                 const res = await fetch('/api/reports/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'student-progress', studentId: r?.child?.id }) });
                 if (res.ok) {
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'limud-growth-report.pdf';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  // Revoke on the next tick — Safari needs the URL to outlive the click.
+                  setTimeout(() => URL.revokeObjectURL(url), 0);
                   toast.success('Growth report exported (PDF)');
                 } else {
                   toast.error('Failed to export');

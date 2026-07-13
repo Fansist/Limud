@@ -7,7 +7,6 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn, formatDate } from '@/lib/utils';
-import Link from 'next/link';
 import {
   UserCog, Search, Plus, X, Building2, Mail, Phone, Calendar,
   Shield, ChevronDown, ChevronUp, Edit3, Trash2, CheckCircle2,
@@ -579,18 +578,18 @@ export default function AdminEmployeesPage() {
                               emp.isActive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100')}>
                             {emp.isActive ? <><EyeOff size={12} /> Deactivate</> : <><Eye size={12} /> Activate</>}
                           </button>
-                          {/* v17.1: Send Message — /admin/messages does not exist yet, so we link
-                              to /admin/dashboard with disabled styling. TODO: build /admin/messages
-                              (target href: `/admin/messages?to=${emp.id}`). */}
-                          <Link
-                            href="/admin/dashboard"
-                            onClick={(e) => e.stopPropagation()}
+                          {/* v17.1: Send Message — /admin/messages does not exist yet, so this is an
+                              inert disabled button with "coming soon" styling. TODO: build /admin/messages
+                              (target href: `/admin/messages?to=${emp.id}`) and turn this back into a link. */}
+                          <button
+                            type="button"
+                            disabled
                             title="Messaging UI is coming in v17.2"
                             className="text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 bg-gray-50 text-gray-400 hover:bg-gray-100 transition cursor-not-allowed"
                             aria-disabled="true"
                           >
                             <Mail size={12} /> Send Message
-                          </Link>
+                          </button>
                           {/* v17.1: Edit Profile — opens an honest "coming in v17.2" modal so
                               admins can at least reach out via Send Message in the meantime. */}
                           <button

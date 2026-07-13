@@ -239,7 +239,7 @@ export default function TeacherDashboard() {
                       </p>
                     </div>
                     <Link
-                      href={`/teacher/classrooms/${c.id}${demoSuffix}`}
+                      href={`/teacher/classrooms${demoSuffix}`}
                       className="text-xs text-primary-600 font-semibold hover:underline flex items-center gap-1 whitespace-nowrap"
                     >
                       Go to class <ArrowRight size={12} />

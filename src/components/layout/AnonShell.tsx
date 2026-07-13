@@ -18,7 +18,7 @@ import { BookOpen } from 'lucide-react';
 import AuthAwareCTA from '@/components/AuthAwareCTA';
 
 const NAV_LINKS: { label: string; href: string }[] = [
-  { label: 'Products', href: '/#products' },
+  { label: 'Products', href: '/products' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'About', href: '/about' },
   { label: 'Help', href: '/contact' },
