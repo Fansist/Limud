@@ -2267,7 +2267,7 @@ const PRODUCT_TOOL_INJECTION_GUARD = [
  * the v17.5 behavior — a student can no longer close any of our fences by
  * pasting a marker they happened to know the name of.
  */
-function fenceUserInput(value: string, kind: string = 'USER_INPUT'): string {
+export function fenceUserInput(value: string, kind: string = 'USER_INPUT'): string {
   const open = `<<<${kind}>>>`;
   const close = '<<<END>>>';
   // Strip ANY <<<...>>>-shaped token so the student can't close our fence by

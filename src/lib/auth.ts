@@ -13,7 +13,7 @@
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
-import { createHash } from 'crypto';
+import { createHash, randomInt } from 'crypto';
 import jwt from 'jsonwebtoken';
 import { NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
@@ -176,7 +176,10 @@ async function issueMfaChallenge(opts: {
   userAgent: string;
 }): Promise<string> {
   const { userId, email, ip, userAgent } = opts;
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  // v17.12 (L1): use a cryptographically-secure RNG for the 2FA code, not
+  // Math.random() (which is predictable). randomInt(100000, 1000000) is a
+  // uniform integer in [100000, 999999] — always six digits.
+  const code = String(randomInt(100000, 1000000));
   const codeHash = createHash('sha256').update(code).digest('hex');
   const expiresAt = new Date(Date.now() + MFA_CODE_TTL_SECONDS * 1000);
 
@@ -492,6 +495,17 @@ export const authOptions: NextAuthOptions = {
         if (!verifiedUser) {
           // Defensive — every branch above either set verifiedUser or threw.
           throw new Error('Invalid email or password');
+        }
+
+        // ── 3.5 OWNER-role drift guard (v17.12, M9) ──
+        // The OWNER role is only legitimate for the configured OWNER_EMAIL, and
+        // only after passing the 2FA gate below. If a stale DB record still
+        // carries role='OWNER' but its email is no longer the configured owner
+        // (e.g. OWNER_EMAIL was rotated), strip the elevation so that record
+        // cannot skip the 2FA gate (which runs only for isOwnerEmail) and retain
+        // owner access. The real owner passes isOwnerEmail and is unaffected.
+        if (verifiedUser.role === 'OWNER' && !isOwnerEmail(email)) {
+          verifiedUser = { ...verifiedUser, role: 'TEACHER' };
         }
 
         // ── 4. OWNER 2FA gate ──

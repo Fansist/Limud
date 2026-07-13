@@ -238,44 +238,53 @@ export const POST = apiHandler(async (req: Request) => {
     });
   }
 
-  // v2.7 — when replying to a course-scoped post, verify the replier has access
-  // to that course. GET already gates visibility, but POST could accept an
-  // orphaned reply from a non-enrolled caller. Tighten the write path too.
+  // v2.7 / v17.12 (C4 — FERPA authorization) — verify the caller has access to
+  // the course a post belongs to, for BOTH replies AND top-level posts. The
+  // reply path (parentId) already checked the parent's course, but a TOP-LEVEL
+  // post carried a client-supplied `courseId` straight into create() with no
+  // check — any authenticated user could post into any course. Resolve the
+  // course to authorize against, then run the same role-scoped check the GET
+  // path uses. (courseId null = general, non-course post → no course gate.)
+  let courseIdToCheck: string | null = null;
   if (parentId) {
     const parentPost = await prisma.forumPost.findUnique({
       where: { id: parentId },
       select: { courseId: true },
     });
-    if (parentPost?.courseId) {
-      let allowed = false;
-      if (user.role === 'STUDENT') {
-        const enrollment = await prisma.enrollment.findFirst({
-          where: { courseId: parentPost.courseId, studentId: user.id },
-          select: { id: true },
-        });
-        allowed = !!enrollment;
-      } else if (user.role === 'TEACHER') {
-        const courseTeacher = await prisma.courseTeacher.findFirst({
-          where: { courseId: parentPost.courseId, teacherId: user.id },
-          select: { id: true },
-        });
-        allowed = !!courseTeacher;
-      } else if (user.role === 'ADMIN') {
-        const course = await prisma.course.findFirst({
-          where: { id: parentPost.courseId },
-          select: { districtId: true },
-        });
-        allowed = !!course && course.districtId === user.districtId;
-      } else if (user.role === 'PARENT') {
-        const childEnrollment = await prisma.enrollment.findFirst({
-          where: { courseId: parentPost.courseId, student: { parentId: user.id } },
-          select: { id: true },
-        });
-        allowed = !!childEnrollment;
-      }
-      if (!allowed) {
-        return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
-      }
+    courseIdToCheck = parentPost?.courseId ?? null;
+  } else if (typeof courseId === 'string' && courseId.trim()) {
+    courseIdToCheck = courseId;
+  }
+
+  if (courseIdToCheck) {
+    let allowed = false;
+    if (user.role === 'STUDENT') {
+      const enrollment = await prisma.enrollment.findFirst({
+        where: { courseId: courseIdToCheck, studentId: user.id },
+        select: { id: true },
+      });
+      allowed = !!enrollment;
+    } else if (user.role === 'TEACHER') {
+      const courseTeacher = await prisma.courseTeacher.findFirst({
+        where: { courseId: courseIdToCheck, teacherId: user.id },
+        select: { id: true },
+      });
+      allowed = !!courseTeacher;
+    } else if (user.role === 'ADMIN') {
+      const course = await prisma.course.findFirst({
+        where: { id: courseIdToCheck },
+        select: { districtId: true },
+      });
+      allowed = !!course && course.districtId === user.districtId;
+    } else if (user.role === 'PARENT') {
+      const childEnrollment = await prisma.enrollment.findFirst({
+        where: { courseId: courseIdToCheck, student: { parentId: user.id } },
+        select: { id: true },
+      });
+      allowed = !!childEnrollment;
+    }
+    if (!allowed) {
+      return NextResponse.json({ error: 'Not authorized for this course' }, { status: 403 });
     }
   }
 

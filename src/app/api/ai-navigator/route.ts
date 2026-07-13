@@ -258,7 +258,13 @@ export const POST = apiHandler(async (req: Request) => {
     try {
       const messages = [
         { role: 'system', content: NAVIGATOR_SYSTEM_PROMPT + studentContext },
-        ...(history || []).slice(-10), // Keep last 10 messages for context
+        // v17.12 (M2): `history` is client-supplied. Filter to user/assistant
+        // turns only (with string content) so a caller can't inject a
+        // {role:'system'} message that callGemini would hoist into the system
+        // instruction — a prompt/role-injection vector.
+        ...(Array.isArray(history) ? history : [])
+          .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+          .slice(-10),
         { role: 'user', content: message.trim() },
       ];
 
