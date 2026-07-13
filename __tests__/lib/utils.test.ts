@@ -52,28 +52,11 @@ describe('utils', () => {
     });
   });
 
-  describe('getLevelFromXP() / getXPForLevel()', () => {
-    it('level 1 at 0 XP', () => {
-      expect(utils.getLevelFromXP(0)).toBe(1);
-    });
-    it('level 2 at 250 XP', () => {
-      expect(utils.getLevelFromXP(250)).toBe(2);
-    });
-    it('getXPForLevel returns threshold', () => {
-      expect(utils.getXPForLevel(1)).toBe(250);
-      expect(utils.getXPForLevel(4)).toBe(1000);
-    });
-  });
-
-  describe('getXPProgress()', () => {
-    it('returns 0 at level boundary', () => {
-      expect(utils.getXPProgress(0)).toBe(0);
-      expect(utils.getXPProgress(250)).toBe(0);
-    });
-    it('returns 50 at midpoint', () => {
-      expect(utils.getXPProgress(125)).toBe(50);
-    });
-  });
+  // NOTE: XP/level math lives in src/lib/gamification.ts (computeLevel etc.),
+  // not in utils.ts. The former getLevelFromXP/getXPForLevel/getXPProgress
+  // tests referenced functions that never existed here and assumed a 250-XP
+  // /level curve that conflicts with gamification's shipped 100-XP/level rule.
+  // See __tests__/lib/gamification.test.ts for the real leveling coverage.
 
   describe('daysUntil()', () => {
     it('returns positive for future dates', () => {

@@ -34,12 +34,14 @@ describe('security', () => {
     });
 
     it('session maxAge is reasonable', () => {
-      expect(SECURITY_CONFIG.session.maxAge).toBeGreaterThanOrEqual(3600); // at least 1h
+      // SECURITY_CONFIG expresses the session lifetime in hours; require ≥ 1h.
+      expect(SECURITY_CONFIG.session.maxAgeHours).toBeGreaterThanOrEqual(1);
     });
 
     it('audit retention meets FERPA 7-year requirement', () => {
-      const sevenYearsMs = 7 * 365 * 24 * 60 * 60 * 1000;
-      expect(SECURITY_CONFIG.audit.retentionMs).toBeGreaterThanOrEqual(sevenYearsMs);
+      // SECURITY_CONFIG expresses retention in days; FERPA mandates 7 years.
+      const sevenYearsDays = 7 * 365;
+      expect(SECURITY_CONFIG.audit.retentionDays).toBeGreaterThanOrEqual(sevenYearsDays);
     });
   });
 });
