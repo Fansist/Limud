@@ -324,6 +324,13 @@ export default function LessonPlannerPage() {
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [editingObjective, setEditingObjective] = useState<number | null>(null);
   const [showSaved, setShowSaved] = useState(false);
+  // v17.16: drive "expand every section for printing" off the browser's
+  // print lifecycle events instead of reading window.matchMedia('print')
+  // during render. The render-time read was both SSR-unsafe (window is
+  // undefined on the server) and non-functional (React never re-renders
+  // when the browser enters the print context, so the value was frozen at
+  // load time). Starts false on server and client → no hydration mismatch.
+  const [isPrinting, setIsPrinting] = useState(false);
   // v17.1: surface when the AI generator falls back to the local template
   // instead of swallowing the failure. Cleared on every new generation.
   const [aiFallback, setAiFallback] = useState(false);
@@ -378,6 +385,22 @@ export default function LessonPlannerPage() {
       // Storage full or unavailable — silently no-op, the in-memory list still works.
     }
   }, [savedPlans, STORAGE_KEY]);
+
+  // v17.16: expand all lesson sections while the browser is printing so the
+  // printout is complete regardless of which section is open on screen. The
+  // browser fires 'beforeprint' before paginating, giving React time to
+  // re-render with everything expanded, then 'afterprint' restores the view.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onBeforePrint = () => setIsPrinting(true);
+    const onAfterPrint = () => setIsPrinting(false);
+    window.addEventListener('beforeprint', onBeforePrint);
+    window.addEventListener('afterprint', onAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', onBeforePrint);
+      window.removeEventListener('afterprint', onAfterPrint);
+    };
+  }, []);
 
   // Courses from demo state
   const demoCourses = isDemo ? getDemoCourses() : [];
@@ -945,7 +968,7 @@ export default function LessonPlannerPage() {
 
                         {/* Expanded Details (always visible in print) */}
                         <AnimatePresence>
-                          {(isExpanded || typeof window !== 'undefined' && window.matchMedia?.('print')?.matches) && (
+                          {(isExpanded || isPrinting) && (
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                               className="mt-4 pt-4 border-t border-gray-200 grid sm:grid-cols-2 gap-4 print:!h-auto print:!opacity-100">
                               <div>

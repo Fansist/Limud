@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { cn, AVATAR_OPTIONS } from '@/lib/utils';
 import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
@@ -254,9 +254,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // v17.4: Honor user's OS-level reduced-motion preference. When true, framer
   // animations collapse to a zero-duration transition so the sidebar slide,
   // notifications dropdown, and active-tab indicator don't move.
-  const prefersReducedMotion = useReducedMotion();
-  const motionEnabled = enableAnimations && !prefersReducedMotion;
-  const zeroTransition = { duration: 0 };
+  // v17.16: motion is a wanted part of this product (app-level
+  // <MotionConfig reducedMotion="never">). We must NOT branch RENDER output on the
+  // OS reduced-motion preference: reading useReducedMotion() during render returns
+  // null on the server but the real boolean on the client's first paint, which
+  // caused a hydration mismatch on the sidebar className AND the active-tab
+  // element (motion.div vs div) on every authenticated page.
+  const motionEnabled = enableAnimations;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
@@ -439,7 +443,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {sidebarOpen && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            transition={prefersReducedMotion ? zeroTransition : undefined}
+            transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
@@ -451,7 +455,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className={cn(
           'fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col lg:translate-x-0',
           // v17.4: collapse slide-out transition for reduced-motion users.
-          prefersReducedMotion ? 'transition-none' : 'transition-transform duration-300',
+          'transition-transform duration-300',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           isDemo && 'pt-8'
         )}
@@ -630,7 +634,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={prefersReducedMotion ? zeroTransition : undefined}
+                transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
                 <AccessibilityPanel />
@@ -763,7 +767,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={prefersReducedMotion ? zeroTransition : undefined}
+                    transition={{ duration: 0.2 }}
                     className="absolute right-0 top-12 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50"
                   >
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">

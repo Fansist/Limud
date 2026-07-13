@@ -126,7 +126,11 @@ export default function TeacherDashboard() {
   const atRiskStudents = students.filter((s: any) => s.riskLevel === 'high' || s.riskLevel === 'medium');
 
   // v17.5: "Today's classes" widget — sorted by period (when present), else by name.
-  const todayLabel = new Date().toLocaleDateString(undefined, {
+  // v17.16: pin the locale to 'en-US' rather than passing undefined. An
+  // undefined locale resolves to the server's default locale during SSR but
+  // the browser's locale on the client, so the rendered date string could
+  // differ between the two passes and trip a hydration mismatch.
+  const todayLabel = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',

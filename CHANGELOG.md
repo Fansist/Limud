@@ -4,6 +4,35 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.16.1] - 2026-07-12 — React hydration mismatches eliminated
+
+A `react-reviewer` hydration hunt found three server/client render divergences left
+over after motion was re-enabled in 17.16.0. All three read a client-only or
+environment-dependent value **during render**, so the server HTML and the client's
+first paint disagreed and React logged a hydration warning (and, on the dashboard,
+silently re-mounted the affected node). tsc clean (only the two pre-existing
+test-file type errors remain).
+
+### Fixed
+- **Dashboard chrome (every authenticated page)** — removed the `useReducedMotion()`
+  call that was consumed *in render* inside `DashboardLayout`. It returned `null` on
+  the server but a real boolean on the client, which swapped the sidebar's className
+  (`transition-none` ⇆ `transition-transform`) **and** swapped the active-nav
+  indicator element itself (`motion.div` ⇆ plain `div`) between the two passes — a
+  structural hydration mismatch on the highest-traffic layout in the app. Motion is
+  now unconditionally on, consistent with the app-level
+  `<MotionConfig reducedMotion="never">`.
+- **AI Lesson Planner** — replaced a render-time `window.matchMedia('print').matches`
+  read (SSR-unsafe, and frozen at load time so it never actually fired during print)
+  with a `beforeprint`/`afterprint` listener driving an `isPrinting` state. This both
+  removes the hydration risk and *actually* delivers the intended behavior: every
+  lesson section expands in the printout regardless of which one is open on screen.
+- **Teacher dashboard** — pinned `toLocaleDateString` to the `'en-US'` locale instead
+  of passing `undefined`, which resolved to the server's locale during SSR but the
+  browser's locale on the client, so the rendered "Today" date string could differ.
+
+---
+
 ## [17.14.0] - 2026-07-12 — Website bug-fix sweep (multi-agent audit → parallel fix wave)
 
 A multi-agent audit of the live site surfaced 14 confirmed user-facing bugs; a
