@@ -53,12 +53,10 @@ const OTP_TTL_SECONDS = 300;
 const OTP_RESEND_COOLDOWN_SECONDS = 30;
 
 function LoginPageInner() {
-  // v17.12: motion reveals below are UNCONDITIONAL (initial + animate) so SSR and
-  // client render identical HTML. Reduced-motion handling is done two ways that
-  // don't depend on the SSR-unsafe useReducedMotion() hook: the app-level
-  // <MotionConfig reducedMotion="user"> strips transforms, and the global
-  // `[data-lp-reveal]` CSS safety net force-shows these blocks (incl. the login
-  // form) so they can never be stranded at opacity:0. See globals.css.
+  // v18: motion reveals below are UNCONDITIONAL (initial + animate) so SSR and
+  // client render identical HTML. Motion is a wanted part of this product, so
+  // the app-level <MotionConfig reducedMotion="never"> plays these entrances
+  // fully for everyone. See globals.css / Providers.tsx.
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -424,7 +422,6 @@ function LoginPageInner() {
 
           <div className="flex-1 flex flex-col justify-center max-w-md">
             <motion.div
-              data-lp-reveal
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
@@ -442,7 +439,6 @@ function LoginPageInner() {
             </motion.div>
 
             <motion.div
-              data-lp-reveal
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -470,7 +466,6 @@ function LoginPageInner() {
       {/* Right side - Login form */}
       <div className="flex-1 flex items-center justify-center p-6 bg-gray-50">
         <motion.div
-          data-lp-reveal
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"

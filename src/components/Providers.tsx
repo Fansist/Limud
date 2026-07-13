@@ -91,8 +91,10 @@ export default function Providers({ children }: { children: ReactNode }) {
       <PerfProvider>
         <I18nProvider>
         <AccessibilityProvider>
-          {/* v18: all Framer motion respects prefers-reduced-motion in one place */}
-          <MotionConfig reducedMotion="user">
+          {/* v18: motion is a wanted part of this product — play all Framer
+              animations fully for everyone, regardless of the OS
+              prefers-reduced-motion setting. */}
+          <MotionConfig reducedMotion="never">
             {children}
           </MotionConfig>
           <Toaster

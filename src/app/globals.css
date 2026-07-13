@@ -50,15 +50,13 @@ h1 { letter-spacing: -0.035em; }
 }
 
 /* v18 premium interaction polish — smooth default transitions + refined focus ring.
-   Scoped to interactive elements only; respects reduced-motion. */
-@media (prefers-reduced-motion: no-preference) {
-  a, button, [role="button"], .card-interactive {
-    transition: color var(--dur-fast) var(--ease-out-expo),
-                background-color var(--dur-fast) var(--ease-out-expo),
-                border-color var(--dur-fast) var(--ease-out-expo),
-                box-shadow var(--dur-normal) var(--ease-out-expo),
-                transform var(--dur-normal) var(--ease-out-expo);
-  }
+   Scoped to interactive elements only; motion is wanted for everyone. */
+a, button, [role="button"], .card-interactive {
+  transition: color var(--dur-fast) var(--ease-out-expo),
+              background-color var(--dur-fast) var(--ease-out-expo),
+              border-color var(--dur-fast) var(--ease-out-expo),
+              box-shadow var(--dur-normal) var(--ease-out-expo),
+              transform var(--dur-normal) var(--ease-out-expo);
 }
 :where(a, button, [role="button"]):focus-visible {
   outline: 2px solid #2563eb;
@@ -79,19 +77,16 @@ h1 { letter-spacing: -0.035em; }
 .card-interactive { will-change: transform; }
 .card-interactive:hover { transform: translateY(-3px); box-shadow: var(--elev-3); }
 @media (prefers-reduced-motion: reduce) {
-  .card-interactive:hover { transform: none; }
   * { scroll-behavior: auto; }
 }
 /* Refined text selection — brand-tinted, premium tell */
 ::selection { background: rgb(37 99 235 / 0.16); }
 
-/* v18 Aurora atmosphere — slow, subtle drift. Compositor-only; gated on
-   reduced-motion so it collapses to a static (still beautiful) gradient. */
-@media (prefers-reduced-motion: no-preference) {
-  .aurora-blob {
-    animation: aurora-drift 22s var(--ease-out-expo) infinite alternate;
-    will-change: transform;
-  }
+/* v18 Aurora atmosphere — slow, subtle drift. Compositor-only; motion is
+   wanted for everyone, so the drift always plays. */
+.aurora-blob {
+  animation: aurora-drift 22s var(--ease-out-expo) infinite alternate;
+  will-change: transform;
 }
 @keyframes aurora-drift {
   0%   { transform: translate3d(0, 0, 0) scale(1); }
@@ -148,25 +143,6 @@ h1 { letter-spacing: -0.035em; }
   z-index: -1;
 }
 .spotlight-card:hover::after { opacity: 1; }
-@media (prefers-reduced-motion: reduce) {
-  .aurora-blob { animation: none; }
-
-  /* v17.12 — reduced-motion visibility safety net for landing reveals.
-     Framer sets an inline `opacity:0` as the entrance's initial state; the
-     reveal animation then fades it to 1. But reduced-motion users get no motion
-     anyway, and if that animation is ever deferred or throttled (e.g. a tab that
-     loads in the background), the content would be stranded at opacity:0 — the
-     "blank below the hero" bug. `!important` overrides Framer's inline style, so
-     these users see the content immediately, with zero dependence on JS, the
-     IntersectionObserver, or tab visibility. Scoped to the tagged reveal wrappers
-     and their DIRECT children only (the grid cards / hero items), so it can never
-     force-show deep toggle UI such as a collapsed FAQ panel. */
-  [data-lp-reveal],
-  [data-lp-reveal] > * {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-}
 
 /* Scroll margin for anchor links (avoid navbar overlap) */
 [id] {

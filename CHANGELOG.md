@@ -42,6 +42,40 @@ file-disjoint parallel fix wave resolved them. tsc clean.
 
 ---
 
+## [17.16.0] - 2026-07-12 — Motion turned back on + hydration warning fixed + landing polish
+
+Motion is a wanted part of this product (the earlier "respect prefers-reduced-motion by
+stripping animation" posture was carried over from a different project). This release
+re-enables motion for everyone, removes the reduced-motion "safety net" that was causing
+a React hydration warning, and adds a premium visual polish pass.
+
+### Motion
+- `Providers.tsx`: `<MotionConfig reducedMotion="user">` → `reducedMotion="never"` — Framer
+  now plays all entrance/animation transforms fully for everyone.
+- `globals.css`: the **Aurora atmosphere now drifts unconditionally** (was gated behind
+  `@media (prefers-reduced-motion: no-preference)`); interaction transitions and the
+  `.card-interactive` hover-lift apply for everyone.
+
+### Hydration
+- Removed the entire `data-lp-reveal` reduced-motion safety net — the CSS rule (globals),
+  all 7 attributes on `LandingPage.tsx`, and all 3 on `login/page.tsx`. Framer-motion was
+  forwarding that custom `data-*` attribute inconsistently between SSR and the client's
+  first render, which emitted **"Warning: Extra attributes from the server: data-lp-reveal"**.
+  With motion enabled the safety net is obsolete, so removing it is the correct fix, not a
+  workaround. (`data-lp-reveal` now has 0 occurrences in the codebase.)
+
+### Landing polish (additive, brand-grounded, AA-safe)
+- Brand **glow** on the hero primary CTA and the pricing "most popular" CTA (`.glow-primary`).
+- Hero "dashboard preview" wrapped in a **floating-glass frame** (gradient border +
+  `backdrop-blur` + `shadow-elev-4`).
+- **Gradient-text** accents on the "The Core Engine" and "The Four Pillars" headlines.
+- Slightly more vivid hero/section pills.
+
+Built with the project's specialist agents (`Frontend Developer`, `nextjs-developer`,
+`react-reviewer`). tsc clean (only the 2 known pre-existing test errors).
+
+---
+
 ## [17.15.0] - 2026-07-12 — Visual "POP": fix the invisible hero aurora + bolder effects
 
 The special effects "could barely be seen" for a real, verified reason: the hero

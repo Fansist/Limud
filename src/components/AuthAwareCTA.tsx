@@ -43,8 +43,11 @@ const MotionLink = motion.create(Link);
 const TOPBAR_PRIMARY =
   'inline-flex items-center gap-1 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-elev-1 transition-[background-color,box-shadow] duration-200 hover:bg-primary-700 hover:shadow-elev-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2';
 
+// v18.x: `glow-primary` adds the brand halo so the hero's primary CTA pops off
+// the aurora. It's a static box-shadow (no motion), so reduced-motion users see
+// the same premium glow. Secondary/topbar CTAs deliberately stay subtle.
 const HERO_PRIMARY =
-  'group inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-7 py-3.5 font-bold text-white shadow-elev-2 transition-[background-color,box-shadow] duration-200 hover:bg-primary-700 hover:shadow-elev-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2';
+  'group inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-7 py-3.5 font-bold text-white shadow-elev-2 glow-primary transition-[background-color,box-shadow] duration-200 hover:bg-primary-700 hover:shadow-elev-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2';
 
 // Secondary / ghost — clearly subordinate to the primary CTA.
 const GHOST_LINK =

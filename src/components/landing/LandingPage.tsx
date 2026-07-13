@@ -47,7 +47,6 @@ function Section({ children, className = '', id }: { children: React.ReactNode; 
     // Below-the-fold sections finish their reveal before they're scrolled to —
     // standard, premium, and guaranteed never blank.
     <motion.section id={id}
-      data-lp-reveal
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -262,12 +261,11 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50/40 via-transparent to-blue-50/30" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <motion.div
-            data-lp-reveal
             variants={staggerContainerSlow}
             initial="hidden"
             animate="show"
           >
-            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-primary-50 border border-primary-200 text-primary-700 px-3 py-1 rounded-full text-sm font-medium mb-6">
+            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200/70 text-primary-700 px-3 py-1 rounded-full text-sm font-medium mb-6 shadow-elev-1">
               <Brain size={14} /> Cognitive Science + Generative AI
             </motion.div>
 
@@ -305,13 +303,16 @@ export default function LandingPage() {
 
           {/* Mini dashboard preview — Sylvester's view */}
           <motion.div
-            data-lp-reveal
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-14 max-w-3xl mx-auto"
           >
-            <div className="bg-white rounded-2xl shadow-elev-4 border border-gray-200/60 overflow-hidden">
+            {/* v18.x premium: floating-glass frame — soft brand gradient border wraps a
+                translucent, backdrop-blurred surface so the mock reads as a glass panel
+                hovering over the aurora. shadow-elev-4 preserved; internal layout unchanged. */}
+            <div className="rounded-2xl bg-gradient-to-br from-primary-400/40 via-white/25 to-accent-400/40 p-px shadow-elev-4">
+              <div className="bg-white/80 backdrop-blur-xl rounded-[15px] border border-white/60 overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
                 <div className="flex gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
@@ -346,6 +347,7 @@ export default function LandingPage() {
                   ))}
                 </div>
               </div>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -355,7 +357,7 @@ export default function LandingPage() {
       <Section id="how-it-works" className="py-20 bg-gray-50 border-y border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-10">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">The Core Engine</h2>
+            <h2 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent">The Core Engine</h2>
             <p className="mt-3 text-gray-500 max-w-xl mx-auto">A <strong className="text-gray-700">Shared State Architecture</strong> where teacher actions instantly reflect in the student&apos;s tailored UI, the parent&apos;s reporting, and the admin&apos;s analytics.</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-6">
@@ -378,7 +380,7 @@ export default function LandingPage() {
       <Section id="pillars" className="py-20 lg:py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">The Four Pillars</h2>
+            <h2 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent">The Four Pillars</h2>
             <p className="mt-3 text-gray-500 max-w-xl mx-auto">Four interconnected user flows that create a self-reinforcing loop of personalized learning.</p>
           </div>
 
@@ -393,7 +395,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Sylvester</strong> &mdash; Neurodiversity, Engagement &amp; Cognitive Load Reduction</p>
               </div>
             </div>
-            <motion.div data-lp-reveal {...revealGroupOnMount} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <motion.div {...revealGroupOnMount} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { icon: <Brain size={20} />, title: '"Learning DNA" Onboarding', desc: 'A frictionless survey about hobbies, interests, and learning preferences (auditory, visual, physical). Builds a cognitive profile that improves over time.', color: 'bg-purple-100 text-purple-600' },
                 { icon: <Sparkles size={20} />, title: 'Adaptive Assignments', desc: 'Opens a history assignment and the AI has already adapted it into an auditory, interactive lesson tailored to their profile. No two students see the same thing.', color: 'bg-blue-100 text-blue-600' },
@@ -422,7 +424,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Mrs. Osher</strong> &mdash; Automation, Universal Differentiation &amp; Intervention</p>
               </div>
             </div>
-            <motion.div data-lp-reveal {...revealGroupOnMount} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div {...revealGroupOnMount} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { icon: <Upload size={20} />, title: 'Single-Source Uploading', desc: 'Upload one standard baseline assignment. Limud auto-generates individualized versions for auditory, visual, and kinesthetic learners.', color: 'bg-green-100 text-green-600' },
                 { icon: <Lightbulb size={20} />, title: 'AI Quiz Generation', desc: 'Instantly generate curriculum-aligned quizzes using built-in topic banks for quick knowledge checks.', color: 'bg-amber-100 text-amber-600' },
@@ -449,7 +451,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Superintendent Ofer</strong> &mdash; High-Level Analytics, Compliance &amp; ROI</p>
               </div>
             </div>
-            <motion.div data-lp-reveal {...revealGroupOnMount} className="grid sm:grid-cols-3 gap-4">
+            <motion.div {...revealGroupOnMount} className="grid sm:grid-cols-3 gap-4">
               {[
                 { icon: <LayoutDashboard size={20} />, title: 'The Command Center', desc: 'See district health at a glance — example district: 247 active students, 18 teachers, $12,000 annual cost. One dashboard, zero confusion.', color: 'bg-slate-100 text-slate-600' },
                 { icon: <Users size={20} />, title: 'Frictionless Management', desc: 'Bulk-import users via CSV and broadcast cross-role announcements that instantly ping teacher, student, and parent portals.', color: 'bg-blue-100 text-blue-600' },
@@ -475,7 +477,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>David Betzalel</strong> &mdash; transparency and plain-English reporting, whether his kid is in a district school or learning at home</p>
               </div>
             </div>
-            <motion.div data-lp-reveal {...revealGroupOnMount} className="grid sm:grid-cols-2 gap-4">
+            <motion.div {...revealGroupOnMount} className="grid sm:grid-cols-2 gap-4">
               {[
                 { icon: <Sparkles size={20} />, title: 'The AI Check-In', desc: 'Instead of deciphering complex grade books, David clicks one button and receives a plain-English, conversational summary of his kid\'s academic performance, emotional engagement, and study habits.', color: 'bg-rose-100 text-rose-600' },
                 { icon: <Home size={20} />, title: 'Family Teaching Mode', desc: 'A parent who teaches at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload, and per-child analytics. Same single account.', color: 'bg-amber-100 text-amber-600' },
@@ -608,7 +610,7 @@ export default function LandingPage() {
                 plan.highlight
                   ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white ring-2 ring-primary-300 ring-offset-2 shadow-elev-3'
                   : 'bg-white border border-gray-200 shadow-elev-1')}>
-                {plan.highlight && <div className="text-[10px] font-bold bg-white/20 rounded-full px-2 py-0.5 self-start mb-3">Most Popular</div>}
+                {plan.highlight && <div className="text-[10px] font-bold bg-white/25 ring-1 ring-inset ring-white/40 rounded-full px-2 py-0.5 self-start mb-3">Most Popular</div>}
                 <h3 className={cn('text-lg font-bold', plan.highlight ? '' : 'text-gray-900')}>{plan.name}</h3>
                 <p className={cn('text-xs mt-0.5', plan.highlight ? 'text-white/60' : 'text-gray-500')}>{plan.desc}</p>
                 <div className="mt-3 mb-4">
@@ -623,7 +625,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link href={plan.link} className={cn('block text-center py-2.5 rounded-lg font-bold text-sm transition',
-                  plan.highlight ? 'bg-white text-primary-700 hover:bg-gray-100' : 'bg-gray-100 text-gray-900 hover:bg-gray-200')}>
+                  plan.highlight ? 'bg-white text-primary-700 hover:bg-gray-100 glow-primary' : 'bg-gray-100 text-gray-900 hover:bg-gray-200')}>
                   {plan.cta}
                 </Link>
               </SpotlightCard>
