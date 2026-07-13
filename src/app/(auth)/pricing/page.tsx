@@ -1288,7 +1288,7 @@ export default function PricingPage() {
           <Link href="/contact" className="hover:text-gray-700 transition">Contact</Link>
         </p>
         <p className="text-xs text-gray-400 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-          <span>&copy; {new Date().getFullYear()} Limud Education Inc.</span>
+          <span suppressHydrationWarning>&copy; {new Date().getFullYear()} Limud Education Inc.</span>
           <span className="text-gray-300">&middot;</span>
           <Link href="/privacy" className="hover:text-gray-600 transition">Privacy</Link>
           <span className="text-gray-300">&middot;</span>

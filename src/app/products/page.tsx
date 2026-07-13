@@ -762,7 +762,7 @@ export default function ProductsPage() {
 
       <footer className="bg-gray-900 text-gray-400 py-10 mt-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <p>&copy; {new Date().getFullYear()} Limud Education Inc.</p>
+          <p suppressHydrationWarning>&copy; {new Date().getFullYear()} Limud Education Inc.</p>
           <div className="flex gap-4">
             <Link href="/about" className="hover:text-white">About</Link>
             <Link href="/team" className="hover:text-white">Team</Link>

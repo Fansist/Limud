@@ -25,7 +25,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       <main id="main-content" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         {children}
       </main>
-      <footer className="border-t border-gray-100 py-8 text-center text-sm text-gray-400">
+      <footer className="border-t border-gray-100 py-8 text-center text-sm text-gray-400" suppressHydrationWarning>
         &copy; {new Date().getFullYear()} Limud Education Inc. All rights reserved.
       </footer>
     </div>

@@ -4,6 +4,45 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.16.2] - 2026-07-13 — Whole-`src/` hydration audit (multi-agent workflow + full-tree grep)
+
+Ran an exhaustive multi-agent workflow (7 parallel finders → adversarial verify →
+file-disjoint fix) to hunt every remaining render-time SSR/client divergence across
+`src/`. The account hit its session limit mid-run (2 finders + the verifiers died), so
+the surviving finder output was hand-verified and the two unscanned slices were closed
+with a full-`src/` grep — which surfaced **more** sites than the partial run had. All
+findings were LOW severity; none swap element structure or attributes on a hot path.
+tsc `--noEmit` still exits 0.
+
+### Fixed
+- **`toLocaleDateString(undefined)` in `/account/subscriptions`** — the `formatDate`
+  helper (used in render) resolved to the server's locale during SSR but the browser's
+  on the client. Pinned to `'en-US'`, matching the earlier teacher-dashboard fix. This
+  was the one genuine locale-divergence bug the audit found.
+- **Landing-page FAQ accordion** — removed a `useReducedMotion()` call consumed in
+  `FAQItem`'s render. Under the app-level `<MotionConfig reducedMotion="never">` it was
+  always `false` (dead code) *and* an SSR-divergent read; the accordion now animates
+  unconditionally, consistent with the rest of the app.
+- **Footer copyright year, 6 surfaces** (`AnonShell`, landing, pricing, legal layout,
+  roadmap, products) — added `suppressHydrationWarning` to each rendered
+  `new Date().getFullYear()` element. React's blessed idiom for legitimately dynamic
+  dates; makes the once-a-year cross-timezone New-Year edge airtight with zero visual
+  change.
+
+### Verified safe (no change needed)
+- `DashboardLayout` `Date.now()` (post-hydration, inside a `[]`-seeded notifications
+  map), `PerfProvider`'s `matchMedia`/`localStorage` (all in `useEffect`), Aurora's
+  reduced-motion (CSS-only), and the many `Math.random()`/id-generator calls (all in
+  API routes or event handlers) — none are render-path.
+
+### Known LOW (accepted)
+- `roadmap` `getCurrentQuarter()` drives timeline-bar classNames from `new Date()`;
+  diverges only at the exact quarter-rollover instant and is intended dynamic behavior.
+  Fixing properly means client-mounting the whole `TimelineBar` — not worth it for a
+  boundary-only flicker on a low-traffic page.
+
+---
+
 ## [17.16.1] - 2026-07-12 — React hydration mismatches eliminated
 
 A `react-reviewer` hydration hunt found three server/client render divergences left

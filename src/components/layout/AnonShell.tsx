@@ -92,7 +92,7 @@ export default function AnonShell({ children }: { children: React.ReactNode }) {
           <span aria-hidden="true" className="text-gray-300">·</span>
           <Link href="/accessibility" className="hover:text-gray-600 transition-colors">Accessibility</Link>
           <span aria-hidden="true" className="text-gray-300">·</span>
-          <span>&copy; Limud {year}</span>
+          <span suppressHydrationWarning>&copy; Limud {year}</span>
         </div>
       </footer>
     </div>

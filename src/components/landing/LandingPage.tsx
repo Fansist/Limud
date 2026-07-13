@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import {
   BookOpen, BarChart3, GraduationCap,
@@ -57,10 +57,10 @@ function Section({ children, className = '', id }: { children: React.ReactNode; 
 }
 
 function FAQItem({ q, a, index }: { q: string; a: React.ReactNode; index: number }) {
-  // R10: respect prefers-reduced-motion. Note: the panel expand/collapse
-  // still needs to snap between heights (otherwise the panel never opens),
-  // so we set duration: 0 rather than dropping the animate props.
-  const reduced = useReducedMotion();
+  // v17.16: motion is intentionally on for everyone (app-level
+  // <MotionConfig reducedMotion="never">), so the old useReducedMotion() gate
+  // was dead code (always false on this app) AND an SSR-divergent render read.
+  // Animate unconditionally, consistent with the rest of the app.
   const [open, setOpen] = useState(false);
   const panelId = `faq-panel-${index}`;
   return (
@@ -74,7 +74,7 @@ function FAQItem({ q, a, index }: { q: string; a: React.ReactNode; index: number
         <span className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition pr-4">{q}</span>
         <motion.div
           animate={{ rotate: open ? 180 : 0 }}
-          transition={reduced ? { duration: 0 } : { duration: 0.2 }}
+          transition={{ duration: 0.2 }}
         >
           <ChevronDown size={18} className="text-gray-500 flex-shrink-0" />
         </motion.div>
@@ -83,7 +83,7 @@ function FAQItem({ q, a, index }: { q: string; a: React.ReactNode; index: number
         id={panelId}
         initial={false}
         animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
-        transition={reduced ? { duration: 0 } : { duration: 0.25 }}
+        transition={{ duration: 0.25 }}
         className="overflow-hidden"
       >
         <p className="pb-4 text-sm text-gray-500 leading-relaxed">{a}</p>
@@ -879,7 +879,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs">&copy; {new Date().getFullYear()} Limud Education Inc.</p>
+            <p className="text-xs" suppressHydrationWarning>&copy; {new Date().getFullYear()} Limud Education Inc.</p>
             <p className="text-[10px] text-gray-500">Built with care for educators, students, and families.</p>
           </div>
         </div>
