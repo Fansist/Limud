@@ -117,7 +117,9 @@ export default function AINavigator() {
 
       if (res.ok) {
         const data = await res.json();
-        setMessages(prev => [...prev, { id: nextMessageId(), role: 'assistant', content: data.message }]);
+        // v17.13: the /api/ai-navigator route returns { reply }, not { message } —
+        // reading data.message stored an empty assistant bubble.
+        setMessages(prev => [...prev, { id: nextMessageId(), role: 'assistant', content: data.reply ?? data.message ?? '' }]);
       } else {
         // Fallback demo response
         setMessages(prev => [...prev, {

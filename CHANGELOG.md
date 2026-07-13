@@ -4,6 +4,22 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.13.1] - 2026-07-12 — Post-audit follow-ups
+
+An independent adversarial re-review of the v17.13.0 fixes confirmed M2, C4, M9, L1
+as correct and non-bypassable, and found two residual items, both fixed here:
+
+- **ai-feedback: sanitize the student display name.** M1 fenced the submission body,
+  but the sibling `Student:` line interpolated the student-controlled display name
+  unfenced — a student could move a grade-steering payload into their profile name.
+  A `sanitizeName()` helper now strips fence markers, collapses newlines, and caps
+  length at both grading paths.
+- **AI Navigator: read the correct response key.** The client stored `data.message`
+  while `/api/ai-navigator` returns `{ reply }`, so assistant bubbles rendered empty.
+  Now reads `data.reply`.
+
+---
+
 ## [17.13.0] - 2026-07-12 — Security hardening + Congressional App Challenge deliverables
 
 An adversarial self-audit hardening pass ahead of the CAC submission, plus the full
