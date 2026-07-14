@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
 import {
   BookOpen, BarChart3, GraduationCap,
   Shield, Users, Brain, Sparkles, ArrowRight,
@@ -13,43 +13,38 @@ import {
   Upload, Headphones, Hand, Focus, Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { fadeUp, fadeUpSm, staggerContainerSlow, revealGroupOnMount, pressable } from '@/lib/motion';
+import { fadeUp, fadeUpSm, fadeUpLg, staggerContainerSlow, revealGroup, pressable } from '@/lib/motion';
 import Aurora from '@/components/ui/Aurora';
 import SpotlightCard from '@/components/ui/SpotlightCard';
 import AuthAwareCTA, { dashboardHrefFor } from '@/components/AuthAwareCTA';
 import { useSession } from 'next-auth/react';
 
+// v18: Link as a motion element so bundle cards can join the staggered scroll
+// reveal while staying a real <a> AND a direct grid child (preserves the grid's
+// equal-height stretch). Defined at module scope so it isn't recreated per
+// render — recreating it would remount the cards every render.
+const MotionLink = motion(Link);
+
 /* ── Helpers ────────────────────────────────────────────────── */
 
 function Section({ children, className = '', id }: { children: React.ReactNode; className?: string; id?: string }) {
   return (
-    // v15.1: `scroll-mt-20` (= scroll-margin-top: 5rem) so the fixed top nav
-    // doesn't cover the section heading when anchor links scroll into view.
+    // `scroll-mt-20` (= scroll-margin-top: 5rem) so the fixed top nav doesn't
+    // cover the section heading when anchor links scroll into view.
     //
-    // v17.12 FIX — "blank below the hero" for prefers-reduced-motion users.
-    // The reveal used to gate BOTH the resting state and the trigger on
-    // `useReducedMotion()`. That hook returns `false` during SSR (the server
-    // can't read a media query) but `true` on a reduced-motion client, so the
-    // server baked `opacity:0` into the HTML and the client then hydrated with
-    // `initial={false}` — which tells Framer "the current DOM state IS the
-    // resting state" and permanently adopts that SSR `opacity:0`. Every section
-    // below the hero stayed invisible for reduced-motion users (a large share of
-    // devices/corporate machines), and React logged a hydration mismatch.
-    //
-    // The fix has two parts. (1) Keep `initial` UNCONDITIONAL so server and client
-    // render identical HTML (no hydration mismatch). (2) Reveal on MOUNT via
-    // `animate` rather than on scroll via `whileInView`/`useInView`. Scroll-based
-    // IntersectionObserver reveals proved unreliable under prefers-reduced-motion
-    // (they never fired, leaving sections stuck at opacity:0), while mount-triggered
-    // `animate` is exactly what the always-visible hero uses. The app-level
-    // <MotionConfig reducedMotion="user"> in Providers.tsx still strips the
-    // transform for reduced-motion users, so they get a pure opacity fade.
-    // Below-the-fold sections finish their reveal before they're scrolled to —
-    // standard, premium, and guaranteed never blank.
+    // v18: scroll-triggered reveal. Each section rises + fades in as it enters
+    // the viewport (content arrives as you reach it) instead of all-at-once on
+    // mount. This is safe now that the app runs <MotionConfig reducedMotion="never">
+    // — the old "blank below the hero" bug was specific to prefers-reduced-motion
+    // users whose whileInView reveals never fired; with motion forced on for
+    // everyone the IntersectionObserver trigger is reliable. `initial="hidden"`
+    // is unconditional so SSR and client render identical HTML (no hydration
+    // mismatch), and `once` reveals a single time then leaves the section put.
     <motion.section id={id}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      variants={fadeUpLg}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.15 }}
       className={`scroll-mt-20 ${className}`}>
       {children}
     </motion.section>
@@ -107,6 +102,15 @@ export default function LandingPage() {
     ? dashboardHrefFor(session.user as { role?: string; isHomeschoolParent?: boolean; isMasterDemo?: boolean })
     : null;
   const [mobileMenu, setMobileMenu] = useState(false);
+
+  // v18: subtle scroll-linked parallax on the hero. As the hero scrolls away
+  // the dashboard preview drifts up slightly and softens — adds depth without
+  // hijacking the scroll. useScroll/useTransform run OFF the React render cycle
+  // (motion values, not state), so this stays smooth and never re-renders.
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
+  const previewY = useTransform(scrollYProgress, [0, 1], [0, 72]);
+  const previewOpacity = useTransform(scrollYProgress, [0, 0.85], [1, 0.55]);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20);
@@ -256,7 +260,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ═══ HERO ═════════════════════════════════════════════ */}
-      <section id="main-content" className="relative pt-28 pb-20 lg:pt-36 lg:pb-28">
+      <section ref={heroRef} id="main-content" className="relative pt-28 pb-20 lg:pt-36 lg:pb-28">
         <Aurora />
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50/40 via-transparent to-blue-50/30" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center">
@@ -308,6 +312,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-14 max-w-3xl mx-auto"
           >
+           <motion.div style={{ y: previewY, opacity: previewOpacity }} className="will-change-transform">
             {/* v18.x premium: floating-glass frame — soft brand gradient border wraps a
                 translucent, backdrop-blurred surface so the mock reads as a glass panel
                 hovering over the aurora. shadow-elev-4 preserved; internal layout unchanged. */}
@@ -349,6 +354,7 @@ export default function LandingPage() {
               </div>
               </div>
             </div>
+           </motion.div>
           </motion.div>
         </div>
       </section>
@@ -360,19 +366,19 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent">The Core Engine</h2>
             <p className="mt-3 text-gray-500 max-w-xl mx-auto">A <strong className="text-gray-700">Shared State Architecture</strong> where teacher actions instantly reflect in the student&apos;s tailored UI, the parent&apos;s reporting, and the admin&apos;s analytics.</p>
           </div>
-          <div className="grid sm:grid-cols-3 gap-6">
+          <motion.div {...revealGroup} className="grid sm:grid-cols-3 gap-6">
             {[
               { icon: <Brain size={28} className="text-purple-500" />, title: 'The Brain', sub: 'Google Gemini 2.5 Flash powers Socratic tutoring, auto-grading, and assignment adaptation.', bg: 'bg-purple-50 border-purple-200' },
               { icon: <Lightbulb size={28} className="text-amber-500" />, title: 'The Science', sub: 'SM-2 spaced repetition, adaptive difficulty targeting, and a proprietary "Learning DNA" profiler.', bg: 'bg-amber-50 border-amber-200' },
               { icon: <Shield size={28} className="text-green-500" />, title: 'The Security', sub: 'Enterprise-grade AES-256-GCM encryption. Strict FERPA, COPPA, and WCAG AA compliance.', bg: 'bg-green-50 border-green-200' },
             ].map(item => (
-              <SpotlightCard as={motion.div} key={item.title} {...pressable} className={cn('rounded-2xl p-6 border text-center shadow-elev-1', item.bg)}>
+              <SpotlightCard as={motion.div} key={item.title} variants={fadeUpSm} {...pressable} className={cn('rounded-2xl p-6 border text-center shadow-elev-1', item.bg)}>
                 <div className="flex justify-center mb-3">{item.icon}</div>
                 <h3 className="text-base font-bold text-gray-900 mb-2">{item.title}</h3>
                 <p className="text-xs text-gray-600 leading-relaxed">{item.sub}</p>
               </SpotlightCard>
             ))}
-          </div>
+          </motion.div>
         </div>
       </Section>
 
@@ -395,7 +401,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Sylvester</strong> &mdash; Neurodiversity, Engagement &amp; Cognitive Load Reduction</p>
               </div>
             </div>
-            <motion.div {...revealGroupOnMount} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <motion.div {...revealGroup} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { icon: <Brain size={20} />, title: '"Learning DNA" Onboarding', desc: 'A frictionless survey about hobbies, interests, and learning preferences (auditory, visual, physical). Builds a cognitive profile that improves over time.', color: 'bg-purple-100 text-purple-600' },
                 { icon: <Sparkles size={20} />, title: 'Adaptive Assignments', desc: 'Opens a history assignment and the AI has already adapted it into an auditory, interactive lesson tailored to their profile. No two students see the same thing.', color: 'bg-blue-100 text-blue-600' },
@@ -424,7 +430,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Mrs. Osher</strong> &mdash; Automation, Universal Differentiation &amp; Intervention</p>
               </div>
             </div>
-            <motion.div {...revealGroupOnMount} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div {...revealGroup} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { icon: <Upload size={20} />, title: 'Single-Source Uploading', desc: 'Upload one standard baseline assignment. Limud auto-generates individualized versions for auditory, visual, and kinesthetic learners.', color: 'bg-green-100 text-green-600' },
                 { icon: <Lightbulb size={20} />, title: 'AI Quiz Generation', desc: 'Instantly generate curriculum-aligned quizzes using built-in topic banks for quick knowledge checks.', color: 'bg-amber-100 text-amber-600' },
@@ -451,7 +457,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>Superintendent Ofer</strong> &mdash; High-Level Analytics, Compliance &amp; ROI</p>
               </div>
             </div>
-            <motion.div {...revealGroupOnMount} className="grid sm:grid-cols-3 gap-4">
+            <motion.div {...revealGroup} className="grid sm:grid-cols-3 gap-4">
               {[
                 { icon: <LayoutDashboard size={20} />, title: 'The Command Center', desc: 'See district health at a glance — example district: 247 active students, 18 teachers, $12,000 annual cost. One dashboard, zero confusion.', color: 'bg-slate-100 text-slate-600' },
                 { icon: <Users size={20} />, title: 'Frictionless Management', desc: 'Bulk-import users via CSV and broadcast cross-role announcements that instantly ping teacher, student, and parent portals.', color: 'bg-blue-100 text-blue-600' },
@@ -477,7 +483,7 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Meet <strong>David Betzalel</strong> &mdash; transparency and plain-English reporting, whether his kid is in a district school or learning at home</p>
               </div>
             </div>
-            <motion.div {...revealGroupOnMount} className="grid sm:grid-cols-2 gap-4">
+            <motion.div {...revealGroup} className="grid sm:grid-cols-2 gap-4">
               {[
                 { icon: <Sparkles size={20} />, title: 'The AI Check-In', desc: 'Instead of deciphering complex grade books, David clicks one button and receives a plain-English, conversational summary of his kid\'s academic performance, emotional engagement, and study habits.', color: 'bg-rose-100 text-rose-600' },
                 { icon: <Home size={20} />, title: 'Family Teaching Mode', desc: 'A parent who teaches at home (full-time or supplementally) can flip on Family Teaching Mode and unlock the full teacher toolkit — assignment authoring, AI grading, materials upload, and per-child analytics. Same single account.', color: 'bg-amber-100 text-amber-600' },
@@ -497,19 +503,19 @@ export default function LandingPage() {
       <Section className="py-20 bg-gradient-to-br from-primary-50 via-white to-accent-50/30">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-8">The Self-Reinforcing Loop</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <motion.div {...revealGroup} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { emoji: '👩‍🏫', text: 'Teachers save hours on differentiation and grading', color: 'bg-green-50 border-green-200' },
               { emoji: '🧠', text: 'Students learn faster because content speaks their language', color: 'bg-blue-50 border-blue-200' },
               { emoji: '👨‍👩‍👦', text: 'Parents stay effortlessly informed', color: 'bg-rose-50 border-rose-200' },
               { emoji: '📈', text: 'Districts see improved scores tied to funding', color: 'bg-amber-50 border-amber-200' },
             ].map(item => (
-              <div key={item.text} className={cn('rounded-2xl p-5 border shadow-elev-1', item.color)}>
+              <motion.div variants={fadeUpSm} key={item.text} className={cn('rounded-2xl p-5 border shadow-elev-1', item.color)}>
                 <div className="text-3xl mb-3">{item.emoji}</div>
                 <p className="text-sm text-gray-700 font-medium leading-relaxed">{item.text}</p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </Section>
 
@@ -521,7 +527,7 @@ export default function LandingPage() {
             <p className="mt-3 text-gray-500 max-w-xl mx-auto">Limud doesn&apos;t replace them &mdash; it fills the gaps and ties everything together.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5">
+          <motion.div {...revealGroup} className="grid md:grid-cols-3 gap-5">
             {[
               {
                 name: 'Khan Academy', emoji: '🎓',
@@ -542,7 +548,7 @@ export default function LandingPage() {
                 color: 'bg-purple-50 border-purple-200',
               },
             ].map(item => (
-              <div key={item.name} className={cn('rounded-2xl p-5 border shadow-elev-1', item.color)}>
+              <motion.div variants={fadeUpSm} key={item.name} className={cn('rounded-2xl p-5 border shadow-elev-1', item.color)}>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">{item.emoji}</span>
                   <h4 className="font-bold text-gray-900 text-sm">{item.name}</h4>
@@ -555,9 +561,9 @@ export default function LandingPage() {
                   <p className="text-[10px] font-bold text-primary-700 mb-1">Where Limud adds value</p>
                   <p className="text-xs text-gray-700 leading-relaxed">{item.limud}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </Section>
 
@@ -573,7 +579,7 @@ export default function LandingPage() {
             <p className="mt-3 text-gray-500">Districts, families, and individuals &mdash; same product, pricing scales with size. Or grab a <Link href="/products" className="text-primary-600 hover:text-primary-700 underline underline-offset-2">single tool from $3/month</Link>.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
+          <motion.div {...revealGroup} className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {[
               {
                 // v16.4.1: Enterprise → /contact is correct (custom pricing).
@@ -606,7 +612,7 @@ export default function LandingPage() {
                 mobileOrder: 'order-1',
               },
             ].map(plan => (
-              <SpotlightCard as={motion.div} key={plan.name} {...pressable} className={cn('rounded-2xl p-6 flex flex-col md:order-none', plan.mobileOrder,
+              <SpotlightCard as={motion.div} key={plan.name} variants={fadeUpSm} {...pressable} className={cn('rounded-2xl p-6 flex flex-col md:order-none', plan.mobileOrder,
                 plan.highlight
                   ? 'bg-gradient-to-br from-primary-600 to-primary-800 text-white ring-2 ring-primary-300 ring-offset-2 shadow-elev-3'
                   : 'bg-white border border-gray-200 shadow-elev-1')}>
@@ -630,7 +636,7 @@ export default function LandingPage() {
                 </Link>
               </SpotlightCard>
             ))}
-          </div>
+          </motion.div>
 
           {/* v17.4: pricing teaser shows 3 of 6 real tiers; surface the rest.
               v17.7: "See all 6 plans" → "See all 6 district plans" because
@@ -677,7 +683,7 @@ export default function LandingPage() {
             <p className="mt-2 text-sm text-gray-500 max-w-xl mx-auto">Pick a curated set of tools and pay less than buying them one at a time.</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <motion.div {...revealGroup} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {([
               {
                 name: 'All-Access',
@@ -712,7 +718,8 @@ export default function LandingPage() {
                 ring: 'bg-white border-gray-200',
               },
             ] as { name: string; pitch: string; oneTime: string; monthly: string; badge: string | null; ring: string }[]).map(bundle => (
-              <Link
+              <MotionLink
+                variants={fadeUpSm}
                 key={bundle.name}
                 href="/products#bundles"
                 className={cn(
@@ -734,9 +741,9 @@ export default function LandingPage() {
                 <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary-600 group-hover:text-primary-700">
                   See bundle <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                 </span>
-              </Link>
+              </MotionLink>
             ))}
-          </div>
+          </motion.div>
         </div>
       </Section>
 

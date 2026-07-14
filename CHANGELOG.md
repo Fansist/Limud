@@ -4,6 +4,38 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.17.0] - 2026-07-13 — Landing-page motion level-up (Motion / motion.dev)
+
+Leveled up the landing-page animation from "fades in on load" to a designed,
+scroll-driven reveal system, grounded in the Motion (framer-motion) patterns and
+the anti-slop `taste` skill. Every animation is motivated (reveal = storytelling,
+hover = feedback, parallax = depth), transform/opacity-only, and consistent with
+the app-wide `<MotionConfig reducedMotion="never">` posture. tsc `--noEmit` clean;
+verified in-browser (no console/hydration errors, sections reveal on scroll, no
+"blank section" regression).
+
+### Shared motion vocabulary (`src/lib/motion.ts`) — propagates site-wide
+- **`pressable` is now spring-driven** (`type: 'spring'`, stiffness 380 / damping 26)
+  instead of a fixed-duration tween, so every card/button lift that uses it settles
+  physically rather than reading as mechanical. Transform-only.
+- Added **`fadeUpLg`** (a slightly larger section-level rise) and refreshed the
+  header doc to reflect the `reducedMotion="never"` posture.
+
+### Landing page (`LandingPage.tsx`)
+- **Sections now reveal on scroll, not on mount.** Each section rises + fades in as
+  it enters the viewport (`whileInView` + `once`) instead of all firing at page load
+  where below-fold reveals were wasted. Safe now that motion is forced on for
+  everyone — the old mount-only workaround was a prefers-reduced-motion artifact.
+- **Six card grids now stagger in** as they scroll into view (Core Engine, all four
+  Pillars, Self-Reinforcing Loop, Works Alongside, Pricing, Bundles). Three of those
+  had **zero** card motion before. Bundle cards use `motion(Link)` so they animate
+  while staying real `<a>` grid children (equal-height stretch preserved).
+- **Subtle hero parallax:** the dashboard preview drifts up and softens as the hero
+  scrolls away (`useScroll` + `useTransform` — motion values, off the React render
+  cycle, so zero re-renders).
+
+---
+
 ## [17.16.2] - 2026-07-13 — Whole-`src/` hydration audit (multi-agent workflow + full-tree grep)
 
 Ran an exhaustive multi-agent workflow (7 parallel finders → adversarial verify →

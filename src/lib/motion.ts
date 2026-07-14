@@ -7,17 +7,22 @@
  * - Subtle distances (12–20px) and short durations (240–400ms) — "don't overdo it".
  * - Stagger children 40ms apart for a designed, sequential reveal.
  *
- * Reduced motion: wrap the app (or a subtree) in
- *   <MotionConfig reducedMotion="user">…</MotionConfig>
- * and Framer automatically drops transforms for users who ask for less motion.
- * These variants are transform/opacity only, so that downgrade is lossless.
+ * Motion posture: this product runs <MotionConfig reducedMotion="never"> — motion
+ * is a wanted part of the experience and plays for everyone. Every variant here
+ * is transform/opacity only, so it stays cheap and compositor-friendly regardless.
  */
-import type { Variants } from 'framer-motion';
+import type { Variants, Transition } from 'framer-motion';
 
 // Cubic-bezier control points as a fixed 4-tuple (framer's Easing shape).
 // Annotating as Transition['ease'] widens the literal to number[], which
 // fails strict assignment — the explicit tuple type is what type-checks.
 const easeOutExpo: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+// Spring token for INTERACTIONS (hover / press). A spring settles physically —
+// it reads as "responsive control" where a fixed-duration tween reads as
+// "mechanical". Entrances stay on the easeOutExpo tween above; springs are for
+// things the user directly touches.
+const springSnappy: Transition = { type: 'spring', stiffness: 380, damping: 26, mass: 0.6 };
 
 /** Fade + rise. Use on hero copy, section headers, single cards. */
 export const fadeUp: Variants = {
@@ -36,6 +41,17 @@ export const fadeUpSm: Variants = {
     opacity: 1,
     y: 0,
     transition: { duration: 0.4, ease: easeOutExpo },
+  },
+};
+
+/** Larger rise for whole-section reveals — a touch more travel so the
+ *  scroll reveal is felt, without being showy. */
+export const fadeUpLg: Variants = {
+  hidden: { opacity: 0, y: 28 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: easeOutExpo },
   },
 };
 
@@ -111,8 +127,9 @@ export const revealGroupOnMount = {
   variants: staggerContainer,
 };
 
-/** Tasteful press feedback for interactive cards/buttons (pair with whileHover). */
+/** Tasteful press feedback for interactive cards/buttons. Spring-driven so the
+ *  lift feels physical (it settles rather than just easing). Transform-only. */
 export const pressable = {
-  whileHover: { y: -3, transition: { duration: 0.24, ease: easeOutExpo } },
-  whileTap: { scale: 0.985 },
+  whileHover: { y: -4, transition: springSnappy },
+  whileTap: { scale: 0.97, transition: springSnappy },
 };
