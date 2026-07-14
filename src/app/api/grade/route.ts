@@ -12,6 +12,7 @@ import {
   parseBadges,
   computeBadges,
 } from '@/lib/gamification';
+import { updateStudentNoteFromEvent } from '@/lib/student-model';
 
 // AI route — give Gemini calls headroom past Vercel's default 10s.
 export const maxDuration = 60;
@@ -23,6 +24,8 @@ export const maxDuration = 60;
  * Side effects (skipped entirely in demo mode):
  *   1. RewardStats upsert — XP, assignmentsCompleted, perfectScores, level
  *   2. Badge checks — first_graded, ten_assignments, perfect_3
+ *   3. AI student-note update — re-derive the learner's evolving note from the
+ *      new graded evidence (fire-and-forget; never blocks or fails the grade)
  *
  * Parent fanout (in-app notification + email when prefs allow) is handled
  * separately by `fanoutToParents()` at the call site, so it can run
@@ -31,7 +34,10 @@ export const maxDuration = 60;
 async function applyGradeSideEffects(
   submission: { id: string; studentId: string },
   result: { score: number; maxScore: number },
-  isDemo: boolean
+  isDemo: boolean,
+  assignmentTitle: string,
+  subject: string | null,
+  feedback: string | null
 ): Promise<void> {
   if (isDemo) return;
 
@@ -72,6 +78,18 @@ async function applyGradeSideEffects(
       },
     });
   }
+
+  // 3. Re-derive the student's evolving AI note from this new graded evidence.
+  // Fire-and-forget: it must never block or fail the grade. Demo is already
+  // skipped by the `isDemo` guard above.
+  updateStudentNoteFromEvent(submission.studentId, {
+    type: 'graded_assignment',
+    title: assignmentTitle,
+    score: result.score,
+    maxScore: result.maxScore,
+    subject,
+    feedback,
+  }).catch((e) => console.warn('[GRADE] note update failed:', (e as Error).message));
 }
 
 export const POST = apiHandler(async (req: Request) => {
@@ -170,11 +188,14 @@ export const POST = apiHandler(async (req: Request) => {
       },
     });
 
-    // v2.7 — bump RewardStats (single-grade path).
+    // v2.7 — bump RewardStats (single-grade path). Also re-derives the AI note.
     await applyGradeSideEffects(
       { id: submission.id, studentId: submission.studentId },
       { score: result.score, maxScore: result.maxScore },
-      user.isMasterDemo ?? false
+      user.isMasterDemo ?? false,
+      submission.assignment.title,
+      submission.assignment.course.subject ?? null,
+      result.feedback ?? null
     );
 
     // v15.0.0 — Parent Loop fanout. Fire-and-forget so a slow email send
@@ -288,7 +309,10 @@ export const PUT = apiHandler(async (req: Request) => {
       await applyGradeSideEffects(
         { id, studentId: submission.studentId },
         { score: result.score, maxScore: result.maxScore },
-        user.isMasterDemo ?? false
+        user.isMasterDemo ?? false,
+        submission.assignment.title,
+        submission.assignment.course.subject ?? null,
+        result.feedback ?? null
       );
 
       // v15.0.0 — Parent Loop fanout. Fire-and-forget per single-grade path.

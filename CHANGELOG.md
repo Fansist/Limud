@@ -4,6 +4,57 @@ All notable changes to Limud will be documented in this file.
 
 ---
 
+## [17.18.0] - 2026-07-13 — Adaptive Learning Loop: the AI now learns from each student
+
+Closed the loop that makes Limud's core promise real. Before this, the app tracked
+per-skill mastery and persisted AI chats, but the pieces were disconnected: grading
+only bumped XP (never the learning model), and the AI Tutor personalized on the
+onboarding *survey* only — it never read how a student was actually doing, and it
+never wrote down what it learned. Now every student has three connected "folders,"
+and the AI reads them in and writes back to them. Built via multi-agent orchestration
+(schema → shared lib → API/UI → read/write wiring), each stage typecheck-gated; tsc
+`--noEmit` clean throughout.
+
+### The three folders per student
+1. **Personalized assignments & scores** — `Submission` / `AdaptedAssignment` (already existed).
+2. **AI chats** — `AITutorLog` (already existed).
+3. **AI notes (NEW)** — `StudentNote`: one evolving, AI-authored read of each learner —
+   `helpLevel`, a `summary` of where they are, `strengths`, `growthAreas`, `strategies`
+   (best ways THEY learn), a `confidence`/`dataPoints` meter, and a `history` timeline of
+   how the AI's read has changed over time.
+
+### The read + write loop (`src/lib/student-model.ts`, NEW)
+- **READ** — `buildStudentModel(userId)` assembles a best-effort snapshot (survey +
+  SkillRecord mastery + recent graded scores + the latest note); `studentModelToPrompt()`
+  renders a compact block spliced into AI prompts. Never throws; returns partial data on
+  any DB hiccup so routes stay resilient.
+- **WRITE** — `updateStudentNoteFromEvent(userId, event)` re-derives the note after a
+  graded assignment or tutor session. It asks Gemini (reusing the app's existing client) for
+  a strict-JSON note, and falls back to a **deterministic** note computed from mastery +
+  scores when AI is unavailable, so the loop still closes offline. The student model is
+  passed to the LLM as fenced data-not-instructions (prompt-injection-safe).
+
+### Wiring
+- **AI Tutor** now reads the student model into its prompt and writes a throttled note back
+  after a session (skips master-demo).
+- **Grading** writes a note update after every real grade (fire-and-forget; demo-skipped).
+- **Assignment adaptation** (both the `/api/adaptive` generator and the
+  `personalizeMaterial` path) now reads the student model, so rewrites match how a student
+  is *doing*, not just their interests.
+
+### Student File view (teacher / homeschool-parent facing)
+- New `/teacher/students/[id]` page + FERPA-scoped `/api/teacher/student-file/[id]` API showing
+  each student's three folders — assignments & scores, AI chats, and the AI's evolving notes
+  (with the help-level badge, strategy chips, confidence meter, and the note-history timeline).
+  Linked from each row on the students list.
+
+### Operational note
+The `student_notes` table is created by the deploy pipeline's `prisma db push` (in
+`npm run build`). Until it exists, the loop degrades gracefully (best-effort try/catch →
+empty notes / "gathering evidence" state), so nothing breaks pre-migration.
+
+---
+
 ## [17.17.0] - 2026-07-13 — Landing-page motion level-up (Motion / motion.dev)
 
 Leveled up the landing-page animation from "fades in on load" to a designed,

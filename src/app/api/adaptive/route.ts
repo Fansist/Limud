@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler, hasTeacherAccess } from '@/lib/middleware';
 import { callGemini, isGeminiConfigured, extractJSON } from '@/lib/ai';
 import prisma from '@/lib/prisma';
+import { buildStudentModel, studentModelToPrompt } from '@/lib/student-model';
 import { log } from '@/lib/log';
 
 // v3.4: AI route — give Gemini calls headroom past Vercel's default 10s.
@@ -157,6 +158,14 @@ export const POST = apiHandler(async (req: Request) => {
     // Generate adapted version via AI
     if (isGeminiConfigured()) {
       try {
+        // Best-effort: fold THIS student's evolving learning model into the
+        // adaptation input so the AI matches their help level / strengths /
+        // growth areas / best strategies — not just their learning style.
+        // buildStudentModel never throws; on any failure fall back to '' so
+        // adaptation is never broken.
+        let studentModelStr = '';
+        try { studentModelStr = studentModelToPrompt(await buildStudentModel(student.id)); } catch {}
+
         const prompt = `You are an expert adaptive education specialist. Transform this assignment for a specific student's learning style.
 
 ORIGINAL ASSIGNMENT:
@@ -171,7 +180,7 @@ Name: ${student.name}
 Primary Learning Style: ${effectiveStyle}
 Learning Needs: ${learningNeeds.join(', ') || 'None specified'}
 Preferred Formats: ${preferredFormats.join(', ') || 'Not specified'}
-
+${studentModelStr ? `\n${studentModelStr}\n` : ''}
 ADAPTATION INSTRUCTIONS:
 ${stylePrompt}
 

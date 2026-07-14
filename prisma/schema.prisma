@@ -472,6 +472,9 @@ model User {
   uploadedExchangeItems ExchangeItem[]    @relation("UploadedExchangeItems")
   exchangeRequests      ExchangeRequest[] @relation("CreatedExchangeRequests")
 
+  // v18: AI-authored, evolving per-student learning note (the "3rd folder").
+  studentNote      StudentNote?
+
   @@index([email])
   @@index([role])
   @@index([districtId])
@@ -1158,6 +1161,35 @@ model StudentSurvey {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("student_surveys")
+}
+
+// ─── 1c. AI STUDENT NOTE (the evolving "what the AI knows about this learner") ─
+//
+// v18: one AI-authored note per student that the model writes and re-writes as
+// evidence accrues (graded assignments, tutor sessions). This is the read+write
+// heart of "the AI learns from each student": buildStudentModel() reads it into
+// tutoring/adaptation prompts, and updateStudentNoteFromEvent() re-derives it
+// after each learning event. Fields are intentionally simple + JSON-string
+// arrays to match this schema's existing convention (no arrays/enums at rest).
+model StudentNote {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  helpLevel     String   @default("moderate") // "independent" | "moderate" | "high" | "intensive"
+  summary       String   @default("") @db.Text // AI narrative: where this student is right now
+  strengths     String   @default("[]") @db.Text // JSON string[] — what they do well
+  growthAreas   String   @default("[]") @db.Text // JSON string[] — where they need support
+  strategies    String   @default("[]") @db.Text // JSON string[] — best ways THIS student learns
+  confidence    Float    @default(0.2)          // 0–1: how much evidence backs the note
+  dataPoints    Int      @default(0)            // count of learning signals folded in so far
+  lastEventType String?                          // "graded_assignment" | "tutor_session" | ...
+  aiGenerated   Boolean  @default(false)        // false = deterministic fallback, true = AI-written
+  history       String   @default("[]") @db.Text // JSON: append-only revision log for the timeline
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_notes")
 }
 
 // ─── 2. FOCUS SESSIONS ───────────────────────────────────────────────────

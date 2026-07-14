@@ -13,7 +13,7 @@ import {
 } from '@/lib/demo-data';
 import toast from 'react-hot-toast';
 import {
-  Users, Search, User, TrendingUp, BookOpen, Brain, ArrowLeft, BarChart3, Clock,
+  Users, Search, User, TrendingUp, BookOpen, Brain, ArrowLeft, BarChart3, Clock, FolderOpen,
 } from 'lucide-react';
 import EmptyState from '@/components/ui/EmptyState';
 import Link from 'next/link';
@@ -413,6 +413,13 @@ export default function TeacherStudentsPage() {
                     <p className="text-[10px] text-gray-400">Done</p>
                   </div>
                 </div>
+                <Link
+                  href={`/teacher/students/${student.id}${demoSuffix}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-primary-100 dark:border-primary-900/40 px-3 py-2 text-xs font-medium text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition"
+                >
+                  <FolderOpen size={14} /> Open student file
+                </Link>
               </motion.div>
             ))}
           </div>

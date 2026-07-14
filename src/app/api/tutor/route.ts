@@ -14,6 +14,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, apiHandler } from '@/lib/middleware';
 import { chatWithTutor } from '@/lib/ai';
+import { buildStudentModel, studentModelToPrompt, updateStudentNoteFromEvent } from '@/lib/student-model';
 import { requireProductEntitlement } from '@/lib/entitlement';
 import type { PrismaClient } from '@prisma/client';
 
@@ -150,10 +151,21 @@ export const POST = apiHandler(async (req: Request) => {
     }
   }
 
+  // ── Build the per-student learning model (best-effort) ──
+  // Read path: splice a compact, personalized guidance block into the tutor
+  // prompt. Never throws — an empty string on any failure keeps the tutor
+  // working exactly as before.
+  let studentModelStr = '';
+  try {
+    studentModelStr = studentModelToPrompt(await buildStudentModel(user.id));
+  } catch {
+    // best-effort — fall back to no model
+  }
+
   // ── Get AI response (always works — has built-in demo fallback) ──
   // v13.3.0 (Update 2.8): capture aiError so the client can tell when the
   // response is demo filler vs. a real AI answer.
-  const { content, tokensUsed, aiGenerated, aiError } = await chatWithTutor(messages, tutorContext, surveyData);
+  const { content, tokensUsed, aiGenerated, aiError } = await chatWithTutor(messages, tutorContext, surveyData, studentModelStr || undefined);
 
   // ── Save AI response to DB (best-effort) ──
   if (prisma) {
@@ -171,6 +183,24 @@ export const POST = apiHandler(async (req: Request) => {
     } catch (e) {
       console.warn('[TUTOR] Failed to save AI response:', (e as Error).message);
     }
+  }
+
+  // ── Fold this session into the student's evolving note (best-effort) ──
+  // Write path: THROTTLED — re-deriving the note calls Gemini, so only fire
+  // every 4th message rather than on each turn. Skipped for master-demo so the
+  // demo account never mutates real StudentNote rows. Fire-and-forget: never
+  // blocks or throws into the response.
+  if (!isMasterDemo && messages.length >= 4 && messages.length % 4 === 0) {
+    updateStudentNoteFromEvent(user.id, {
+      type: 'tutor_session',
+      subject: subjectStr,
+      messageCount: messages.length,
+      transcriptSnippet: messages
+        .slice(-6)
+        .map((m) => `${m.role}: ${m.content}`)
+        .join('\n')
+        .slice(0, 1500),
+    }).catch((e) => console.warn('[TUTOR] note update failed:', (e as Error).message));
   }
 
   return NextResponse.json({

@@ -21,6 +21,7 @@ import { NextResponse } from 'next/server';
 import { requireRole, apiHandler } from '@/lib/middleware';
 import prisma from '@/lib/prisma';
 import { personalizeMaterial } from '@/lib/ai';
+import { buildStudentModel, studentModelToPrompt } from '@/lib/student-model';
 
 // v3.3: comic-format personalizations now generate real panel illustrations
 // via Gemini's image model. Six panels at ~3–6s each = ~20–30s wall clock
@@ -143,12 +144,20 @@ export const GET = apiHandler(async (req: Request) => {
       }
     : null;
 
+  // v18: fold in the evolving student model (mastery, help level, best-fit
+  // strategies, recent scores) so the rewrite matches how this learner is
+  // actually doing, not just their interests. Best-effort — the model never
+  // throws, and '' (brand-new student) leaves personalization unchanged.
+  let studentModelStr = '';
+  try { studentModelStr = studentModelToPrompt(await buildStudentModel(user.id)); } catch { /* best-effort */ }
+
   const result = await personalizeMaterial({
     title: material.title,
     body: material.body,
     subject: material.subject,
     gradeLevel: material.gradeLevel,
     survey: surveyInput,
+    studentModel: studentModelStr || undefined,
   });
 
   // Persist the cache (upsert so a refresh overwrites)
